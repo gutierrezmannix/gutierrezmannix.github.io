@@ -26,4 +26,4 @@ As an International Student my work experience has been limited to within-school
 
 ### Contact me
 
-[email@domain.com](mailto:emaeeil@domain.com)
+[email@domain.com](mailto:cxg172030@utdallas.edu)
