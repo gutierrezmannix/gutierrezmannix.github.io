@@ -15,7 +15,6 @@ My long-term goal is to get a job in the public sector, preferably in the fields
 As an International Student my work experience has been limited to within-school work. Yet this has not limited my drive towards participating actively within the academic setting. For instance, I have worked in the positions of Tutor, Research Assistant, Teaching Assistant, Instructor and Part-Time Lecturer. Moreover, with the help of professors and peers, I have been able to publish a few academic works which are diverse in their topics. An example of this is my research into language assimilation in the U.S.-Mexico border, a piece of research which helped illustrate the current status quo of Hispanics living on the U.S side of the border. My research, however, has also covered areas such as surveillance and security in Mexico and Organized Violence in Mexico.  Further, I have presented my research in six different academic conferences and this has allowed me to develop a taste for the academic field. 
 
 
-The easiest way to make your first post is to edit this one. Go into /_posts/ and update the Hello World markdown file. For more instructions head over to the [Jekyll Now repository](https://github.com/barryclark/jekyll-now) on GitHub.
 
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
