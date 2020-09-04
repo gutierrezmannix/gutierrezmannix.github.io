@@ -7,6 +7,8 @@ title: Hello, Welcome to my website.
 ### About me
 
 [Publication on Mexico: The SAGE Encyclopedia of SURVEILLANCE,SECURITY, AND PRIVACY](/images/MexicoSagePublication.pdf)
+
+
 [Publication on Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
 My long-term goal is to get a job in the public sector, preferably in the fields of social policy, demographics or electoral policy. I understand that the public sector is the backbone os society and I feel a strong responsibility to give back to the society that has given me so much. 
