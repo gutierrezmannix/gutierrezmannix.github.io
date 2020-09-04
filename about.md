@@ -17,6 +17,8 @@ Graduate Teaching Certificate     University of Texas at Dallas (2020)
 Masters of Public Policy and Management University of Texas Rio Grande Valley (2016)
 
 ### Bachelor
+[Bachelor]
+
 Sociology (Cum Laude) University of Texas at Brownsville (2013)
 
 ### More Information
