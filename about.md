@@ -8,15 +8,15 @@ EDUCATION
 ---
 PhD Student in Political Science. University of Texas at Dallas (2017- ongoing)
 
-Master of Political Science.      University of Texas at Dallas (2020)
+Masters of Political Science.      University of Texas at Dallas (2020)
 
 Graduate Certificate in Economic & Demographic Data Analysis University of Texas at Dallas; Dallas (2020)
 
 Graduate Teaching Certificate     University of Texas at Dallas (2020)
 
-Master of Public Policy and Management University of Texas Rio Grande Valley (2016)
+Masters of Public Policy and Management University of Texas Rio Grande Valley (2016)
 
-Bacherlo in Sociology (Cum Laude) University of Texas at Brownsville (2013)
+### Bachelor in Sociology (Cum Laude) University of Texas at Brownsville (2013)
 
 ### More Information
 
