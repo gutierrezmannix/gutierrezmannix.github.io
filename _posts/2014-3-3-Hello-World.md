@@ -17,10 +17,13 @@ Also, I am currently providing Govt-2305 Introduction to National Government at 
 
 ### Publications
 
+Publication on Drug Violence in Mexico
 [Book Chapter, Chapter 7    in Organized Violence: Capitalist Warfare in Latin America](https://read.amazon.com/kp/embed?asin=B07S5XFNKP&preview=newtab&linkCode=kpe&ref_=cm_sw_r_kb_dp_X2NuFbJJZDT1A)
 
+Publication on surveillance in Mexico
 [Publication on Mexico: The SAGE Encyclopedia of SURVEILLANCE,SECURITY, AND PRIVACY](/images/MexicoSagePublication.pdf)
 
+Publication on Linguistics at the US-Mexico border
 [Publication on Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
 
