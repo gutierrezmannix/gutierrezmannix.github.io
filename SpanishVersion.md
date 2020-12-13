@@ -60,4 +60,4 @@ Publicacion sobre la lingüística en la frontera Mexico-Estados Unidos en Revis
 
 ### Contacto
 
-[CLICK Para Email](mailto:cxg172030@utdallas.edu)
+[CLICK para mandar email](mailto:cxg172030@utdallas.edu)
