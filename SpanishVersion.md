@@ -11,7 +11,7 @@ Durante mi etapa como Estudiante Internacional he trabajado en los puestos de Tu
 Actualmente estoy trabajando para mi tesis doctoral en la que haré uso de la API de Twitter para estudiar e investigar el comportamiento político de los políticos latinos en los Estados Unidos.
 
 
-Tambien actualmente me encuentro dando clases a alumnos de primer año de Universidad
+Tambien actualmente me encuentro dando clases a alumnos de primer año en la Universidad de Texas, Campus Dallas
 
 
 Educación Academica
