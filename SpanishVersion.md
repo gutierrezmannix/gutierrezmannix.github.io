@@ -14,7 +14,7 @@ Actualmente estoy trabajando para mi tesis doctoral en la que haré uso de la AP
 Tambien actualmente me encuentro dando clases a alumnos de primer año de Universidad
 
 
-EDUCACION
+Educación Academica
 ---
 ### DOCTORADO
 Ciencias Politicas. University of Texas at Dallas (En progreso 2022)
