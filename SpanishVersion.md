@@ -36,7 +36,9 @@ Sociologia (Cum Laude) University of Texas at Brownsville (2013)
 
 ### Campos de Estudio:
 Ciencias Politicas
+
 Politica Publica
+
 Sociologia
 
 ### Publicaciones de mi autoria:
