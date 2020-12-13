@@ -12,6 +12,8 @@ My long-term goal is to get a job in the public sector, preferably in the fields
 During my time as an International Student I have worked in the positions of Tutor, Research Assistant, Teaching Assistant, Instructor and Part-Time Lecturer. Moreover, with the help of professors and peers, I have been able to publish a few academic works which are diverse in their topics. An example of this is my research into language assimilation in the U.S.-Mexico border, a piece of research which helped illustrate the current status quo of Hispanics living on the U.S side of the border. My research, however, has also covered areas such as surveillance and security in Mexico and Organized Violence in Mexico.  Lastly, I have presented my research in six different academic conferences and this has allowed me to develop a taste for the academic field. 
 
 I am currently working towards my doctoral dissertation in which I will make use of Twitter API to study and research political behavior by Latino politicians in The United States. 
+
+
 Also, I am currently providing Govt-2305 Introduction to National Government at the University of Texas at Dallas.
 
 ### Publications
