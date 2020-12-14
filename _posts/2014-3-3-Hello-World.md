@@ -27,11 +27,10 @@ Publication on Linguistics at the US-Mexico border
 [Publication on Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
 ### Ongoing research
-Paper using an Application Programming Interface with Twitter
 
-Twitter and the Electoral Connection
+Research & Future Puvlication using an Application Programming Interface with Twitter
+
 Forthcoming 2021
-
 [The Twitter Connection](/images/TwitterConnection.docx)
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
