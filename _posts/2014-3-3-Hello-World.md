@@ -37,3 +37,8 @@ Forthcoming 2021
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
 Written December 2020
+
+### Contact me
+
+[Click to send email](mailto:cxg172030@utdallas.edu)
+
