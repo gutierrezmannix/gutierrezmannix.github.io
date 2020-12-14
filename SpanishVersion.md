@@ -29,7 +29,7 @@ Politica Publica y Administracion University of Texas Rio Grande Valley (2016)
 Analisis de Datos Economicos y Demograficos University of Texas at Dallas; Dallas (2020)
 
 ### Especialidad de Posgrado
-Educacion University of Texas at Dallas (2020)
+Pedagogía University of Texas at Dallas (2020)
 
 ### Licenciatura
 Sociologia (Cum Laude) University of Texas at Brownsville (2013)
