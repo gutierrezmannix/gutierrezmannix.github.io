@@ -64,5 +64,4 @@ Proximo 2021
 Diciembre 2020
 
 ### Contacto
-
-[CLICK para mandar email](mailto:cxg172030@utdallas.edu)
+[Click para mandar email](mailto:cxg172030@utdallas.edu)
