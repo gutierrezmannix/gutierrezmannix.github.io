@@ -56,6 +56,16 @@ Publicacion sobre la lingüística en la frontera Mexico-Estados Unidos en Revis
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
+### Investigación Reciente
+Usando una la interfaz de programación de aplicaciones.
+
+Proximo 2021
+[The Twitter Connection](/images/TwitterConnection.docx)
+
+![_config.yml]({{ site.baseurl }}/images/utd1.png)
+![_config.yml]({{ site.baseurl }}/images/utd2.png)
+
+
 Diciembre 2020
 
 ### Contacto
