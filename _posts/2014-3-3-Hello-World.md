@@ -26,6 +26,11 @@ Publication on surveillance in Mexico
 Publication on Linguistics at the US-Mexico border
 [Publication on Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
+### Ongoing research
+Publication using an Application Programming Interface with Twitter
+Twitter and the Electoral Connection
+Thomas Gray and Carlos Gutierrez Mannix
+Forthcoming 2021
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
