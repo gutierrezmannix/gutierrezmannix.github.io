@@ -31,4 +31,4 @@ Political Science, Public Policy & Sociology
 
 ### Contact me
 
-[CLICK to send email](mailto:cxg172030@utdallas.edu)
+[Click to send email](mailto:cxg172030@utdallas.edu)
