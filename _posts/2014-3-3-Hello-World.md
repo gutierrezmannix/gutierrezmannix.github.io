@@ -29,7 +29,6 @@ Publication on Linguistics at the US-Mexico border
 ### Ongoing research
 Publication using an Application Programming Interface with Twitter
 Twitter and the Electoral Connection
-Thomas Gray and Carlos Gutierrez Mannix
 
 Forthcoming 2021
 
