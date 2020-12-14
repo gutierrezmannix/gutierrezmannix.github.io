@@ -13,7 +13,7 @@ During my time as an International Student I have worked in the positions of Tut
 
 I am currently working towards my doctoral dissertation in which I will make use of Twitter API to study and research political behavior by Latino politicians in The United States. 
 
-Also, I am currently offering GOVT-2305 Introduction to National Government at the University of Texas at Dallas.
+Also, I am currently offering GOVT-2305 American National Government at the University of Texas at Dallas.
 
 ### Publications
 
