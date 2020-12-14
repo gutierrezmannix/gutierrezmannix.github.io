@@ -35,7 +35,7 @@ Forthcoming 2021
 
 [The Twitter Connection](/images/new.jpg)
 
-[The Twitter Connection](/images/TwtterConnection.docx)
+[The Twitter Connection](/images/TwitterConnection.docx)
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
