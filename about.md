@@ -10,13 +10,13 @@ EDUCATION
 Political Science. University of Texas at Dallas (2017- ongoing)
 
 ### Masters
-Political Science. University of Texas at Dallas (Fall, 2020)
+Political Science. University of Texas at Dallas (Fall 2020)
 
 ### Masters
 Public Policy and Management University of Texas Rio Grande Valley (2016)
 
 ### Graduate Certificate
-Economic & Demographic Data Analysis University of Texas at Dallas; Dallas (Fall, 2020)
+Economic & Demographic Data Analysis University of Texas at Dallas (Fall 2020)
 
 ### Graduate Teaching Certificate
 University of Texas at Dallas (2020)
