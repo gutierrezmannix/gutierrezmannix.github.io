@@ -52,10 +52,6 @@ Publicacion en Enciclopedia de Seguridad SAGE
 Publicacion sobre la lingüística en la frontera Mexico-Estados Unidos en Revista Universitaria. 
 [Publication on Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
-
-![_config.yml]({{ site.baseurl }}/images/utd1.png)
-![_config.yml]({{ site.baseurl }}/images/utd2.png)
-
 ### Investigación Reciente
 Usando una la interfaz de programación de aplicaciones.
 
@@ -64,7 +60,6 @@ Proximo 2021
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
-
 
 Diciembre 2020
 
