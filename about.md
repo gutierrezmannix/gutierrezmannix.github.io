@@ -4,7 +4,7 @@ title: About
 permalink: /about/
 ---
 
-EDUCATION
+### EDUCATION
 ---
 ### PhD Education
 Political Science. University of Texas at Dallas (2017- ongoing)
@@ -23,6 +23,9 @@ University of Texas at Dallas (2020)
 
 ### Bachelor
 Sociology (Cum Laude) University of Texas at Brownsville (2013)
+
+### Academic Experience
+---
 
 ### Fields of Interest:
 Political Science, Public Policy & Sociology
