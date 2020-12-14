@@ -28,8 +28,8 @@ Publication on Linguistics at the US-Mexico border
 
 ### Ongoing research
 Publication using an Application Programming Interface with Twitter
-Twitter and the Electoral Connection
 
+Twitter and the Electoral Connection
 Forthcoming 2021
 
 [The Twitter Connection](/images/TwitterConnection.docx)
