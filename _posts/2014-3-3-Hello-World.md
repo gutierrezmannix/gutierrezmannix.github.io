@@ -29,3 +29,5 @@ Publication on Linguistics at the US-Mexico border
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
+
+Written December 2020
