@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Hola, Bienvenidos Todos
+title: Hola, Bienvenido a mi pagina
 permalink: /SpanishVersion/
 ---
 
