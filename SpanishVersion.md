@@ -56,7 +56,7 @@ Publicacion sobre la lingüística en la frontera Mexico-Estados Unidos en Revis
 Usando una la interfaz de programación de aplicaciones.
 
 Proximo 2021
-[The Twitter Connection](/images/TwitterConnection.docx)
+[The Twitter Connection](/images/TwitterConnection.pdf)
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
