@@ -31,7 +31,7 @@ Publication on Linguistics at the US-Mexico border
 Research & future publication using an Application Programming Interface with Twitter
 
 Forthcoming 2021
-[The Twitter Connection](/images/TwitterConnection.docx)
+[The Twitter Connection](/images/TwitterConnection.pdf)
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
