@@ -14,7 +14,7 @@ Actualmente estoy trabajando en mi tesis doctoral en la que haré uso de una int
 Tambien actualmente me encuentro dando clases de Gobierno y Politica Nacional a alumnos de primer año en la Universidad de Texas, Campus Dallas
 
 
-Educación Academica
+###Educación Academica:
 ---
 ### Doctorado
 Ciencias Politicas. University of Texas at Dallas (En progreso 2022)
@@ -33,6 +33,8 @@ Pedagogía University of Texas at Dallas (2020)
 
 ### Licenciatura
 Sociologia (Cum Laude) University of Texas at Brownsville (2013)
+
+###Experiencia en el campo Académico:
 
 ### Campos de Interés:
 Ciencias Politicas 
