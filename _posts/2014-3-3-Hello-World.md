@@ -31,6 +31,8 @@ Publication using an Application Programming Interface with Twitter
 Twitter and the Electoral Connection
 Thomas Gray and Carlos Gutierrez Mannix
 Forthcoming 2021
+[The Twitter Connection](/images/new.jpg)
+
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
