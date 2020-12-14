@@ -16,22 +16,22 @@ Tambien actualmente me encuentro dando clases a alumnos de primer año en la Uni
 
 Educación Academica
 ---
-### DOCTORADO
+### Doctorado
 Ciencias Politicas. University of Texas at Dallas (En progreso 2022)
 
-### MAESTRIA
+### Maestría
 Ciencias Politicas University of Texas at Dallas (2020)
 
-### MAESTRIA
+### Maestría
 Politica Publica y Administracion University of Texas Rio Grande Valley (2016)
 
-### ESPECIALIDAD DE POSGRADO
+### Especialidad de Posgrado
 Analisis de Datos Economicos y Demograficos University of Texas at Dallas; Dallas (2020)
 
-### ESPECIALIDAD DE POSGRADO EN EDUCACION
-University of Texas at Dallas (2020)
+### Especialidad de Posgrado
+Educacionn University of Texas at Dallas (2020)
 
-### LICENCIATURA
+### Licenciatura
 Sociologia (Cum Laude) University of Texas at Brownsville (2013)
 
 ### Campos de Estudio:
@@ -56,7 +56,7 @@ Publicacion sobre la lingüística en la frontera Mexico-Estados Unidos en Revis
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
-
+Diciembre 2020
 
 ### Contacto
 
