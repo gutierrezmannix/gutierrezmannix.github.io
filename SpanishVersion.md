@@ -8,10 +8,10 @@ Mi objetivo a largo plazo es conseguir un trabajo en el sector público, preferi
 
 Durante mi etapa como Estudiante Internacional he trabajado en los puestos de Tutor, Asistente de Investigación, Asistente de Docencia, Instructor y Maestro universitario de medio tiempo. Además, con la ayuda de profesores y compañeros, he podido publicar algunos trabajos académicos que son diversos en sus temas. Un ejemplo de esto es mi investigación sobre la asimilación del idioma en la frontera entre Estados Unidos y México, una investigación que ayudó a ilustrar el status quo actual de los hispanos que viven en el lado estadounidense de la frontera. Sin embargo, mi investigación también ha abarcado áreas como la vigilancia y seguridad en México y la violencia organizada en México. Por último, he presentado mi investigación en seis congresos académicos diferentes y esto me ha permitido desarrollar el gusto por el campo académico.
 
-Actualmente estoy trabajando para mi tesis doctoral en la que haré uso de la API de Twitter para estudiar e investigar el comportamiento político de los políticos latinos en los Estados Unidos.
+Actualmente estoy trabajando en mi tesis doctoral en la que haré uso de una interfaz de programación de aplicaciones con Twitter. En este estudio codifico miles de tweets para estudiar e investigar el comportamiento de los políticos hispanos en los Estados Unidos.
 
 
-Tambien actualmente me encuentro dando clases a alumnos de primer año en la Universidad de Texas, Campus Dallas
+Tambien actualmente me encuentro dando clases de Gobierno y Politica Nacional a alumnos de primer año en la Universidad de Texas, Campus Dallas
 
 
 Educación Academica
