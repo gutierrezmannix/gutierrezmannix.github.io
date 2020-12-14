@@ -34,7 +34,7 @@ Pedagogía University of Texas at Dallas (2020)
 ### Licenciatura
 Sociologia (Cum Laude) University of Texas at Brownsville (2013)
 
-### Campos de Estudio:
+### Campos de Interés:
 Ciencias Politicas 
 Politica Publica
 Sociologia
