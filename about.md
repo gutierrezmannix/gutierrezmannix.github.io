@@ -31,7 +31,7 @@ TEACHING EXPERIENCE
 1. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         Spring 2021
 
-2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies. 
+2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
 Teaching Assistant (in Doctoral Program)                2017- ongoing 
  
 3. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
