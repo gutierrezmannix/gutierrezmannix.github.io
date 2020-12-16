@@ -69,7 +69,7 @@ Como Asistente de Educación
 
 • PSCI 4310 Ley y Terrorismo              (2020) 
 
-• PSCI 3303 Libertades Civiles            (Fall 2020) 
+• PSCI 3303 Libertades Civiles            (2020) 
 
 
 ### Campos de Interés:
