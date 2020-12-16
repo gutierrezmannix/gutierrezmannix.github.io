@@ -41,7 +41,7 @@ Instructor         Summer 2020
 Lecturer         2016-2017 
  
  
-COURSES OFFERED   
+Courses Offered   
 ---
 • PAFF-4325-90L- Introduction to Public Personnel Management (2016 - 2017) 
 
@@ -50,6 +50,7 @@ COURSES OFFERED
 • GSST-4315-90L- Global Security Studies                     (2016 - 2017) 
 
 • GOVT 2306 State and Local Government                       (Summer 2020) 
+
 
  Participation as a Teaching Assistant
 
