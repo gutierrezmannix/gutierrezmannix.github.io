@@ -41,7 +41,7 @@ Sociologia (Cum Laude) University of Texas at Brownsville (2013)
 Instructor         2021
 
 2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
-Asistente de Educación                2017- ongoing 
+Asistente de Educación    2017-2020
  
 3. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         2020 
@@ -58,7 +58,7 @@ Clases ofrecidas
 
 • GSST-4315-90L-Estudios de Seguridad Internacional                    (2016 - 2017) 
 
-• GOVT-2306-Introducción a la administración de Gobierno Estatal y Local(2020) 
+• GOVT-2306-Introducción a administración de Gobierno Estatal y Local  (2020) 
 
 
 Como Asistente de Educación
