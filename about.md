@@ -50,10 +50,9 @@ COURSES OFFERED
 • GSST-4315-90L- Global Security Studies                     (2016 - 2017) 
 
 • GOVT 2306 State and Local Government                       (Summer 2020) 
- 
-Participation as a Teaching Assistant
+ Participation as a Teaching Assistant
+---
 
---- 
 • GOVT 2305 National Government             (2017-2020)
 
 • PSCI   4310  Law and Terrorism           (Spring 2020) 
