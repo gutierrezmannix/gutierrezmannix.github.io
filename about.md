@@ -29,7 +29,7 @@ Sociology (Cum Laude) University of Texas at Brownsville (2013)
 TEACHING EXPERIENCE 
  
 1. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
-Instructor         Summer 2020 
+Instructor         Spring 2021
 
 2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies. 
 Teaching Assistant (in Doctoral Program)                2017- ongoing 
