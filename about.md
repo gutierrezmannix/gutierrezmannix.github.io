@@ -4,7 +4,7 @@ title:
 permalink: /about/
 ---
 
-### EDUCATION
+### Education
 ---
 ### PhD Education
 Political Science. University of Texas at Dallas (2017- ongoing)
