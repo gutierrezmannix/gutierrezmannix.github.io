@@ -51,6 +51,7 @@ COURSES OFFERED
 
 • GOVT 2306 State and Local Government                       (Summer 2020) 
  Participation as a Teaching Assistant
+
 ---
 
 • GOVT 2305 National Government             (2017-2020)
