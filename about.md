@@ -50,6 +50,7 @@ COURSES OFFERED
 • GSST-4315-90L- Global Security Studies                     (2016 - 2017) 
 
 • GOVT 2306 State and Local Government                       (Summer 2020) 
+
  Participation as a Teaching Assistant
 
 ---
