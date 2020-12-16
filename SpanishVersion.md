@@ -36,6 +36,42 @@ Sociologia (Cum Laude) University of Texas at Brownsville (2013)
 
 ### Experiencia en el campo Académico:
 
+ 
+1. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
+Instructor         Spring 2021
+
+2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
+Asistente de Educación                2017- ongoing 
+ 
+3. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
+Instructor         Summer 2020 
+ 
+4. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
+Maestro         2016-2017 
+ 
+ 
+Clases ofrecidas   
+---
+• PAFF-4325-90L- Introducción a la administración de recursos humanos (2016 - 2017) 
+
+• PAFF-4300-90L-Introducción a la administración publica              (2016 - 2017) 
+
+• GSST-4315-90L-Estudios de Seguridad Internacional                    (2016 - 2017) 
+
+• GOVT-2306-Introducción a la administración de Gobierno Estatal y Local(Summer 2020) 
+
+
+Como Asistente de Educación
+
+---
+
+• GOVT 2305 Gobierno Nacional             (2017-2020)
+
+• PSCI 4310 Ley y Terrorismo              (Spring 2020) 
+
+• PSCI 3303 Libertades Civiles            (Fall 2020) 
+
+
 ### Campos de Interés:
 Ciencias Politicas 
 
