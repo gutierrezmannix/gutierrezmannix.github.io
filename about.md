@@ -24,7 +24,6 @@ University of Texas at Dallas (2020)
 Sociology (Cum Laude) University of Texas at Brownsville (2013)
 
 ## Academic Experience
----
 ### TEACHING EXPERIENCE 
  
 1. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
