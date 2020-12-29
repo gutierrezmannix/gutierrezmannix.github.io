@@ -26,7 +26,7 @@ Ciencias Politicas University of Texas at Dallas (2020)
 Politica Publica y Administracion University of Texas Rio Grande Valley (2016)
 
 ### Especialidad de Posgrado
-Analisis de Datos Economicos y Demograficos University of Texas at Dallas; Dallas (2020)
+Analisis de Datos Economicos y Demograficos University of Texas at Dallas (2020)
 
 ### Especialidad de Posgrado
 Pedagogía University of Texas at Dallas (2020)
