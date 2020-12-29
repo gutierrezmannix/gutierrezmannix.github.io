@@ -50,7 +50,8 @@ Instructor         2020
 Maestro         2016-2017 
  
  
-Clases ofrecidas   
+###Clases ofrecidas   
+
 ---
 • PAFF-4325-90L-Introducción a la administración de recursos humanos  (2016 - 2017) 
 
@@ -61,7 +62,7 @@ Clases ofrecidas
 • GOVT-2306-Introducción a Gobierno y Politica Estatal y Local        (2020) 
 
 
-Como Asistente de Educación
+###Como Asistente de Educación
 
 ---
 
