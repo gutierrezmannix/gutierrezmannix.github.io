@@ -10,6 +10,7 @@ Compiled Tweet Data on Tweets by Hispanic Members of Congress
 
 STATA Data
 [Sample Data: Tweets in Spanih & English](/images/EngSpanTweets.dta)
+
 SPSS Data
 [Sample Data: Tweets in Spanih & English](/images/EngSpanTweets.sav)
 
