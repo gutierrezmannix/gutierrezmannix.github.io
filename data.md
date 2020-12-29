@@ -11,10 +11,11 @@ permalink: /data/
 #### STATA version
 [Download](/images/EngSpanTweets.dta)
 
-##### SPSS version
+#### SPSS version
 [Download](/images/EngSpanTweets.sav)
 
-December 2020
 
+
+December 2020
 ### Contact
 [Click for Email](mailto:cxg172030@utdallas.edu)
