@@ -22,7 +22,7 @@ University of Texas at Dallas (2020)
 Sociology (Cum Laude) University of Texas at Brownsville (2013)
 
 ## Academic Experience
-### Teaching Experience 
+#### Teaching Experience 
  
 1. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         Spring 2021
@@ -56,10 +56,10 @@ Lecturer         2016-2017
 
 • PSCI   3303 Civil Liberties              (Fall 2020) 
 
-## Fields of Interest:
+### Fields of Interest:
 Political Science, Public Policy & Sociology
 
 
-### Contact me
+## Contact me
 
 [Click to send email](mailto:cxg172030@utdallas.edu)
