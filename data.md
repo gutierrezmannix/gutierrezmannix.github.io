@@ -8,9 +8,11 @@ permalink: /data/
 
 ### Sample Tweet Data: English & Spanish Tweets by Hispanic Members of Congress
 
-#### STATA version[Download](/images/EngSpanTweets.dta)
+#### STATA version
+[Download](/images/EngSpanTweets.dta)
 
-#### SPSS version[Download](/images/EngSpanTweets.sav)
+##### SPSS version
+[Download](/images/EngSpanTweets.sav)
 
 
 
