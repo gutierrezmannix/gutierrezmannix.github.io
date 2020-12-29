@@ -4,15 +4,15 @@ title: Data
 permalink: /data/
 ---
 
-Data on research about Political Communication by Hispanic Members of Congress
+## Data on about Political Communication by Hispanic Members of Congress
 
-Compiled Tweet Data on Tweets by Hispanic Members of Congress
+Compiled Tweet Data: Tweets by Hispanic Members of Congress
 
 STATA Data
-[Sample Data: Tweets in Spanih & English](/images/EngSpanTweets.dta)
+[Sample Data: Tweets in Spanish & English](/images/EngSpanTweets.dta)
 
 SPSS Data
-[Sample Data: Tweets in Spanih & English](/images/EngSpanTweets.sav)
+[Sample Data: Tweets in Spanish & English](/images/EngSpanTweets.sav)
 
 
 
