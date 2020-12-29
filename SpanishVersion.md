@@ -15,7 +15,7 @@ Tambien actualmente me encuentro dando clases de Gobierno y Politica Nacional a 
 
 
 ## Educación Académica:
----
+
 ### Doctorado
 Ciencias Politicas. University of Texas at Dallas (En progreso 2022)
 
