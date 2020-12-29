@@ -3,22 +3,22 @@ layout: page
 title: Education
 permalink: /about/
 ---
-### PhD Education
+#### PhD Education
 Political Science. University of Texas at Dallas (2017- ongoing)
 
-### Masters
+#### Masters
 Political Science. University of Texas at Dallas (Fall 2020)
 
-### Masters 
+#### Masters 
 Public Policy and Management. University of Texas Rio Grande Valley (2016)
 
-### Graduate Certificate
+#### Graduate Certificate
 Economic & Demographic Data Analysis. University of Texas at Dallas (Fall 2020)
 
-### Graduate Teaching Certificate
+#### Graduate Teaching Certificate
 University of Texas at Dallas (2020)
 
-### Bachelor
+#### Bachelor
 Sociology (Cum Laude) University of Texas at Brownsville (2013)
 
 ## Academic Experience
