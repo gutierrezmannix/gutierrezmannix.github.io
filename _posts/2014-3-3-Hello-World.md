@@ -37,3 +37,47 @@ Written December 2020
 #### Contact me
 
 [Click to send email](mailto:cxg172030@utdallas.edu)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
