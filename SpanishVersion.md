@@ -76,13 +76,13 @@ Sociologia
 ### Publicaciones de mi autoria:
 
 Capitulo en libro sobre la violencia en Mexico
-[Book Chapter, Chapter 7    in Organized Violence: Capitalist Warfare in Latin America](https://read.amazon.com/kp/embed?asin=B07S5XFNKP&preview=newtab&linkCode=kpe&ref_=cm_sw_r_kb_dp_X2NuFbJJZDT1A)
+[Publicación](https://read.amazon.com/kp/embed?asin=B07S5XFNKP&preview=newtab&linkCode=kpe&ref_=cm_sw_r_kb_dp_X2NuFbJJZDT1A)
 
 Publicacion en Enciclopedia de Seguridad SAGE
-[Publication on Mexico: The SAGE Encyclopedia of SURVEILLANCE,SECURITY, AND PRIVACY](/images/MexicoSagePublication.pdf)
+[Publicación](/images/MexicoSagePublication.pdf)
 
 Publicacion sobre la lingüística en la frontera Mexico-Estados Unidos en Revista Universitaria. 
-[Publication on Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
+[Publicación](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
 ### Investigación Reciente
 Usando una la interfaz de programación de aplicaciones.
