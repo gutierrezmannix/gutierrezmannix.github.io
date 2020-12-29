@@ -34,7 +34,7 @@ Forthcoming 2021
 
 Written December 2020
 
-### Contact me
+#### Contact me
 
 [Click to send email](mailto:cxg172030@utdallas.edu)
 
