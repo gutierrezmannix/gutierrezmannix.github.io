@@ -3,8 +3,6 @@ layout: page
 title: Education
 permalink: /about/
 ---
-
-## Education
 ### PhD Education
 Political Science. University of Texas at Dallas (2017- ongoing)
 
