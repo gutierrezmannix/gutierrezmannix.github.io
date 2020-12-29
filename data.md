@@ -2,6 +2,7 @@
 layout: page
 title: Data
 permalink: /data/
+---
 
 ## Political Communication by Hispanic Members of Congress
 
