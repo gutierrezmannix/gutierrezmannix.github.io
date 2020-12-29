@@ -5,6 +5,7 @@ permalink: /data/
 ---
 
 Data on research about Political Communication by Hispanic Members of Congress
+
 Compiled Tweet Data on Tweets by Hispanic Members of Congress
 
 STATA Data
