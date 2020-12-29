@@ -22,16 +22,16 @@ Ciencias Politicas. University of Texas at Dallas (En progreso 2022)
 #### Maestría
 Ciencias Politicas University of Texas at Dallas (2020)
 
-### Maestría
+#### Maestría
 Politica Publica y Administracion University of Texas Rio Grande Valley (2016)
 
-### Especialidad de Posgrado
+#### Especialidad de Posgrado
 Analisis de Datos Economicos y Demograficos University of Texas at Dallas (2020)
 
-### Especialidad de Posgrado
+#### Especialidad de Posgrado
 Pedagogía University of Texas at Dallas (2020)
 
-### Licenciatura
+#### Licenciatura
 Sociologia (Cum Laude) University of Texas at Brownsville (2013)
 
 ## Experiencia en el campo Académico:
