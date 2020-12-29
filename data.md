@@ -3,7 +3,7 @@ layout: page
 title: Data
 permalink: /data/
 ---
-# Political Communication by Hispanic Members of Congress
+### Political Communication by Hispanic Members of Congress
 
 Compiled Tweet Data: Tweets by Hispanic Members of Congress
 
