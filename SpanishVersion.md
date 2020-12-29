@@ -48,7 +48,7 @@ Instructor         2020
 4. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
 Maestro         2016-2017 
  
-## Clases ofrecidas   
+### Clases ofrecidas   
 
 • PAFF-4325-90L-Introducción a la administración de recursos humanos  (2016 - 2017) 
 
@@ -58,7 +58,7 @@ Maestro         2016-2017
 
 • GOVT-2306-Introducción a Gobierno y Politica Estatal y Local        (2020) 
 
-## Como Asistente de Educación
+### Como Asistente de Educación
 
 • GOVT 2305 Gobierno Nacional             (2017-2020)
 
