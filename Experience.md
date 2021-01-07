@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Education
-permalink: /about/
+permalink: /Experience/
 ---
 #### PhD Education
 Political Science. University of Texas at Dallas (2017- ongoing)
