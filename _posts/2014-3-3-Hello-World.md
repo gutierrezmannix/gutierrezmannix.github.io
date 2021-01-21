@@ -28,6 +28,10 @@ Research & future publication using an Application Programming Interface with Tw
 Forthcoming 2021
 [The Twitter Connection](/images/TwitterConnection.pdf)
 
+I am using this page to make public all data used in my research. 
+You may find current data in SPPS and STATA formats on the Data tab within this website. 
+Please let me know if I can assist you with any data related to my research. 
+
 
 
 
