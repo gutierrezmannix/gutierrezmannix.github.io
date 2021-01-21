@@ -95,8 +95,6 @@ Proximo 2021
 
 Diciembre 2020
 
-#### Estoy usando esta página para hacer públicos todos los datos utilizados en mi investigación.
-#### Puede encontrar datos actuales en formatos SPPS y STATA en la pestaña Datos dentro de este sitio web.
-#### Por favor, avíseme si puedo ayudarlo con datos relacionados a mi investigación.
+#### Estoy usando esta página para hacer públicos todos los datos utilizados en mi investigación. Puede encontrar datos actuales en formatos SPPS y STATA en la pestaña Datos dentro de este sitio web. Por favor, avíseme si puedo ayudarlo con datos relacionados a mi investigación.
 
 ## Contacto [Email](mailto:cxg172030@utdallas.edu)
