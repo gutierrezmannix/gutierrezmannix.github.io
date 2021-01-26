@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Appointments/Citas
+title: Appointments / Citas
 permalink: /appointments/
 ---
 
