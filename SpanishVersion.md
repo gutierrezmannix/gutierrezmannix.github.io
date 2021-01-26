@@ -36,16 +36,13 @@ Sociologia (Cum Laude) University of Texas at Brownsville (2013)
 
 ### Experiencia en el campo Académico:
 
-1. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
-Instructor         2021
-
-2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
+1. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
 Asistente de Educación    2017-2020
  
-3. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
+2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         2020 
  
-4. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
+3. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
 Maestro         2016-2017 
  
 ### Clases ofrecidas   
