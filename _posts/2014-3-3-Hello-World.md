@@ -32,7 +32,7 @@ Forthcoming 2021
 
 
 ### Contact me [Email](mailto:cxg172030@utdallas.edu)
-### To set an appointment please go to [Here](https://calendly.com/cxg172030/meetcarlos)
+### To set an appointment please click [Here](https://calendly.com/cxg172030/meetcarlos)
 
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
