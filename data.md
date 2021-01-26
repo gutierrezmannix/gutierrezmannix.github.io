@@ -20,7 +20,7 @@ Sample Tweet Data:
 #### 117th United States Congress(TBP)
 ---
 
-For Datasets consisting of 125,000 Tweets for the 116th and the 117th legislatures please contact me.
+For datasets consisting of 125,000 Tweets for the 116th and the 117th legislatures please contact me.
 
 ### Contact
 [Click for Email](mailto:cxg172030@utdallas.edu)
