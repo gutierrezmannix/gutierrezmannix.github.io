@@ -18,6 +18,8 @@ permalink: /data/
 #### 117th United States Congress(TBP)
 ---
 
-January 2021
+For a complete Dataset consisting of 125,000 Tweets please contact me.
+
 ### Contact
 [Click for Email](mailto:cxg172030@utdallas.edu)
+January 2021
