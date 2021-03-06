@@ -9,7 +9,7 @@ English & Spanish Tweets by Hispanic Members of Congress.
 
 Sample Tweet Data: 
 
-#### 116th United States Congress (Official Twitter accounts only)
+### 116th United States Congress (Official Twitter accounts only)
 
 #### STATA version
 [Download](/images/EngSpanTweets.dta)
@@ -17,7 +17,7 @@ Sample Tweet Data:
 #### SPSS version
 [Download](/images/EngSpanTweets.sav)
 
-#### 117th United States Congress
+### 117th United States Congress
 
 #### STATA version
 [Download](/images/117Congress.dta)
