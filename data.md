@@ -18,8 +18,12 @@ Sample Tweet Data:
 [Download](/images/EngSpanTweets.sav)
 
 #### 117th United States Congress
+
 #### STATA version
 [Download](/images/117Congress.dta)
+
+#### SPSS version
+[Download](/images/117Congress.sav)
 ---
 
 For datasets consisting of 125,000 Tweets for the 116th and the 117th legislatures please contact me.
