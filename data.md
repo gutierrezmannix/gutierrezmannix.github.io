@@ -17,7 +17,8 @@ Sample Tweet Data:
 #### SPSS version
 [Download](/images/EngSpanTweets.sav)
 
-#### All Tweets by Hispanic Members of Congress for the 117th United States Congress
+#### 117th United States Congress
+#### STATA version
 [Download](/images/117Congress.dta)
 ---
 
