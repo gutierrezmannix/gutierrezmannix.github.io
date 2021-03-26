@@ -1,8 +1,15 @@
 ---
 layout: page
-title: Education
+title: Experience
 permalink: /Experience/
 ---
+Dissertation: My dissertation is concerned with building formal models and applying empirical testing for understanding the political behavior of Hispanics in the United States Congress.
+
+Technical Skills: Data Collection Methods, R (Software), WordStat, ATLAS.ti, Stata, SPSS, RATS, EViews, Time Series Analysis, Survey Research, Multilevel Modeling, Qualitative Research Design, Social Network Analysis. 
+
+Relevant Coursework: American Politics, Courts and Policy, Congress and Policy, Civil Institutions, Policy Analysis, Electoral Law, Social Network Analysis, Political Psychology, Teaching Seminar. 
+
+
 #### PhD Education
 Political Science. University of Texas at Dallas (2017- ongoing)
 
