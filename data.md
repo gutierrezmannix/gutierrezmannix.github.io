@@ -4,9 +4,7 @@ title: Data
 permalink: /data/
 ---
 ## Political Communication by Hispanic Members of Congress
-English & Spanish Tweets by Hispanic Members of Congress. 
-
-Sample Tweet Data: 
+Sample Tweet Data:  English & Spanish Tweets by Hispanic Members of Congress. 
 
 ### 116th United States Congress (Official Twitter accounts only)
 
