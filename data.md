@@ -3,7 +3,6 @@ layout: page
 title: Data
 permalink: /data/
 ---
-
 ## Political Communication by Hispanic Members of Congress
 English & Spanish Tweets by Hispanic Members of Congress. 
 
@@ -14,8 +13,7 @@ Sample Tweet Data:
 #### STATA version
 [Download](/images/EngSpanTweets.dta)
 
-#### SPSS version
-[Download](/images/EngSpanTweets.sav)
+#### SPSS version [Download](/images/EngSpanTweets.sav)
 
 #### CSV version
 [Download](/images/EngSpanTweets.csv)
@@ -29,7 +27,7 @@ Sample Tweet Data:
 [Download](/images/117Congress.sav)
 
 #### CSV version
-[Download](/images117Congress.csv)
+[Download](/images/117Congress.csv)
 
 
 ---
