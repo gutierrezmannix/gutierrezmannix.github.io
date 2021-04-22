@@ -9,24 +9,19 @@ Sample Tweet Data:  English & Spanish Tweets by Hispanic Members of Congress.
 
 ### 116th United States Congress (Official Twitter accounts only)
 
-#### STATA version
-[Download](/images/EngSpanTweets.dta)
+#### STATA version[Download](/images/EngSpanTweets.dta)
 
 #### SPSS version [Download](/images/EngSpanTweets.sav)
 
-#### CSV version
-[Download](/images/EngSpanTweets.csv)
+#### CSV version[Download](/images/EngSpanTweets.csv)
 
 ### 117th United States Congress (Official Twitter accounts only)
 
-#### STATA version
-[Download](/images/117Congress.dta)
+#### STATA version[Download](/images/117Congress.dta)
 
-#### SPSS version
-[Download](/images/117Congress.sav)
+#### SPSS version[Download](/images/117Congress.sav)
 
-#### CSV version
-[Download](/images/117Congress.csv)
+#### CSV version[Download](/images/117Congress.csv)
 
 
 ---
