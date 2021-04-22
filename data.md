@@ -17,6 +17,9 @@ Sample Tweet Data:
 #### SPSS version
 [Download](/images/EngSpanTweets.sav)
 
+#### CSV version
+[Download](/images/EngSpanTweets.csv)
+
 ### 117th United States Congress (Official Twitter accounts only)
 
 #### STATA version
@@ -24,6 +27,9 @@ Sample Tweet Data:
 
 #### SPSS version
 [Download](/images/117Congress.sav)
+
+#### CSV version
+[Download](/images117Congress.csv)
 
 
 ---
