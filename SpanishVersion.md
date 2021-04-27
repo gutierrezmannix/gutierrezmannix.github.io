@@ -20,19 +20,19 @@ Tambien actualmente me encuentro dando clases de Gobierno y Politica Nacional a 
 Ciencias Politicas. University of Texas at Dallas (En progreso 2022)
 
 #### Maestría
-Ciencias Politicas University of Texas at Dallas (2020)
+Ciencias Politicas. University of Texas at Dallas (2020)
 
 #### Maestría
-Politica Publica y Administracion University of Texas Rio Grande Valley (2016)
+Politica Publica y Administracion. University of Texas Rio Grande Valley (2016)
 
 #### Especialidad de Posgrado
-Analisis de Datos Economicos y Demograficos University of Texas at Dallas (2020)
+Analisis de Datos Economicos y Demograficos. University of Texas at Dallas (2020)
 
 #### Especialidad de Posgrado
-Pedagogía University of Texas at Dallas (2020)
+Pedagogía. University of Texas at Dallas (2020)
 
 #### Licenciatura
-Sociologia (Cum Laude) University of Texas at Brownsville (2013)
+Sociologia(Cum Laude). University of Texas at Brownsville (2013)
 
 ### Experiencia en el campo Académico:
 
@@ -96,4 +96,4 @@ Proximo 2021
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
-Enero 2021
+Abril 2021
