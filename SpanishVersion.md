@@ -40,9 +40,12 @@ Sociologia(Cum Laude). University of Texas at Brownsville (2013)
 Asistente de Educación    2017-2020
  
 2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
+Instructor         2021
+
+3. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         2020 
  
-3. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
+4. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
 Maestro         2016-2017 
  
 ### Clases ofrecidas   
@@ -53,7 +56,10 @@ Maestro         2016-2017
 
 • GSST-4315-90L-Estudios de Seguridad Internacional                   (2016 - 2017) 
 
-• GOVT-2306-Introducción a Gobierno y Politica Estatal y Local        (2020) 
+• GOVT-2306-Introducción a Politica Estatal y Local                   (2020) 
+
+• GOVT-2305-Introducción a Politica Nacional                          (2021) 
+
 
 ### Como Asistente de Educación
 
@@ -62,6 +68,9 @@ Maestro         2016-2017
 • PSCI 4310 Ley y Terrorismo              (2020) 
 
 • PSCI 3303 Libertades Civiles            (2020) 
+
+• PSCI 4343 Congreso y Political Publica  (2021) 
+
 
 ### Campos de Interés:
 Ciencias Politicas 
@@ -96,4 +105,4 @@ Proximo 2021
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
-Abril 2021
+Mayo 2021
