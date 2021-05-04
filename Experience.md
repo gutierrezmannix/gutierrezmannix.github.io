@@ -67,7 +67,7 @@ Lecturer         2016-2017
 
 • PSCI   3303 Civil Liberties              (Fall 2020) 
 
-• PSCI   4343 Congress and Public Policy   (Fall 2021) 
+• PSCI   4343 Congress and Public Policy   (Spring 2021) 
 
 ### ACADEMIC CONFERENCES
 Please see CV tab
