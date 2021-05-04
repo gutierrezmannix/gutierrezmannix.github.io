@@ -94,8 +94,7 @@ Publicacion sobre la lingüística en la frontera Mexico-Estados Unidos en Revis
 [Publicación](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
 ### Investigación Reciente
-Usando una la interfaz de programación de aplicaciones.
-
+Usando una interfaz de programación de aplicaciones para extraer datos Twitter.
 Proximo 2021
 [The Twitter Connection](/images/TwitterConnection.pdf)
 
