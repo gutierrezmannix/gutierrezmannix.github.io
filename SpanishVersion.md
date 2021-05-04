@@ -95,6 +95,7 @@ Publicacion sobre la lingüística en la frontera Mexico-Estados Unidos en Revis
 
 ### Investigación Reciente
 Usando una interfaz de programación de aplicaciones para extraer datos Twitter.
+
 Proximo 2021
 [The Twitter Connection](/images/TwitterConnection.pdf)
 
