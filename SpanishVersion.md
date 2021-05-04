@@ -69,7 +69,7 @@ Maestro         2016-2017
 
 • PSCI 3303 Libertades Civiles            (2020) 
 
-• PSCI 4343 Congreso y Political Publica  (2021) 
+• PSCI 4343 Congreso y Politica Publica   (2021) 
 
 
 ### Campos de Interés:
