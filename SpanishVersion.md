@@ -79,6 +79,9 @@ Politica Publica
 
 Sociologia
 
+### Conferencia Académicas
+Favor de dar click en la opcion de CV en la parte superior.
+
 ### Publicaciones de mi autoria:
 
 Capitulo en libro sobre la violencia en Mexico
