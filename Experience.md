@@ -69,6 +69,9 @@ Lecturer         2016-2017
 
 • PSCI   4343 Congress and Public Policy   (Fall 2021) 
 
+### ACADEMIC CONFERENCES
+Please see CV tab
+
 ### Fields of Interest:
 Political Science, Public Policy & Sociology
 
