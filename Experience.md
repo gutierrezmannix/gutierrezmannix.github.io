@@ -38,6 +38,9 @@ Sociology (Cum Laude) University of Texas at Brownsville (2013)
 Teaching Assistant (in Doctoral Program)                2017- ongoing 
  
 2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
+Instructor         Summer 2021 
+
+2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         Summer 2020 
  
 3. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
@@ -54,6 +57,7 @@ Lecturer         2016-2017
 
 • GOVT 2306 State and Local Government                       (Summer 2020) 
 
+• GOVT 2305 National Government                              (Summer 2021) 
 
 ### Participation as a Teaching Assistant
 
@@ -62,6 +66,8 @@ Lecturer         2016-2017
 • PSCI   4310  Law and Terrorism           (Spring 2020) 
 
 • PSCI   3303 Civil Liberties              (Fall 2020) 
+
+• PSCI   4343 Congress and Public Policy   (Fall 2021) 
 
 ### Fields of Interest:
 Political Science, Public Policy & Sociology
