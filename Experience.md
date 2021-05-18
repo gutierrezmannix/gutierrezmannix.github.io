@@ -7,7 +7,7 @@ permalink: /Experience/
 My dissertation is concerned with building formal models and applying empirical testing for understanding the political behavior of Hispanics in the United States Congress.
 
 #### Technical Skills: 
-R (Software), STATA, Orange, SPSS, WordStat, ATLAS.ti, RATS, EViews, Lisrel, Data Collection Methods, Time Series Analysis, Survey Research, Multilevel Modeling, Qualitative Research Design, Social Network Analysis. 
+R (Software), STATA, Orange, Power BI, SPSS, WordStat, Nvivo, ATLAS.ti, RATS, EViews, Lisrel, Data Collection Methods, Time Series Analysis, Survey Research, Multilevel Modeling, Qualitative Research Design, Social Network Analysis. 
 
 #### Relevant Coursework:
 American Politics, Courts and Policy, Congress and Policy, Civil Institutions, Policy Analysis, Electoral Law, Social Network Analysis, Political Psychology, Teaching Seminar. 
