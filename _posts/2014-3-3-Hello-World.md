@@ -32,9 +32,7 @@ Forthcoming 2021
 
 
 ### Contact me [Email](mailto:cxg172030@utdallas.edu)
-### To set an appointment please click [Here](https://calendly.com/cxg172030/meetcarlos)
-### Visit my website: [Here](https://utdallas.academia.edu/CarlosDanielGutierrezMannix)
-### Google Scholar: [Here](https://scholar.google.com/citations?hl=es&user=URP-BxQAAAAJ)
+### To set an appointment please click [Here](https://calendly.com/cxg172030/meetcarlos) ### Visit my website: [Here](https://utdallas.academia.edu/CarlosDanielGutierrezMannix) ### Google Scholar: [Here](https://scholar.google.com/citations?hl=es&user=URP-BxQAAAAJ)
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
