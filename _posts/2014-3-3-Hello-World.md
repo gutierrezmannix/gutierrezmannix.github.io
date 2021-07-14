@@ -26,7 +26,7 @@ Publication on Linguistics at the US-Mexico border
 Research & future publication using an Application Programming Interface with Twitter
 
 Forthcoming 2021
-[The Twitter Connection](/images/TwitterConnection.pdf)
+[The Twitter Connection] Forthcoming
 
 #### I am using this page to make public all data used in my research. You may find current data in SPPS, STATA and .CSV formats in the Data tab within this website. Please let me know if I can assist you with any other data related to my research. 
 
