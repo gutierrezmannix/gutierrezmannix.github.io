@@ -19,7 +19,7 @@ Publication on surveillance in Mexico
 [The SAGE Encyclopedia of Surveillance, Security and Privacy]
 
 Publication on Linguistics at the US-Mexico border
-[Spanish-Speaking Institutions](###***/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf***)
+[Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
 ### Ongoing research
 
