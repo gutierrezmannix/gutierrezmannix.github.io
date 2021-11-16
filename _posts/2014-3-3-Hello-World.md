@@ -16,7 +16,7 @@ Publication on Drug Violence in Mexico
 [Chapter 7 in Organized Violence: Capitalist Warfare in Latin America](https://read.amazon.com/kp/embed?asin=B07S5XFNKP&preview=newtab&linkCode=kpe&ref_=cm_sw_r_kb_dp_X2NuFbJJZDT1A)
 
 Publication on surveillance in Mexico
-[The SAGE Encyclopedia of Surveillance, Security and Privacy]
+[Publicación](/images/MexicoSagePublication.pdf)
 
 Publication on Linguistics at the US-Mexico border
 [Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
@@ -35,7 +35,6 @@ Forthcoming 2021
 ### To set an appointment please click [Here](https://calendly.com/cxg172030/meetcarlos) 
 ### Google Scholar: [Here](https://scholar.google.com/citations?hl=es&user=URP-BxQAAAAJ)
 
-![_config.yml]({{ site.baseurl }}/images/utd1.png)
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
 
