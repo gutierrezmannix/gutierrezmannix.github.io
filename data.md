@@ -14,10 +14,10 @@ Sample Tweet Data:  English & Spanish Tweets by Hispanic Members of Congress.
 
 ---
 
-For datasets consisting of 125,000 Tweets for the 116th and the 117th legislatures please contact me.
+For historical tweet data, please contact me.
 
 ### Contact
 [Click for Email](mailto:cxg172030@utdallas.edu)
 
 
-September 2021
+November 2021
