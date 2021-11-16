@@ -99,8 +99,6 @@ Publicacion sobre la lingüística en la frontera Mexico-Estados Unidos en Revis
 Usando una interfaz de programación de aplicaciones para extraer datos Twitter.
 
 
-Proximo 2021
-[The Twitter Connection](/images/TwitterConnection.pdf)
 
 
 #### Estoy usando esta página para hacer públicos todos los datos utilizados en mi investigación. Puede encontrar datos actuales en formatos SPPS, STATA y .CSV en la pestaña Datos dentro de este sitio web. Por favor, hágame saber si puedo ayudarlo con datos relacionados a mi investigación.
