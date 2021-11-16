@@ -17,18 +17,18 @@ avatar: http://danielgutierrezmannix.github.io/images/nuevo.png
 
 # Includes an icon in the footer for each username you enter
 footer-links:
-  academia: https://utdallas.academia.edu/CarlosDanielGutierrezMannix
-  handshake: https://utdallas.joinhandshake.com/users/10511147
+  academia: CarlosDanielGutierrezMannix
+  handshake: 10511147
   dribbble:
   email: cxg172030@utdallas.edu
   facebook:
   flickr:
   github: danielgutierrezmannix/danielgutierrezmannix.github.io
-  instagram: gutierrezmannix
+  instagram:
   linkedin: carlos-daniel-gutierrez-mannix-mpp-mps-0286ab117
   pinterest:
   rss: # just type anything here for a working RSS icon
-  twitter:
+  twitter: CarlosG92572455
   stackoverflow: # your stackoverflow profile, e.g. "users/50476/bart-kiers"
   youtube: # channel/<your_long_string> or user/<user-name>
   googleplus: # anything in your profile username that comes after plus.google.com/
