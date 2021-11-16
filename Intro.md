@@ -25,9 +25,6 @@ Publication on Linguistics at the US-Mexico border
 ### Ongoing research
 
 I am currently conducting research using an Application Programming Interface with Twitter.
-Forthcoming 2021
-[The Twitter Connection](/images/TwitterConnection.pdf)
-
 
 
 
