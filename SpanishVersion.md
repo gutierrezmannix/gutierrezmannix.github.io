@@ -107,7 +107,6 @@ Proximo 2021
 
 ### Contacto [Email](mailto:cxg172030@utdallas.edu)
 ### Para agendar una cita, dar click [Aqui](https://calendly.com/cxg172030/meetcarlos)
-### Visite mi pagina, click [Aqui](https://utdallas.academia.edu/CarlosDanielGutierrezMannix)
 
 
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
