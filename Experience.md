@@ -67,13 +67,16 @@ Lecturer         2016-2017
 
 ### Participation as a Teaching Assistant
 
-• GOVT 2305 National Government             (2017-2020)
+• GOVT 2305 National Government                     (2017-2020)
 
-• PSCI   4310  Law and Terrorism           (Spring 2020) 
+• PSCI   4310  Law and Terrorism                    (Spring 2020) 
 
-• PSCI   3303 Civil Liberties              (Fall 2020) 
+• PSCI   3303 Civil Liberties                        (Fall 2020) 
 
-• PSCI   4343 Congress and Public Policy   (Spring 2021) 
+• PSCI   4343 Congress and Public Policy             (Spring 2021) 
+
+• PSCI   4304 Energy/Environmental Politics & Policy (Spring 2022)
+
 
 ### ACADEMIC CONFERENCES
 Please see CV tab
@@ -86,4 +89,4 @@ Political Science, Public Policy & Sociology
 [Click to send email](mailto:cxg172030@utdallas.edu)
 
 
-November 2021
+January 2022
