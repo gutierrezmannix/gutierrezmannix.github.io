@@ -9,8 +9,6 @@ During my time as an International Student I have worked in the positions of Tut
 
 I am currently working towards my doctoral dissertation in which I will make use of an Application Programming Interface (API) with Twiter to study and research political behavior by Hispanic politicians in The United States. 
 
-Also, I am currently offering GOVT-2305 American National Government at the University of Texas at Dallas.
-
 ### Publications
 
 Publication on Drug Violence in Mexico
@@ -41,6 +39,6 @@ I am currently conducting research using an Application Programming Interface wi
 
 
 
-# Updated November 2021
+# Updated January 2022
 
 ---
