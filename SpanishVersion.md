@@ -65,13 +65,15 @@ Maestro         2016-2017
 
 ### Experiencia Academica
 
-• GOVT 2305 Gobierno Nacional             (2017-2020)
+• GOVT 2305 Gobierno Nacional                (2017-2020)
 
-• PSCI 4310 Ley y Terrorismo              (2020) 
+• PSCI 4310 Ley y Terrorismo                 (2020) 
 
-• PSCI 3303 Libertades Civiles            (2020) 
+• PSCI 3303 Libertades Civiles               (2020) 
 
-• PSCI 4343 Congreso y Politica Publica   (2021) 
+• PSCI 4343 Congreso y Politica Publica      (2021) 
+
+• PSCI 4304 Political Energetica y Ambiental (2022)
 
 
 ### Campos de Interés:
@@ -109,4 +111,4 @@ Usando una interfaz de programación de aplicaciones para extraer datos Twitter.
 
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
-Noviembre 2021
+Enero 2022
