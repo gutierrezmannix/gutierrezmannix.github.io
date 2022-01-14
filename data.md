@@ -4,8 +4,7 @@ title: Data
 permalink: /data/
 ---
 
-## Political Communication by Hispanic Members of Congress
-Sample Tweet Data:  English & Spanish Tweets by Hispanic Members of Congress. 
+## Tweet Data
 
 ### 116th United States Congress (Official Twitter accounts only)
 
@@ -20,4 +19,4 @@ For historical tweet data, please contact me.
 [Click for Email](mailto:cxg172030@utdallas.edu)
 
 
-November 2021
+January 2022
