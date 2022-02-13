@@ -3,7 +3,6 @@ layout: page
 title: Teaching
 permalink: /Teaching/
 ---
-#### Teaching: 
 
 #### Professional Summary
 During my professional development I have had the opportunity of serving in many teaching positions. As an undergraduate student, I was offered the position of Supplemental Instructor. In this position I provided sessions and aided students from three different courses in which I was the sole supplemental instructor. For these courses I was selected by the instructing professors to help during and outside class. The sessions conducted were regularly attended by students. As a note, students that would attend my sessions several times told me that they enjoyed the way in which I explained concepts and ideas. For instance, a student once mentioned “I am really glad I came to the session because now I feel much more confident that I will succeed in class.” This opened my eyes to what I now see as a calling and as the main drive behind becoming a professor; being able to help students as they progress in their academic life. As a graduate student I occupied the positions of Research Assistant, Teaching Assistant, and Instructor. My devotion to being a good professor has encouraged me to develop my skills over the years and I have been able to do this by continually attending teaching trainings.
