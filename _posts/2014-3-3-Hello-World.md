@@ -38,20 +38,10 @@ Twitter and the electoral connection
 I am currently conducting research using an Application Programming Interface with Twitter.
 
 
-
-
-
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
 ### Contact me [Email](mailto:cxg172030@utdallas.edu)
 
+### Thank You
 
----
-
-## Thank You
-
-
-
-# Updated January 2022
-
----
+### Updated January 2022
