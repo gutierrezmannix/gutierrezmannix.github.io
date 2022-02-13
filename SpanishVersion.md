@@ -97,8 +97,11 @@ Publicacion en Enciclopedia de Seguridad SAGE
 Publicacion sobre la lingüística en la frontera Mexico-Estados Unidos en Revista Universitaria. 
 [Publicación](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
+La Conexion Electoral
+[Twitter and the electoral connection](/images/Twitterandtheelectoralconnection.pdf)
+
 ### Investigación Reciente
-Usando una interfaz de programación de aplicaciones para extraer datos Twitter.
+Por el momento estoy usando una interfaz de programación de aplicaciones para extraer datos Twitter.
 
 
 
