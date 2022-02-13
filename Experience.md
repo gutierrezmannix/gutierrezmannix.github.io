@@ -3,11 +3,14 @@ layout: page
 title: Experience
 permalink: /Experience/
 ---
-#### Dissertation: 
-My dissertation is concerned with building formal models and applying empirical testing for understanding the political behavior of Hispanics in the United States Congress.
+#### Research: 
+My academic background includes Sociology, Public Policy, Management, Data Analysis and Political Science. I focus on Social Media Data Collection Methods at the intersection of public policy, politcs and management. 
 
 #### Technical Skills: 
-R (Software), STATA, Orange, SPSS, WordStat, ATLAS.ti, Nvivo, NodeXL, Gephi, Power BI, RATS, EViews, Lisrel, Data Collection Methods, Time Series Analysis, Survey Research, Multilevel Modeling, Qualitative Research Design, Social Network Analysis. 
+Advanced Statistical Analysis, Data Collection Methods, Time Series Analysis, Survey Research, Multilevel Modeling, Qualitative Research Design, Social Network Analysis, Content Analysis, Natural Language Processing, Social Media Data Collection Methods
+
+#### Softwares: R Studio, STATA, Orange, SPSS, WordStat, ATLAS.ti, Nvivo, NodeXL, Gephi, Power BI, RATS, EViews, Lisrel, etc.
+
 
 #### Relevant Coursework:
 American Politics, Courts and Policy, Congress and Policy, Civil Institutions, Policy Analysis, Electoral Law, Social Network Analysis, Political Psychology, Teaching Seminar. 
