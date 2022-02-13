@@ -13,8 +13,7 @@ Advanced Statistical Analysis, Data Collection Methods, Time Series Analysis, Su
 
 
 #### Relevant Coursework:
-American Politics, Courts and Policy, Congress and Policy, Civil Institutions, Policy Analysis, Electoral Law, Social Network Analysis, Political Psychology, Teaching Seminar. 
-
+Western Politics, Courts and Policy, The Policy Making Process, Civil Institutions, Policy Analysis, International Organization & Law, Social Network Analysis, Political Psychology, Content Analysis, Natural Language Processing. 
 
 #### PhD Education
 Political Science. University of Texas at Dallas (2017- ongoing)
@@ -92,4 +91,4 @@ Political Science, Public Policy & Sociology
 [Click to send email](mailto:cxg172030@utdallas.edu)
 
 
-January 2022
+February 2022
