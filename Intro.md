@@ -3,11 +3,14 @@ layout: post
 title: Hello, Welcome to my website. 
 ---
 
-My long-term goal is to get a job in the public sector, preferably in the fields of social policy, demographics or electoral policy. I understand that the public sector is the backbone of society and I feel a strong responsibility to give back to the society that has given me so much. 
+I am a Social and Political Scientist focused on the collection of social media data. With the use of the API method, I collect data and analyze it using a series of content analysis methods which allow me to better understand what factors influence communication content in Social Media.
 
-During my time as an International Student I have worked in the positions of Tutor, Research Assistant, Teaching Assistant, Instructor and Part-Time Lecturer. Moreover, with the help of professors and peers, I have been able to publish a few academic works which are diverse in their topics. An example of this is my research into language assimilation in the U.S.-Mexico border, a piece of research which helped illustrate the current status quo of Hispanics living on the U.S side of the border. My research, however, has also covered areas such as surveillance and security in Mexico and Organized Violence in Mexico.  Lastly, I have presented my research in six different academic conferences and this has allowed me to develop a taste for the academic field. 
+I am especially interested in understanding what factors lie behind communication by minorities. Specifically, I explore the reasons behind communication by diverse groups of minorities. My current research explores differences in communication among different segments of the Hispanic population. 
 
-I am currently working towards my doctoral dissertation in which I will make use of an Application Programming Interface (API) with Twiter to study and research political behavior by Hispanic politicians in The United States. 
+During my time as an International Student, I have worked in the positions of Tutor, Research Assistant, Teaching Assistant, Instructor and Part-Time Lecturer. Moreover, with the help of professors and peers, I have been able to maintain a diverse research and publishing agenda. Examples of this include: my research into language assimilation in the U.S.-Mexico border, my research into social media use by State politicians. My research, however, has also covered areas such as surveillance and security in Mexico and Organized Violence in Mexico.  Lastly, I have presented my research in more than ten academic conferences.
+
+I am currently working towards my doctoral dissertation in which I will make use of an Application Programming Interface (API) with Twitter to study and research political behavior by Hispanic politicians in The United States.
+
 
 ### Publications
 
@@ -19,6 +22,9 @@ Publication on surveillance in Mexico
 
 Publication on Linguistics at the US-Mexico border
 [Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
+
+Twitter and the electoral connection
+[Twitter and the electoral connection](/images/Twitterandtheelectoralconnection.pdf)
 
 ### Ongoing research
 
