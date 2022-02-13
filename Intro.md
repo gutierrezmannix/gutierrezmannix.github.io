@@ -29,6 +29,10 @@ Publication on surveillance in Mexico
 Publication on Linguistics at the US-Mexico border
 [Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
+Twitter and the electoral connection
+[Twitter and the electoral connection](/images/Twitterandtheelectoralconnection.pdf)
+
+
 ### Ongoing research
 
 I am currently conducting research using an Application Programming Interface with Twitter.
