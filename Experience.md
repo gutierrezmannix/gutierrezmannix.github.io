@@ -9,7 +9,7 @@ My academic background includes Sociology, Public Policy, Management, Data Analy
 #### Technical Skills: 
 Advanced Statistical Analysis, Data Collection Methods, Time Series Analysis, Survey Research, Multilevel Modeling, Qualitative Research Design, Social Network Analysis, Content Analysis, Natural Language Processing, Social Media Data Collection Methods
 
-#### Softwares:
+#### Software:
 R Studio, STATA, Orange, SPSS, WordStat, ATLAS.ti, Nvivo, NodeXL, Gephi, Power BI, RATS, EViews, Lisrel, etc.
 
 
