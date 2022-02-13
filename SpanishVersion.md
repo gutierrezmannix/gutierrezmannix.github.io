@@ -4,14 +4,14 @@ title: Hola, Bienvenido a mi pagina
 permalink: /SpanishVersion/
 ---
 
-Mi objetivo a largo plazo es conseguir un trabajo en el sector público, preferiblemente en los campos de política social, demográfica o política electoral. Entiendo que el sector público es la columna vertebral de la sociedad y siento una gran responsabilidad de retribuir a la sociedad que tanto me ha dado.
+Soy un científico social y político especializado en la recopilación de datos de redes sociales. Con el uso del método API, recopilo datos y los analizo utilizando una serie de métodos estadísticos de análisis de contenido que me permiten comprender qué factores influyen en el contenido de la comunicación en las redes sociales.
 
-Durante mi etapa como Estudiante Internacional he trabajado en los puestos de Tutor, Asistente de Investigación, Asistente de Docencia, Instructor y Maestro universitario de medio tiempo. Además, con la ayuda de profesores y compañeros, he podido publicar algunos trabajos académicos que son diversos en sus temas. Un ejemplo de esto es mi investigación sobre la asimilación lingüística en la frontera entre Estados Unidos y México, una investigación que ayudó a ilustrar el status quo actual de los hispanos que viven en el lado estadounidense de la frontera. Sin embargo, mi investigación también ha abarcado áreas como la vigilancia y seguridad en México y la violencia organizada en México. Por último, he presentado mi investigación en seis congresos académicos. Esto me ha permitido desarrollar el gusto por el campo académico.
+Mi enfoque principal radica en comprender los factores que se encuentran detrás de la comunicación de las minorías. Específicamente, exploro las razones detrás de la comunicación por parte de diversos grupos de minorías. Mi investigación actual explora las diferencias en la comunicación entre diferentes segmentos de la población hispana.
 
-Actualmente estoy trabajando en mi tesis doctoral en la que haré uso de una interfaz de programación de aplicaciones con Twitter. En este estudio codifico miles de tweets para estudiar e investigar el comportamiento de los políticos hispanos en los Estados Unidos.
+Durante mi tiempo como Estudiante Internacional, he trabajado en los puestos de Tutor, Asistente de Investigación, Asistente de Docencia, Instructor y Profesor de Medio Tiempo. Además, con la ayuda de profesores y compañeros, he podido mantener una agenda diversa de investigación y publicacion. Ejemplos de esto incluyen: mi investigación sobre la asimilación del lenguaje en la frontera entre Estados Unidos y México, mi investigación sobre el uso de las redes sociales por parte de los políticos estatales. Sin embargo, mi investigación también ha cubierto áreas como la vigilancia y la seguridad en México y la violencia organizada en México.
+Por último, he presentado mi investigación en más de diez congresos académicos.
 
-
-Tambien actualmente me encuentro dando clases de Gobierno y Politica Nacional a alumnos de primer año en la Universidad de Texas, Campus Dallas
+Actualmente estoy enfocado en trabajar en mi tesis doctoral en la cual haré uso de una Interfaz de Programación de Aplicaciones (API) con Twitter para estudiar e investigar el comportamiento político de los políticos hispanos en los Estados Unidos.
 
 
 ### Educación Académica:
