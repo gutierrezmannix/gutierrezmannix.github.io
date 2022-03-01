@@ -3,7 +3,7 @@ layout: post
 title: Hello, Welcome to my website. 
 ---
 
-I am a Social and Political Scientist focused on Teaching Government and American Institutions. I am also specialized the collection of social media data. 
+I am a Social and Political Scientist focused on Teaching Government and American Institutions. I am also specialized in the collection of social media data. 
 With the use of the API method, I collect data and analyze it using a series of content analysis methods which allow me to better understand what factors influence communication content in Social Media.
 
 My main focus lies on understanding what factors lie behind communication by minorities. Specifically, I explore the reasons behind communication by diverse groups of minorities. My current research explores differences in communication among different segments of the Hispanic population. 
