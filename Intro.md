@@ -1,6 +1,7 @@
 ---
 layout: post
 title: Hello, Welcome to my website. 
+permalink: /Intro/
 ---
 
 
