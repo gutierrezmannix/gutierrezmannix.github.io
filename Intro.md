@@ -50,7 +50,6 @@ I am currently conducting research using an Application Programming Interface wi
 ## Thank You
 
 
-
-## Updated April 2022
+Updated April 2022
 
 ---
