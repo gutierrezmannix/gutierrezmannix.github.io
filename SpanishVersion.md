@@ -4,7 +4,7 @@ title: Hola, Bienvenido a mi pagina
 permalink: /SpanishVersion/
 ---
 
-Soy Politologo y Analista de Politicas Publicas especializado en la recopilación de datos de redes sociales. Con el uso del método API, recopilo datos y los analizo utilizando una serie de métodos estadísticos de análisis de contenido que me permiten comprender qué factores influyen en el contenido de la comunicación en las redes sociales.
+Doctor en Politologia especializado en la intersección de la recopilación de datos de redes sociales y la política estadounidense. Extraigo datos de redes sociales y los analizo utilizando una serie de métodos de análisis de contenido cuantitativos y cualitativos que me permiten comprender mejor qué factores influyen en la comunicación en las redes sociales. Me enfoco en las instituciones y políticas estadounidenses con énfasis en los hispanos y los temas políticos más importantes para esta población.
 
 Mi enfoque principal radica en comprender los factores que se encuentran detrás de la comunicación de las minorías. Específicamente, exploro las razones detrás de la comunicación por parte de diversos grupos de minorías. Mi investigación actual explora las diferencias en la comunicación entre diferentes segmentos de la población hispana.
 
