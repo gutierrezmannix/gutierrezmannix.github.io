@@ -4,6 +4,7 @@ title: Hello, Welcome to my website.
 permalink: /Intro/
 ---
 
+I am a social and political scientist working at the intersection of the collection of social media data and US policy. I collect data and analyze it using a series of quantitative and qualitative content analysis methods which allow me to better understand what factors influence communication in social media. I focus on American institutions and policy with a concentration on Hispanics and the types of political issues most important to this crucial population. 
 
 
 My main focus lies on understanding what factors lie behind communication by minorities. Specifically, I explore the reasons behind communication by diverse groups of minorities. My current research explores differences in communication among different segments of the Hispanic population. 
