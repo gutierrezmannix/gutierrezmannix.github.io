@@ -4,13 +4,26 @@ title: Experience
 permalink: /Experience/
 ---
 #### Research: 
-My academic background includes Sociology, Public Policy, Management, Data Analysis and Political Science. I focus on Social Media Data Collection Methods at the intersection of public policy, politcs and management. 
+I have over two years of experience collecting and analyzing social media data. I am strongly focused on the use of social media by Hispanic politicians and have found that the content of their communication can be easily predicted using demographic factors. 
 
-#### Technical Skills: 
-Advanced Statistical Analysis, Data Collection Methods, Time Series Analysis, Survey Research, Multilevel Modeling, Qualitative Research Design, Social Network Analysis, Content Analysis, Natural Language Processing, Social Media Data Collection Methods
+Among the many methods employed in my research, I can mention, qualitative and quantitative content analysis with statistical clustering, sentiment analysis and social network analysis.
 
-#### Software:
-R Studio, STATA, Orange, SPSS, WordStat, ATLAS.ti, Nvivo, NodeXL, Gephi, Power BI, RATS, EViews, Lisrel, etc.
+Experience in survey analysis with hierarchical linear modeling and structural equation - multilevel modeling.
+
+I have published scholarly research using social media data.
+
+I have presented my findings in several research conferences at both the regional and national level.
+
+
+#### Research Skills: 
+Qualitative Research Methods, Survey Research Design, Structural Equation and Multilevel Modeling for Survey Design, Data Collection, Applied Regression, Random & Fixed Effects Modeling, Statistical Clustering, Social Network Analysis, Time Series Analysis, Content Analysis, Sentiment Analysis. 
+
+#### Research Software:
+I have experience with quantitative software such as: R, STATA, Orange, SPSS, NodeXL, Gephi, RATS, EViews, Lisrel, Python.
+
+I also have experience with qualitative software such as: MaxQDA, WordStat, ATLAS.ti, QSR Nvivo, Power BI.
+
+
 
 
 #### Relevant Coursework:
