@@ -30,7 +30,7 @@ I also have experience with qualitative software such as: MaxQDA, WordStat, ATLA
 Western Politics, Courts and Policy, The Policy Making Process, Civil Institutions, Policy Analysis, International Organization & Law, Social Network Analysis, Political Psychology, Content Analysis, Natural Language Processing. 
 
 #### PhD Education
-Political Science. University of Texas at Dallas (2017- ongoing)
+Political Science. University of Texas at Dallas (2022)
 
 #### Masters
 Political Science. University of Texas at Dallas (Fall 2020)
