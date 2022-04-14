@@ -11,4 +11,4 @@ Para agendar una cita, dar click [Aqui](https://calendly.com/carlosgutierrez-man
 
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
-January 2022
+April 2022
