@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Bienvenido.
+title: Biografia Academica
 permalink: /SpanishVersion/
 ---
 
