@@ -33,7 +33,7 @@ Western Politics, Courts and Policy, The Policy Making Process, Civil Institutio
 Political Science. University of Texas at Dallas (2022)
 
 #### Masters
-Political Science. University of Texas at Dallas (Fall 2020)
+Political Science. University of Texas at Dallas (2020)
 
 #### Masters 
 Public Policy and Management. University of Texas Rio Grande Valley (2016)
@@ -102,7 +102,7 @@ Political Science, Public Policy & Sociology
 
 
 ## Contact me
-[Click to send email](mailto:cxg172030@utdallas.edu)
+[Click to send email](mailto:danielmannix58@gmail.com)
 
 
 April 2022
