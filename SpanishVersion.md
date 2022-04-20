@@ -8,16 +8,16 @@ Doctor en Politologia especializado en la intersección de la recopilación de d
 
 Mi enfoque principal radica en comprender los factores que se encuentran detrás de la comunicación de las minorías. Específicamente, exploro las razones detrás de la comunicación por parte de diversos grupos de minorías. Mi investigación actual explora las diferencias en la comunicación entre diferentes segmentos de la población hispana.
 
-Durante mi tiempo como Estudiante Internacional, he trabajado en los puestos de Tutor, Asistente de Investigación, Asistente de Docencia, Instructor y Profesor de Medio Tiempo. Además, con la ayuda de profesores y compañeros, he podido mantener una agenda diversa de investigación y publicacion. Ejemplos de esto incluyen: mi investigación sobre la asimilación del lenguaje en la frontera entre Estados Unidos y México, mi investigación sobre el uso de las redes sociales por parte de los políticos estatales. Sin embargo, mi investigación también ha cubierto áreas como la vigilancia y la seguridad en México y la violencia organizada en México.
+Durante mi tiempo como Estudiante Internacional, he trabajado en los puestos de Tutor, Asistente de Investigación, Asistente de Docencia, Instructor y Profesor de Medio Tiempo. Además, con la ayuda de profesores y compañeros, he podido mantener una agenda diversa de investigación y publicacion. Ejemplos de esto incluyen: mi investigación sobre la asimilación del lenguaje en la frontera entre Estados Unidos y México, mi investigación sobre el uso de las redes sociales por parte de políticos. Sin embargo, mi investigación también ha cubierto áreas como la vigilancia y la seguridad en México y la violencia organizada en México.
 Por último, he presentado mi investigación en más de diez congresos académicos.
 
-Actualmente estoy enfocado en trabajar en mi tesis doctoral en la cual haré uso de una Interfaz de Programación de Aplicaciones (API) con Twitter para estudiar e investigar el comportamiento político de los políticos hispanos en los Estados Unidos.
+Actualmente estoy enfocado en la publicacion de varios proyectos de investigación en la cual haré uso de una Interfaz de Programación de Aplicaciones (API) con Twitter para estudiar e investigar el comportamiento político de hispanos en los Estados Unidos.
 
 
 ### Educación Académica:
 
 #### Doctorado
-Ciencias Politicas. University of Texas at Dallas (En progreso 2022)
+Ciencias Politicas. University of Texas at Dallas (2022)
 
 #### Maestría
 Ciencias Politicas. University of Texas at Dallas (2020)
