@@ -114,4 +114,4 @@ Por el momento estoy usando una interfaz de programación de aplicaciones para e
 
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
-Enero 2022
+Abril 2022
