@@ -36,7 +36,7 @@ Twitter and the electoral connection
 I am currently conducting research using an Application Programming Interface with Twitter.
 
 
-![_config.yml]({{ site.baseurl }}/images/utd2.png)
+![_config.yml]({{ site.baseurl }}/images/utd1.png)
 
 ### Contact me [Email](mailto:danielmannix58@gmail.com)
 
