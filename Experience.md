@@ -102,7 +102,7 @@ Political Science, Public Policy & Sociology
 
 
 ## Contact me
-[Click to send email](mailto:danielmannix58@gmail.com)
+[Click to send email](mailto:carlos.gutierrez01@utrgv.edu)
 
 
 July 2022
