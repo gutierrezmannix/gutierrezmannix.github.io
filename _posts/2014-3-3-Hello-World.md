@@ -38,7 +38,7 @@ I am currently conducting research using an Application Programming Interface wi
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 
-### Contact me [Email](mailto:danielmannix58@gmail.com)
+### Contact me [Email](mailto:carlos.gutierrez01@utrgv.edu)
 
 ### Thank You
 
