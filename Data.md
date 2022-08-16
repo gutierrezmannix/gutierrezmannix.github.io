@@ -9,9 +9,13 @@ permalink: /Data/
 #### Here you can find samples of this Data:
 
 117th US Congress (Hispanics Only)
-[SPSS Format](/images/117Congress.csv)
+[CSV Format](/images/117Congress.csv)
+
+
 [STATA Format](/images/117Congress.dta)
-[CSV Format](/images/117Congress.sav)
+
+
+[SPSS Format](/images/117Congress.sav)
 
 ### Contacto [Email](mailto:carlos.gutierrez01@utrgv.edu)
 ### Para agendar una cita, dar click [Aqui](https://calendly.com/cxg172030/meetcarlos)
