@@ -6,7 +6,7 @@ permalink: /Data/
 
 #### I specialize in the collection and analysis of social media data. Specifically, my data collection encompasses all Members of the US Congress and their Twitter accounts. Please let me know if you are interested in accessing this data. 
 
-#### Here you can find samples of this Data:
+#### Here you can find samples of this data:
 
 117th US Congress (Hispanics Only)
 
