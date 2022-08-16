@@ -12,4 +12,4 @@ I believe students need to feel that they too have the ability of becoming exper
 Over the last years my interest has solidified around the idea that diversity in the classroom is a very valuable asset. When classrooms are composed by students with different backgrounds, ethnicities, cultures, and religions I see this as a value added to the discussions that can take place. This is especially true when we are discussing highly theoretical questions that can be answered in multiple manners. Having diversity in the classroom allows students to find solutions to constitutional conundrums but also allows them to become more sensible to a changing America. For instance, I like to bring examples from different countries and regions of the world when talking about important topics of civil liberties such as religion, speech, gender, and race. This allows students to compare and contrast their experiences with those lived outside
 the US. I also find that students like to hear anecdotes from other countries. I see my position as an instructor as one of great responsibility
 
-February 2022
+July 2022
