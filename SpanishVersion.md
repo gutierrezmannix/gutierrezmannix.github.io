@@ -108,10 +108,10 @@ Por el momento estoy usando una interfaz de programación de aplicaciones para e
 
 #### Estoy usando esta página para hacer públicos todos los datos utilizados en mi investigación. Puede encontrar datos actuales en formatos SPPS, STATA y .CSV en la pestaña Datos dentro de este sitio web. Por favor, hágame saber si puedo ayudarlo con datos relacionados a mi investigación.
 
-### Contacto [Email](mailto:danielmannix58@gmail.com)
+### Contacto [Email](mailto:carlos.gutierrez01@utrgv.edu)
 ### Para agendar una cita, dar click [Aqui](https://calendly.com/cxg172030/meetcarlos)
 
 
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
-Abril 2022
+Julio 2022
