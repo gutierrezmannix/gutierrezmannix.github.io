@@ -70,7 +70,7 @@ p {
 
 a {
   color: $blue;
-  text-decoration: rgba(255, 128, 128, 0.5);
+  text-decoration-color: rgba(255, 128, 128, 0.5);
 	cursor: pointer;
   &:hover, &:active {
     color: $blue;
