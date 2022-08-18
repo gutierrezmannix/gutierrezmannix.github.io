@@ -20,7 +20,7 @@ permalink: /Data/
 [SPSS Format](/images/117Congress.sav)
 
 ### Contact [Email](mailto:carlos.gutierrez01@utrgv.edu)
-### Para agendar una cita, dar click [Aqui](https://calendly.com/cxg172030/meetcarlos)
+
 
 
 
