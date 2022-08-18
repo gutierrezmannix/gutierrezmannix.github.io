@@ -70,7 +70,7 @@ p {
 
 a {
   color: $blue;
-  text-decoration: none;
+  text-decoration: inherit;
 	cursor: pointer;
   &:hover, &:active {
     color: $blue;
