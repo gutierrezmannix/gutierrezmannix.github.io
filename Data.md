@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Big Social Media Data.
+title: Social Media Data
 permalink: /Data/
 ---
 
