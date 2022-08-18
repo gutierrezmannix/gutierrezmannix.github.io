@@ -112,6 +112,6 @@ Por el momento estoy usando una interfaz de programación de aplicaciones para e
 ### Para agendar una cita, dar click [Aqui](https://calendly.com/cxg172030/meetcarlos)
 
 
-![_config.yml]({{ site.baseurl }}/images/utd1.png)
+![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
 Julio 2022
