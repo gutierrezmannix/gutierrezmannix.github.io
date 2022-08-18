@@ -4,7 +4,7 @@ title: Biografia Academica.
 permalink: /SpanishVersion/
 ---
 
-Doctor en Politologia especializado en la intersección de la recopilación de datos de redes sociales y la política estadounidense. Extraigo datos de redes sociales y los analizo utilizando una serie de métodos de análisis de contenido cuantitativos y cualitativos que me permiten comprender mejor qué factores influyen en la comunicación en las redes sociales. Me enfoco en las instituciones y políticas estadounidenses con énfasis en los hispanos y los temas políticos más importantes para esta población.
+Soy doctorado en Politologia especializado en la intersección de la recopilación de datos de redes sociales y la política estadounidense. Extraigo datos de redes sociales y los analizo utilizando una serie de métodos de análisis de contenido cuantitativos y cualitativos que me permiten comprender mejor qué factores influyen en la comunicación en las redes sociales. Me enfoco en las instituciones y políticas estadounidenses con énfasis en los hispanos y los temas políticos más importantes para esta población.
 
 Mi enfoque principal radica en comprender los factores que se encuentran detrás de la comunicación de las minorías. Específicamente, exploro las razones detrás de la comunicación por parte de diversos grupos de minorías. Mi investigación actual explora las diferencias en la comunicación entre diferentes segmentos de la población hispana.
 
