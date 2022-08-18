@@ -4,7 +4,7 @@ title: Big Social Media Data.
 permalink: /Data/
 ---
 
-#### I specialize in the collection and analysis of social media data. Specifically, my data collection encompasses all Members of the US Congress and their Twitter accounts. Please let me know if you are interested in accessing this data. 
+### I specialize in the collection and analysis of social media data. Current Projects include: Hispanic Members of Congress and Spanish as a Political Language in Social Media.
 
 #### Here you can find samples of this data:
 
