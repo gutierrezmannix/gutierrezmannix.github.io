@@ -18,7 +18,7 @@ html {
 }
 
 body {
-	background: oldlace;
+	background: whitesmoke;
   font: 18px/1.4 $helvetica;
   color: $darkGray;
 }
@@ -70,7 +70,7 @@ p {
 
 a {
   color: $blue;
-text-decoration-color: white;
+text-decoration-color: lightsteelblue;
 text-decoration-style: wavy;
   cursor: pointer;
   &:hover, &:active {
