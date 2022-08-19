@@ -13,7 +13,7 @@ Examples of this include: my research into language assimilation in the U.S.-Mex
 My research, however, has also covered areas such as surveillance and security in Mexico and Organized Violence in Mexico.  
 Lastly, I have presented my research in more than ten academic conferences.
 
-Currently I am focused on working towards my doctoral dissertation in which I will make use of an Application Programming Interface (API) with Twitter to study and research political behavior by Hispanic politicians in The United States.
+Currently, I am a Lecturer at the Department of Political Science in The University of Texas Rio Grande Valley.
 
 
 ### Publications
