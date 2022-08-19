@@ -11,8 +11,9 @@ Mi enfoque principal radica en comprender los factores que se encuentran detrás
 Durante mi tiempo como Estudiante Internacional, he trabajado en los puestos de Tutor, Asistente de Investigación, Asistente de Docencia, Instructor y Profesor de Medio Tiempo. Además, con la ayuda de profesores y compañeros, he podido mantener una agenda diversa de investigación y publicacion. Ejemplos de esto incluyen: mi investigación sobre la asimilación del lenguaje en la frontera entre Estados Unidos y México, mi investigación sobre el uso de las redes sociales por parte de políticos. Sin embargo, mi investigación también ha cubierto áreas como la vigilancia y la seguridad en México y la violencia organizada en México.
 Por último, he presentado mi investigación en más de diez congresos académicos.
 
-Actualmente estoy enfocado en la publicacion de varios proyectos de investigación en la cual haré uso de una Interfaz de Programación de Aplicaciones (API) con Twitter para estudiar e investigar el comportamiento político de hispanos en los Estados Unidos.
+Estoy enfocado en la publicacion de varios proyectos de investigación en la cual haré uso de una Interfaz de Programación de Aplicaciones (API) con Twitter para estudiar e investigar el comportamiento político de hispanos en los Estados Unidos.
 
+Actualmente, soy profesor de en el Departamento de Ciencias Politicas en La Universidad de Texas (Campus Rio Grande Valley)
 
 ### Educación Académica:
 
