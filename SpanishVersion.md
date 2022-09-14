@@ -37,7 +37,7 @@ Sociologia(Cum Laude). University of Texas at Brownsville (2013)
 
 ### Experiencia en el campo Académico:
 
-1. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
+1. University of Texas Rio Grande Valley (UTRGV); Department of Political Science 
 Profesor         2022- 
 
 2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
