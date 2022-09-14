@@ -10,4 +10,4 @@ Para agendar una cita, dar click [Aqui](https://calendly.com/gutierrezmannix/mee
 
 
 
-July 2022
+Sep 2022
