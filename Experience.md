@@ -83,7 +83,7 @@ Part-Time Lecturer         2016-2017
 
 • PSCI 3303 Civil Liberties                                  (Fall 2021)
 
-• PolS 2306 State and Local Politics                         (2022 -) 
+• POLS 2306 State and Local Politics                         (2022 -) 
 
 • POLS 2305 National Politics                                (2022 -) 
 
