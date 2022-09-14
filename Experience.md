@@ -49,21 +49,24 @@ Sociology (Cum Laude) University of Texas at Brownsville (2013)
 
 ## Academic Experience
 #### Teaching Experience 
+
+1. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Political Science Department  
+Full-Time Lecturer         2022-
  
-1. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
-Teaching Assistant (in Doctoral Program)                2017- ongoing 
+2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
+Teaching Assistant (in Doctoral Program)                2017- 2022 
  
-2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
+3. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         Fall 2021 
 
-3. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
+4. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         Summer 2021 
 
-4. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
+5. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         Summer 2020 
  
-5. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
-Lecturer         2016-2017 
+6. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
+Part-Time Lecturer         2016-2017 
  
  
 ### Courses Offered   
@@ -78,7 +81,12 @@ Lecturer         2016-2017
 
 • GOVT 2305 National Government                              (Summer 2021) 
 
-• PSCI 3303 Civil Liberties                                   (Fall 2021)
+• PSCI 3303 Civil Liberties                                  (Fall 2021)
+
+• PolS 2306 State and Local Politics                         (2022 -) 
+
+• POLS 2305 National Politics                                (2022 -) 
+
 
 
 ### Participation as a Teaching Assistant
@@ -105,4 +113,4 @@ Political Science, Public Policy & Sociology
 [Click to send email](mailto:carlos.gutierrez01@utrgv.edu)
 
 
-July 2022
+Sep 2022
