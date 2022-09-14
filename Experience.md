@@ -50,7 +50,7 @@ Sociology (Cum Laude) University of Texas at Brownsville (2013)
 ## Academic Experience
 #### Teaching Experience 
 
-1. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Political Science Department  
+1. University of Texas Rio Grande Valley (UTRGV); Political Science Department  
 Full-Time Lecturer         2022-
  
 2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
