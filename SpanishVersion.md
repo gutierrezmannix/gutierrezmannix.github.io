@@ -4,11 +4,11 @@ title: Biografia Academica.
 permalink: /SpanishVersion/
 ---
 
-Soy doctorado en Politologia, especializado en la intersección de la recopilación de datos de redes sociales y la política estadounidense. Extraigo datos de redes sociales y los analizo utilizando una serie de métodos de análisis de contenido cuantitativos y cualitativos que me permiten comprender mejor qué factores influyen en la comunicación en las redes sociales. Me enfoco en las instituciones y políticas estadounidenses con énfasis en los hispanos y los temas políticos más importantes para esta población.
+Soy profesor de tiempo completo en la Universidad de Texas Rio Grande Valley (Arriba Vaqueros!!). Tengo un doctorado en Politologia, especializado en la intersección de la recopilación de datos de redes sociales y la política estadounidense. Extraigo datos de redes sociales y los analizo utilizando una serie de métodos de análisis de contenido cuantitativos y cualitativos que me permiten comprender mejor qué factores influyen en la comunicación en las redes sociales. Me enfoco en las instituciones y políticas estadounidenses con énfasis en los hispanos y los temas políticos más importantes para esta población.
 
 Mi enfoque principal radica en comprender los factores que se encuentran detrás de la comunicación de las minorías. Específicamente, exploro las razones detrás de la comunicación por parte de diversos grupos de minorías. Mi investigación actual explora las diferencias en la comunicación entre diferentes segmentos de la población hispana.
 
-Durante mi tiempo como Estudiante Internacional, he trabajado en los puestos de Tutor, Asistente de Investigación, Asistente de Docencia, Instructor y Profesor de Medio Tiempo. Además, con la ayuda de profesores y compañeros, he podido mantener una agenda diversa de investigación y publicacion. Ejemplos de esto incluyen: mi investigación sobre la asimilación del lenguaje en la frontera entre Estados Unidos y México, mi investigación sobre el uso de las redes sociales por parte de políticos. Sin embargo, mi investigación también ha cubierto áreas como la vigilancia y la seguridad en México y la violencia organizada en México.
+Durante mi tiempo en los Estados Unidos, he trabajado en los puestos de Tutor, Asistente de Investigación, Asistente de Docencia, Instructor y Profesor de Medio Tiempo y Profesor de Tiempo Completo. Además, con la ayuda de compañeros y alumnos, he podido mantener una agenda diversa de investigación y publicacion. Ejemplos de esto incluyen: mi investigación sobre la asimilación del lenguaje en la frontera entre Estados Unidos y México, mi investigación sobre el uso de las redes sociales por parte de políticos. Sin embargo, mi investigación también ha cubierto áreas como la vigilancia y la seguridad en México y la violencia organizada en México.
 Por último, he presentado mi investigación en más de diez congresos académicos.
 
 Estoy enfocado en la publicacion de varios proyectos de investigación en la cual haré uso de una Interfaz de Programación de Aplicaciones (API) con Twitter para estudiar e investigar el comportamiento político de hispanos en los Estados Unidos.
@@ -37,17 +37,20 @@ Sociologia(Cum Laude). University of Texas at Brownsville (2013)
 
 ### Experiencia en el campo Académico:
 
-1. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
+1. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
+Profesor         2022- 
+
+2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies
 Asistente de Educación    2017-2020
  
-2. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
+3. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         2021
 
-3. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
+4. University of Texas at Dallas (UTD); Dallas, TX School of Economic, Political and Policy Studies          
 Instructor         2020 
  
-4. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
-Maestro         2016-2017 
+5. University of Texas Rio Grande Valley (UTRGV); Brownsville, TX Department of Public Affairs and Security Studies  
+Profesor de medio Tiempo         2016-2017 
  
 ### Oferta Academic
 
@@ -63,8 +66,12 @@ Maestro         2016-2017
 
 • PSCI-3303-Derechos y Garantias Civiles                              (2021) 
 
+• POLS-2306-Introducción a Politica Estatal y Local                   (2022-) 
 
-### Experiencia Academica
+• POLS-2305-Introducción a Politica Nacional                          (2022-) 
+
+
+### Experiencia Academica (durante programa de doctorado)
 
 • GOVT 2305 Gobierno Nacional                (2017-2020)
 
@@ -115,4 +122,4 @@ Por el momento estoy usando una interfaz de programación de aplicaciones para e
 
 ![_config.yml]({{ site.baseurl }}/images/utd2.png)
 
-Julio 2022
+Septiembre 2022
