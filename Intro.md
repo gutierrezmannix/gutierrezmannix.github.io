@@ -45,4 +45,4 @@ I am currently conducting research using an Application Programming Interface wi
 
 ### Contact me [Email](mailto:cxg172030@utdallas.edu)
 
-Septiembre 2022
+Sep 2022
