@@ -17,8 +17,7 @@ Twitter and the electoral connection
 [Twitter and the electoral connection](/images/Twitterandtheelectoralconnection.pdf)
 
 
-###
-Forthcoming Research
+### Forthcoming Research
 
 Book Chapter (Mexico) in Comparative Criminal Justice by Rowman and Littlefield, forthcoming May 2023.
 Book Chapter (Militarization, Geopolitics & Energy Sovereignty) in Contrahistoria del 'pueblo' Mexicano by Debate (Penguin Random House), forthcoming September 2023.
