@@ -17,12 +17,14 @@ Twitter and the electoral connection
 [Twitter and the electoral connection](/images/Twitterandtheelectoralconnection.pdf)
 
 
+###
+Forthcoming Research
+
+Book Chapter (Mexico) in Comparative Criminal Justice by Rowman and Littlefield, forthcoming May 2023.
+Book Chapter (Militarization, Geopolitics & Energy Sovereignty) in Contrahistoria del 'pueblo' Mexicano by Debate (Penguin Random House), forthcoming September 2023.
+
 ### Ongoing research
 
-
-
-I am currently conducting research using an Application Programming Interface with Twitter.
-
-
+Currently, I am working with my co-author to create a database including all members of the past three legislative session. By extracting all their tweets, we aim to better understand the effect of Blackout Dates in Congress on the use of social media by politicians.
 
 Sep 2022
