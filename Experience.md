@@ -106,8 +106,7 @@ Part-Time Lecturer         2016-2017
 Please see CV tab
 
 ### Fields of Interest:
-Political Science, Public Policy & Sociology
-
+American Politics, Minorities in Politics, Political Communication & Social Media
 
 ## Contact me
 [Click to send email](mailto:carlos.gutierrez01@utrgv.edu)
