@@ -89,7 +89,7 @@ Part-Time Lecturer         2016-2017
 
 
 
-### Participation as a Teaching Assistant
+### Experience as a Teaching Assistant
 
 • GOVT 2305 National Government                     (2017-2020)
 
