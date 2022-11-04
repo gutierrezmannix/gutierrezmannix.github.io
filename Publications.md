@@ -14,7 +14,7 @@ Publication on Linguistics at the US-Mexico border
 [Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
 
 Twitter and the electoral connection
-[Twitter and the electoral connection](/images/Twitterandtheelectoralconnection.pdf)
+[Twitter and the electoral connection](https://onlinelibrary.wiley.com/doi/abs/10.1111/ssqu.13080)
 
 
 ### Forthcoming Research
