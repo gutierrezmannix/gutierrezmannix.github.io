@@ -11,7 +11,7 @@ Publication on surveillance in Mexico
 [Publicación](/images/MexicoSagePublication.pdf)
 
 Publication on Linguistics at the US-Mexico border
-[Spanish-Speaking Institutions](/images/SpanishSpeakingInstitutionsandLanguageAssimilationintheRioGrandeValley.pdf)
+[Spanish-Speaking Institutions](https://scholarworks.utrgv.edu/regionalhist/15/)
 
 Twitter and the electoral connection
 [Twitter and the electoral connection](https://onlinelibrary.wiley.com/doi/abs/10.1111/ssqu.13080)
