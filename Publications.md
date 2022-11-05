@@ -5,7 +5,7 @@ permalink: /Publications/
 ---
 
 
-[Chapter 7 in Organized Violence: Capitalist Warfare in Latin America by University of Regina Press](https://read.amazon.com/kp/embed?asin=B07S5XFNKP&preview=newtab&linkCode=kpe&ref_=cm_sw_r_kb_dp_X2NuFbJJZDT1A)
+[Chapter on Tamaulipas in Organized Violence: Capitalist Warfare in Latin America by University of Regina Press](https://read.amazon.com/kp/embed?asin=B07S5XFNKP&preview=newtab&linkCode=kpe&ref_=cm_sw_r_kb_dp_X2NuFbJJZDT1A)
 
 
 [Surveillance in Mexico in The SAGE Encyclopedia of Surveillance, Security, and Privacy](/images/MexicoSagePublication.pdf)
@@ -19,7 +19,7 @@ permalink: /Publications/
 
 ### Forthcoming Research
 
-[Chapter 19 in Comparative Criminal Justice by Rowman & Littlefield Publishers](https://rowman.com/ISBN/9781538173145/Comparative-Criminal-Justice-International-Trends-and-Practices)
+[Chapter on the Criminal Justice System of Mexico in Comparative Criminal Justice by Rowman & Littlefield Publishers](https://rowman.com/ISBN/9781538173145/Comparative-Criminal-Justice-International-Trends-and-Practices)
 
 Book Chapter (Militarization, Geopolitics & Energy Sovereignty) in Contrahistoria del 'pueblo' Mexicano by Debate (Penguin Random House), forthcoming September 2023.
 
