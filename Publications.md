@@ -4,8 +4,8 @@ title: Publications
 permalink: /Publications/
 ---
 
-Publication on Drug Violence in Mexico
-[Chapter 7 in Organized Violence: Capitalist Warfare in Latin America](https://read.amazon.com/kp/embed?asin=B07S5XFNKP&preview=newtab&linkCode=kpe&ref_=cm_sw_r_kb_dp_X2NuFbJJZDT1A)
+
+[Chapter 7 in Organized Violence: Capitalist Warfare in Latin America by University of Regina Press](https://read.amazon.com/kp/embed?asin=B07S5XFNKP&preview=newtab&linkCode=kpe&ref_=cm_sw_r_kb_dp_X2NuFbJJZDT1A)
 
 
 [Publication on surveillance in Mexico](/images/MexicoSagePublication.pdf)
