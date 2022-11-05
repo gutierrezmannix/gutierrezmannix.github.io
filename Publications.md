@@ -14,7 +14,7 @@ permalink: /Publications/
 [Spanish-Speaking Institutions and Language Assimilation in the Rio Grande Valley in Supplementary studies in Rio Grande Valley history](https://scholarworks.utrgv.edu/regionalhist/15/)
 
 
-[Twitter and the electoral connection](https://onlinelibrary.wiley.com/doi/abs/10.1111/ssqu.13080)
+[Twitter and the electoral connection in Social Science Quarterly](https://onlinelibrary.wiley.com/doi/abs/10.1111/ssqu.13080)
 
 
 ### Forthcoming Research
