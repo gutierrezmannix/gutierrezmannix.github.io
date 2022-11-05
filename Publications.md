@@ -8,10 +8,10 @@ permalink: /Publications/
 [Chapter 7 in Organized Violence: Capitalist Warfare in Latin America by University of Regina Press](https://read.amazon.com/kp/embed?asin=B07S5XFNKP&preview=newtab&linkCode=kpe&ref_=cm_sw_r_kb_dp_X2NuFbJJZDT1A)
 
 
-[Publication on surveillance in Mexico](/images/MexicoSagePublication.pdf)
+[Surveillance in Mexico in The SAGE Encyclopedia of Surveillance, Security, and Privacy](/images/MexicoSagePublication.pdf)
 
 
-[Spanish-Speaking Institutions and Language Assimilation in the Rio Grande Valley](https://scholarworks.utrgv.edu/regionalhist/15/)
+[Spanish-Speaking Institutions and Language Assimilation in the Rio Grande Valley in Supplementary studies in Rio Grande Valley history](https://scholarworks.utrgv.edu/regionalhist/15/)
 
 
 [Twitter and the electoral connection](https://onlinelibrary.wiley.com/doi/abs/10.1111/ssqu.13080)
