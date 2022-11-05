@@ -13,14 +13,13 @@ Publication on Drug Violence in Mexico
 
 [Spanish-Speaking Institutions and Language Assimilation in the Rio Grande Valley](https://scholarworks.utrgv.edu/regionalhist/15/)
 
-Twitter and the electoral connection
+
 [Twitter and the electoral connection](https://onlinelibrary.wiley.com/doi/abs/10.1111/ssqu.13080)
 
 
 ### Forthcoming Research
 
-Book Chapter (Mexico) in Comparative Criminal Justice by Rowman and Littlefield, forthcoming May 2023. 
-[Please refer to Table of Contents](https://rowman.com/ISBN/9781538173145/Comparative-Criminal-Justice-International-Trends-and-Practices)
+[Chapter 19 in Comparative Criminal Justice by Rowman & Littlefield Publishers](https://rowman.com/ISBN/9781538173145/Comparative-Criminal-Justice-International-Trends-and-Practices)
 
 Book Chapter (Militarization, Geopolitics & Energy Sovereignty) in Contrahistoria del 'pueblo' Mexicano by Debate (Penguin Random House), forthcoming September 2023.
 
