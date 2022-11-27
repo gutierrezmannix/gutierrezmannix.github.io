@@ -68,7 +68,9 @@ Profesor de medio Tiempo         2016-2017
 
 • POLS-2306-Introducción a Politica Estatal y Local                   (2022-) 
 
-• POLS-2305-Introducción a Politica Nacional                          (2022-) 
+• POLS-2305-Introducción a Politica Nacional                          (2022-)
+
+• POLS-2305-Introducción a Metodos de la Investigacion                (2023-) 
 
 
 ### Experiencia Academica (durante programa de doctorado)
