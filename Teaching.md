@@ -53,7 +53,7 @@ Part-Time Lecturer         2016-2017
 
 • POLS 2305 National Politics                                (2022 -) 
 
-• POLS 2407 Intro to Political Science Research              (2022 -) 
+• POLS 2407 Intro to Political Science Research              (2023 -) 
 
 
 
