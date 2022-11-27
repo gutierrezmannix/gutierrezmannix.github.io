@@ -23,6 +23,6 @@ Currently I am creating an original databse containing all tweets by all state a
 
 ![_config.yml]({{ site.baseurl }}/images/utd1.png)
 
-### Contact me [Email](mailto:cxg172030@utdallas.edu)
+### Contact me [Email](mailto:carlos.gutierrez01@utrgv.edu)
 
 Sep 2022
