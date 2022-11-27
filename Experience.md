@@ -47,7 +47,8 @@ University of Texas at Dallas (2020)
 #### Bachelor
 Sociology (Cum Laude) University of Texas at Brownsville (2013)
 
-### Please refer to Teaching Tab for Teaching Experience
+#### Teaching
+Please refer to Teaching Tab for Teaching Experience
 
 ### ACADEMIC CONFERENCES
 Please see CV tab
