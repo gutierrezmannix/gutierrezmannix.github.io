@@ -16,6 +16,8 @@ permalink: /Publications/
 
 [Twitter and the electoral connection in Social Science Quarterly](https://onlinelibrary.wiley.com/doi/abs/10.1111/ssqu.13080)
 
+[ORCID profile](https://orcid.org/0000-0002-1321-1750)
+
 
 ### Forthcoming Research
 
