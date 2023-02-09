@@ -27,8 +27,7 @@ Book Chapter (Militarization, Geopolitics & Energy Sovereignty) in Contrahistori
 
 ### Professional Publications
 
-[La metadata y su regulación legal]
-(https://scholarworks.utrgv.edu/pol_fac/57/) 
+[La metadata y su regulación legal](https://scholarworks.utrgv.edu/pol_fac/57/) 
 
 ### Ongoing research
 
