@@ -5,10 +5,6 @@ permalink: /Teaching/
 
 ---
 
-#### Teaching Philosophy 
-I believe students need to feel that they too have the ability of becoming experts in their area. They need to feel constant support from both their peers and professors and should be encouraged to always go a step further. For instance, during class, I always let students know that questions are encouraged and that they should not shy away from sharing their opinion. When I do meet students that are struggling, I make sure to convey to them that the classroom is a place in where they can feel confident that their effort will be valued. I find that students appreciate when the professor can relate the course content with current issues that they may be going through or issues at the national spotlight. For this reason, I make sure to incorporate different types of multimedia into my courses. An example of this is when I use short videos on Supreme Court cases. I find that students enjoy listening to cases when they can directly relate to their life. For this reason, I encourage students to think about themselves as either the plaintiffs or the defendants. This encourages them to look at court cases as situations to which they can connect. Another technique which I also use is to group students in teams and have them argue a case. One side of the classroom becomes the defendant and the other becomes the plaintiff. While yet another group will pretend to be the Supreme Court. In my experience, student really enjoy this exercise.
-
-
 #### Teaching Experience 
 
 1. University of Texas Rio Grande Valley (UTRGV); Political Science Department  
