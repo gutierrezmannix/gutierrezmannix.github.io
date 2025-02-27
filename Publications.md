@@ -5,6 +5,11 @@ permalink: /Publications/
 ---
 
 
+
+[Politics of the Rio Grande Valley An Insider's Perspective to Regional Politics](https://rowman.com/ISBN/9781666953459/Politics-of-the-Rio-Grande-Valley-An-Insiders-Perspective-to-Regional-Politics)
+
+[Militarization, Geopolitics & Energy Sovereignty](https://www.penguinlibros.com/mx/economia-politica-y-actualidad/368141-libro-contrahistoria-del-pueblo-mexicano-9786073853637?srsltid=AfmBOorMnkxQCTzV54nQ_VS5zBZzmEUhh27-TV-EBSL6_GHtMZQEaFND)
+
 [Chapter on the Criminal Justice System of Mexico in Comparative Criminal Justice by Rowman & Littlefield Publishers](https://rowman.com/ISBN/9781538173145/Comparative-Criminal-Justice-International-Trends-and-Practices)
 
 [Book Review Shifting Paradigms for Globalized Border Sub-systems of Latin America’s Global Border System](https://www.tandfonline.com/doi/full/10.1080/08865655.2023.2200801)
