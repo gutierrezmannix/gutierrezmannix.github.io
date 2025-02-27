@@ -60,4 +60,4 @@ Part-Time Lecturer         2016-2017
 
 • PSCI   4304 Energy/Environmental Politics & Policy (Spring 2022)
 
-Feb 2023
+Feb 2025
