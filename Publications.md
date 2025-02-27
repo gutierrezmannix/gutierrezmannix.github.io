@@ -39,4 +39,4 @@ Book Chapter (Militarization, Geopolitics & Energy Sovereignty) in Contrahistori
 
 Currently, I am working with my co-author to create a database including all members of the past three legislative session. By extracting all their tweets, we aim to better understand the effect of Blackout Dates in Congress on the use of social media by politicians.
 
-Feb 2023
+Feb 2025
