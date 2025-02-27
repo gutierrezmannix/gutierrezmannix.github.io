@@ -46,18 +46,12 @@ Part-Time Lecturer         2016-2017
 
 • POLS 2407 Intro to Political Science Research              (2023 -) 
 
+• POLS 4370 Senior Research Seminar                          (2023 -) 
+
+• POLS 4313 Congressional Procedure                          (2024 -) 
+
+• POLS 4392 Special Topics: U.S. Politics                    (2025 -) 
 
 
-### Experience as a Teaching Assistant
-
-• GOVT 2305 National Government                     (2017-2020)
-
-• PSCI   4310  Law and Terrorism                    (Spring 2020) 
-
-• PSCI   3303 Civil Liberties                        (Fall 2020) 
-
-• PSCI   4343 Congress and Public Policy             (Spring 2021) 
-
-• PSCI   4304 Energy/Environmental Politics & Policy (Spring 2022)
 
 Feb 2025
