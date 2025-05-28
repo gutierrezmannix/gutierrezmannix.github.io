@@ -20,7 +20,7 @@ permalink: /Publications/
 
 [Shifting Paradigms for Globalized Border Sub-systems of Latin America’s Global Border System](https://www.tandfonline.com/doi/full/10.1080/08865655.2023.2200801)
 
-[Chapter on Tamaulipas in Organized Violence: Capitalist Warfare in Latin America by University of Regina Press](https://read.amazon.com/kp/embed?asin=B07S5XFNKP&preview=newtab&linkCode=kpe&ref_=cm_sw_r_kb_dp_X2NuFbJJZDT1A)
+[Chapter on Tamaulipas in Organized Violence: Capitalist Warfare in Latin America by University of Regina Press](https://uofrpress.ca/Books/O/Organized-Violence)
 
 [Twitter and the electoral connection in Social Science Quarterly](https://onlinelibrary.wiley.com/doi/abs/10.1111/ssqu.13080)
 
