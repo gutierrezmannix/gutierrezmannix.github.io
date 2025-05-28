@@ -14,7 +14,7 @@ permalink: /Publications/
 
 [The Twitter Blackout: Do congressional rules influence the cyberworld?](https://onlinelibrary.wiley.com/doi/pdf/10.1111/ssqu.13432)
 
-[Chapter on the Criminal Justice System of Mexico in Comparative Criminal Justice by Rowman & Littlefield Publishers]([https://rowman.com/ISBN/9781538173145/Comparative-Criminal-Justice-International-Trends-and-Practices](https://scholarworks.utrgv.edu/pol_fac/207/))
+[Chapter on the Criminal Justice System of Mexico in Comparative Criminal Justice by Rowman & Littlefield Publishers](https://scholarworks.utrgv.edu/pol_fac/207/)
 
 [La metadata y su regulación legal](/images/Numero39.pdf) 
 
