@@ -50,8 +50,8 @@ Part-Time Lecturer         2016-2017
 
 • POLS 4313 Congressional Procedure                          (2024 -) 
 
-• POLS 4392 Special Topics: U.S. Politics                    (2025 -) 
+• POLS 4392 Special Topics: Survet Methodology               (2025 -) 
 
 
 
-Feb 2025
+May 2025
