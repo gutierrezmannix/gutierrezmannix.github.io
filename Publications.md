@@ -6,7 +6,7 @@ permalink: /Publications/
 
 
 
-[Politics of the Rio Grande Valley An Insider's Perspective to Regional Politics](https://rowman.com/ISBN/9781666953459/Politics-of-the-Rio-Grande-Valley-An-Insiders-Perspective-to-Regional-Politics)
+[Politics of the Rio Grande Valley An Insider's Perspective to Regional Politics]([https://rowman.com/ISBN/9781666953459/Politics-of-the-Rio-Grande-Valley-An-Insiders-Perspective-to-Regional-Politics](https://utrgv.primo.exlibrisgroup.com/permalink/01UT_RGV_INST/12haviq/alma991013675218204696))
 
 [Militarization, Geopolitics & Energy Sovereignty](https://www.penguinlibros.com/mx/economia-politica-y-actualidad/368141-libro-contrahistoria-del-pueblo-mexicano-9786073853637?srsltid=AfmBOorMnkxQCTzV54nQ_VS5zBZzmEUhh27-TV-EBSL6_GHtMZQEaFND)
 
