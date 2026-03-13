@@ -41,4 +41,4 @@ permalink: /Publications/
 
 Currently, I am working on assembling a database of political communication at the three levels of U.S. Government.
 
-May 2025
+Feb 2026
