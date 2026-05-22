@@ -4,6 +4,8 @@ title: Social Media Data
 permalink: /Data/
 ---
 
+### Visualize our Colonias Dashboard created with merged data.
+
 [Colonias Dashboard](/images/ColoniasDashboardv2.html)
 
 ### I also specialize in the collection and analysis of social media data. Current Projects include: Hispanic Members of Congress and Spanish as a Political Language in Social Media.
