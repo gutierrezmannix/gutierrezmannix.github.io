@@ -1,5 +1,6 @@
 ---
-layout: page
+layout: redirect
+redirect_to: /#teaching
 title: Teaching
 permalink: /Teaching/
 

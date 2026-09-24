@@ -1,5 +1,6 @@
 ---
-layout: page
+layout: redirect
+redirect_to: /#pubs
 title: Publications
 permalink: /Publications/
 ---

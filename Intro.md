@@ -1,5 +1,6 @@
 ---
-layout: post
+layout: redirect
+redirect_to: /
 title: Hello, Welcome to my website. 
 permalink: /Intro/
 ---

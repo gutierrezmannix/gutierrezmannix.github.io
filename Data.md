@@ -1,5 +1,6 @@
 ---
-layout: page
+layout: redirect
+redirect_to: /#data
 title: Social Media Data
 permalink: /Data/
 ---
