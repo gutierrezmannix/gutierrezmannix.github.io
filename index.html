@@ -39,6 +39,24 @@
        is skipped when the visitor prefers reduced motion, and any click or
        key press ends it early. -->
   <script>
+  // The hero grass sinks as the visitor scrolls: it drops at 60% of the
+  // scroll distance and is fully below the hero's edge after ~320px.
+  function mountGrassScroll() {
+    // Looked up on every update: the page runtime re-creates the hero
+    // after this runs, so a cached node would go stale.
+    var ticking = false;
+    function update() {
+      ticking = false;
+      var grass = document.getElementById('hero-grass');
+      if (!grass) return;
+      var y = Math.min(window.scrollY * 0.6, 200);
+      grass.style.transform = 'translateY(' + y.toFixed(1) + 'px)';
+    }
+    window.addEventListener('scroll', function () {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    update();
+  }
   function mountDawn() {
     var KEY = 'dawn-seen';
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -386,6 +404,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.documentElement.replaceWith(doc.documentElement);
     // Dawn intro (see DAWN below): plays once per browser session.
     try { mountDawn(); } catch (e) { console.warn('[dawn]', e); }
+    try { mountGrassScroll(); } catch (e) { console.warn('[grass]', e); }
 
     // Resolve page-frame markers: mint this document's own blob for each
     // framed page — from local text when this is the root, otherwise by
