@@ -11,6 +11,12 @@
     #__bundler_thumbnail svg { width: 100%; height: 100%; object-fit: contain; }
     #__bundler_placeholder { color: #999; font-size: 14px; }
   </style>
+  <!-- Anonymous visit counter (see Documentaries/track.js). Counts the home page and each section once per session. -->
+  <script type="module">
+    import { trackView, trackSections } from "/Documentaries/track.js?v=1";
+    trackView("home");
+    trackSections(["pubs", "teaching", "data"]);
+  </script>
   <noscript>
     <style>#__bundler_loading { display: none; }</style>
     <div style="position:fixed;bottom:12px;left:12px;font:13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;color:#999;background:rgba(255,255,255,0.9);padding:6px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08);z-index:10000;">
