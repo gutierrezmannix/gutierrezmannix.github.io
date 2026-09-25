@@ -56,23 +56,20 @@
       '-webkit-mask:radial-gradient(circle,#000 0,rgba(0,0,0,.6) 25%,transparent 55%);mask:radial-gradient(circle,#000 0,rgba(0,0,0,.6) 25%,transparent 55%);',
       'opacity:0;animation:dawn-rays 1.6s ease-out .6s forwards,dawn-spin 40s linear infinite}',
       '#dawn .glow{position:absolute;left:50%;bottom:-40vh;width:170vw;height:120vh;transform:translateX(-50%);',
-      'background:radial-gradient(ellipse at 50% 100%,rgba(205,120,40,.55) 0%,rgba(205,120,40,.22) 18%,rgba(205,120,40,0) 55%);opacity:0;animation:dawn-glow 2.6s ease-out forwards}',
-      '#dawn .sun{position:absolute;left:50%;bottom:-10vh;width:22vh;height:22vh;margin-left:-11vh;border-radius:50%;',
-      'background:radial-gradient(circle at 45% 40%,#f6d9a6,#e0a054 60%,#c97a2e);box-shadow:0 0 70px 24px rgba(220,140,60,.35);transform:translateY(42vh);animation:dawn-sun 2.6s cubic-bezier(.2,.7,.3,1) .2s forwards}',
+      'background:radial-gradient(ellipse at 50% 100%,rgba(215,130,45,.6) 0%,rgba(215,130,45,.26) 22%,rgba(215,130,45,0) 60%);opacity:0;animation:dawn-glow 2.6s ease-out forwards}',
       '#dawn .horizon{position:absolute;left:0;right:0;bottom:0;height:16vh;background:linear-gradient(transparent,#1C1B1A 40%)}',
       '#dawn.skip{animation:dawn-out .5s ease forwards}',
       '@keyframes dawn-sky{to{filter:brightness(1.12)}}',
       '@keyframes dawn-rays{to{opacity:1}}',
       '@keyframes dawn-spin{to{transform:rotate(24deg)}}',
       '@keyframes dawn-glow{30%{opacity:.6}to{opacity:1}}',
-      '@keyframes dawn-sun{to{transform:translateY(-2vh)}}',
       '@keyframes dawn-out{to{opacity:0;visibility:hidden}}',
       '@keyframes dawn-sway{from{transform:rotate(-2.2deg)}to{transform:rotate(2.6deg)}}'
     ].join('');
     var el = document.createElement('div');
     el.id = 'dawn';
     el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = '<div class="sky"></div><div class="rays"></div><div class="glow"></div><div class="sun"></div><div class="horizon"></div>';
+    el.innerHTML = '<div class="sky"></div><div class="rays"></div><div class="glow"></div><div class="horizon"></div>';
     // The hero grass, as a black silhouette against the rising sun.
     var grass = document.getElementById('hero-grass');
     if (grass) {
