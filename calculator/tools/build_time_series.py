@@ -12,12 +12,13 @@ import re
 from pathlib import Path
 from commandbar import integrate_component as integrate_commandbar_component, integrate_template as integrate_commandbar_template
 from network import integrate_engine as integrate_network_engine, integrate_component as integrate_network_component, integrate_template as integrate_network_template
+from tests_menu import integrate_component as integrate_tests_menu
 from jade_shell import integrate_template as integrate_jade_shell
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-23.14'
+BUILD = '2026-10-23.15'
 
 
 def replace(text, before, after, count=1):
@@ -182,7 +183,7 @@ def main():
     ts = re.search(r'<script type="__bundler/template">(.*?)</script>', h, re.S)
     manifest, template = json.loads(ms[1]), json.loads(ts[1])
     match = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)',template,re.S)
-    component = integrate_network_component(integrate_commandbar_component(integrate_navigation(integrate_component(match[2]))))
+    component = integrate_tests_menu(integrate_network_component(integrate_commandbar_component(integrate_navigation(integrate_component(match[2])))))
     template = template[:match.start(2)] + component + template[match.end(2):]
     controls = (ROOT/'src/time-series-controls.html').read_text()
     begin, end = '<!-- GM26 setup controls begin -->', '<!-- GM26 setup controls end -->'
