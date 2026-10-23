@@ -87,7 +87,7 @@
 .mf-col-data > aside > div:first-child > div:first-child > div:first-child {
   font: 700 13px/1.3 var(--fUI, 'Hanken Grotesk', sans-serif) !important; letter-spacing: .035em !important; color: var(--c194F39, #1D5443) !important;
 }
-.mf-col-data aside div[style*="max-height: 46vh"] { max-height: clamp(230px, 38vh, 480px) !important; padding: 5px 8px 8px !important; border-top: 0 !important; }
+.mf-col-data aside div[style*="max-height: 46vh"] { max-height: clamp(210px, 32vh, 440px) !important; padding: 5px 8px 8px !important; border-top: 0 !important; }
 .mf-col-data aside div[style*="max-height: 46vh"] > div[role="button"] { border-radius: 7px; padding-top: 9px !important; padding-bottom: 9px !important; }
 .mf-col-data aside div[style*="font-size: 10px"] { font-size: 11px !important; line-height: 1.4; }
 .mf-data-information { overflow: hidden; padding-bottom: 5px; }

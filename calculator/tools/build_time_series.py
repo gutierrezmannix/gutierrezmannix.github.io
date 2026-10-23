@@ -16,7 +16,7 @@ from jade_shell import integrate_template as integrate_jade_shell
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-23.8'
+BUILD = '2026-10-23.9'
 
 
 def replace(text, before, after, count=1):
@@ -210,7 +210,7 @@ def main():
     manifest_json = json.dumps(manifest,separators=(',',':'))
     template = template.replace('Two variables', 'Correlation')
     template = template.replace('.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: auto;', '.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: 4px;')
-    template = re.sub(r'2026-10-23\.[345678]', BUILD, template)
+    template = re.sub(r'2026-10-23\.[3456789]', BUILD, template)
     for a,b,new in sorted([(ms.start(1),ms.end(1), '\n'+manifest_json+'\n  '),(ts.start(1),ts.end(1),json.dumps(template,ensure_ascii=False).replace('</','<\\/'))],reverse=True):
         h = h[:a] + new + h[b:]
     PAGE.write_text(h)

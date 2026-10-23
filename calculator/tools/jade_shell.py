@@ -11,11 +11,10 @@ def integrate_template(t):
     css = (Path(__file__).resolve().parents[1] / 'src/shell-jade.css').read_text()
     start, end = '<!-- GM26 Jade shell begin -->', '<!-- GM26 Jade shell end -->'
     style = start + '<style>' + css + '</style>' + end
-    if start in t:
-        t = re.sub(re.escape(start) + '.*?' + re.escape(end), lambda _: style, t, flags=re.S)
-    else:
-        # Keep theme styles inside the existing helmet, after the original CSS.
-        t = t.replace('</helmet>', style + '\n</helmet>', 1)
+    t = re.sub(re.escape(start) + '.*?' + re.escape(end), '', t, flags=re.S)
+    # Place the overrides after the original shell styles, rather than before them.
+    anchor = '<nav class="site-back" aria-label="Site">'
+    t = t.replace(anchor, style + '\n' + anchor, 1)
     if '<!-- GM26 Jade display markup -->' in t:
         return t
     marker = '<!-- GM26 Jade display markup -->'
