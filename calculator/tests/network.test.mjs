@@ -44,10 +44,10 @@ if(process.env.GM26_NETWORK_R_DIR){
  console.log(`R comparison: ${checks} centrality/model checks across 20 R-simulated networks passed.`);
 }
 if(process.env.GM26_NETWORK_EDGES&&process.env.GM26_NETWORK_NODES){
- const er=await parse(process.env.GM26_NETWORK_EDGES),nr=await parse(process.env.GM26_NETWORK_NODES),p=E.netPrepare(er,nr,{from:'Vertex 1',to:'Vertex 2',id:'Vertex',directed:true});assert.equal(p.net.n,48);assert.equal(p.info.loops,48);const summary=E.netSummary(p.net);assert.equal(summary.edges,889);assert.equal(summary.meanDeg,37.041666666666664);
- const f=E.ergmFit(p.net,[{t:'mutual'}]);close(f.coefs.map(c=>c.b),[-1.582468030722029,2.6175903661004316],1e-7,'media MPLE');
- if(process.env.GM26_NETWORK_R_DIR){const ref=await parse(path.join(process.env.GM26_NETWORK_R_DIR,'media-ref.csv')),ce=E.netCentrality(p.net);for(const m of ['degree','indegree','outdegree','betweenness','closeness','harmonic','eigenvector','pagerank'])close(ce[m],ref.cols[ref.names.indexOf(m)].a,1e-7,'media/'+m);}
- console.log('User media files: 48 nodes, 889 ties, 48 self-ties removed; R centralities and default MPLE agree.');
+ const er=await parse(process.env.GM26_NETWORK_EDGES),nr=await parse(process.env.GM26_NETWORK_NODES),p=E.netPrepare(er,nr,{from:'Vertex 1',to:'Vertex 2',id:'Vertex',directed:true});
+ assert.ok(!p.error);assert.equal(p.net.n,nr.n);
+ if(process.env.GM26_NETWORK_R_DIR){const ref=await parse(path.join(process.env.GM26_NETWORK_R_DIR,'media-ref.csv')),ce=E.netCentrality(p.net);for(const m of ['degree','indegree','outdegree','betweenness','closeness','harmonic','eigenvector','pagerank'])close(ce[m],ref.cols[ref.names.indexOf(m)].a,1e-7,'local fixture/'+m);const f=E.ergmFit(p.net,[{t:'mutual'}]),fitRef=await parse(path.join(process.env.GM26_NETWORK_R_DIR,'media-mutual-fit.csv'));assert.ok(!f.error);close(f.coefs.map(c=>c.b),fitRef.cols[0].a,1e-7,'local fixture/MPLE');}
+ console.log('Locally supplied fixtures agree with R; no fixture values are embedded in this test.');
 }
 console.log('Network preparation, IDs, missing attributes, isolates, eigenvectors, directed plot and component error recovery passed.');
 // Adding and overwriting centralities is one undoable dataset operation, aligned by ID.
@@ -60,3 +60,9 @@ const guess = new C().netGuess('e',{names:['Vertex 1','Vertex 2',...Array.from({
 assert.deepEqual(guess,{ngFrom:'Vertex 1',ngTo:'Vertex 2'},'NodeXL Source is application metadata, not an endpoint');
 assert.deepEqual(new C().netGuess('e',{names:['junk','target','source']}),{ngFrom:'source',ngTo:'target'});
 console.log('NodeXL endpoint detection passed.');
+
+ac.state={...ac.state,screen:'work',tab:'ergm',fileName:'nodes.csv',nRows:3};
+assert.match(ac.renderVals().ngNodesInfo,/3 rows × 4 columns/,'network file metadata follows the live dataset after Undo');
+const vtx=new C();vtx._E=E;vtx._raw=ac._raw;vtx._netE=raw(['Vertex 1','Vertex 2','Source'],[['a','b','Twitter'],['b','a','Twitter']]);vtx._netN=raw(['Vertex','id'],[['a',1],['b',2],['c',3]]);vtx.state={...vtx.state,screen:'work',tab:'ergm',cols:[],nRows:3,ngE:vtx.netMeta(vtx._netE,'e.csv'),ngN:vtx.netMeta(vtx._netN,'n.csv'),ngFrom:'Vertex 1',ngTo:'Vertex 2',ngId:'Vertex',ngFit:null};
+let controls=vtx.renderVals();vtx.state.ngFit={};controls.ngFromBtns.find(b=>b.label==='Vertex 2').click();assert.equal(vtx.state.ngFrom,'Vertex 2');assert.equal(vtx.state.ngFit,null);vtx.runErgm();assert.match(vtx.state.ngErr,/different columns/);controls=vtx.renderVals();controls.ngToBtns.find(b=>b.label==='Vertex 1').click();assert.equal(vtx.state.ngTo,'Vertex 1');controls=vtx.renderVals();controls.ngIdBtns.find(b=>b.label==='id').click();assert.equal(vtx.state.ngId,'id');assert.deepEqual(vtx.state.ngAttr,{});
+console.log('Vertex selector callbacks, stale-result clearing, same-column validation and live metadata passed.');
