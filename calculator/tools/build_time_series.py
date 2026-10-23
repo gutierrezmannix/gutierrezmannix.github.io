@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-23.4'
+BUILD = '2026-10-23.5'
 
 
 def replace(text, before, after, count=1):
@@ -148,13 +148,27 @@ export function tsAnalyze(o) {
     return integrate_engine(e)
 
 
+def integrate_navigation(c):
+    """Keep Correlation and Regression in the Tests menu across rebuilds."""
+    if '// GM26 tests navigation v1' in c:
+        return c
+    c = replace(c, 'class Component extends DCLogic {', '// GM26 tests navigation v1\nclass Component extends DCLogic {')
+    c = c.replace('Two variables', 'Correlation')
+    lines = c.splitlines(keepends=True)
+    c = ''.join(line for line in lines if not line.lstrip().startswith(("['two', 'Correlation', null,", "['reg', 'Regression', [[")))
+    c = replace(c, "['Correlation test: Pearson and Spearman',", "['Correlation',")
+    c = replace(c, "['Regression: OLS, logit, ordered logit, Poisson',", "['Regression',")
+    c = replace(c, "const on = id === 'more' ? NAV_MORE.includes(S.tab)", "const on = id === 'tests' ? ['two', 'reg'].includes(S.tab) : id === 'more' ? NAV_MORE.includes(S.tab)")
+    return c
+
+
 def main():
     h = PAGE.read_text()
     ms = re.search(r'<script type="__bundler/manifest">(.*?)</script>', h, re.S)
     ts = re.search(r'<script type="__bundler/template">(.*?)</script>', h, re.S)
     manifest, template = json.loads(ms[1]), json.loads(ts[1])
     match = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)',template,re.S)
-    component = integrate_component(match[2])
+    component = integrate_navigation(integrate_component(match[2]))
     template = template[:match.start(2)] + component + template[match.end(2):]
     controls = (ROOT/'src/time-series-controls.html').read_text()
     begin, end = '<!-- GM26 setup controls begin -->', '<!-- GM26 setup controls end -->'
@@ -180,7 +194,8 @@ def main():
     e += '\n\n'+mod_begin+'\n'+(ROOT/'src/time-series-setup.mjs').read_text()+'\n'+mod_end+'\n'
     asset['data'] = base64.b64encode(gzip.compress(e.encode(),mtime=0)).decode()
     manifest_json = json.dumps(manifest,separators=(',',':'))
-    template = template.replace('2026-10-23.3', BUILD)
+    template = template.replace('Two variables', 'Correlation')
+    template = re.sub(r'2026-10-23\.[345]', BUILD, template)
     for a,b,new in sorted([(ms.start(1),ms.end(1), '\n'+manifest_json+'\n  '),(ts.start(1),ts.end(1),json.dumps(template,ensure_ascii=False).replace('</','<\\/'))],reverse=True):
         h = h[:a] + new + h[b:]
     PAGE.write_text(h)
