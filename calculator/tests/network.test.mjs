@@ -67,11 +67,9 @@ const vtx=new C();vtx._E=E;vtx._raw=ac._raw;vtx._netE=raw(['Vertex 1','Vertex 2'
 let controls=vtx.renderVals();vtx.state.ngFit={};controls.ngFromBtns.find(b=>b.label==='Vertex 2').click();assert.equal(vtx.state.ngFrom,'Vertex 2');assert.equal(vtx.state.ngFit,null);vtx.runErgm();assert.match(vtx.state.ngErr,/different columns/);controls=vtx.renderVals();controls.ngToBtns.find(b=>b.label==='Vertex 1').click();assert.equal(vtx.state.ngTo,'Vertex 1');controls=vtx.renderVals();controls.ngIdBtns.find(b=>b.label==='id').click();assert.equal(vtx.state.ngId,'id');assert.deepEqual(vtx.state.ngAttr,{});
 console.log('Vertex selector callbacks, stale-result clearing, same-column validation and live metadata passed.');
 
-assert.ok(code.includes("const xml = key === 'net' ? this.svgExport(svg) : new XMLSerializer().serializeToString(svg);"),'network PNG must use standalone SVG with explicit pixel dimensions');
-
-const pngComponent=new C();let pngSaved;pngComponent._svgs={net:{viewBox:{baseVal:{width:640,height:460}}}};pngComponent.svgExport=()=>'<svg/>';pngComponent.dlBlob=(blob,name)=>{pngSaved={blob,name};};pngComponent.flash=message=>{throw new Error(message);};
+const pngComponent=new C();let pngSaved,standaloneExports=0;pngComponent._svgs={net:{viewBox:{baseVal:{width:640,height:460}}}};pngComponent.svgExport=()=>{standaloneExports++;return '<svg/>';};pngComponent.dlBlob=(blob,name)=>{pngSaved={blob,name};};pngComponent.flash=message=>{throw new Error(message);};
 const savedDocument=globalThis.document;
 globalThis.Image=class {set src(value){queueMicrotask(()=>this.onload());}};
 globalThis.document={createElement:()=>({getContext:()=>({fillRect(){},drawImage(){}}),toBlob:cb=>cb(new Blob(['synthetic PNG'],{type:'image/png'}))})};
-await pngComponent.downloadNetworkPng('network-plot');assert.equal(pngSaved.name,'network-plot.png');assert.equal(pngSaved.blob.type,'image/png');globalThis.document=savedDocument;
+await pngComponent.dlSvg('net','network-plot');assert.equal(standaloneExports,1,'network PNG uses standalone SVG export');assert.equal(pngSaved.name,'network-plot.png');assert.equal(pngSaved.blob.type,'image/png');globalThis.document=savedDocument;
 console.log('Network PNG decoding/encoding/download pipeline passed.');

@@ -15,11 +15,12 @@ from network import integrate_engine as integrate_network_engine, integrate_comp
 from tests_menu import integrate_component as integrate_tests_menu
 from ttests import integrate_component as integrate_ttests_component, integrate_template as integrate_ttests_template, integrate_engine as integrate_ttests_engine
 from jade_shell import integrate_template as integrate_jade_shell
+from audit_fixes import integrate_component as repair_component, integrate_template as repair_template, integrate_engine as repair_engine
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-23.16'
+BUILD = '2026-10-23.17'
 
 
 def replace(text, before, after, count=1):
@@ -203,11 +204,14 @@ def main():
         part = part[:eventcard] + summary + part[eventcard:]
         template = template[:a] + part + template[b:]
     template = integrate_ttests_template(integrate_network_template(integrate_jade_shell(integrate_commandbar_template(template))))
+    match = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', template, re.S)
+    template = template[:match.start(2)] + repair_component(match[2]) + template[match.end(2):]
+    template = repair_template(template)
     asset = manifest[ENGINE]
     e = gzip.decompress(base64.b64decode(asset['data'])).decode()
     mod_begin, mod_end = '// GM26 time-series module begin', '// GM26 time-series module end'
     e = re.sub(re.escape(mod_begin)+'.*?'+re.escape(mod_end),'',e,flags=re.S).rstrip()
-    e = integrate_ttests_engine(integrate_network_engine(integrate_engine(e))).rstrip()
+    e = repair_engine(integrate_ttests_engine(integrate_network_engine(integrate_engine(e)))).rstrip()
     e += '\n\n'+mod_begin+'\n'+(ROOT/'src/time-series-setup.mjs').read_text()+'\n'+mod_end+'\n'
     asset['data'] = base64.b64encode(gzip.compress(e.encode(),mtime=0)).decode()
     manifest_json = json.dumps(manifest,separators=(',',':'))
