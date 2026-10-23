@@ -1,8 +1,6 @@
       const TESTS = [
         ['Univariate Descriptive Analysis', goT({ tab: 'one' })],
-        ['t-tests · One-sample', goT({ tab: 'one', ttMode: 'value' }, 'T-test')],
-        ['t-tests · Independent samples', goT({ tab: 'two', twoMode: 'means' })],
-        ['t-tests · Paired samples', goT({ tab: 'one', ttMode: 'paired' }, 'T-test')],
+        ['t-tests', goT({ tab: 'ttest' })],
         ['One-way ANOVA', goT({ tab: 'two', twoMode: 'means' })],
         ['Chi-square test', goT({ tab: 'two', twoMode: 'ct' })],
         ['Correlation', goT({ tab: 'two', twoMode: 'corr' })],

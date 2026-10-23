@@ -1,0 +1,20 @@
+<section data-screen-label="T-tests" class="tt-workspace" aria-label="T-tests">
+<div class="tt-card"><h2>T-TESTS</h2><p>Compare means. Choose the design that matches how your observations were collected.</p>
+<div class="tt-modes" role="group" aria-label="T-test design"><sc-for list="{{ ttModeBtns }}" as="b"><button sc-camel-on-click="{{ b.click }}" title="{{ b.tip }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+<p class="tt-design-hint">{{ ttDesignHint }}</p><label class="tt-outcome-label">NUMERIC OUTCOME</label><div style="position: relative;">
+                    <input aria-label="T-test outcome" value="{{ ttOutcomePk.text }}" sc-camel-on-focus="{{ ttOutcomePk.focus }}" sc-camel-on-blur="{{ ttOutcomePk.blur }}" sc-camel-on-change="{{ ttOutcomePk.type }}" placeholder="Choose a numeric outcome" style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 13px; color: var(--c194F39, #194F39); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 8px 12px; width: min(300px, 100%); box-shadow: inset 0 1px 2px rgba(43,39,30,0.06);">
+                    <sc-if value="{{ ttOutcomePk.open }}" hint-placeholder-val="{{ false }}">
+                      <div style="position: absolute; top: calc(100% + 4px); left: 0; width: min(380px, 85vw); z-index: 60; background: var(--cFFFFFF, #FFFFFF); border: 1px solid rgba(46,125,88,0.5); border-radius: 9px; box-shadow: 0 6px 16px rgba(43,39,30,0.14); max-height: 300px; overflow-y: auto;">
+                        <sc-for list="{{ ttOutcomePk.rows }}" as="s" hint-placeholder-count="3">
+                          <div sc-camel-on-mouse-down="{{ s.pick }}" style="display: flex; align-items: baseline; gap: 8px; padding: 7px 10px; cursor: pointer; border-bottom: 1px solid var(--cE5DBCB, #E5DBCB);" style-hover="background: rgba(46,125,88,0.12);">
+                            <span style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; color: var(--c2B271E, #2B271E); white-space: nowrap;">{{ s.name }}</span>
+                            <span style="font-size: 10.5px; color: var(--c6B6455, #6B6455); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ s.sub }}</span>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+<sc-if value="{{ ttNeedOutcome }}" hint-placeholder-val="{{ false }}"><p role="status">Choose a numeric outcome to configure the test. You can also click a variable in the list.</p></sc-if>
+</div>
+{{CARD}}
+</section>
