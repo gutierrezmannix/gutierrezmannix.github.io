@@ -11,11 +11,12 @@ import json
 import re
 from pathlib import Path
 from commandbar import integrate_component as integrate_commandbar_component, integrate_template as integrate_commandbar_template
+from jade_shell import integrate_template as integrate_jade_shell
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-23.7'
+BUILD = '2026-10-23.8'
 
 
 def replace(text, before, after, count=1):
@@ -198,7 +199,7 @@ def main():
         summary = '<sc-if value="{{ tsHasPreparation }}" hint-placeholder-val="{{ false }}"><div class="ts-setup-summary" role="status" data-testid="time-series-preparation-summary">{{ tsPrepared }}</div><div class="ts-setup-warning" data-testid="time-series-validation">{{ tsValidation }}</div></sc-if>\n'
         part = part[:eventcard] + summary + part[eventcard:]
         template = template[:a] + part + template[b:]
-    template = integrate_commandbar_template(template)
+    template = integrate_jade_shell(integrate_commandbar_template(template))
     asset = manifest[ENGINE]
     e = gzip.decompress(base64.b64decode(asset['data'])).decode()
     mod_begin, mod_end = '// GM26 time-series module begin', '// GM26 time-series module end'
@@ -209,7 +210,7 @@ def main():
     manifest_json = json.dumps(manifest,separators=(',',':'))
     template = template.replace('Two variables', 'Correlation')
     template = template.replace('.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: auto;', '.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: 4px;')
-    template = re.sub(r'2026-10-23\.[34567]', BUILD, template)
+    template = re.sub(r'2026-10-23\.[345678]', BUILD, template)
     for a,b,new in sorted([(ms.start(1),ms.end(1), '\n'+manifest_json+'\n  '),(ts.start(1),ts.end(1),json.dumps(template,ensure_ascii=False).replace('</','<\\/'))],reverse=True):
         h = h[:a] + new + h[b:]
     PAGE.write_text(h)

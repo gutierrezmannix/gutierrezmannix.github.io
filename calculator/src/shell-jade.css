@@ -1,0 +1,154 @@
+/* Jade & Charcoal: presentation only. Existing palette and font settings still apply. */
+:root {
+  --cFAF7F1: #F5F4EC;
+  --cFFFFFF: #FFFEFA;
+  --cF2ECE1: #E9EEE1;
+  --cF8F5EE: #F7F8F0;
+  --cF4EEE3: #ECEEE4;
+  --c1A1711: #182E28;
+  --c2B271E: #20362F;
+  --c433D31: #294137;
+  --c5D5648: #626D63;
+  --c6B6455: #536159;
+  --c194F39: #1D5443;
+  --c194F3A: #1C4A3D;
+  --c2E7D58: #28614C;
+  --c1F6447: #245B45;
+  --cEDF5F0: #E7EFE4;
+  --cD2C5AF: #707B70;
+  --cE3DCCE: #B3BCAF;
+  --cD9D2C4: #A6B1A2;
+  --cE5DBCB: #D8DED2;
+  --cE3D8C4: #C7CFC1;
+  --cC4681E: #A94426;
+  --cA3540F: #913C24;
+  --c934425: #923E27;
+  --c80470E: #794126;
+}
+
+.site-back { background: var(--c194F3A, #1C4A3D); position: relative; }
+.site-back a { justify-content: flex-end; color: var(--cF8F5EF, #F8F5EF); padding: 7px 20px; min-height: 30px; box-sizing: border-box; }
+.site-back a:hover { background: rgba(255,255,255,.06); }
+.mf-ginkgo { position: absolute; left: 21px; top: 3px; width: 35px; height: 24px; color: #DAC58C; pointer-events: none; }
+.mf-top { background: var(--cFAF7F1, #F5F4EC); border-bottom: 1px solid var(--cE3DCCE, #B3BCAF); }
+.mf-top-row { padding: 14px 20px 12px; gap: 20px; }
+.mf-brand { font-size: 28px; gap: 7px; }
+.mf-brand span { color: var(--cC4681E, #A94426); }
+.mf-brand em { font-size: 11px; letter-spacing: .16em; color: var(--c6B6455, #536159); }
+.mf-ds { border: 1.5px solid var(--c5D5648, #626D63); border-left-width: 1.5px; background: var(--cFFFFFF, #FFFEFA); padding: 7px 12px; border-radius: 9px; }
+.mf-ds-name { font-size: 12px; color: var(--c2B271E, #20362F); }
+.mf-ds-dims { font-size: 10.5px; color: var(--c6B6455, #536159); }
+.mf-work { padding: 9px 18px 18px; gap: 12px; }
+.mf-grid { gap: 14px; }
+.mf-commandbar { padding: 0 0 7px; background: var(--cFAF7F1, #F5F4EC); }
+.mf-commandgroup { padding: 8px 10px; gap: 7px; background: var(--cF2ECE1, #E9EEE1); border: 1px solid var(--cD9D2C4, #A6B1A2); border-radius: 12px; }
+.mf-commandgroup .mf-btn, .mf-commandgroup .mf-nav, .mf-commandgroup .mf-caret {
+  min-height: 36px; box-sizing: border-box; font: 600 13px/1.25 var(--fUI, 'Hanken Grotesk', sans-serif);
+  color: var(--c2B271E, #20362F); background: var(--cFFFFFF, #FFFEFA);
+  border: 1.5px solid var(--c5D5648, #626D63); border-radius: 8px;
+  padding: 8px 12px; box-shadow: 0 2px 2px rgba(26,53,41,.09);
+}
+.mf-commandgroup .mf-navwrap { align-items: stretch; }
+.mf-commandgroup .mf-navwrap:has(.mf-caret) { gap: 0; }
+.mf-commandgroup .mf-navwrap:has(.mf-caret) > .mf-nav { border-radius: 8px 0 0 8px; border-right: 0; }
+.mf-commandgroup .mf-caret { border-radius: 0 8px 8px 0; border-left: 0; padding: 6px 9px; }
+.mf-commandgroup .mf-bell { width: 38px; padding: 7px; }
+.mf-commandgroup .mf-navwrap:has(> [data-nav="datam"]) { padding-left: 0; margin-left: 0; border-left: 0; }
+.mf-commandgroup [data-nav][style*="box-shadow: inset"] { background: var(--cEDF5F0, #E7EFE4) !important; box-shadow: inset 0 -3px 0 var(--c194F39, #1D5443), 0 2px 2px rgba(26,53,41,.09) !important; font-weight: 700; }
+.mf-control-icon { width: 15px; height: 15px; display: inline-block; vertical-align: -2px; margin-right: 6px; flex: none; }
+.mf-commandbar .mf-menu { border: 1.5px solid var(--c5D5648, #626D63); box-shadow: 0 8px 20px rgba(26,53,41,.16); border-radius: 10px; }
+.mf-commandbar .mf-menu-item { padding: 10px 13px; font-size: 13px; line-height: 1.4; }
+.mf-commandbar .mf-menu-item:hover { background: var(--cEDF5F0, #E7EFE4); }
+.mf-commandbar .mf-dirty { margin-left: 3px; font-size: 11px; }
+
+/* Real controls retain their existing labels, events, visibility and selected states. */
+.mf-work button:not(.mf-navlabel), .mf-work input:not([type="file"]), .mf-work select, .mf-work textarea {
+  border-color: var(--c5D5648, #626D63) !important;
+}
+.mf-work button { border-width: 1.5px; }
+.mf-work input:not([type="file"]), .mf-work select, .mf-work textarea {
+  border-width: 1.5px !important; border-radius: 8px !important; min-height: 32px; box-sizing: border-box;
+}
+.mf-work button:hover { filter: brightness(.98); }
+.mf-work button:focus-visible, .mf-work input:focus-visible, .mf-work select:focus-visible, .mf-work textarea:focus-visible,
+.mf-work [role="button"]:focus-visible, .mf-top button:focus-visible {
+  outline: 3px solid var(--c194F39, #1D5443) !important; outline-offset: 3px; position: relative;
+}
+.mf-col-data { gap: 12px; }
+.mf-col-data > aside, .mf-dock:not(:has(.mf-rail)), .mf-settings, .mf-data-information {
+  border: 1px solid var(--cD9D2C4, #A6B1A2) !important; border-radius: 12px !important;
+  background: var(--cFFFFFF, #FFFEFA); box-shadow: 0 2px 5px rgba(26,53,41,.035) !important;
+}
+.mf-col-data > aside > div:first-child { padding: 13px 12px 10px !important; gap: 10px !important; }
+.mf-col-data > aside > div:first-child > div:first-child {
+  margin: -13px -12px 0 !important; padding: 12px 14px !important; background: var(--cF2ECE1, #E9EEE1) !important;
+  border: 0 !important; border-bottom: 1px solid var(--cE3DCCE, #B3BCAF) !important; border-radius: 11px 11px 0 0 !important;
+}
+.mf-col-data > aside > div:first-child > div:first-child > div:first-child {
+  font: 700 13px/1.3 var(--fUI, 'Hanken Grotesk', sans-serif) !important; letter-spacing: .035em !important; color: var(--c194F39, #1D5443) !important;
+}
+.mf-col-data aside div[style*="max-height: 46vh"] { max-height: clamp(230px, 38vh, 480px) !important; padding: 5px 8px 8px !important; border-top: 0 !important; }
+.mf-col-data aside div[style*="max-height: 46vh"] > div[role="button"] { border-radius: 7px; padding-top: 9px !important; padding-bottom: 9px !important; }
+.mf-col-data aside div[style*="font-size: 10px"] { font-size: 11px !important; line-height: 1.4; }
+.mf-data-information { overflow: hidden; padding-bottom: 5px; }
+.mf-section-heading { margin: 0; padding: 11px 14px; background: var(--cF2ECE1, #E9EEE1); color: var(--c194F39, #1D5443); border-bottom: 1px solid var(--cE3DCCE, #B3BCAF); font: 700 13px/1.3 var(--fUI, 'Hanken Grotesk', sans-serif); letter-spacing: .035em; }
+.mf-data-information dl { margin: 0; padding: 5px 13px; font: 12px/1.5 var(--fUI, 'Hanken Grotesk', sans-serif); }
+.mf-data-information dl > div { padding: 7px 0; border-bottom: 1px solid var(--cE5DBCB, #D8DED2); }
+.mf-data-information dl > div:last-child { border-bottom: 0; }
+.mf-data-information dt { font-weight: 600; color: var(--c6B6455, #536159); }
+.mf-data-information dd { margin: 2px 0 0; overflow-wrap: anywhere; color: var(--c2B271E, #20362F); }
+.mf-data-information .mf-data-state { font: 10.5px/1.6 var(--fMono, 'Space Mono', monospace); }
+.mf-main > div[style*="border: 1px solid"], .mf-main > sc-if > div[style*="border: 1px solid"] { border-radius: 12px !important; }
+.mf-main [data-screen-label="Subgroup (if)"] { border-color: var(--cD9D2C4, #A6B1A2) !important; border-radius: 10px !important; box-shadow: none !important; }
+.mf-main input { box-shadow: none !important; }
+.mf-main [style*="font-size: 10.5px"] { line-height: 1.5; }
+.mf-exportbar { margin-bottom: 4px; }
+.mf-btn-primary { background: var(--cC4681E, #A94426); color: var(--cFFFFFF, #FFFEFA); }
+.mf-dock-tabs { background: var(--cF2ECE1, #E9EEE1); padding: 8px 8px 6px; gap: 5px; align-items: center; flex-wrap: wrap; }
+.mf-docktab { border: 1.5px solid var(--c5D5648, #626D63); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--c2B271E, #20362F); background: var(--cFFFFFF, #FFFEFA); }
+.mf-docktab[style*="border-bottom: 2px solid"] { color: var(--cFFFFFF, #FFFEFA) !important; background: var(--c194F39, #1D5443) !important; border-color: var(--c194F39, #1D5443) !important; text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 2px; }
+.mf-icon { min-width: 27px; min-height: 27px; }
+.mf-pane { padding: 12px; gap: 10px; }
+.mf-pane[data-screen-label="Plots pane"] > .mf-plot-tools { order: 5; }
+.mf-pane[data-screen-label="Plots pane"] > .mf-plot-preview-label { order: 0; border: 1px solid var(--cE3DCCE, #B3BCAF); border-radius: 8px; }
+.mf-pane[data-screen-label="Plots pane"] > .mf-plot-title { order: 1; }
+.mf-pane[data-screen-label="Plots pane"] > .mf-plot-meta { order: 2; }
+.mf-pane[data-screen-label="Plots pane"] > .mf-plot-stage, .mf-pane[data-screen-label="Plots pane"] > .mf-plotgrid { order: 3; }
+.mf-pane[data-screen-label="Plots pane"] > .mf-plot-cmd { order: 6; }
+.mf-pane[data-screen-label="Plots pane"] > .mf-thumbs { order: 7; }
+.mf-pane[data-screen-label="Plots pane"] > .mf-pane-foot { order: 8; }
+.mf-plot-tools { border: 1px solid var(--cE3DCCE, #B3BCAF); border-radius: 9px; overflow: visible; }
+.mf-plot-tools > .mf-section-heading { border-radius: 8px 8px 0 0; }
+.mf-plot-tools .mf-pane-bar { padding: 10px; gap: 6px; }
+.mf-plot-tools .mf-pane-bar .mf-btn-sm { font-size: 11px; }
+.mf-plot-stage { border: 1px solid var(--cE3DCCE, #B3BCAF); border-radius: 9px; background: var(--cFFFFFF, #FFFEFA); }
+.mf-plot-title { font-size: 14px; line-height: 1.4; }
+.mf-plot-meta { font-size: 11px; line-height: 1.5; }
+.mf-plot-cmd { border: 1px solid var(--cE3DCCE, #B3BCAF); font-size: 11px; line-height: 1.6; }
+.mf-thumb, .mf-gridtile { border-color: var(--c5D5648, #626D63) !important; border-radius: 7px; }
+.mf-settings-grid { gap: 18px 24px; padding: 15px 18px; }
+.mf-settings-view { padding-bottom: 15px; gap: 14px 20px; }
+.mf-commandbar .mf-control-icon { pointer-events: none; }
+@media (max-width: 900px) {
+  .mf-top-row { padding: 11px 12px; gap: 10px; }
+  .mf-work { padding: 8px 10px 12px; }
+  .mf-commandgroup { gap: 6px; padding: 7px; }
+  .mf-commandgroup .mf-btn, .mf-commandgroup .mf-nav { min-height: 36px; padding: 7px 10px; }
+  .mf-data-information { margin-bottom: 12px; }
+}
+@media (max-width: 520px) {
+  .site-back a { font-size: 12px; padding-right: 12px; }
+  .mf-ginkgo { left: 12px; width: 27px; }
+  .mf-brand { font-size: 24px; }
+  .mf-ds { max-width: 100%; }
+  .mf-commandgroup .mf-control-icon { display: none; }
+  .mf-commandgroup .mf-btn, .mf-commandgroup .mf-nav { font-size: 12px; }
+  .mf-dock-tabs { gap: 4px; }
+}
+@media (forced-colors: active) {
+  .mf-work button, .mf-work input, .mf-work select { border: 2px solid ButtonText !important; }
+  .mf-work :focus-visible { outline: 3px solid Highlight !important; }
+}
+@media print {
+  .mf-commandbar, .mf-ginkgo, .mf-data-information { display: none !important; }
+}
