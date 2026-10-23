@@ -1,0 +1,103 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
+import { tsPrepare, tsPeriod, tsDateLabel, tsScripts } from '../src/time-series-setup.mjs';
+
+const page = readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const manifest = JSON.parse(page.match(/<script type="__bundler\/manifest">([\s\S]*?)<\/script>/)[1]);
+const engineText = gunzipSync(Buffer.from(manifest['7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'].data,'base64')).toString();
+const E = await import('data:text/javascript;base64,'+Buffer.from(engineText).toString('base64'));
+const template = JSON.parse(page.match(/<script type="__bundler\/template">([\s\S]*?)<\/script>/)[1]);
+const code = template.match(/<script type="text\/x-dc"[^>]*>([\s\S]*?)<\/script>/)[1];
+new Function('DCLogic',code+';return Component;')(class {});
+assert.ok(template.includes('time-series-preparation-summary'));
+assert.ok(code.includes("if (S.tab === 'ts') return this._tsLast || null"));
+assert.ok(!code.includes("tsT: a, tsU: '' }; this.stataLog(s)"));
+
+assert.equal(tsPeriod('2015-01','monthly'),660);
+assert.equal(tsDateLabel(660,'monthly'),'2015-01');
+assert.equal(tsDateLabel(tsPeriod('1959-12','monthly'),'monthly'),'1959-12');
+assert.equal(tsPeriod('2015-Q2','quarterly'),221);
+assert.ok(Number.isNaN(tsPeriod('2015-13','monthly')));
+assert.ok(Number.isNaN(tsPeriod('2025-02-30','daily')));
+
+const base = { mode:'parts', frequency:'monthly', target:'same', aggregate:'none', time:Array(12).fill(2015), part:Array.from({length:12},(_,i)=>i+1), y:Array(12).fill(2), unit:Array(12).fill('A') };
+assert.equal(tsPrepare(base).valid,12);
+assert.equal(tsPrepare({...base, time:[...base.time,2015],part:[...base.part,1],y:[...base.y,NaN],unit:[...base.unit,'A']}).duplicates,1);
+assert.match(tsPrepare({...base,target:'yearly'}).error,/aggregation rule/);
+assert.equal(tsPrepare({...base,target:'yearly',aggregate:'sum'}).y[0],24);
+assert.equal(tsPrepare({...base,target:'yearly',aggregate:'mean'}).y[0],2);
+assert.equal(tsPrepare({...base,target:'quarterly',aggregate:'sum'}).valid,4);
+assert.deepEqual(tsPrepare({...base,target:'quarterly',aggregate:'sum'}).y,[6,6,6,6]);
+assert.equal(tsPrepare({...base,target:'yearly',aggregate:'rate',numerator:base.y,population:Array(12).fill(1000),scale:100000}).y[0],2400);
+assert.match(tsPrepare({...base,target:'yearly',aggregate:'rate',numerator:base.y,population:[1001,...Array(11).fill(1000)],scale:100000}).error,/denominator varies/);
+assert.match(tsPrepare({...base,part:base.part.slice(1),time:base.time.slice(1),y:base.y.slice(1),unit:base.unit.slice(1),target:'yearly',aggregate:'sum'}).error,/No complete/);
+assert.match(tsPrepare({...base,y:[2,2,NaN,...Array(9).fill(2)]}).error,/missing period/);
+assert.match(tsPrepare({...base,part:[0,...base.part.slice(1)]}).error,/invalid\/missing time/);
+assert.equal(tsPrepare({...base,mask:[0,...Array(11).fill(1)],part:[0,...base.part.slice(1)]}).invalidTime,0);
+assert.match(tsPrepare({...base,source:Array(12).fill(1),sourceValue:''}).error,/Choose one/);
+const daily = { mode:'existing',frequency:'daily',target:'monthly',aggregate:'sum',time:Array.from({length:29},(_,i)=>tsPeriod('2024-02-01','daily')+i), y:Array(29).fill(1) };
+assert.equal(tsPrepare(daily).y[0],29);
+assert.match(E.tsAnalyze({t:[1,1,2],y:[2,3,4]}).error,/Repeated/);
+assert.match(E.tsAnalyze({t:[1,3,4],y:[2,3,4]}).error,/Missing calendar/);
+
+const t = Array.from({length:60},(_,i)=>i), y = t.map(i=>5+0.2*i+(i>=30?2+0.1*(i-30):0)+Math.sin(i)*0.1);
+const res = E.tsAnalyze({t,y,common:30,type:'both'});
+assert.ok(!res.error);
+assert.ok(Math.abs(res.coefs.find(c=>c.term.includes('level shift')).b-2)<0.1);
+const setup = {tv:'year',part:'month',uv:'state',source:'method',yv:'crime',mode:'parts',frequency:'monthly'};
+const state = {tsSourceValue:'2',tsSel:['1'],tsTarget:'yearly',tsAggregate:'sum',tsType:'both',tsEv:'2018',tsAll:false};
+const prepared = {frequency:'yearly',nUnits:1};
+const result = {...res,tmin:2015};
+const scripts = tsScripts({setup,state,conditions:[{v:'state',t:'in',vals:['1']}],names:['year','month','state','method','crime'],numeric:['year','month','state','method','crime'],summary:'Annual sums',events:{},common:2018},prepared,result);
+assert.ok(scripts.stata.includes('method == 2'));
+assert.ok(scripts.stata.includes('ym(year, month)'));
+assert.ok(scripts.stata.includes('isid state gmts_time'));
+assert.ok(scripts.stata.includes('collapse (sum)'));
+assert.ok(scripts.stata.includes('gen double gmts_trend = gmts_time - 2015'));
+assert.ok(scripts.stata.includes('newey'));
+assert.ok(scripts.stata.endsWith('restore'));
+assert.ok(!/tsset[^\n]*\bif\b/.test(scripts.stata));
+assert.ok(scripts.r.includes('prewhite=FALSE,adjust=TRUE'));
+const labeled = tsScripts({setup,state,conditions:[{v:'state',t:'in',vals:['Oaxaca']}],names:[],numeric:['state','method'],valueLabels:{state:[[20,'Oaxaca']]},summary:'Filtered',events:{},common:2018},prepared,result);
+assert.ok(labeled.stata.includes('state == 20'));
+assert.ok(!labeled.stata.includes('NaN'));
+
+if (process.env.GM26_TEST_DTA) {
+  const bytes = readFileSync(process.env.GM26_TEST_DTA);
+  const raw = await E.parseDTA(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),()=>{});
+  const col = n => raw.cols[raw.names.indexOf(n)].a;
+  assert.equal(raw.n,12288); assert.equal(raw.names.length,137);
+  const real = { mode:'parts',frequency:'monthly',time:col('year'),part:col('month'),unit:col('cve_ent'),y:col('adjusted_hom_doloso'),source:col('metodologia'),sourceValue:'2' };
+  const modern = tsPrepare(real); assert.ok(!modern.error,modern.error); assert.equal(modern.valid,4224); assert.equal(modern.nUnits,32);
+  const overlap = tsPrepare({...real,source:null}); assert.equal(overlap.duplicates,1152);
+  const earlier = tsPrepare({...real,sourceValue:'1'}); assert.equal(earlier.valid,8064);
+  const annual = tsPrepare({...real,target:'yearly',aggregate:'sum',y:col('hom_doloso')}); assert.ok(!annual.error,annual.error); assert.equal(annual.valid,352);
+  const monthlyFit = E.tsAnalyze({t:modern.t,y:modern.y,unit:modern.unit,sel:new Set(['20']),common:tsPeriod('2018-01','monthly'),type:'both',tname:'monthly'});
+  assert.ok(!monthlyFit.error,monthlyFit.error); assert.equal(monthlyFit.n,132);
+  // Exercise the actual bundled component with stored value labels and UI callbacks.
+  class Logic { props={}; setState(p,cb) { this.state={...this.state,...(typeof p==='function'?p(this.state):p)}; if(cb)cb(); } }
+  globalThis.React={createElement:(tag,props,...children)=>({tag,props,children})};
+  globalThis.window={innerWidth:1440}; globalThis.document={documentElement:{style:{zoom:''}}};
+  const Component=new Function('DCLogic',code+';return Component')(Logic), app=new Component();
+  app._E=E; app._raw=raw; app.autoLabels(raw,'incidencia_1997_2025.dta');
+  app.state={...app.state,screen:'work',tab:'ts',fileName:'fixture.dta',cols:raw.names.map((_,i)=>E.profileCol(raw,i)),nRows:raw.n,tsY:'adjusted_hom_doloso',tsAll:true};
+  let ui=app.renderVals(); assert.equal(ui.tsHasRes,false); assert.match(ui.tsErr,/1152 extra/);
+  app.state.tsSource='metodologia'; app._memo={}; ui=app.renderVals();
+  ui.tsSourceChoices.find(x=>x.label==='Nueva (2015-2025)').click();
+  assert.equal(app.state.tsSourceValue,'2'); app._memo={}; ui=app.renderVals();
+  assert.equal(ui.tsHasRes,true); assert.match(ui.tsPrepared,/4224 valid monthly/);
+  assert.ok(app.descFor().stata.includes('metodologia == 2'));
+  ui.tsUnitChips.find(x=>x.label==='Oaxaca').click(); app.state.tsAll=false; app._memo={}; ui=app.renderVals();
+  assert.equal(ui.tsHasRes,true); assert.match(ui.tsPrepared,/132 valid monthly/);
+  assert.ok(app.descFor().stata.includes('cve_ent == 20'));
+  app.state={...app.state,tsTarget:'yearly',tsAggregate:'sum',tsY:'hom_doloso',tsEv:'2018'}; app._memo={}; ui=app.renderVals();
+  assert.equal(ui.tsHasRes,true); assert.match(ui.tsPrepared,/11 valid yearly/);
+  assert.ok(app.descFor().stata.includes('collapse (sum)'));
+  assert.ok(app.descFor().stata.includes('newey'));
+  assert.ok(app.descFor().r.includes('local({'));
+  app.state={...app.state,tsAggregate:'rate',tsCount:'hom_doloso',tsPop:'pob'}; app._memo={}; ui=app.renderVals();
+  assert.equal(ui.tsHasRes,true); assert.match(ui.tsPrepared,/one period-level population/);
+  console.log('Real Stata dataset: overlap blocked; 132 monthly periods per state retained; 352 annual state totals; monthly ITS estimated.');
+}
+console.log('Calendar preparation, missingness, duplicate protection, rate aggregation, scripts, model, and bundle syntax passed.');
