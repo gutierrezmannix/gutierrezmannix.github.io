@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-23.5'
+BUILD = '2026-10-23.6'
 
 
 def replace(text, before, after, count=1):
@@ -149,8 +149,19 @@ export function tsAnalyze(o) {
 
 
 def integrate_navigation(c):
-    """Keep Correlation and Regression in the Tests menu across rebuilds."""
+    """Keep all analysis tools in Tests across rebuilds."""
+    if '// GM26 tests navigation v2' in c:
+        return c
     if '// GM26 tests navigation v1' in c:
+        c = replace(c, '// GM26 tests navigation v1', '// GM26 tests navigation v2')
+        c = replace(c, "['Regression', goT({ tab: 'reg' })]", "['Regression', goT({ tab: 'reg' })],\n        ['Time series', goT({ tab: 'ts' })],\n        ['Text analysis', goT({ tab: 'text' })],\n        ['Networks', goT({ tab: 'ergm' })],\n        ['SEM', goT({ tab: 'sem' })]")
+        a = c.index('      const tightNav = !!S.mfNavTight, MENU_ONLY =')
+        b = c.index('      const NAVG =', a)
+        c = c[:a] + "      const MENU_ONLY = ['tests', 'datam'];\n      const NAV_TESTS = ['two', 'reg', 'ts', 'text', 'ergm', 'sem'], NAV_DATA = ['overview', 'browse', 'data'];\n      const navName = { overview: 'Overview', browse: 'Browse', data: 'Edit data' };\n" + c[b:]
+        c = replace(c, "].concat(tightNav ? [] : [['sem', 'SEM', null, 'Structural equation models and confirmatory factor analysis']]).concat([", "].concat([")
+        c = ''.join(line for line in c.splitlines(keepends=True) if not line.lstrip().startswith("['more', NAV_MORE.includes(S.tab)"))
+        c = replace(c, "id === 'tests' ? ['two', 'reg'].includes(S.tab) : id === 'more' ? NAV_MORE.includes(S.tab)", "id === 'tests' ? NAV_TESTS.includes(S.tab)")
+        c = replace(c, 'Pick a test \\u2014 t-tests, ANOVA, chi-square, correlation, regression \\u2014 and go straight to it', 'Choose an analysis: t-tests, ANOVA, chi-square, correlation, regression, time series, text analysis, networks or SEM')
         return c
     c = replace(c, 'class Component extends DCLogic {', '// GM26 tests navigation v1\nclass Component extends DCLogic {')
     c = c.replace('Two variables', 'Correlation')
@@ -159,7 +170,7 @@ def integrate_navigation(c):
     c = replace(c, "['Correlation test: Pearson and Spearman',", "['Correlation',")
     c = replace(c, "['Regression: OLS, logit, ordered logit, Poisson',", "['Regression',")
     c = replace(c, "const on = id === 'more' ? NAV_MORE.includes(S.tab)", "const on = id === 'tests' ? ['two', 'reg'].includes(S.tab) : id === 'more' ? NAV_MORE.includes(S.tab)")
-    return c
+    return integrate_navigation(c)
 
 
 def main():
@@ -195,7 +206,8 @@ def main():
     asset['data'] = base64.b64encode(gzip.compress(e.encode(),mtime=0)).decode()
     manifest_json = json.dumps(manifest,separators=(',',':'))
     template = template.replace('Two variables', 'Correlation')
-    template = re.sub(r'2026-10-23\.[345]', BUILD, template)
+    template = template.replace('.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: auto;', '.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: 4px;')
+    template = re.sub(r'2026-10-23\.[3456]', BUILD, template)
     for a,b,new in sorted([(ms.start(1),ms.end(1), '\n'+manifest_json+'\n  '),(ts.start(1),ts.end(1),json.dumps(template,ensure_ascii=False).replace('</','<\\/'))],reverse=True):
         h = h[:a] + new + h[b:]
     PAGE.write_text(h)
