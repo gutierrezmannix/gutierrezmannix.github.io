@@ -68,3 +68,10 @@ let controls=vtx.renderVals();vtx.state.ngFit={};controls.ngFromBtns.find(b=>b.l
 console.log('Vertex selector callbacks, stale-result clearing, same-column validation and live metadata passed.');
 
 assert.ok(code.includes("const xml = key === 'net' ? this.svgExport(svg) : new XMLSerializer().serializeToString(svg);"),'network PNG must use standalone SVG with explicit pixel dimensions');
+
+const pngComponent=new C();let pngSaved;pngComponent._svgs={net:{viewBox:{baseVal:{width:640,height:460}}}};pngComponent.svgExport=()=>'<svg/>';pngComponent.dlBlob=(blob,name)=>{pngSaved={blob,name};};pngComponent.flash=message=>{throw new Error(message);};
+const savedDocument=globalThis.document;
+globalThis.Image=class {set src(value){queueMicrotask(()=>this.onload());}};
+globalThis.document={createElement:()=>({getContext:()=>({fillRect(){},drawImage(){}}),toBlob:cb=>cb(new Blob(['synthetic PNG'],{type:'image/png'}))})};
+await pngComponent.downloadNetworkPng('network-plot');assert.equal(pngSaved.name,'network-plot.png');assert.equal(pngSaved.blob.type,'image/png');globalThis.document=savedDocument;
+console.log('Network PNG decoding/encoding/download pipeline passed.');

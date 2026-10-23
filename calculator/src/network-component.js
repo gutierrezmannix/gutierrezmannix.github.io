@@ -58,4 +58,23 @@
     this.setState({cols:raw.names.map((_,i)=>this._E.profileCol(raw,i,this.state.autoScreen)),treat,genTags:tags,ngN:this.netMeta(raw,this.state.ngN.name),ngCentMsg:'Added '+made.join(', ')+' — use them in Regression, Plots or anywhere else.'});
     this.pushLog({t:'snacent',res:'added '+made.join(', ')});
   }
+  async downloadNetworkPng(name) {
+    const svg = this._svgs && this._svgs.net;
+    if (!svg) return this.flash('Run the network analysis before exporting its plot.');
+    const box = svg.viewBox.baseVal, xml = this.svgExport(svg);
+    const url = URL.createObjectURL(new Blob([xml],{type:'image/svg+xml;charset=utf-8'}));
+    try {
+      const img = await new Promise((resolve,reject)=>{
+        const image = new Image(), timer = setTimeout(()=>reject(new Error('image render timed out')),10000);
+        image.onload = ()=>{clearTimeout(timer);resolve(image);};
+        image.onerror = ()=>{clearTimeout(timer);reject(new Error('SVG image could not be decoded'));};
+        image.src = url;
+      });
+      const canvas = document.createElement('canvas');canvas.width=Math.round(box.width*2);canvas.height=Math.round(box.height*2);
+      const ctx = canvas.getContext('2d');ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      const blob = await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG encoding failed')),'image/png'));
+      this.dlBlob(blob,(name || 'network-plot')+'.png');
+    } catch(e) { this.flash('Could not export network PNG: '+(e.message || e)+'. SVG export is available.'); }
+    finally { URL.revokeObjectURL(url); }
+  }
   // GM26 network component end
