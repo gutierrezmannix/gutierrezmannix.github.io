@@ -11,12 +11,13 @@ import json
 import re
 from pathlib import Path
 from commandbar import integrate_component as integrate_commandbar_component, integrate_template as integrate_commandbar_template
+from network import integrate_engine as integrate_network_engine, integrate_component as integrate_network_component, integrate_template as integrate_network_template
 from jade_shell import integrate_template as integrate_jade_shell
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-23.9'
+BUILD = '2026-10-23.10'
 
 
 def replace(text, before, after, count=1):
@@ -181,7 +182,7 @@ def main():
     ts = re.search(r'<script type="__bundler/template">(.*?)</script>', h, re.S)
     manifest, template = json.loads(ms[1]), json.loads(ts[1])
     match = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)',template,re.S)
-    component = integrate_commandbar_component(integrate_navigation(integrate_component(match[2])))
+    component = integrate_network_component(integrate_commandbar_component(integrate_navigation(integrate_component(match[2]))))
     template = template[:match.start(2)] + component + template[match.end(2):]
     controls = (ROOT/'src/time-series-controls.html').read_text()
     begin, end = '<!-- GM26 setup controls begin -->', '<!-- GM26 setup controls end -->'
@@ -199,18 +200,18 @@ def main():
         summary = '<sc-if value="{{ tsHasPreparation }}" hint-placeholder-val="{{ false }}"><div class="ts-setup-summary" role="status" data-testid="time-series-preparation-summary">{{ tsPrepared }}</div><div class="ts-setup-warning" data-testid="time-series-validation">{{ tsValidation }}</div></sc-if>\n'
         part = part[:eventcard] + summary + part[eventcard:]
         template = template[:a] + part + template[b:]
-    template = integrate_jade_shell(integrate_commandbar_template(template))
+    template = integrate_network_template(integrate_jade_shell(integrate_commandbar_template(template)))
     asset = manifest[ENGINE]
     e = gzip.decompress(base64.b64decode(asset['data'])).decode()
     mod_begin, mod_end = '// GM26 time-series module begin', '// GM26 time-series module end'
     e = re.sub(re.escape(mod_begin)+'.*?'+re.escape(mod_end),'',e,flags=re.S).rstrip()
-    e = integrate_engine(e)
+    e = integrate_network_engine(integrate_engine(e)).rstrip()
     e += '\n\n'+mod_begin+'\n'+(ROOT/'src/time-series-setup.mjs').read_text()+'\n'+mod_end+'\n'
     asset['data'] = base64.b64encode(gzip.compress(e.encode(),mtime=0)).decode()
     manifest_json = json.dumps(manifest,separators=(',',':'))
     template = template.replace('Two variables', 'Correlation')
     template = template.replace('.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: auto;', '.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: 4px;')
-    template = re.sub(r'2026-10-23\.[3456789]', BUILD, template)
+    template = re.sub(r'2026-10-23\.\d+', BUILD, template)
     for a,b,new in sorted([(ms.start(1),ms.end(1), '\n'+manifest_json+'\n  '),(ts.start(1),ts.end(1),json.dumps(template,ensure_ascii=False).replace('</','<\\/'))],reverse=True):
         h = h[:a] + new + h[b:]
     PAGE.write_text(h)

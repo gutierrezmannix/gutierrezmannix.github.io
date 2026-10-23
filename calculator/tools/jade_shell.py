@@ -11,7 +11,7 @@ def integrate_template(t):
     css = (Path(__file__).resolve().parents[1] / 'src/shell-jade.css').read_text()
     start, end = '<!-- GM26 Jade shell begin -->', '<!-- GM26 Jade shell end -->'
     style = start + '<style>' + css + '</style>' + end
-    t = re.sub(re.escape(start) + '.*?' + re.escape(end), '', t, flags=re.S)
+    t = re.sub(re.escape(start) + '.*?' + re.escape(end) + r'\n?', '', t, flags=re.S)
     # Place the overrides after the original shell styles, rather than before them.
     anchor = '<nav class="site-back" aria-label="Site">'
     t = t.replace(anchor, style + '\n' + anchor, 1)
