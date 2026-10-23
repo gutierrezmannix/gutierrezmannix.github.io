@@ -1,4 +1,4 @@
-# Network validation — 2026-10-23.10
+# Network validation — 2026-10-23.11
 
 The network analyzer uses binary, loop-free graphs. Duplicate ties are merged; directed reciprocal ties remain distinct. A supplied nodes file fixes vertex order and retains isolates. Blank or duplicate node IDs block preparation; edges with unknown endpoints are excluded and counted. No selected attribute is mean-imputed. Dataset filters, edge weights and survey weights do not apply to this separate network dataset.
 
@@ -22,6 +22,7 @@ These are comparisons to sna and base-R conditional logistic MPLE, **not** a ful
 
 ## Definitions and repairs
 
+- NodeXL `Vertex 1`/`Vertex 2` take priority over Twitter `Source` metadata; endpoint and node-ID selectors expose all columns.
 - Directed degree is in-degree + out-degree; mean degree is 2E/N.
 - Betweenness is raw Freeman betweenness, honoring direction.
 - Closeness uses outgoing paths, (N−1)/sum(distance); zero when any other node is unreachable, matching sna. Harmonic centrality provides a useful alternative for disconnected graphs.

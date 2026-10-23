@@ -55,3 +55,8 @@ const ac=new C();ac._E=E;ac._raw=raw(['id','group','value'],[['isolate','y',3],[
 ac.addNetCentralities([['degree'],['harmonic']],p.net,E.netCentrality(p.net));assert.deepEqual(Array.from(ac._raw.cols[3].a),[0,2,2]);assert.equal(ac._undo.length,1);ac.undo();assert.deepEqual(ac._raw.names,['id','group','value']);clearTimeout(ac._umT);
 ac.addNetCentralities([['degree']],p.net,E.netCentrality(p.net));ac._raw.cols[3].a[1]=999;ac.addNetCentralities([['degree']],p.net,E.netCentrality(p.net));assert.equal(ac._raw.cols[3].a[1],2);ac.undo();assert.equal(ac._raw.cols[3].a[1],999);clearTimeout(ac._umT);
 console.log('Centrality dataset alignment and atomic undo passed.');
+
+const guess = new C().netGuess('e',{names:['Vertex 1','Vertex 2',...Array.from({length:38},(_,i)=>'meta'+i),'Source']});
+assert.deepEqual(guess,{ngFrom:'Vertex 1',ngTo:'Vertex 2'},'NodeXL Source is application metadata, not an endpoint');
+assert.deepEqual(new C().netGuess('e',{names:['junk','target','source']}),{ngFrom:'source',ngTo:'target'});
+console.log('NodeXL endpoint detection passed.');

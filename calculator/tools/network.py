@@ -35,6 +35,9 @@ def integrate_engine(e):
 def integrate_component(c):
     begin,end='  // GM26 network component begin','  // GM26 network component end'
     methods=(ROOT/'src/network-component.js').read_text().rstrip()
+    if c.index('  netGuess(') < c.index('  async loadNetFile('):
+        a=c.index('  netGuess('); b=c.index('  async loadNetFile(',a); c=c[:a]+c[b:]
+    c=c.replace('ne.names.slice(0, 40)', 'ne.names').replace('nn.names.slice(0, 40)', 'nn.names')
     if begin in c:
         c=re.sub(re.escape(begin)+'.*?'+re.escape(end),lambda _:methods,c,flags=re.S)
         x=c.index('          out.ngAddCent = () => {') if '          out.ngAddCent = () => {' in c else -1

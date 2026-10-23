@@ -1,4 +1,16 @@
   // GM26 network component begin
+  netGuess(kind, raw) {
+    const names = raw.names, find = choices => choices.map(key=>names.find(n=>n.replace(/[\s_-]/g,'').toLowerCase()===key)).find(Boolean) || '';
+    if (kind === 'e') {
+      // Prefer an explicit endpoint pair over metadata such as Twitter's "Source".
+      for (const [f,t] of [['vertex1','vertex2'],['node1','node2'],['actor1','actor2'],['v1','v2'],['from','to'],['sender','receiver'],['source','target'],['ego','alter']]) {
+        const from=find([f]), to=find([t]); if (from && to) return {ngFrom:from,ngTo:to};
+      }
+      const from=find(['from','sender','ego','source','src','i']) || names[0] || '';
+      return {ngFrom:from,ngTo:find(['to','receiver','alter','target','dst','j']) || names.find(n=>n!==from) || ''};
+    }
+    return {ngId:find(['vertex','node','id','actor','name','label','person']) || names[0] || '',ngAttr:{},ngColor:''};
+  }
   ergmR(terms) {
     const S = this.state, p = this._E.netPrepare(this._netE, this._netN, { from:S.ngFrom, to:S.ngTo, id:S.ngId, directed:S.ngDir });
     return p.error ? '# ' + p.error : this._E.netRScript(p.net, terms);
