@@ -1,4 +1,4 @@
-# Network validation — 2026-10-23.12
+# Network validation — 2026-10-23.13
 
 The network analyzer uses binary, loop-free graphs. Duplicate ties are merged; directed reciprocal ties remain distinct. A supplied nodes file fixes vertex order and retains isolates. Blank or duplicate node IDs block preparation; edges with unknown endpoints are excluded and counted. No selected attribute is mean-imputed. Dataset filters, edge weights and survey weights do not apply to this separate network dataset.
 
@@ -38,3 +38,5 @@ Additional tests cover duplicate/blank/mismatched IDs, duplicate and reciprocal 
 Primary definitions: [sna degree](https://search.r-project.org/CRAN/refmans/sna/html/degree.html), [closeness](https://search.r-project.org/CRAN/refmans/sna/html/closeness.html), [evcent](https://search.r-project.org/CRAN/refmans/sna/html/evcent.html), [ergm triangle](https://search.r-project.org/CRAN/refmans/ergm/html/triangle-ergmTerm-9b49a585.html).
 
 Vertex selector callback tests cover FROM, TO and node ID changes, invalid identical endpoints, clearing stale results, and live column metadata after Undo.
+
+Network PNG export uses the existing standalone SVG normalizer to provide explicit pixel dimensions before rasterization.

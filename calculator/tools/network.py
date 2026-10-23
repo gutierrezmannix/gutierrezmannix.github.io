@@ -38,6 +38,7 @@ def integrate_component(c):
     if c.index('  netGuess(') < c.index('  async loadNetFile('):
         a=c.index('  netGuess('); b=c.index('  async loadNetFile(',a); c=c[:a]+c[b:]
     c=c.replace('ne.names.slice(0, 40)', 'ne.names').replace('nn.names.slice(0, 40)', 'nn.names')
+    c=c.replace('const xml = new XMLSerializer().serializeToString(svg);', "const xml = key === 'net' ? this.svgExport(svg) : new XMLSerializer().serializeToString(svg);")
     c=c.replace('const ne = S.ngE, nn = S.ngN, dir = S.ngDir !== false;', 'const ne = S.ngE && this._netE ? this.netMeta(this._netE,S.ngE.name) : S.ngE, nn = S.ngN && this._netN ? this.netMeta(this._netN,S.ngN.name) : S.ngN, dir = S.ngDir !== false;')
     if begin in c:
         c=re.sub(re.escape(begin)+'.*?'+re.escape(end),lambda _:methods,c,flags=re.S)
