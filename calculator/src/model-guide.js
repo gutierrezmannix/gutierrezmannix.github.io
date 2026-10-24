@@ -2,6 +2,7 @@
   modelGuideData() { return __MODEL_GUIDE_DATA__; }
   modelGuideCurrent() {
     const S=this.state;
+    if(S.tab==='analysis'&&S.analysisId!=='__directory')return 'advanced-'+S.analysisId;
     if(S.tab==='ttest')return 'ttest-'+(S.ttMode==='value'?'value':S.ttMode==='paired'?'paired':'groups');
     if(S.tab==='two') { const spec=this.twoSpec();return spec?.mode==='ct'?'chi-square':spec?.mode==='means'?(spec.nG===2?'ttest-groups':'anova'):'pearson'; }
     if(S.tab==='reg')return ({ols:'ols',logistic:'logistic',ologit:'ordinal',poisson:'poisson'})[S.regModel]||'ols';

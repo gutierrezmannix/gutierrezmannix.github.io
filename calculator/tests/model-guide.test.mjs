@@ -14,11 +14,11 @@ const b=Buffer.from('x,y,group\n1,2,A\n2,4,A\n3,5,B\n4,8,B\n5,9,C\n6,10,C');
 const raw=await E.parseCSV(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),()=>{});
 const c=new C();c._E=E;c._raw=raw;c.state={...c.state,screen:'work',tab:'one',cols:raw.names.map((_,i)=>E.profileCol(raw,i)),nRows:raw.n,autoScreen:false};
 const models=c.modelGuideData();assert.deepEqual(models,JSON.parse(fs.readFileSync(new URL('../src/model-guide.json',import.meta.url),'utf8')));
-assert.equal(models.length,22);assert.equal(new Set(models.map(m=>m.id)).size,22);
+assert.equal(models.length,100);assert.equal(new Set(models.map(m=>m.id)).size,100);
 for(const m of models){for(const k of ['what','use','data','read','caution','example'])assert.ok(typeof m[k]==='string'&&m[k].length>15,m.id+'/'+k);for(const s of m.sources)assert.match(s.url,/^https:\/\//);}
 const render=patch=>{c.state={...c.state,...patch};c.clearMemo();return c.renderVals();};
 let out=render({});out.mfHelp();assert.equal(c.state.mfPane,'help');assert.equal(c.state.mfDock,true);assert.equal(c.state.modelGuideId,'univariate');
-out=c.renderVals();assert.equal(out.modelGuideEntries.length,22);assert.ok(out.modelGuideEntries.find(m=>m.id==='univariate').open);
+out=c.renderVals();assert.equal(out.modelGuideEntries.length,100);assert.ok(out.modelGuideEntries.find(m=>m.id==='univariate').open);
 out.modelGuideEntries.find(m=>m.id==='univariate').toggle();assert.equal(c.renderVals().modelGuideEntries.some(m=>m.open),false);
 out.modelGuideQuerySet({target:{value:'logit'}});out=c.renderVals();assert.ok(out.modelGuideEntries.some(m=>m.id==='logistic'));assert.ok(out.modelGuideEntries.some(m=>m.id==='ordinal'));
 out.modelGuideQuerySet({target:{value:'before and after'}});assert.ok(c.renderVals().modelGuideEntries.some(m=>m.id==='ttest-paired'));
@@ -30,8 +30,8 @@ for(const m of models.filter(m=>m.route)){
 }
 assert.equal(JSON.stringify(raw),before,'guide navigation must not edit data');
 for(const [patch,id]of [[{tab:'ttest',ttMode:'value'},'ttest-value'],[{tab:'ttest',ttMode:'paired'},'ttest-paired'],[{tab:'reg',regModel:'logistic'},'logistic'],[{tab:'reg',regModel:'ologit'},'ordinal'],[{tab:'reg',regModel:'poisson'},'poisson'],[{tab:'ts'},'time-series'],[{tab:'ergm'},'centrality'],[{tab:'sem'},'cfa']]){Object.assign(c.state,patch);c.openModelGuide();assert.equal(c.state.modelGuideId,id);}
-out=render({tab:'one'});const menu=out.mfNavGroups.flatMap(g=>g.items).find(i=>i.key==='tests');const item=menu.items.find(i=>i.label==='Model guide');assert.ok(item);item.click();assert.equal(c.state.mfPane,'help');
+out=render({tab:'one'});const menu=out.mfNavGroups.flatMap(g=>g.items).find(i=>i.key==='tests');assert.ok(menu.content);const item=c.asGroups().find(g=>g[0]==='Model guide')[1][0];assert.ok(item);c.asRoute(item[1]);assert.equal(c.state.mfPane,'help');
 const help=template.slice(template.indexOf('<!-- GM26 model guide begin -->'),template.indexOf('<!-- GM26 model guide end -->'));
 assert.ok(help.includes('Search model guide'));assert.ok(help.includes('aria-expanded="{{ m.open }}"'));assert.ok(help.includes('Keyboard shortcuts'));assert.ok(!help.includes('Practice exercises'));assert.ok(!help.includes('Stata commands you can type'));
 clearTimeout(c._ghostT);clearTimeout(c._mfOkT);
-console.log('22 guide entries, search/synonyms/no-results, all topic filters, expandable definitions, all analysis routes, current-model focus and data preservation passed.');
+console.log('100 guide entries, search/synonyms/no-results, all topic filters, expandable definitions, all analysis routes, current-model focus and data preservation passed.');

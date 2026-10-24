@@ -1,0 +1,78 @@
+summary_t1|Tests whether a population mean differs from a reference value using the sample mean, standard deviation and size.
+summary_t2|Uses Welch's t-test to compare independent means from two sets of sample summaries.
+summary_tp|Tests the mean within-pair difference using the mean and standard deviation of the differences and the number of complete pairs.
+prop1|Tests one binary success proportion against a reference proportion and reports a score confidence interval.
+prop2|Tests the difference between two independent binary success proportions using a pooled-null score test.
+binomial|Computes an exact binomial test and Clopper–Pearson interval for a binary success probability.
+gof|Compares observed category counts with specified expected probabilities using a chi-square goodness-of-fit test.
+fisher|Tests association in a count table conditional on its margins using Fisher's exact procedure.
+mcnemar|Tests whether the two discordant probabilities are equal for paired binary measurements using McNemar's approximation.
+mcnemar_exact|Uses an exact binomial test of the discordant pairs in a paired binary table.
+mannwhitney|Compares two independent outcome distributions using ranks and reports a rank-biserial effect size.
+signedrank|Tests a symmetric paired-difference distribution about zero using signed ranks; its location estimate is a pseudomedian.
+kruskal|Uses outcome ranks to test distributional differences among independent groups.
+friedman|Compares ranks across conditions within complete subjects or blocks.
+welch_anova|Tests independent group means while allowing group variances to differ.
+factorial|Tests main effects and interactions among categorical factors using a linear model with type II or III joint tests.
+ancova|Compares groups while adjusting for selected numeric covariates, with optional group-by-covariate interactions.
+repeated|Tests within-subject condition effects in a complete repeated-measures design, including sphericity corrections.
+tukey|Makes simultaneous pairwise mean comparisons using Tukey's studentized-range procedure.
+gameshowell|Makes simultaneous pairwise mean comparisons with unequal variances and Welch degrees of freedom.
+dunnett|Compares treatment means with one selected control group while controlling familywise error.
+contrasts|Tests prespecified linear combinations of group means with a chosen multiplicity adjustment.
+pairwise|Runs pairwise Welch or rank-sum comparisons and adjusts their p-values for multiple testing.
+multinomial|Models an unordered outcome with three or more categories using category-specific log odds relative to a reference.
+probit|Models a binary outcome with a normal cumulative-distribution link.
+negbin|Models an overdispersed count outcome using a negative-binomial mean-variance relationship.
+hurdle|Separates whether a count is zero from a zero-truncated model of its positive values.
+zeroinfl|Combines a structural-zero process with a count process that can also generate zeros.
+robustreg|Fits a Huber M-estimator to reduce the influence of large response residuals; this differs from robust standard errors.
+quantile|Models a selected conditional outcome quantile instead of the conditional mean.
+spline|Fits a natural cubic spline to represent smooth nonlinear predictor effects within a linear model.
+gam|Estimates penalized smooth predictor effects with a chosen response distribution using a generalized additive model.
+mixed|Fits a linear random-intercept model, optionally adding a random slope within groups.
+glmm|Fits binary or count regression with group-specific random intercepts and optional random slopes.
+panel_fe|Estimates within-panel associations after removing individual, time or two-way fixed effects.
+panel_re|Fits a panel random-effects model that assumes the random effects are uncorrelated with included predictors.
+panel_dynamic|Fits a collapsed-instrument, two-step difference-GMM model with a lagged outcome for panel data.
+decompose|Separates a regularly spaced seasonal series into additive trend, seasonal and remainder components using STL.
+naive|Forecasts every future period using the last observed value and provides prediction intervals.
+snaive|Forecasts each future seasonal position using its last observed value in the preceding cycle.
+drift|Extends the average observed change from the first to the last time point as a random walk with drift.
+ets|Forecasts level, trend and seasonal patterns with an automatically selected exponential-smoothing state-space model.
+arima|Fits autoregression, differencing and moving-average terms to a regularly spaced series, then forecasts it.
+sarima|Adds seasonal autoregression, differencing and moving-average terms to ARIMA forecasting.
+tsreg|Fits regression with ARIMA errors, optional Fourier seasonality and supplied future explanatory-variable values.
+ardl|Models a current outcome using its own lags and current and lagged explanatory variables.
+var|Models several time series jointly using their lagged values, then generates multivariate forecasts.
+vecm|Uses a selected cointegration rank to fit a Johansen vector error-correction representation and forecasts.
+breaks|Estimates multiple regression break dates, provides selection diagnostics and performs a sup-F stability test.
+countts|Models counts conditionally on predictors and log(1 + lagged counts) using Poisson or negative-binomial regression.
+km|Estimates right-censored survival probabilities with Kaplan–Meier curves and optionally compares groups with a log-rank test.
+cox|Models relative event hazards and checks the proportional-hazards assumption using Schoenfeld residuals.
+survreg|Fits a parametric accelerated-failure-time survival model and predicts survival-time quantiles.
+pca|Summarizes variation in numeric variables with orthogonal principal components and variance-explained measures.
+efa|Explores latent common factors through loadings, communalities and a selected factor-extraction and rotation method.
+bootstrap|Approximates uncertainty in a mean, median or standard deviation by independent-row or moving-block resampling.
+permutation|Tests a two-group location statistic by permuting labels under exchangeability, optionally within strata.
+power_t|Solves for sample size or achieved power for one-sample, independent-sample or paired mean comparisons.
+power_prop|Solves for sample size or achieved power for proportion comparisons using the arcsine effect size.
+power_corr|Plans sample size or evaluates power for detecting a Pearson correlation.
+power_anova|Plans a balanced one-way ANOVA using Cohen's f and a specified number of groups.
+precision|Plans the sample size needed for a normal-approximation margin of error for a mean or proportion.
+survey_desc|Estimates design-based weighted means, proportions or totals with strata and primary sampling units when specified.
+survey_test|Compares two means or tests categorical association using survey-design variance estimation.
+impute|Imputes missing analysis variables with chained equations, fits a regression in each imputation and pools estimates with Rubin's rules.
+missing|Summarizes variable-level missingness and observed missing-data patterns without assuming a missingness mechanism.
+ridge|Fits L2-penalized regression, selects the penalty within training data and evaluates a separate random holdout.
+lasso|Fits L1-penalized regression for shrinkage and variable selection with training cross-validation and holdout evaluation.
+elastic|Combines L1 and L2 penalties with a selectable mixing parameter and evaluates a random holdout.
+tree|Fits an interpretable regression or classification tree and reports holdout performance and training complexity diagnostics.
+classification|Evaluates supplied binary probabilities with ROC/AUC, a confusion matrix, the Brier score and grouped calibration.
+kmeans|Partitions numeric observations into a chosen number of groups by minimizing within-cluster squared distances.
+hierarchical|Builds a distance-based cluster hierarchy and cuts it into a selected number of groups.
+merge|Combines datasets by selected keys using left, right, inner or full joins, then previews the output.
+append|Stacks observations from datasets with matching variable names and compatible types, then previews the output.
+long|Reshapes repeated measurement columns into a long dataset with measurement and value columns.
+wide|Reshapes unique subject-by-time observations into separate measurement columns.
+duplicates|Finds all observations belonging to duplicated combinations of selected key columns.

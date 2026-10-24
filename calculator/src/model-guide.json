@@ -484,5 +484,1877 @@
       }
     ],
     "aliases": "p value confidence interval coefficient outcome predictor robust clustered weights standard error"
+  },
+  {
+    "id": "advanced-summary_t1",
+    "category": "means",
+    "title": "One-sample t-test from summaries",
+    "question": "When should I use One-sample t-test from summaries?",
+    "what": "Tests whether a population mean differs from a reference value using the sample mean, standard deviation and size.",
+    "use": "Use this dedicated t-tests page when its outcome type and study design match your question. Tests whether a population mean differs from a reference value using the sample mean, standard deviation and size.",
+    "data": "Use the named planning inputs; a raw dataset is not required. Summary-statistics or count input is available where shown.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "summary_t1",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "summary_t1 T-tests"
+  },
+  {
+    "id": "advanced-summary_t2",
+    "category": "means",
+    "title": "Independent t-test from summaries",
+    "question": "When should I use Independent t-test from summaries?",
+    "what": "Uses Welch's t-test to compare independent means from two sets of sample summaries.",
+    "use": "Use this dedicated t-tests page when its outcome type and study design match your question. Uses Welch's t-test to compare independent means from two sets of sample summaries.",
+    "data": "Use the named planning inputs; a raw dataset is not required. Summary-statistics or count input is available where shown.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "summary_t2",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "summary_t2 T-tests"
+  },
+  {
+    "id": "advanced-summary_tp",
+    "category": "means",
+    "title": "Paired t-test from difference summaries",
+    "question": "When should I use Paired t-test from difference summaries?",
+    "what": "Tests the mean within-pair difference using the mean and standard deviation of the differences and the number of complete pairs.",
+    "use": "Use this dedicated t-tests page when its outcome type and study design match your question. Tests the mean within-pair difference using the mean and standard deviation of the differences and the number of complete pairs.",
+    "data": "Use the named planning inputs; a raw dataset is not required. Summary-statistics or count input is available; paired t-tests require summaries of the within-pair differences.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "summary_tp",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "summary_tp T-tests"
+  },
+  {
+    "id": "advanced-prop1",
+    "category": "association",
+    "title": "One-proportion score test",
+    "question": "When should I use One-proportion score test?",
+    "what": "Tests one binary success proportion against a reference proportion and reports a score confidence interval.",
+    "use": "Use this dedicated proportions & categorical tests page when its outcome type and study design match your question. Tests one binary success proportion against a reference proportion and reports a score confidence interval.",
+    "data": "Select y on Setup; each row must represent the observation or measurement required by this design. Summary-statistics or count input is available where shown.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "prop1",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "prop1 Proportions & categorical tests"
+  },
+  {
+    "id": "advanced-prop2",
+    "category": "association",
+    "title": "Two-proportion score test",
+    "question": "When should I use Two-proportion score test?",
+    "what": "Tests the difference between two independent binary success proportions using a pooled-null score test.",
+    "use": "Use this dedicated proportions & categorical tests page when its outcome type and study design match your question. Tests the difference between two independent binary success proportions using a pooled-null score test.",
+    "data": "Select y, group on Setup; each row must represent the observation or measurement required by this design. Summary-statistics or count input is available where shown.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "prop2",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "prop2 Proportions & categorical tests"
+  },
+  {
+    "id": "advanced-binomial",
+    "category": "association",
+    "title": "Exact binomial test",
+    "question": "When should I use Exact binomial test?",
+    "what": "Computes an exact binomial test and Clopper–Pearson interval for a binary success probability.",
+    "use": "Use this dedicated proportions & categorical tests page when its outcome type and study design match your question. Computes an exact binomial test and Clopper–Pearson interval for a binary success probability.",
+    "data": "Select y on Setup; each row must represent the observation or measurement required by this design. Summary-statistics or count input is available where shown.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "binomial",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "binomial Proportions & categorical tests"
+  },
+  {
+    "id": "advanced-gof",
+    "category": "association",
+    "title": "Chi-square goodness of fit",
+    "question": "When should I use Chi-square goodness of fit?",
+    "what": "Compares observed category counts with specified expected probabilities using a chi-square goodness-of-fit test.",
+    "use": "Use this dedicated proportions & categorical tests page when its outcome type and study design match your question. Compares observed category counts with specified expected probabilities using a chi-square goodness-of-fit test.",
+    "data": "Select group on Setup; each row must represent the observation or measurement required by this design. Summary-statistics or count input is available where shown.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "gof",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "gof Proportions & categorical tests"
+  },
+  {
+    "id": "advanced-fisher",
+    "category": "association",
+    "title": "Fisher exact test",
+    "question": "When should I use Fisher exact test?",
+    "what": "Tests association in a count table conditional on its margins using Fisher's exact procedure.",
+    "use": "Use this dedicated proportions & categorical tests page when its outcome type and study design match your question. Tests association in a count table conditional on its margins using Fisher's exact procedure.",
+    "data": "Select group, group2 on Setup; each row must represent the observation or measurement required by this design. Summary-statistics or count input is available where shown.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "fisher",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "fisher Proportions & categorical tests"
+  },
+  {
+    "id": "advanced-mcnemar",
+    "category": "association",
+    "title": "McNemar paired binary test",
+    "question": "When should I use McNemar paired binary test?",
+    "what": "Tests whether the two discordant probabilities are equal for paired binary measurements using McNemar's approximation.",
+    "use": "Use this dedicated proportions & categorical tests page when its outcome type and study design match your question. Tests whether the two discordant probabilities are equal for paired binary measurements using McNemar's approximation.",
+    "data": "Select y, y2 on Setup; each row must represent the observation or measurement required by this design. Summary-statistics or count input is available where shown.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "mcnemar",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "mcnemar Proportions & categorical tests"
+  },
+  {
+    "id": "advanced-mcnemar_exact",
+    "category": "association",
+    "title": "Exact McNemar test",
+    "question": "When should I use Exact McNemar test?",
+    "what": "Uses an exact binomial test of the discordant pairs in a paired binary table.",
+    "use": "Use this dedicated proportions & categorical tests page when its outcome type and study design match your question. Uses an exact binomial test of the discordant pairs in a paired binary table.",
+    "data": "Select y, y2 on Setup; each row must represent the observation or measurement required by this design. Summary-statistics or count input is available where shown.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "mcnemar_exact",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "mcnemar_exact Proportions & categorical tests"
+  },
+  {
+    "id": "advanced-mannwhitney",
+    "category": "means",
+    "title": "Mann–Whitney / Wilcoxon rank-sum",
+    "question": "When should I use Mann–Whitney / Wilcoxon rank-sum?",
+    "what": "Compares two independent outcome distributions using ranks and reports a rank-biserial effect size.",
+    "use": "Use this dedicated nonparametric tests page when its outcome type and study design match your question. Compares two independent outcome distributions using ranks and reports a rank-biserial effect size.",
+    "data": "Select y, group on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "mannwhitney",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "mannwhitney Nonparametric tests"
+  },
+  {
+    "id": "advanced-signedrank",
+    "category": "means",
+    "title": "Wilcoxon signed-rank",
+    "question": "When should I use Wilcoxon signed-rank?",
+    "what": "Tests a symmetric paired-difference distribution about zero using signed ranks; its location estimate is a pseudomedian.",
+    "use": "Use this dedicated nonparametric tests page when its outcome type and study design match your question. Tests a symmetric paired-difference distribution about zero using signed ranks; its location estimate is a pseudomedian.",
+    "data": "Select y, y2 on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "signedrank",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "signedrank Nonparametric tests"
+  },
+  {
+    "id": "advanced-kruskal",
+    "category": "means",
+    "title": "Kruskal–Wallis",
+    "question": "When should I use Kruskal–Wallis?",
+    "what": "Uses outcome ranks to test distributional differences among independent groups.",
+    "use": "Use this dedicated nonparametric tests page when its outcome type and study design match your question. Uses outcome ranks to test distributional differences among independent groups.",
+    "data": "Select y, group on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "kruskal",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "kruskal Nonparametric tests"
+  },
+  {
+    "id": "advanced-friedman",
+    "category": "means",
+    "title": "Friedman repeated-rank test",
+    "question": "When should I use Friedman repeated-rank test?",
+    "what": "Compares ranks across conditions within complete subjects or blocks.",
+    "use": "Use this dedicated nonparametric tests page when its outcome type and study design match your question. Compares ranks across conditions within complete subjects or blocks.",
+    "data": "Select y, group, subject on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "friedman",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "friedman Nonparametric tests"
+  },
+  {
+    "id": "advanced-welch_anova",
+    "category": "means",
+    "title": "Welch one-way ANOVA",
+    "question": "When should I use Welch one-way ANOVA?",
+    "what": "Tests independent group means while allowing group variances to differ.",
+    "use": "Use this dedicated anova & ancova page when its outcome type and study design match your question. Tests independent group means while allowing group variances to differ.",
+    "data": "Select y, group on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "welch_anova",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "welch_anova ANOVA & ANCOVA"
+  },
+  {
+    "id": "advanced-factorial",
+    "category": "means",
+    "title": "Factorial ANOVA",
+    "question": "When should I use Factorial ANOVA?",
+    "what": "Tests main effects and interactions among categorical factors using a linear model with type II or III joint tests.",
+    "use": "Use this dedicated anova & ancova page when its outcome type and study design match your question. Tests main effects and interactions among categorical factors using a linear model with type II or III joint tests.",
+    "data": "Select y, factors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "factorial",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "car package documentation",
+        "url": "https://cran.r-project.org/package=car"
+      }
+    ],
+    "aliases": "factorial ANOVA & ANCOVA"
+  },
+  {
+    "id": "advanced-ancova",
+    "category": "means",
+    "title": "ANCOVA",
+    "question": "When should I use ANCOVA?",
+    "what": "Compares groups while adjusting for selected numeric covariates, with optional group-by-covariate interactions.",
+    "use": "Use this dedicated anova & ancova page when its outcome type and study design match your question. Compares groups while adjusting for selected numeric covariates, with optional group-by-covariate interactions.",
+    "data": "Select y, group, covariates on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "ancova",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "car package documentation",
+        "url": "https://cran.r-project.org/package=car"
+      }
+    ],
+    "aliases": "ancova ANOVA & ANCOVA"
+  },
+  {
+    "id": "advanced-repeated",
+    "category": "means",
+    "title": "Repeated-measures ANOVA",
+    "question": "When should I use Repeated-measures ANOVA?",
+    "what": "Tests within-subject condition effects in a complete repeated-measures design, including sphericity corrections.",
+    "use": "Use this dedicated anova & ancova page when its outcome type and study design match your question. Tests within-subject condition effects in a complete repeated-measures design, including sphericity corrections.",
+    "data": "Select y, subject, group on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "repeated",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "car package documentation",
+        "url": "https://cran.r-project.org/package=car"
+      }
+    ],
+    "aliases": "repeated ANOVA & ANCOVA"
+  },
+  {
+    "id": "advanced-tukey",
+    "category": "means",
+    "title": "Tukey comparisons",
+    "question": "When should I use Tukey comparisons?",
+    "what": "Makes simultaneous pairwise mean comparisons using Tukey's studentized-range procedure.",
+    "use": "Use this dedicated anova & ancova page when its outcome type and study design match your question. Makes simultaneous pairwise mean comparisons using Tukey's studentized-range procedure.",
+    "data": "Select y, group on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "tukey",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "tukey ANOVA & ANCOVA"
+  },
+  {
+    "id": "advanced-gameshowell",
+    "category": "means",
+    "title": "Games–Howell comparisons",
+    "question": "When should I use Games–Howell comparisons?",
+    "what": "Makes simultaneous pairwise mean comparisons with unequal variances and Welch degrees of freedom.",
+    "use": "Use this dedicated anova & ancova page when its outcome type and study design match your question. Makes simultaneous pairwise mean comparisons with unequal variances and Welch degrees of freedom.",
+    "data": "Select y, group on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "gameshowell",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "gameshowell ANOVA & ANCOVA"
+  },
+  {
+    "id": "advanced-dunnett",
+    "category": "means",
+    "title": "Dunnett comparisons",
+    "question": "When should I use Dunnett comparisons?",
+    "what": "Compares treatment means with one selected control group while controlling familywise error.",
+    "use": "Use this dedicated anova & ancova page when its outcome type and study design match your question. Compares treatment means with one selected control group while controlling familywise error.",
+    "data": "Select y, group on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "dunnett",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "multcomp package documentation",
+        "url": "https://cran.r-project.org/package=multcomp"
+      }
+    ],
+    "aliases": "dunnett ANOVA & ANCOVA"
+  },
+  {
+    "id": "advanced-contrasts",
+    "category": "means",
+    "title": "Planned contrasts",
+    "question": "When should I use Planned contrasts?",
+    "what": "Tests prespecified linear combinations of group means with a chosen multiplicity adjustment.",
+    "use": "Use this dedicated anova & ancova page when its outcome type and study design match your question. Tests prespecified linear combinations of group means with a chosen multiplicity adjustment.",
+    "data": "Select y, group on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "contrasts",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "multcomp package documentation",
+        "url": "https://cran.r-project.org/package=multcomp"
+      }
+    ],
+    "aliases": "contrasts ANOVA & ANCOVA"
+  },
+  {
+    "id": "advanced-pairwise",
+    "category": "means",
+    "title": "Adjusted pairwise comparisons",
+    "question": "When should I use Adjusted pairwise comparisons?",
+    "what": "Runs pairwise Welch or rank-sum comparisons and adjusts their p-values for multiple testing.",
+    "use": "Use this dedicated anova & ancova page when its outcome type and study design match your question. Runs pairwise Welch or rank-sum comparisons and adjusts their p-values for multiple testing.",
+    "data": "Select y, group on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "pairwise",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "pairwise ANOVA & ANCOVA"
+  },
+  {
+    "id": "advanced-multinomial",
+    "category": "regression",
+    "title": "Multinomial logistic",
+    "question": "When should I use Multinomial logistic?",
+    "what": "Models an unordered outcome with three or more categories using category-specific log odds relative to a reference.",
+    "use": "Use this dedicated regression page when its outcome type and study design match your question. Models an unordered outcome with three or more categories using category-specific log odds relative to a reference.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "multinomial",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "nnet package documentation",
+        "url": "https://cran.r-project.org/package=nnet"
+      }
+    ],
+    "aliases": "multinomial Regression"
+  },
+  {
+    "id": "advanced-probit",
+    "category": "regression",
+    "title": "Binary probit",
+    "question": "When should I use Binary probit?",
+    "what": "Models a binary outcome with a normal cumulative-distribution link.",
+    "use": "Use this dedicated regression page when its outcome type and study design match your question. Models a binary outcome with a normal cumulative-distribution link.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "probit",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "probit Regression"
+  },
+  {
+    "id": "advanced-negbin",
+    "category": "regression",
+    "title": "Negative-binomial",
+    "question": "When should I use Negative-binomial?",
+    "what": "Models an overdispersed count outcome using a negative-binomial mean-variance relationship.",
+    "use": "Use this dedicated regression page when its outcome type and study design match your question. Models an overdispersed count outcome using a negative-binomial mean-variance relationship.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "negbin",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "MASS package documentation",
+        "url": "https://cran.r-project.org/package=MASS"
+      }
+    ],
+    "aliases": "negbin Regression"
+  },
+  {
+    "id": "advanced-hurdle",
+    "category": "regression",
+    "title": "Hurdle count model",
+    "question": "When should I use Hurdle count model?",
+    "what": "Separates whether a count is zero from a zero-truncated model of its positive values.",
+    "use": "Use this dedicated regression page when its outcome type and study design match your question. Separates whether a count is zero from a zero-truncated model of its positive values.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "hurdle",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "pscl package documentation",
+        "url": "https://cran.r-project.org/package=pscl"
+      }
+    ],
+    "aliases": "hurdle Regression"
+  },
+  {
+    "id": "advanced-zeroinfl",
+    "category": "regression",
+    "title": "Zero-inflated count model",
+    "question": "When should I use Zero-inflated count model?",
+    "what": "Combines a structural-zero process with a count process that can also generate zeros.",
+    "use": "Use this dedicated regression page when its outcome type and study design match your question. Combines a structural-zero process with a count process that can also generate zeros.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "zeroinfl",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "pscl package documentation",
+        "url": "https://cran.r-project.org/package=pscl"
+      }
+    ],
+    "aliases": "zeroinfl Regression"
+  },
+  {
+    "id": "advanced-robustreg",
+    "category": "regression",
+    "title": "Robust linear regression",
+    "question": "When should I use Robust linear regression?",
+    "what": "Fits a Huber M-estimator to reduce the influence of large response residuals; this differs from robust standard errors.",
+    "use": "Use this dedicated regression page when its outcome type and study design match your question. Fits a Huber M-estimator to reduce the influence of large response residuals; this differs from robust standard errors.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "robustreg",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "MASS package documentation",
+        "url": "https://cran.r-project.org/package=MASS"
+      }
+    ],
+    "aliases": "robustreg Regression"
+  },
+  {
+    "id": "advanced-quantile",
+    "category": "regression",
+    "title": "Quantile regression",
+    "question": "When should I use Quantile regression?",
+    "what": "Models a selected conditional outcome quantile instead of the conditional mean.",
+    "use": "Use this dedicated regression page when its outcome type and study design match your question. Models a selected conditional outcome quantile instead of the conditional mean.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "quantile",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "quantreg package documentation",
+        "url": "https://cran.r-project.org/package=quantreg"
+      }
+    ],
+    "aliases": "quantile Regression"
+  },
+  {
+    "id": "advanced-spline",
+    "category": "regression",
+    "title": "Natural-spline regression",
+    "question": "When should I use Natural-spline regression?",
+    "what": "Fits a natural cubic spline to represent smooth nonlinear predictor effects within a linear model.",
+    "use": "Use this dedicated regression page when its outcome type and study design match your question. Fits a natural cubic spline to represent smooth nonlinear predictor effects within a linear model.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "spline",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "spline Regression"
+  },
+  {
+    "id": "advanced-gam",
+    "category": "regression",
+    "title": "Generalized additive model",
+    "question": "When should I use Generalized additive model?",
+    "what": "Estimates penalized smooth predictor effects with a chosen response distribution using a generalized additive model.",
+    "use": "Use this dedicated regression page when its outcome type and study design match your question. Estimates penalized smooth predictor effects with a chosen response distribution using a generalized additive model.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "gam",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "mgcv package documentation",
+        "url": "https://cran.r-project.org/package=mgcv"
+      }
+    ],
+    "aliases": "gam Regression"
+  },
+  {
+    "id": "advanced-mixed",
+    "category": "regression",
+    "title": "Linear mixed-effects model",
+    "question": "When should I use Linear mixed-effects model?",
+    "what": "Fits a linear random-intercept model, optionally adding a random slope within groups.",
+    "use": "Use this dedicated multilevel & panel models page when its outcome type and study design match your question. Fits a linear random-intercept model, optionally adding a random slope within groups.",
+    "data": "Select y, predictors, subject on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check cluster count, within-group variation, model identification and convergence. Random effects need defensible exogeneity assumptions; dynamic GMM additionally requires valid instruments and serial-correlation checks.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "mixed",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "lme4 package documentation",
+        "url": "https://cran.r-project.org/package=lme4"
+      }
+    ],
+    "aliases": "mixed Multilevel & panel models"
+  },
+  {
+    "id": "advanced-glmm",
+    "category": "regression",
+    "title": "Generalized mixed-effects model",
+    "question": "When should I use Generalized mixed-effects model?",
+    "what": "Fits binary or count regression with group-specific random intercepts and optional random slopes.",
+    "use": "Use this dedicated multilevel & panel models page when its outcome type and study design match your question. Fits binary or count regression with group-specific random intercepts and optional random slopes.",
+    "data": "Select y, predictors, subject on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check cluster count, within-group variation, model identification and convergence. Random effects need defensible exogeneity assumptions; dynamic GMM additionally requires valid instruments and serial-correlation checks.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "glmm",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "lme4 package documentation",
+        "url": "https://cran.r-project.org/package=lme4"
+      }
+    ],
+    "aliases": "glmm Multilevel & panel models"
+  },
+  {
+    "id": "advanced-panel_fe",
+    "category": "regression",
+    "title": "Panel fixed effects",
+    "question": "When should I use Panel fixed effects?",
+    "what": "Estimates within-panel associations after removing individual, time or two-way fixed effects.",
+    "use": "Use this dedicated multilevel & panel models page when its outcome type and study design match your question. Estimates within-panel associations after removing individual, time or two-way fixed effects.",
+    "data": "Select y, predictors, subject, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check cluster count, within-group variation, model identification and convergence. Random effects need defensible exogeneity assumptions; dynamic GMM additionally requires valid instruments and serial-correlation checks.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "panel_fe",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "plm package documentation",
+        "url": "https://cran.r-project.org/package=plm"
+      }
+    ],
+    "aliases": "panel_fe Multilevel & panel models"
+  },
+  {
+    "id": "advanced-panel_re",
+    "category": "regression",
+    "title": "Panel random effects",
+    "question": "When should I use Panel random effects?",
+    "what": "Fits a panel random-effects model that assumes the random effects are uncorrelated with included predictors.",
+    "use": "Use this dedicated multilevel & panel models page when its outcome type and study design match your question. Fits a panel random-effects model that assumes the random effects are uncorrelated with included predictors.",
+    "data": "Select y, predictors, subject, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check cluster count, within-group variation, model identification and convergence. Random effects need defensible exogeneity assumptions; dynamic GMM additionally requires valid instruments and serial-correlation checks.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "panel_re",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "plm package documentation",
+        "url": "https://cran.r-project.org/package=plm"
+      }
+    ],
+    "aliases": "panel_re Multilevel & panel models"
+  },
+  {
+    "id": "advanced-panel_dynamic",
+    "category": "regression",
+    "title": "Dynamic panel GMM",
+    "question": "When should I use Dynamic panel GMM?",
+    "what": "Fits a collapsed-instrument, two-step difference-GMM model with a lagged outcome for panel data.",
+    "use": "Use this dedicated multilevel & panel models page when its outcome type and study design match your question. Fits a collapsed-instrument, two-step difference-GMM model with a lagged outcome for panel data.",
+    "data": "Select y, predictors, subject, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check cluster count, within-group variation, model identification and convergence. Random effects need defensible exogeneity assumptions; dynamic GMM additionally requires valid instruments and serial-correlation checks.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "panel_dynamic",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "plm package documentation",
+        "url": "https://cran.r-project.org/package=plm"
+      }
+    ],
+    "aliases": "panel_dynamic Multilevel & panel models"
+  },
+  {
+    "id": "advanced-decompose",
+    "category": "time",
+    "title": "Seasonal decomposition (STL)",
+    "question": "When should I use Seasonal decomposition (STL)?",
+    "what": "Separates a regularly spaced seasonal series into additive trend, seasonal and remainder components using STL.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Separates a regularly spaced seasonal series into additive trend, seasonal and remainder components using STL.",
+    "data": "Select y, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "decompose",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "decompose Time series"
+  },
+  {
+    "id": "advanced-naive",
+    "category": "time",
+    "title": "Naïve forecast",
+    "question": "When should I use Naïve forecast?",
+    "what": "Forecasts every future period using the last observed value and provides prediction intervals.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Forecasts every future period using the last observed value and provides prediction intervals.",
+    "data": "Select y, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "naive",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "forecast package documentation",
+        "url": "https://cran.r-project.org/package=forecast"
+      }
+    ],
+    "aliases": "naive Time series"
+  },
+  {
+    "id": "advanced-snaive",
+    "category": "time",
+    "title": "Seasonal naïve forecast",
+    "question": "When should I use Seasonal naïve forecast?",
+    "what": "Forecasts each future seasonal position using its last observed value in the preceding cycle.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Forecasts each future seasonal position using its last observed value in the preceding cycle.",
+    "data": "Select y, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "snaive",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "forecast package documentation",
+        "url": "https://cran.r-project.org/package=forecast"
+      }
+    ],
+    "aliases": "snaive Time series"
+  },
+  {
+    "id": "advanced-drift",
+    "category": "time",
+    "title": "Random walk with drift",
+    "question": "When should I use Random walk with drift?",
+    "what": "Extends the average observed change from the first to the last time point as a random walk with drift.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Extends the average observed change from the first to the last time point as a random walk with drift.",
+    "data": "Select y, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "drift",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "forecast package documentation",
+        "url": "https://cran.r-project.org/package=forecast"
+      }
+    ],
+    "aliases": "drift Time series"
+  },
+  {
+    "id": "advanced-ets",
+    "category": "time",
+    "title": "Exponential smoothing / ETS",
+    "question": "When should I use Exponential smoothing / ETS?",
+    "what": "Forecasts level, trend and seasonal patterns with an automatically selected exponential-smoothing state-space model.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Forecasts level, trend and seasonal patterns with an automatically selected exponential-smoothing state-space model.",
+    "data": "Select y, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "ets",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "forecast package documentation",
+        "url": "https://cran.r-project.org/package=forecast"
+      }
+    ],
+    "aliases": "ets Time series"
+  },
+  {
+    "id": "advanced-arima",
+    "category": "time",
+    "title": "ARIMA",
+    "question": "When should I use ARIMA?",
+    "what": "Fits autoregression, differencing and moving-average terms to a regularly spaced series, then forecasts it.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Fits autoregression, differencing and moving-average terms to a regularly spaced series, then forecasts it.",
+    "data": "Select y, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "arima",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "forecast package documentation",
+        "url": "https://cran.r-project.org/package=forecast"
+      }
+    ],
+    "aliases": "arima Time series"
+  },
+  {
+    "id": "advanced-sarima",
+    "category": "time",
+    "title": "Seasonal ARIMA",
+    "question": "When should I use Seasonal ARIMA?",
+    "what": "Adds seasonal autoregression, differencing and moving-average terms to ARIMA forecasting.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Adds seasonal autoregression, differencing and moving-average terms to ARIMA forecasting.",
+    "data": "Select y, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "sarima",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "forecast package documentation",
+        "url": "https://cran.r-project.org/package=forecast"
+      }
+    ],
+    "aliases": "sarima Time series"
+  },
+  {
+    "id": "advanced-tsreg",
+    "category": "time",
+    "title": "Time-series regression with predictors",
+    "question": "When should I use Time-series regression with predictors?",
+    "what": "Fits regression with ARIMA errors, optional Fourier seasonality and supplied future explanatory-variable values.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Fits regression with ARIMA errors, optional Fourier seasonality and supplied future explanatory-variable values.",
+    "data": "Select y, time, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "tsreg",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "forecast package documentation",
+        "url": "https://cran.r-project.org/package=forecast"
+      }
+    ],
+    "aliases": "tsreg Time series"
+  },
+  {
+    "id": "advanced-ardl",
+    "category": "time",
+    "title": "Distributed-lag / ARDL",
+    "question": "When should I use Distributed-lag / ARDL?",
+    "what": "Models a current outcome using its own lags and current and lagged explanatory variables.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Models a current outcome using its own lags and current and lagged explanatory variables.",
+    "data": "Select y, time, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "ardl",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "ARDL package documentation",
+        "url": "https://cran.r-project.org/package=ARDL"
+      }
+    ],
+    "aliases": "ardl Time series"
+  },
+  {
+    "id": "advanced-var",
+    "category": "time",
+    "title": "Vector autoregression (VAR)",
+    "question": "When should I use Vector autoregression (VAR)?",
+    "what": "Models several time series jointly using their lagged values, then generates multivariate forecasts.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Models several time series jointly using their lagged values, then generates multivariate forecasts.",
+    "data": "Select variables, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "var",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "vars package documentation",
+        "url": "https://cran.r-project.org/package=vars"
+      }
+    ],
+    "aliases": "var Time series"
+  },
+  {
+    "id": "advanced-vecm",
+    "category": "time",
+    "title": "Cointegration / VECM",
+    "question": "When should I use Cointegration / VECM?",
+    "what": "Uses a selected cointegration rank to fit a Johansen vector error-correction representation and forecasts.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Uses a selected cointegration rank to fit a Johansen vector error-correction representation and forecasts.",
+    "data": "Select variables, time on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "vecm",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "urca package documentation",
+        "url": "https://cran.r-project.org/package=urca"
+      }
+    ],
+    "aliases": "vecm Time series"
+  },
+  {
+    "id": "advanced-breaks",
+    "category": "time",
+    "title": "Structural-break analysis",
+    "question": "When should I use Structural-break analysis?",
+    "what": "Estimates multiple regression break dates, provides selection diagnostics and performs a sup-F stability test.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Estimates multiple regression break dates, provides selection diagnostics and performs a sup-F stability test.",
+    "data": "Select y, time, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "breaks",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "strucchange package documentation",
+        "url": "https://cran.r-project.org/package=strucchange"
+      }
+    ],
+    "aliases": "breaks Time series"
+  },
+  {
+    "id": "advanced-countts",
+    "category": "time",
+    "title": "Count time-series regression",
+    "question": "When should I use Count time-series regression?",
+    "what": "Models counts conditionally on predictors and log(1 + lagged counts) using Poisson or negative-binomial regression.",
+    "use": "Use this dedicated time series page when its outcome type and study design match your question. Models counts conditionally on predictors and log(1 + lagged counts) using Poisson or negative-binomial regression.",
+    "data": "Select y, time, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Use unique regularly spaced numeric time points with no gaps or missing outcomes. Check stationarity, seasonality and residual dependence. Rolling-origin comparisons are one-step forecasts; future predictors must be supplied for explanatory forecasts.",
+    "example": "Forecast monthly public-service demand and compare one-step errors with simple benchmark forecasts.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "countts",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "MASS package documentation",
+        "url": "https://cran.r-project.org/package=MASS"
+      }
+    ],
+    "aliases": "countts Time series"
+  },
+  {
+    "id": "advanced-km",
+    "category": "regression",
+    "title": "Kaplan–Meier and log-rank",
+    "question": "When should I use Kaplan–Meier and log-rank?",
+    "what": "Estimates right-censored survival probabilities with Kaplan–Meier curves and optionally compares groups with a log-rank test.",
+    "use": "Use this dedicated survival analysis page when its outcome type and study design match your question. Estimates right-censored survival probabilities with Kaplan–Meier curves and optionally compares groups with a log-rank test.",
+    "data": "Select time, event on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Study time until an event while retaining respondents whose event time is right-censored.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "km",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "survival package documentation",
+        "url": "https://cran.r-project.org/package=survival"
+      }
+    ],
+    "aliases": "km Survival analysis"
+  },
+  {
+    "id": "advanced-cox",
+    "category": "regression",
+    "title": "Cox proportional hazards",
+    "question": "When should I use Cox proportional hazards?",
+    "what": "Models relative event hazards and checks the proportional-hazards assumption using Schoenfeld residuals.",
+    "use": "Use this dedicated survival analysis page when its outcome type and study design match your question. Models relative event hazards and checks the proportional-hazards assumption using Schoenfeld residuals.",
+    "data": "Select time, event, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Study time until an event while retaining respondents whose event time is right-censored.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "cox",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "survival package documentation",
+        "url": "https://cran.r-project.org/package=survival"
+      }
+    ],
+    "aliases": "cox Survival analysis"
+  },
+  {
+    "id": "advanced-survreg",
+    "category": "regression",
+    "title": "Parametric survival regression",
+    "question": "When should I use Parametric survival regression?",
+    "what": "Fits a parametric accelerated-failure-time survival model and predicts survival-time quantiles.",
+    "use": "Use this dedicated survival analysis page when its outcome type and study design match your question. Fits a parametric accelerated-failure-time survival model and predicts survival-time quantiles.",
+    "data": "Select time, event, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Study time until an event while retaining respondents whose event time is right-censored.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "survreg",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "survival package documentation",
+        "url": "https://cran.r-project.org/package=survival"
+      }
+    ],
+    "aliases": "survreg Survival analysis"
+  },
+  {
+    "id": "advanced-pca",
+    "category": "sem",
+    "title": "Principal components analysis",
+    "question": "When should I use Principal components analysis?",
+    "what": "Summarizes variation in numeric variables with orthogonal principal components and variance-explained measures.",
+    "use": "Use this dedicated scales & dimension reduction page when its outcome type and study design match your question. Summarizes variation in numeric variables with orthogonal principal components and variance-explained measures.",
+    "data": "Select variables on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "pca",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "pca Scales & dimension reduction"
+  },
+  {
+    "id": "advanced-efa",
+    "category": "sem",
+    "title": "Exploratory factor analysis",
+    "question": "When should I use Exploratory factor analysis?",
+    "what": "Explores latent common factors through loadings, communalities and a selected factor-extraction and rotation method.",
+    "use": "Use this dedicated scales & dimension reduction page when its outcome type and study design match your question. Explores latent common factors through loadings, communalities and a selected factor-extraction and rotation method.",
+    "data": "Select variables on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "efa",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "psych package documentation",
+        "url": "https://cran.r-project.org/package=psych"
+      }
+    ],
+    "aliases": "efa Scales & dimension reduction"
+  },
+  {
+    "id": "advanced-bootstrap",
+    "category": "other",
+    "title": "Bootstrap confidence interval",
+    "question": "When should I use Bootstrap confidence interval?",
+    "what": "Approximates uncertainty in a mean, median or standard deviation by independent-row or moving-block resampling.",
+    "use": "Use this dedicated resampling & study planning page when its outcome type and study design match your question. Approximates uncertainty in a mean, median or standard deviation by independent-row or moving-block resampling.",
+    "data": "Select y on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "bootstrap",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "boot package documentation",
+        "url": "https://cran.r-project.org/package=boot"
+      }
+    ],
+    "aliases": "bootstrap Resampling & study planning"
+  },
+  {
+    "id": "advanced-permutation",
+    "category": "other",
+    "title": "Permutation location test",
+    "question": "When should I use Permutation location test?",
+    "what": "Tests a two-group location statistic by permuting labels under exchangeability, optionally within strata.",
+    "use": "Use this dedicated resampling & study planning page when its outcome type and study design match your question. Tests a two-group location statistic by permuting labels under exchangeability, optionally within strata.",
+    "data": "Select y, group on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "permutation",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "coin package documentation",
+        "url": "https://cran.r-project.org/package=coin"
+      }
+    ],
+    "aliases": "permutation Resampling & study planning"
+  },
+  {
+    "id": "advanced-power_t",
+    "category": "other",
+    "title": "Power / sample size: means",
+    "question": "When should I use Power / sample size: means?",
+    "what": "Solves for sample size or achieved power for one-sample, independent-sample or paired mean comparisons.",
+    "use": "Use this dedicated resampling & study planning page when its outcome type and study design match your question. Solves for sample size or achieved power for one-sample, independent-sample or paired mean comparisons.",
+    "data": "Use the named planning inputs; a raw dataset is not required.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "power_t",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "pwr package documentation",
+        "url": "https://cran.r-project.org/package=pwr"
+      }
+    ],
+    "aliases": "power_t Resampling & study planning"
+  },
+  {
+    "id": "advanced-power_prop",
+    "category": "other",
+    "title": "Power / sample size: proportions",
+    "question": "When should I use Power / sample size: proportions?",
+    "what": "Solves for sample size or achieved power for proportion comparisons using the arcsine effect size.",
+    "use": "Use this dedicated resampling & study planning page when its outcome type and study design match your question. Solves for sample size or achieved power for proportion comparisons using the arcsine effect size.",
+    "data": "Use the named planning inputs; a raw dataset is not required.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "power_prop",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "pwr package documentation",
+        "url": "https://cran.r-project.org/package=pwr"
+      }
+    ],
+    "aliases": "power_prop Resampling & study planning"
+  },
+  {
+    "id": "advanced-power_corr",
+    "category": "other",
+    "title": "Power / sample size: correlation",
+    "question": "When should I use Power / sample size: correlation?",
+    "what": "Plans sample size or evaluates power for detecting a Pearson correlation.",
+    "use": "Use this dedicated resampling & study planning page when its outcome type and study design match your question. Plans sample size or evaluates power for detecting a Pearson correlation.",
+    "data": "Use the named planning inputs; a raw dataset is not required.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "power_corr",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "pwr package documentation",
+        "url": "https://cran.r-project.org/package=pwr"
+      }
+    ],
+    "aliases": "power_corr Resampling & study planning"
+  },
+  {
+    "id": "advanced-power_anova",
+    "category": "other",
+    "title": "Power / sample size: ANOVA",
+    "question": "When should I use Power / sample size: ANOVA?",
+    "what": "Plans a balanced one-way ANOVA using Cohen's f and a specified number of groups.",
+    "use": "Use this dedicated resampling & study planning page when its outcome type and study design match your question. Plans a balanced one-way ANOVA using Cohen's f and a specified number of groups.",
+    "data": "Use the named planning inputs; a raw dataset is not required.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "power_anova",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "pwr package documentation",
+        "url": "https://cran.r-project.org/package=pwr"
+      }
+    ],
+    "aliases": "power_anova Resampling & study planning"
+  },
+  {
+    "id": "advanced-precision",
+    "category": "other",
+    "title": "Sample size for precision",
+    "question": "When should I use Sample size for precision?",
+    "what": "Plans the sample size needed for a normal-approximation margin of error for a mean or proportion.",
+    "use": "Use this dedicated resampling & study planning page when its outcome type and study design match your question. Plans the sample size needed for a normal-approximation margin of error for a mean or proportion.",
+    "data": "Use the named planning inputs; a raw dataset is not required.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Check the design, independence assumptions, missing values and diagnostic output. A fitted association alone does not establish causation.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "precision",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "precision Resampling & study planning"
+  },
+  {
+    "id": "advanced-survey_desc",
+    "category": "other",
+    "title": "Survey descriptive estimates",
+    "question": "When should I use Survey descriptive estimates?",
+    "what": "Estimates design-based weighted means, proportions or totals with strata and primary sampling units when specified.",
+    "use": "Use this dedicated survey inference & missing data page when its outcome type and study design match your question. Estimates design-based weighted means, proportions or totals with strata and primary sampling units when specified.",
+    "data": "Select variables, weight on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "A defensible survey design or missing-data model is required. Weights alone do not identify the sampling design, and observed missingness patterns do not establish MAR.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "survey_desc",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "survey package documentation",
+        "url": "https://cran.r-project.org/package=survey"
+      }
+    ],
+    "aliases": "survey_desc Survey inference & missing data"
+  },
+  {
+    "id": "advanced-survey_test",
+    "category": "other",
+    "title": "Survey-adjusted comparisons",
+    "question": "When should I use Survey-adjusted comparisons?",
+    "what": "Compares two means or tests categorical association using survey-design variance estimation.",
+    "use": "Use this dedicated survey inference & missing data page when its outcome type and study design match your question. Compares two means or tests categorical association using survey-design variance estimation.",
+    "data": "Select y, group, weight on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "A defensible survey design or missing-data model is required. Weights alone do not identify the sampling design, and observed missingness patterns do not establish MAR.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "survey_test",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "survey package documentation",
+        "url": "https://cran.r-project.org/package=survey"
+      }
+    ],
+    "aliases": "survey_test Survey inference & missing data"
+  },
+  {
+    "id": "advanced-impute",
+    "category": "other",
+    "title": "Multiple imputation / pooled regression",
+    "question": "When should I use Multiple imputation / pooled regression?",
+    "what": "Imputes missing analysis variables with chained equations, fits a regression in each imputation and pools estimates with Rubin's rules.",
+    "use": "Use this dedicated survey inference & missing data page when its outcome type and study design match your question. Imputes missing analysis variables with chained equations, fits a regression in each imputation and pools estimates with Rubin's rules.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "A defensible survey design or missing-data model is required. Weights alone do not identify the sampling design, and observed missingness patterns do not establish MAR.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "impute",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "mice package documentation",
+        "url": "https://cran.r-project.org/package=mice"
+      }
+    ],
+    "aliases": "impute Survey inference & missing data"
+  },
+  {
+    "id": "advanced-missing",
+    "category": "other",
+    "title": "Missing-data patterns",
+    "question": "When should I use Missing-data patterns?",
+    "what": "Summarizes variable-level missingness and observed missing-data patterns without assuming a missingness mechanism.",
+    "use": "Use this dedicated survey inference & missing data page when its outcome type and study design match your question. Summarizes variable-level missingness and observed missing-data patterns without assuming a missingness mechanism.",
+    "data": "Select variables on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "A defensible survey design or missing-data model is required. Weights alone do not identify the sampling design, and observed missingness patterns do not establish MAR.",
+    "example": "Analyze a survey, experiment or observational study using variables and observation units appropriate to this method.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "missing",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "missing Survey inference & missing data"
+  },
+  {
+    "id": "advanced-ridge",
+    "category": "other",
+    "title": "Ridge regression",
+    "question": "When should I use Ridge regression?",
+    "what": "Fits L2-penalized regression, selects the penalty within training data and evaluates a separate random holdout.",
+    "use": "Use this dedicated predictive modeling page when its outcome type and study design match your question. Fits L2-penalized regression, selects the penalty within training data and evaluates a separate random holdout.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Random train/holdout splits assume independent rows. Temporal and clustered data require design-aware validation. Clustering is exploratory and depends on scaling and the chosen number of clusters.",
+    "example": "Predict a binary survey outcome or a numeric score, evaluating predictions on independent held-out respondents.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "ridge",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "glmnet package documentation",
+        "url": "https://cran.r-project.org/package=glmnet"
+      }
+    ],
+    "aliases": "ridge Predictive modeling"
+  },
+  {
+    "id": "advanced-lasso",
+    "category": "other",
+    "title": "Lasso regression",
+    "question": "When should I use Lasso regression?",
+    "what": "Fits L1-penalized regression for shrinkage and variable selection with training cross-validation and holdout evaluation.",
+    "use": "Use this dedicated predictive modeling page when its outcome type and study design match your question. Fits L1-penalized regression for shrinkage and variable selection with training cross-validation and holdout evaluation.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Random train/holdout splits assume independent rows. Temporal and clustered data require design-aware validation. Clustering is exploratory and depends on scaling and the chosen number of clusters.",
+    "example": "Predict a binary survey outcome or a numeric score, evaluating predictions on independent held-out respondents.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "lasso",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "glmnet package documentation",
+        "url": "https://cran.r-project.org/package=glmnet"
+      }
+    ],
+    "aliases": "lasso Predictive modeling"
+  },
+  {
+    "id": "advanced-elastic",
+    "category": "other",
+    "title": "Elastic net",
+    "question": "When should I use Elastic net?",
+    "what": "Combines L1 and L2 penalties with a selectable mixing parameter and evaluates a random holdout.",
+    "use": "Use this dedicated predictive modeling page when its outcome type and study design match your question. Combines L1 and L2 penalties with a selectable mixing parameter and evaluates a random holdout.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Random train/holdout splits assume independent rows. Temporal and clustered data require design-aware validation. Clustering is exploratory and depends on scaling and the chosen number of clusters.",
+    "example": "Predict a binary survey outcome or a numeric score, evaluating predictions on independent held-out respondents.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "elastic",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "glmnet package documentation",
+        "url": "https://cran.r-project.org/package=glmnet"
+      }
+    ],
+    "aliases": "elastic Predictive modeling"
+  },
+  {
+    "id": "advanced-tree",
+    "category": "other",
+    "title": "Decision tree",
+    "question": "When should I use Decision tree?",
+    "what": "Fits an interpretable regression or classification tree and reports holdout performance and training complexity diagnostics.",
+    "use": "Use this dedicated predictive modeling page when its outcome type and study design match your question. Fits an interpretable regression or classification tree and reports holdout performance and training complexity diagnostics.",
+    "data": "Select y, predictors on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Random train/holdout splits assume independent rows. Temporal and clustered data require design-aware validation. Clustering is exploratory and depends on scaling and the chosen number of clusters.",
+    "example": "Predict a binary survey outcome or a numeric score, evaluating predictions on independent held-out respondents.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "tree",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "rpart package documentation",
+        "url": "https://cran.r-project.org/package=rpart"
+      }
+    ],
+    "aliases": "tree Predictive modeling"
+  },
+  {
+    "id": "advanced-classification",
+    "category": "other",
+    "title": "Classification evaluation",
+    "question": "When should I use Classification evaluation?",
+    "what": "Evaluates supplied binary probabilities with ROC/AUC, a confusion matrix, the Brier score and grouped calibration.",
+    "use": "Use this dedicated predictive modeling page when its outcome type and study design match your question. Evaluates supplied binary probabilities with ROC/AUC, a confusion matrix, the Brier score and grouped calibration.",
+    "data": "Select y, probability on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Random train/holdout splits assume independent rows. Temporal and clustered data require design-aware validation. Clustering is exploratory and depends on scaling and the chosen number of clusters.",
+    "example": "Predict a binary survey outcome or a numeric score, evaluating predictions on independent held-out respondents.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "classification",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "classification Predictive modeling"
+  },
+  {
+    "id": "advanced-kmeans",
+    "category": "other",
+    "title": "K-means clustering",
+    "question": "When should I use K-means clustering?",
+    "what": "Partitions numeric observations into a chosen number of groups by minimizing within-cluster squared distances.",
+    "use": "Use this dedicated predictive modeling page when its outcome type and study design match your question. Partitions numeric observations into a chosen number of groups by minimizing within-cluster squared distances.",
+    "data": "Select variables on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Random train/holdout splits assume independent rows. Temporal and clustered data require design-aware validation. Clustering is exploratory and depends on scaling and the chosen number of clusters.",
+    "example": "Predict a binary survey outcome or a numeric score, evaluating predictions on independent held-out respondents.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "kmeans",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "kmeans Predictive modeling"
+  },
+  {
+    "id": "advanced-hierarchical",
+    "category": "other",
+    "title": "Hierarchical clustering",
+    "question": "When should I use Hierarchical clustering?",
+    "what": "Builds a distance-based cluster hierarchy and cuts it into a selected number of groups.",
+    "use": "Use this dedicated predictive modeling page when its outcome type and study design match your question. Builds a distance-based cluster hierarchy and cuts it into a selected number of groups.",
+    "data": "Select variables on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Random train/holdout splits assume independent rows. Temporal and clustered data require design-aware validation. Clustering is exploratory and depends on scaling and the chosen number of clusters.",
+    "example": "Predict a binary survey outcome or a numeric score, evaluating predictions on independent held-out respondents.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "hierarchical",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "hierarchical Predictive modeling"
+  },
+  {
+    "id": "advanced-merge",
+    "category": "other",
+    "title": "Merge / join datasets",
+    "question": "When should I use Merge / join datasets?",
+    "what": "Combines datasets by selected keys using left, right, inner or full joins, then previews the output.",
+    "use": "Use this dedicated data management page when its outcome type and study design match your question. Combines datasets by selected keys using left, right, inner or full joins, then previews the output.",
+    "data": "Select keys on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Review keys, output rows and variable types in the preview before applying it. Undo restores the previous dataset; data operations include all rows, regardless of active filters.",
+    "example": "Join respondent records to district characteristics using verified district identifiers.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "merge",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "merge Data management"
+  },
+  {
+    "id": "advanced-append",
+    "category": "other",
+    "title": "Append datasets",
+    "question": "When should I use Append datasets?",
+    "what": "Stacks observations from datasets with matching variable names and compatible types, then previews the output.",
+    "use": "Use this dedicated data management page when its outcome type and study design match your question. Stacks observations from datasets with matching variable names and compatible types, then previews the output.",
+    "data": "Use the named planning inputs; a raw dataset is not required.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Review keys, output rows and variable types in the preview before applying it. Undo restores the previous dataset; data operations include all rows, regardless of active filters.",
+    "example": "Join respondent records to district characteristics using verified district identifiers.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "append",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "append Data management"
+  },
+  {
+    "id": "advanced-long",
+    "category": "other",
+    "title": "Reshape wide to long",
+    "question": "When should I use Reshape wide to long?",
+    "what": "Reshapes repeated measurement columns into a long dataset with measurement and value columns.",
+    "use": "Use this dedicated data management page when its outcome type and study design match your question. Reshapes repeated measurement columns into a long dataset with measurement and value columns.",
+    "data": "Select subject, variables on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Review keys, output rows and variable types in the preview before applying it. Undo restores the previous dataset; data operations include all rows, regardless of active filters.",
+    "example": "Join respondent records to district characteristics using verified district identifiers.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "long",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "long Data management"
+  },
+  {
+    "id": "advanced-wide",
+    "category": "other",
+    "title": "Reshape long to wide",
+    "question": "When should I use Reshape long to wide?",
+    "what": "Reshapes unique subject-by-time observations into separate measurement columns.",
+    "use": "Use this dedicated data management page when its outcome type and study design match your question. Reshapes unique subject-by-time observations into separate measurement columns.",
+    "data": "Select subject, time, y on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Review keys, output rows and variable types in the preview before applying it. Undo restores the previous dataset; data operations include all rows, regardless of active filters.",
+    "example": "Join respondent records to district characteristics using verified district identifiers.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "wide",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "wide Data management"
+  },
+  {
+    "id": "advanced-duplicates",
+    "category": "other",
+    "title": "Identify duplicate keys",
+    "question": "When should I use Identify duplicate keys?",
+    "what": "Finds all observations belonging to duplicated combinations of selected key columns.",
+    "use": "Use this dedicated data management page when its outcome type and study design match your question. Finds all observations belonging to duplicated combinations of selected key columns.",
+    "data": "Select keys on Setup; each row must represent the observation or measurement required by this design.",
+    "read": "Read the analysis sample first, then estimates, uncertainty and test or evaluation statistics. Diagnostics and Predictions have separate subtabs when applicable.",
+    "caution": "Review keys, output rows and variable types in the preview before applying it. Undo restores the previous dataset; data operations include all rows, regardless of active filters.",
+    "example": "Join respondent records to district characteristics using verified district identifiers.",
+    "route": {
+      "tab": "analysis",
+      "analysisId": "duplicates",
+      "analysisSub": "Setup"
+    },
+    "sources": [
+      {
+        "label": "R statistical methods documentation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+      }
+    ],
+    "aliases": "duplicates Data management"
   }
 ]
