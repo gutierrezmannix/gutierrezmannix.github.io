@@ -9,5 +9,5 @@
         ['Time series', goT({ tab: 'ts' })],
         ['Networks analysis', goT({ tab: 'ergm' })],
         ['Structural equation modeling', goT({ tab: 'sem' })],
-        ['Which test do I need?', () => this.setState({ dhOpen: true, dhQ1: '', dhQ2: '', mfPane: 'help', mfDock: true, mfMobile: 'dock', mfFile: false, mfNav: '' })]
+        ['Model guide', () => this.openModelGuide()]
       ];

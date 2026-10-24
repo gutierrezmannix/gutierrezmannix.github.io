@@ -1,0 +1,11 @@
+# Help model guide — build 2026-10-23.19
+
+Help now contains a searchable model and methods guide instead of the previous command list, practice checklist, and test-selection wizard. Entries explain what each method does, its uses, required data, interpretation, a practical example, and limitations. Expand one entry at a time; use the topic selector or search, including aliases such as logit, OLS, CFA, MPLE, and ITS. “Current analysis” opens the appropriate entry. “Open this analysis” navigates without changing the dataset, filters, weights or fitted calculations.
+
+The guide contains 22 entries: descriptive analysis; three t-test designs; one-way ANOVA; chi-square; Pearson and Spearman correlation; the four exposed regression models; word frequencies, KWIC and dictionaries; time-series/event analysis; network description/centrality and the network MPLE model; CFA and SEM; scale reliability; and key interpretation terms. Keyboard shortcuts remain available as a utility. Tests → Model guide and the older Learn route both open the new guide.
+
+Content is matched to this implementation: t-tests are unweighted and two-sided; Poisson has no exposure-offset field; the network fit uses MPLE with provisional dependence-sensitive inference; indicators in SEM are treated as numeric/continuous and its fit ignores selected sampling weights. Reference links point to primary documentation from R, NIST, quanteda, statnet, igraph, psych and lavaan. The calculator implements its own routines; the links are explanatory references, not claims that those packages run inside it.
+
+Sources and definitions are editable in `src/model-guide.json`; rendering, styles and integration are in the adjacent model-guide files and `tools/model_guide.py`. The standard build embeds everything in the self-contained `index.html`. Further-reading links need a connection, while the definitions and controls are embedded.
+
+Validation: `node calculator/tests/model-guide.test.mjs` checks all entries, aliases, empty search, every topic, expansion/collapse, analysis routes, current-analysis focus and data preservation. Existing button, scatter-range, network, time-series and 90-case R-reference t-test suites pass. Rebuilding twice is byte-identical.

@@ -1,0 +1,28 @@
+<sc-if value="{{ mfPaneHelp }}" hint-placeholder-val="{{ false }}">
+  <div class="mf-pane mf-model-guide" data-screen-label="Help pane" aria-label="Model guide">
+    <header><h2>Model guide</h2><p>What each analysis does, when to use it, and how to read its results.</p></header>
+    <label class="mf-guide-label" for="model-guide-search">Find an analysis or question</label>
+    <input id="model-guide-search" type="search" aria-label="Search model guide" value="{{ modelGuideQuery }}" sc-camel-on-change="{{ modelGuideQuerySet }}" placeholder="e.g. compare means, counts, before and after">
+    <label class="mf-guide-label" for="model-guide-category">Browse by topic</label>
+    <select id="model-guide-category" aria-label="Guide topic" value="{{ modelGuideCategory }}" sc-camel-on-change="{{ modelGuideCategorySet }}">
+      <option value="">All analyses and key terms</option>
+      <option value="summary">Descriptive analysis</option><option value="means">Compare means</option><option value="association">Association</option><option value="regression">Regression</option><option value="text">Text analysis</option><option value="time">Time series</option><option value="networks">Networks analysis</option><option value="sem">Structural equation modeling</option><option value="other">Other tools</option><option value="basics">Key terms</option>
+    </select>
+    <div class="mf-guide-tools"><button class="mf-btn mf-btn-sm" sc-camel-on-click="{{ modelGuideCurrent }}">Current analysis</button><sc-if value="{{ modelGuideHasFilter }}" hint-placeholder-val="{{ false }}"><button class="mf-btn mf-btn-sm" sc-camel-on-click="{{ modelGuideReset }}">Clear search and topic</button></sc-if></div>
+    <p class="mf-guide-count" role="status" aria-live="polite">{{ modelGuideCount }}</p>
+    <sc-if value="{{ modelGuideEmpty }}" hint-placeholder-val="{{ false }}"><p class="mf-guide-empty">No entries match. Try a shorter phrase or choose another topic.</p></sc-if>
+    <sc-for list="{{ modelGuideEntries }}" as="m">
+      <article class="mf-model-card">
+        <button class="mf-model-toggle" sc-camel-on-click="{{ m.toggle }}" aria-expanded="{{ m.open }}"><span class="mf-model-title">{{ m.title }}</span><span class="mf-model-question">{{ m.question }}</span></button>
+        <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
+          <div class="mf-model-body">
+            <dl><sc-for list="{{ m.fields }}" as="f"><div><dt>{{ f.label }}</dt><dd>{{ f.text }}</dd></div></sc-for></dl>
+            <sc-if value="{{ m.hasRoute }}" hint-placeholder-val="{{ true }}"><button class="mf-btn mf-guide-open" sc-camel-on-click="{{ m.go }}">Open this analysis</button></sc-if>
+            <sc-if value="{{ m.hasSources }}" hint-placeholder-val="{{ false }}"><div class="mf-model-reading"><span>Further reading</span><sc-for list="{{ m.sources }}" as="s"><a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">{{ s.label }}</a></sc-for></div></sc-if>
+          </div>
+        </sc-if>
+      </article>
+    </sc-for>
+    <footer class="mf-guide-footer"><button class="mf-btn mf-btn-sm" sc-camel-on-click="{{ kbShow }}">Keyboard shortcuts</button></footer>
+  </div>
+</sc-if>

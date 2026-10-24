@@ -1,0 +1,488 @@
+[
+  {
+    "id": "univariate",
+    "category": "summary",
+    "title": "Univariate descriptive analysis",
+    "question": "What does one variable look like?",
+    "what": "Summarizes a variable's distribution: counts and percentages for categories; center, spread and range for numbers.",
+    "use": "Start here to inspect missing values, unusual values, skew and group sizes before fitting a model.",
+    "data": "One categorical or numeric variable; each row represents a case.",
+    "read": "Use the mean and SD for center and spread; compare the median and quartiles when values are skewed. Charts reveal patterns a single average misses.",
+    "caution": "Describing a sample does not establish a relationship or a causal effect. Check which rows and weights are active.",
+    "example": "Describe respondents' ages or the percentage in each party.",
+    "route": {
+      "tab": "one"
+    },
+    "sources": [
+      {
+        "label": "R: summary statistics",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/base/html/summary.html"
+      }
+    ],
+    "aliases": "descriptives summary frequencies histogram boxplot"
+  },
+  {
+    "id": "ttest-groups",
+    "category": "means",
+    "title": "Welch independent-samples t-test",
+    "question": "Do two independent groups have different means?",
+    "what": "Tests a difference between two group means without assuming equal variances.",
+    "use": "Compare different cases in two groups.",
+    "data": "One numeric outcome and a group variable; select two groups.",
+    "read": "The difference is first group minus second. Read its confidence interval and two-sided p-value.",
+    "caution": "Cases must be independent. This calculator's classical t-tests require unweighted data.",
+    "example": "Compare average income in treatment and control groups.",
+    "route": {
+      "tab": "ttest",
+      "ttMode": "groups"
+    },
+    "sources": [
+      {
+        "label": "NIST: two-sample t-test",
+        "url": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda353.htm"
+      }
+    ],
+    "aliases": "independent t test Welch unpaired"
+  },
+  {
+    "id": "ttest-value",
+    "category": "means",
+    "title": "One-sample t-test",
+    "question": "Does a mean differ from a reference value?",
+    "what": "Tests whether a population mean differs from a specified number.",
+    "use": "Compare a sample with a target or scale midpoint.",
+    "data": "One numeric outcome and a reference value.",
+    "read": "Read the estimated mean, difference from the reference, confidence interval and two-sided p-value.",
+    "caution": "Use independent, unweighted observations. Strong outliers or very small skewed samples can make inference unreliable.",
+    "example": "Compare average satisfaction with the midpoint of 3.",
+    "route": {
+      "tab": "ttest",
+      "ttMode": "value"
+    },
+    "sources": [
+      {
+        "label": "R: t-tests",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/t.test.html"
+      }
+    ],
+    "aliases": "one sample t test reference midpoint"
+  },
+  {
+    "id": "ttest-paired",
+    "category": "means",
+    "title": "Paired-samples t-test",
+    "question": "Did the same cases change between two measurements?",
+    "what": "Tests whether the mean within-case difference is zero.",
+    "use": "Compare matched observations, such as before and after.",
+    "data": "Two numeric columns, with each pair on the same row.",
+    "read": "The difference is first measurement minus second; inspect its confidence interval and p-value.",
+    "caution": "This is not a test for unrelated groups. Incomplete pairs are excluded; differences should not be dominated by outliers. Use unweighted data here.",
+    "example": "Compare the same students' pre- and post-course scores.",
+    "route": {
+      "tab": "ttest",
+      "ttMode": "paired"
+    },
+    "sources": [
+      {
+        "label": "NIST: paired observations",
+        "url": "https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm"
+      }
+    ],
+    "aliases": "paired t test before after matched"
+  },
+  {
+    "id": "anova",
+    "category": "means",
+    "title": "One-way ANOVA",
+    "question": "Do means differ across several independent groups?",
+    "what": "Tests the null hypothesis that all group population means are equal.",
+    "use": "Compare a numeric outcome across three or more groups defined by one categorical variable.",
+    "data": "One numeric outcome and one group variable; independent cases.",
+    "read": "The F-test indicates whether at least one mean differs. The group table shows which differences deserve further investigation.",
+    "caution": "The classical F-test assumes a common within-group variance. A significant result does not identify the differing pairs; the calculator does not automatically run post-hoc comparisons. Two groups route to a t-test.",
+    "example": "Compare average scores across three teaching methods.",
+    "route": {
+      "tab": "two",
+      "twoMode": "means"
+    },
+    "sources": [
+      {
+        "label": "R: analysis of variance",
+        "url": "https://www.stat.ethz.ch/R-manual/R-devel/library/stats/html/aov.html"
+      }
+    ]
+  },
+  {
+    "id": "chi-square",
+    "category": "association",
+    "title": "Chi-square test of independence",
+    "question": "Are two categorical variables associated?",
+    "what": "Compares observed table counts with counts expected if the variables were independent.",
+    "use": "Examine whether the distribution of one category variable varies across another.",
+    "data": "Two categorical variables recorded for the same cases.",
+    "read": "Read the chi-square p-value together with percentages and Cramér's V, which describes association strength.",
+    "caution": "Independent cases and adequate expected cell counts matter. Sparse tables can give unreliable approximations. The test does not establish causation; weighted tables here are not a full survey-adjusted chi-square test.",
+    "example": "Compare party preference across regions.",
+    "route": {
+      "tab": "two",
+      "twoMode": "ct"
+    },
+    "sources": [
+      {
+        "label": "R: chi-square tests",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/chisq.test.html"
+      }
+    ],
+    "aliases": "chi squared categorical contingency crosstab"
+  },
+  {
+    "id": "pearson",
+    "category": "association",
+    "title": "Pearson correlation",
+    "question": "How strongly do two numeric variables follow a straight-line pattern?",
+    "what": "Measures linear association on a scale from -1 to +1.",
+    "use": "Describe the direction and strength of a relationship between two numeric variables.",
+    "data": "Two numeric variables on the same rows; the calculation uses valid pairs.",
+    "read": "The sign gives direction and the magnitude gives linear strength. Inspect the scatterplot alongside r and its p-value.",
+    "caution": "Outliers and curved relationships can mislead. Correlation does not prove causation. Repeated measurements need an analysis that handles dependence.",
+    "example": "Examine the association between study hours and exam scores.",
+    "route": {
+      "tab": "two",
+      "twoMode": "corr"
+    },
+    "sources": [
+      {
+        "label": "R: correlation tests",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/cor.test.html"
+      }
+    ]
+  },
+  {
+    "id": "spearman",
+    "category": "association",
+    "title": "Spearman rank correlation",
+    "question": "Do higher values of one variable tend to accompany higher or lower values of another?",
+    "what": "Measures association between ranks rather than the original numerical distances.",
+    "use": "Explore an ordered, monotonic relationship that need not be a straight line.",
+    "data": "Two ordered variables, stored numerically; meaningful ordering is required.",
+    "read": "The sign and magnitude of rho describe the ranked relationship. Correlation displays Pearson and Spearman together.",
+    "caution": "It does not detect every nonlinear pattern and does not solve dependence or confounding. P-values with ties or small samples are approximate here.",
+    "example": "Relate respondents' ordered rankings of two priorities.",
+    "route": {
+      "tab": "two",
+      "twoMode": "corr"
+    },
+    "sources": [
+      {
+        "label": "R: rank correlation",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/cor.test.html"
+      }
+    ]
+  },
+  {
+    "id": "ols",
+    "category": "regression",
+    "title": "OLS linear regression",
+    "question": "How does a numeric outcome relate to several predictors?",
+    "what": "Fits an additive model for the conditional mean of a numeric outcome by minimizing squared residuals.",
+    "use": "Estimate adjusted associations, compare groups while accounting for other variables, or calculate fitted values.",
+    "data": "A numeric outcome and numeric or categorical predictors, with one row per case.",
+    "read": "A coefficient is the outcome-unit difference for a one-unit predictor change, holding included predictors constant; categorical effects compare with a reference group.",
+    "caution": "Check functional form, outliers and residual dependence. Robust or clustered errors change uncertainty, not confounding. An observational coefficient is not automatically causal.",
+    "example": "Relate income to education, experience and region.",
+    "route": {
+      "tab": "reg",
+      "regModel": "ols"
+    },
+    "sources": [
+      {
+        "label": "R: linear models",
+        "url": "https://www.stat.math.ethz.ch/R-manual/R-devel/library/stats/html/lm.html"
+      }
+    ],
+    "aliases": "ordinary least squares linear"
+  },
+  {
+    "id": "logistic",
+    "category": "regression",
+    "title": "Binary logistic regression",
+    "question": "What predicts a yes/no outcome?",
+    "what": "Models the log odds of an event and produces fitted probabilities between zero and one.",
+    "use": "Study a binary outcome while adjusting for other predictors.",
+    "data": "An outcome with two categories and numeric or categorical predictors. Check which category is modeled as the event.",
+    "read": "A coefficient is a log-odds change; exponentiating it gives an odds ratio. An odds ratio is not a probability change or a risk ratio.",
+    "caution": "Sparse categories or perfect prediction can prevent convergence. Check dependence, sample size and uncertainty before interpreting effects.",
+    "example": "Model whether a respondent voted using age, education and interest.",
+    "route": {
+      "tab": "reg",
+      "regModel": "logistic"
+    },
+    "sources": [
+      {
+        "label": "R: generalized linear models",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/glm.html"
+      }
+    ],
+    "aliases": "logit binomial binary yes no"
+  },
+  {
+    "id": "ordinal",
+    "category": "regression",
+    "title": "Ordinal logistic regression",
+    "question": "What predicts an outcome with ordered categories?",
+    "what": "Fits a proportional-odds model for the cumulative ordering of outcome categories.",
+    "use": "Study outcomes such as low, medium and high without treating category spacing as equal.",
+    "data": "Ordered categories stored as numeric codes and one or more predictors. The numerical order must match the intended order.",
+    "read": "Positive coefficients favor higher categories in this implementation. Thresholds separate cumulative categories; predicted probabilities describe each category.",
+    "caution": "The proportional-odds assumption requires common predictor effects across cutpoints. It is unsuitable for unordered categories and is not a multilevel model.",
+    "example": "Relate a five-level satisfaction response to service use and age.",
+    "route": {
+      "tab": "reg",
+      "regModel": "ologit"
+    },
+    "sources": [
+      {
+        "label": "R MASS: proportional-odds models",
+        "url": "https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/polr.html"
+      }
+    ],
+    "aliases": "ologit ordered logit proportional odds"
+  },
+  {
+    "id": "poisson",
+    "category": "regression",
+    "title": "Poisson count regression",
+    "question": "What predicts how many events occur?",
+    "what": "Uses a log link to model the expected number of events as a positive quantity.",
+    "use": "Relate event counts to predictors when cases have comparable exposure.",
+    "data": "A nonnegative integer count outcome and one or more predictors.",
+    "read": "Exponentiating a coefficient gives a multiplicative ratio of expected counts, holding other predictors constant.",
+    "caution": "Check overdispersion and excess zeros. This screen has no exposure-offset field, so unequal observation times or populations need additional modeling. Do not enter a continuous rate as if it were an integer count.",
+    "example": "Model complaint counts per office over equal observation periods.",
+    "route": {
+      "tab": "reg",
+      "regModel": "poisson"
+    },
+    "sources": [
+      {
+        "label": "R: Poisson family and log link",
+        "url": "https://www.stat.ethz.ch/R-manual/R-devel/library/stats/html/family.html"
+      }
+    ],
+    "aliases": "counts events"
+  },
+  {
+    "id": "word-frequency",
+    "category": "text",
+    "title": "Word frequencies and word cloud",
+    "question": "Which words appear most often in a collection of texts?",
+    "what": "Counts retained words across documents after the selected text-cleaning rules.",
+    "use": "Explore vocabulary, recurring terms and candidate dictionary keywords.",
+    "data": "A text column with one document per row.",
+    "read": "A token count is the number of occurrences; document frequency is the number of texts containing the word. The cloud is a visual summary.",
+    "caution": "Common words are not necessarily important concepts. Stopwords, minimum word length, language and document length affect counts; these tools do not automatically infer sentiment or topics.",
+    "example": "Explore the most common words in open-ended survey responses.",
+    "route": {
+      "tab": "text"
+    },
+    "sources": [
+      {
+        "label": "quanteda: frequency analysis",
+        "url": "https://quanteda.io/articles/pkgdown/examples/plotting.html"
+      }
+    ]
+  },
+  {
+    "id": "kwic",
+    "category": "text",
+    "title": "Keywords in context (KWIC)",
+    "question": "How is a particular word used?",
+    "what": "Displays matching words with surrounding text so their meaning can be inspected.",
+    "use": "Check ambiguity, phrasing and whether a proposed keyword captures the intended concept.",
+    "data": "A text column and a search term; click a word in the frequency table or enter a keyword.",
+    "read": "Read the surrounding words and compare contexts across documents or groups.",
+    "caution": "A keyword match alone does not identify agreement, negation, irony or a causal mechanism. Review examples before labeling a category.",
+    "example": "Check whether 'school' refers to education policy or a person's biography.",
+    "route": {
+      "tab": "text"
+    },
+    "sources": [
+      {
+        "label": "quanteda: keywords in context",
+        "url": "https://quanteda.io/reference/kwic.html"
+      }
+    ],
+    "aliases": "keyword context"
+  },
+  {
+    "id": "dictionary",
+    "category": "text",
+    "title": "Dictionary-based text analysis",
+    "question": "How often do texts mention concepts defined by a list of keywords?",
+    "what": "Matches words to user-defined categories and creates document-level counts or presence indicators.",
+    "use": "Measure predefined themes transparently, then compare their prevalence or use generated variables in other analyses.",
+    "data": "One document per row and a dictionary whose keywords match the texts' language and domain.",
+    "read": "Counts measure matched mentions; a 0/1 indicator records any match. They are measurements defined by your dictionary, not direct measures of intent.",
+    "caution": "Validate matches and missed meanings with manual reading. Polysemy, negation and longer documents can distort comparisons; a dictionary needs substantive justification.",
+    "example": "Count education-related mentions using 'school', 'teacher' and 'tuition'.",
+    "route": {
+      "tab": "text"
+    },
+    "sources": [
+      {
+        "label": "quanteda: dictionary matching",
+        "url": "https://quanteda.io/reference/dfm_lookup.html"
+      }
+    ]
+  },
+  {
+    "id": "time-series",
+    "category": "time",
+    "title": "Time trends and interrupted time series",
+    "question": "Did an outcome's level or trend change around an event?",
+    "what": "Fits a trend over ordered periods, optionally adding a level change, slope change, both, or a temporary pulse at an event.",
+    "use": "Study regularly observed outcomes before and after a known intervention; the workspace also supports multiple units and prepared aggregate series.",
+    "data": "A numeric outcome, a validated calendar/time variable and, for panels, a unit ID. Set event timing and transformations explicitly.",
+    "read": "The pre-event trend describes change per period; event terms describe an immediate shift and/or a change in trend. AR(1) adjusts a specific form of residual autocorrelation.",
+    "caution": "Check gaps, duplicates, seasonality and serial dependence. A simultaneous shock can explain an apparent event effect. This is not automatic forecasting or proof of a causal effect.",
+    "example": "Examine monthly service use before and after a policy change.",
+    "route": {
+      "tab": "ts"
+    },
+    "sources": [
+      {
+        "label": "Bernal et al.: interrupted time series tutorial",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5407170/"
+      }
+    ],
+    "aliases": "ITS interrupted segmented time series trend AR1 panel"
+  },
+  {
+    "id": "centrality",
+    "category": "networks",
+    "title": "Network description and centrality",
+    "question": "How is a network organized, and which nodes occupy distinctive positions?",
+    "what": "Summarizes ties and computes node positions: degree counts ties; betweenness captures shortest-path brokerage; closeness/harmonic use distances; eigenvector/PageRank weight connections to other nodes.",
+    "use": "Describe connectivity, compare node roles and choose informative plot sizes or layouts.",
+    "data": "An edge list with two endpoint columns; an optional node list supplies IDs, attributes and isolates.",
+    "read": "Choose the measure that matches the substantive meaning of importance. Direction and disconnected components affect results.",
+    "caution": "Layout positions are visual arrangements, not estimated distances. Centrality does not demonstrate influence or causation; normalizations and unreachable-node conventions differ by measure.",
+    "example": "Identify highly connected accounts or brokers between communities.",
+    "route": {
+      "tab": "ergm"
+    },
+    "sources": [
+      {
+        "label": "igraph: structural and centrality measures",
+        "url": "https://igraph.org/c/html/0.9.7/igraph-Structural.html"
+      }
+    ]
+  },
+  {
+    "id": "ergm",
+    "category": "networks",
+    "title": "Network tie model (ERGM / MPLE)",
+    "question": "Which attributes and network structures are associated with ties?",
+    "what": "Models tie formation using an edge baseline plus terms such as reciprocity, shared partners, matching attributes and attribute differences.",
+    "use": "Explore whether ties are associated with node characteristics or local network configurations.",
+    "data": "A defined node set, edge list, correct directed/undirected setting and any required node attributes.",
+    "read": "Coefficients describe conditional tie log odds for changes in model statistics, not ordinary independent-person regression effects.",
+    "caution": "This calculator uses maximum pseudolikelihood. With reciprocity or triangles, displayed conditional standard errors do not fully handle network dependence; treat inference as exploratory and use full network estimation and diagnostics for substantive claims.",
+    "example": "Explore whether organizations in the same sector are more likely to collaborate.",
+    "route": {
+      "tab": "ergm"
+    },
+    "sources": [
+      {
+        "label": "statnet: ERGM tutorial",
+        "url": "https://statnet.org/workshop-ergm/ergm_tutorial.html"
+      }
+    ],
+    "aliases": "exponential random graph model pseudolikelihood MPLE"
+  },
+  {
+    "id": "cfa",
+    "category": "sem",
+    "title": "Confirmatory factor analysis (CFA)",
+    "question": "Do selected items measure the proposed underlying concepts?",
+    "what": "Specifies latent factors measured by observed items and evaluates how well the proposed measurement structure fits.",
+    "use": "Assess a theory-defined measurement model before interpreting relationships between factors.",
+    "data": "Several numeric indicators per factor; usually at least three. One loading per factor is fixed to set its scale.",
+    "read": "Inspect loadings, item residuals and overall fit together. Standardized loadings describe the item-factor relationship on a common scale.",
+    "caution": "This is confirmatory, not automatic factor discovery. Good fit does not prove validity. The calculator treats indicators as numeric/continuous; it does not provide a categorical-indicator estimator.",
+    "example": "Model trust using several survey items intended to measure it.",
+    "route": {
+      "tab": "sem"
+    },
+    "sources": [
+      {
+        "label": "lavaan: CFA example",
+        "url": "https://www.lavaan.ugent.be/tutorial/cfa.html"
+      }
+    ],
+    "aliases": "confirmatory factor analysis measurement"
+  },
+  {
+    "id": "sem",
+    "category": "sem",
+    "title": "Structural equation modeling (SEM)",
+    "question": "How do measured latent concepts relate to one another?",
+    "what": "Combines a factor measurement model with directional paths or correlations between factors.",
+    "use": "Evaluate a proposed system of relationships while explicitly modeling item measurement error.",
+    "data": "Identified factors with numeric indicators, justified paths and enough observations for stable estimation.",
+    "read": "Read loadings, path coefficients, uncertainty and fit indices together. A path's direction is an assumption of the model, not a finding that proves causality.",
+    "caution": "ML uses complete cases; the missing-data option uses full-information ML under appropriate missingness assumptions; ADF needs large samples. Rerun after edits. The current SEM fit ignores selected sampling weights.",
+    "example": "Examine a proposed path from trust to engagement, with multiple items measuring each.",
+    "route": {
+      "tab": "sem"
+    },
+    "sources": [
+      {
+        "label": "lavaan: SEM and estimation",
+        "url": "https://www.lavaan.ugent.be/tutorial/est.html"
+      }
+    ],
+    "aliases": "structural equation modeling latent variable"
+  },
+  {
+    "id": "alpha",
+    "category": "other",
+    "title": "Scale reliability (Cronbach's alpha)",
+    "question": "Do several items show internal consistency?",
+    "what": "Summarizes item covariance relative to the variance of their combined scale.",
+    "use": "Check internal consistency when multiple items are intended to measure one construct.",
+    "data": "Several numeric items on the same rows, coded in a consistent direction. The calculation here uses complete cases.",
+    "read": "Read alpha alongside item content, scale length and dimensionality; more items can increase alpha.",
+    "caution": "A high alpha does not prove one factor, validity or absence of redundant items. Reverse-code negatively worded items before calculating it.",
+    "example": "Check consistency among items in a proposed satisfaction scale.",
+    "route": {
+      "tab": "data"
+    },
+    "sources": [
+      {
+        "label": "psych: internal consistency and alpha",
+        "url": "https://personality-project.org/r/psych/help/alpha.html"
+      }
+    ],
+    "aliases": "Cronbach reliability internal consistency"
+  },
+  {
+    "id": "terms",
+    "category": "basics",
+    "title": "Reading results: key terms",
+    "question": "What do outcome, coefficient, p-value and confidence interval mean?",
+    "what": "The outcome is what a model describes or predicts. Predictors are variables used to explain variation in it. A coefficient describes a model-specific association.",
+    "use": "Distinguish effect size, uncertainty and substantive importance when reading output.",
+    "data": "Check the analyzed N, missing rows, filters, reference groups and selected weights for every result.",
+    "read": "A p-value measures incompatibility with a specified null model; it is not the probability the null is true. A 95% confidence procedure covers the target parameter in 95% of repeated samples under its assumptions.",
+    "caution": "Statistical significance is not practical importance or causality. Standard errors quantify uncertainty; robust and clustered choices address particular error structures, not bias from omitted causes. Weighting does not automatically account for a complex survey design.",
+    "example": "Report an estimated difference and its interval, then explain whether that difference matters in context.",
+    "sources": [
+      {
+        "label": "NIST: interpreting confidence intervals",
+        "url": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm"
+      }
+    ],
+    "aliases": "p value confidence interval coefficient outcome predictor robust clustered weights standard error"
+  }
+]
