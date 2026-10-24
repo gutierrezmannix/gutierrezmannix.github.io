@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {gunzipSync} from 'node:zlib';
+const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const template=JSON.parse(page.match(/<script type="__bundler\/template">([\s\S]*?)<\/script>/)[1]);
+const manifest=JSON.parse(page.match(/<script type="__bundler\/manifest">([\s\S]*?)<\/script>/)[1]);
+const E=await import('data:text/javascript;base64,'+gunzipSync(Buffer.from(manifest['7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'].data,'base64')).toString('base64'));
+class Base{props={};setState(p,cb){this.state={...this.state,...(typeof p==='function'?p(this.state):p)};cb?.();}forceUpdate(){}}
+globalThis.React={createElement:(tag,props,...children)=>({tag,props,children})};globalThis.window={innerWidth:1600};globalThis.document={documentElement:{style:{zoom:''}}};
+const C=new Function('DCLogic',template.match(/<script type="text\/x-dc"[^>]*>([\s\S]*?)<\/script>/)[1]+';return Component')(Base);
+const csv=['x,y,binary,after,group'];for(let i=0;i<80;i++)csv.push([i%17,.2+.8*(i%17)+Math.sin(i*.73),i%3===0?1:0,i%11===0?'':.5+(i%17)+Math.cos(i*.3),i%2?'A':'B'].join(','));
+const b=Buffer.from(csv.join('\n')),raw=await E.parseCSV(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),()=>{});
+const c=new C();c._E=E;c._raw=raw;c.state={...c.state,screen:'work',tab:'reg',nRows:80,cols:raw.names.map((_,i)=>E.profileCol(raw,i)),autoScreen:false,depVar:'y',predictors:['x'],regModel:'ols',treat:{x:'numeric'}};
+c.jobMemo=(key,fn)=>c.memo(key,()=>{const spec=fn();return E[spec.__work](...spec.args);});
+c._regRan=c.regSpec();let out=c.renderVals();assert.ok(out.hasModel);
+assert.deepEqual(out.sumCells.map(x=>x.k),['N USED','F','DF','PROB > F','R-SQUARED','ADJ R-SQUARED','ROOT MSE']);
+assert.equal(out.coefRows.at(-1).term,'_cons');assert.equal(out.stataAnovaRows[0].source,'Model');assert.equal(out.stataAnovaRows.at(-1).source,'Total');
+assert.equal(E.regress(c.numVals('y').a,[{name:'x',kind:'num',a:c.numVals('x').a}],null).coefs[0].term,'(constant)','presentation must not reorder engine coefficients');
+const output=c.tableFor(c.descFor());assert.ok(output.indexOf('Number of obs')<output.indexOf('R-squared'));assert.ok(output.lastIndexOf('_cons')>output.lastIndexOf(' x '));
+let copied;c.copyTSV=(kind,value)=>{copied=value;};out.copyCoef();assert.ok(copied.indexOf('\nx\t')<copied.indexOf('\n(constant)\t'));
+c.state.regVce='robust';c._regRan=c.regSpec();out=c.renderVals();assert.equal(out.stataHasAnova,false);
+c.state={...c.state,regVce:'classical',regModel:'logistic',depVar:'binary'};c._regRan=c.regSpec();out=c.renderVals();assert.ok(out.hasModel);assert.equal(out.sumCells[0].k,'N USED');assert.ok(out.sumCells[1].k.startsWith('LR CHI²'));assert.equal(out.coefRows.at(-1).term,'_cons');
+c.state={...c.state,tab:'one',exploreVar:'y'};out=c.renderVals();assert.deepEqual(out.descCells.slice(0,5).map(r=>r.k),['N VALID','MEAN','SD','MIN','MAX']);
+// All three t-test designs retain the prepared sample and full-precision exports.
+c.state={...c.state,tab:'ttest',exploreVar:'y',ttMode:'value',ttMu:'5'};out=c.renderVals();assert.ok(out.ttHasRes);assert.equal(out.stataTtRows.length,1);assert.equal(out.stataTtRows[0].n,'80');assert.ok(out.stataTtRows[0].sd);out.ttCopy();assert.ok(copied.indexOf('Obs\tMean\tStd. err.\tStd. dev.')>0);
+c.state={...c.state,ttMode:'paired',ttY2:'after'};out=c.renderVals();const pairs=Array.from(raw.cols[3].a).filter(Number.isFinite).length;assert.ok(out.stataTtRows.every(r=>r.n===String(pairs)));assert.ok(out.stataTtRows.at(-1).label.startsWith('diff'));
+c.state={...c.state,ttMode:'groups',ttG:'group'};out=c.renderVals();assert.deepEqual(out.stataTtRows.slice(0,2).map(r=>r.label),['B','A']);assert.equal(out.stataTtRows.length,3);assert.ok(out.ttCells.every(r=>!r.k.startsWith('MEAN')));
+const rows=[{raw:'(constant)',term:'intercept'},{raw:'x',term:'x'},{raw:'/cut1',term:'threshold'}],saved=JSON.stringify(rows);assert.deepEqual(c.stataTerms(rows).map(r=>r.raw),['x','(constant)','/cut1']);assert.equal(JSON.stringify(rows),saved);
+clearTimeout(c._ghostT);clearTimeout(c._mfOkT);
+console.log('Stata summary and coefficient order, non-mutating engine parameters, OLS source table, robust presentation, logit LR summary, all three t-test sample tables and copied result order passed.');

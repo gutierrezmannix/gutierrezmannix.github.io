@@ -1,0 +1,10 @@
+.stata-result-table { width:100%; border-collapse:collapse; font:11.5px/1.45 var(--fMono,'Space Mono',monospace); color:var(--c2B271E,#20362F); }
+.stata-result-table th { background:var(--cF2ECE1,#E9EEE1); border-bottom:2px solid var(--c194F39,#1D5443); font-weight:700; }
+.stata-result-table th,.stata-result-table td { padding:7px 8px; text-align:right; border-bottom:1px solid var(--cE5DBCB,#D8DED2); white-space:nowrap; }
+.stata-result-table th:first-child,.stata-result-table td:first-child { text-align:left; }
+.stata-result-scroll { overflow-x:auto; margin:8px 0 12px; }
+.stata-fit-extra { margin:9px 0 0; font-size:12px; line-height:1.5; color:var(--c6B6455,#536159); }
+.stata-tt-title { font:600 13px/1.4 var(--fUI,sans-serif); margin:0 0 8px; }
+.stata-fit-layout { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr)); gap:12px; align-items:start; }
+.stata-fit-layout .stata-result-scroll { min-width:0; }
+.stata-fit-cells > div > div:last-child { overflow-wrap:anywhere; }
