@@ -12,7 +12,7 @@
     return this._browseIndex = { raw, n: raw.n, mask, rows, count: rows ? rows.length : raw.n };
   }
   browseWindow(count, cols, top, left, height, width) {
-    const rh = 34, hh = 36, cw = 128, nw = 76;
+    const rh = 28, hh = 30, cw = 96, nw = 60;
     const bodyH = Math.max(1, height - hh), logicalH = count * rh;
     // Browsers limit element height. Compress only the scrollbar for huge files.
     const physicalH = Math.min(logicalH, 8000000);
@@ -38,6 +38,14 @@
   browseAfterUpdate() {
     const el = this._browseEl;
     if (!el || this.state.tab !== 'browse' || this.state.browseMode === 'vars') return;
+    // Fit the remaining window so the horizontal scrollbar stays in reach.
+    // Rects include the user's text-size zoom; client sizes do not.
+    if (el.getBoundingClientRect && Number.isFinite(window.innerHeight)) {
+      const rect = el.getBoundingClientRect(), scale = el.offsetHeight ? rect.height / el.offsetHeight : 1;
+      const available = (window.innerHeight - rect.top - (window.scrollY || 0)) / (scale || 1) - 88;
+      const height = Math.max(240, Math.floor(available));
+      if (el.style.height !== height + 'px') el.style.height = height + 'px';
+    }
     // Existing "show in Browse" actions and old sessions still select their target.
     const target = [this.state.bRow || 0, this.state.bCol || 0].join(':');
     if (target !== this._browseTarget) {

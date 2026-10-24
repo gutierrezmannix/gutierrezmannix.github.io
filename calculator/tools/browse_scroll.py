@@ -7,12 +7,20 @@ def integrate_component(c):
     begin, end = '  // GM26 scrolling browser begin', '  // GM26 scrolling browser end'
     methods = (ROOT/'src/browse-scroll.js').read_text().rstrip()
     if begin in c:
-        return re.sub(re.escape(begin)+'.*?'+re.escape(end), lambda _: methods, c, flags=re.S)
-    c = c.replace('  descFor() {', methods+'\n  descFor() {', 1)
-    a = c.index('      const CPG = 14, RPG = 100;', c.index('    if (out.isBrowse) {'))
-    b = c.index("      out.isDataView = S.browseMode", a)
-    c = c[:a]+'      this.browseScrollVals(out, visAll);\n'+c[b:]
-    c = c.replace('    this.syncStick();\n    if (this._focusNext', '    this.syncStick();\n    this.browseAfterUpdate();\n    if (this._focusNext', 1)
+        c = re.sub(re.escape(begin)+'.*?'+re.escape(end), lambda _: methods, c, flags=re.S)
+    else:
+        c = c.replace('  descFor() {', methods+'\n  descFor() {', 1)
+        a = c.index('      const CPG = 14, RPG = 100;', c.index('    if (out.isBrowse) {'))
+        b = c.index("      out.isDataView = S.browseMode", a)
+        c = c[:a]+'      this.browseScrollVals(out, visAll);\n'+c[b:]
+        c = c.replace('    this.syncStick();\n    if (this._focusNext', '    this.syncStick();\n    this.browseAfterUpdate();\n    if (this._focusNext', 1)
+    c = c.replace("const dockOn = narrow ? S.mfMobile === 'dock' : (S.mfDock", "const dockOn = narrow ? S.mfMobile === 'dock' : S.tab === 'browse' ? !!S.mfBrowseDock : (S.mfDock")
+    c = c.replace("mfPane: k, mfDock: true, mfMobile: 'dock'", "mfPane: k, mfDock: true, mfBrowseDock: S.tab === 'browse' ? true : S.mfBrowseDock, mfMobile: 'dock'")
+    c = c.replace("out.mfDockClose = () => this.setState({ mfDock: false, mfDl: false });", "out.mfDockClose = () => this.setState(S.tab === 'browse' ? { mfBrowseDock: false, mfDl: false } : { mfDock: false, mfDl: false });")
+    # Help and the keyboard command shortcut also open a collapsed Browse dock.
+    c = c.replace("mfPane:'help',mfDock:true,mfMobile:", "mfPane:'help',mfDock:true,mfBrowseDock:this.state.tab==='browse'?true:this.state.mfBrowseDock,mfMobile:")
+    c = c.replace("mfPane: 'output', mfDock: true, mfMobile:", "mfPane: 'output', mfDock: true, mfBrowseDock: this.state.tab === 'browse' ? true : this.state.mfBrowseDock, mfMobile:")
+    c = c.replace("{ mfPane: 'help', mfDock: true, mfMobile:", "{ mfPane: 'help', mfDock: true, mfBrowseDock: this.state.tab === 'browse' ? true : this.state.mfBrowseDock, mfMobile:")
     return c
 
 def integrate_template(t):
