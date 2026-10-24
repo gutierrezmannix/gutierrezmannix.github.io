@@ -18,11 +18,12 @@ from jade_shell import integrate_template as integrate_jade_shell
 from audit_fixes import integrate_component as repair_component, integrate_template as repair_template, integrate_engine as repair_engine
 from scatter_ranges import integrate_component as range_component, integrate_template as range_template, integrate_engine as range_engine
 from model_guide import integrate_component as guide_component, integrate_template as guide_template
+from browse_scroll import integrate_component as browse_component, integrate_template as browse_template
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-23.19'
+BUILD = '2026-10-24.20'
 
 
 def replace(text, before, after, count=1):
@@ -207,8 +208,8 @@ def main():
         template = template[:a] + part + template[b:]
     template = integrate_ttests_template(integrate_network_template(integrate_jade_shell(integrate_commandbar_template(template))))
     match = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', template, re.S)
-    template = template[:match.start(2)] + guide_component(range_component(repair_component(match[2]))) + template[match.end(2):]
-    template = guide_template(range_template(repair_template(template)))
+    template = template[:match.start(2)] + browse_component(guide_component(range_component(repair_component(match[2])))) + template[match.end(2):]
+    template = browse_template(guide_template(range_template(repair_template(template))))
     asset = manifest[ENGINE]
     e = gzip.decompress(base64.b64decode(asset['data'])).decode()
     mod_begin, mod_end = '// GM26 time-series module begin', '// GM26 time-series module end'
@@ -219,7 +220,7 @@ def main():
     manifest_json = json.dumps(manifest,separators=(',',':'))
     template = template.replace('Two variables', 'Correlation')
     template = template.replace('.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: auto;', '.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: 4px;')
-    template = re.sub(r'2026-10-23\.\d+', BUILD, template)
+    template = re.sub(r'2026-10-(?:23|24)\.\d+', BUILD, template)
     for a,b,new in sorted([(ms.start(1),ms.end(1), '\n'+manifest_json+'\n  '),(ts.start(1),ts.end(1),json.dumps(template,ensure_ascii=False).replace('</','<\\/'))],reverse=True):
         h = h[:a] + new + h[b:]
     PAGE.write_text(h)
