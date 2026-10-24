@@ -1,0 +1,1272 @@
+[
+  {
+    "group": "T-tests",
+    "id": "summary_t1",
+    "title": "One-sample t-test from summaries",
+    "inputs": [],
+    "packages": [],
+    "options": {},
+    "summary": [
+      "mean1",
+      "sd1",
+      "n1",
+      "null"
+    ]
+  },
+  {
+    "group": "T-tests",
+    "id": "summary_t2",
+    "title": "Independent t-test from summaries",
+    "inputs": [],
+    "packages": [],
+    "options": {},
+    "summary": [
+      "mean1",
+      "sd1",
+      "n1",
+      "mean2",
+      "sd2",
+      "n2"
+    ]
+  },
+  {
+    "group": "T-tests",
+    "id": "summary_tp",
+    "title": "Paired t-test from difference summaries",
+    "inputs": [],
+    "packages": [],
+    "options": {},
+    "summary": [
+      "meanDifference",
+      "sdDifference",
+      "pairs",
+      "null"
+    ]
+  },
+  {
+    "group": "Proportions & categorical tests",
+    "id": "prop1",
+    "title": "One-proportion score test",
+    "inputs": [
+      "y"
+    ],
+    "packages": [],
+    "options": {
+      "null": 0.5
+    },
+    "summary": [
+      "successes",
+      "trials",
+      "null"
+    ]
+  },
+  {
+    "group": "Proportions & categorical tests",
+    "id": "prop2",
+    "title": "Two-proportion score test",
+    "inputs": [
+      "y",
+      "group"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": [
+      "successes1",
+      "trials1",
+      "successes2",
+      "trials2"
+    ]
+  },
+  {
+    "group": "Proportions & categorical tests",
+    "id": "binomial",
+    "title": "Exact binomial test",
+    "inputs": [
+      "y"
+    ],
+    "packages": [],
+    "options": {
+      "null": 0.5
+    },
+    "summary": [
+      "successes",
+      "trials",
+      "null"
+    ]
+  },
+  {
+    "group": "Proportions & categorical tests",
+    "id": "gof",
+    "title": "Chi-square goodness of fit",
+    "inputs": [
+      "group"
+    ],
+    "packages": [],
+    "options": {
+      "expected": ""
+    },
+    "summary": [
+      "counts",
+      "expected"
+    ]
+  },
+  {
+    "group": "Proportions & categorical tests",
+    "id": "fisher",
+    "title": "Fisher exact test",
+    "inputs": [
+      "group",
+      "group2"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": [
+      "table"
+    ]
+  },
+  {
+    "group": "Proportions & categorical tests",
+    "id": "mcnemar",
+    "title": "McNemar paired binary test",
+    "inputs": [
+      "y",
+      "y2"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": [
+      "table"
+    ]
+  },
+  {
+    "group": "Proportions & categorical tests",
+    "id": "mcnemar_exact",
+    "title": "Exact McNemar test",
+    "inputs": [
+      "y",
+      "y2"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": [
+      "table"
+    ]
+  },
+  {
+    "group": "Nonparametric tests",
+    "id": "mannwhitney",
+    "title": "Mann–Whitney / Wilcoxon rank-sum",
+    "inputs": [
+      "y",
+      "group"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Nonparametric tests",
+    "id": "signedrank",
+    "title": "Wilcoxon signed-rank",
+    "inputs": [
+      "y",
+      "y2"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Nonparametric tests",
+    "id": "kruskal",
+    "title": "Kruskal–Wallis",
+    "inputs": [
+      "y",
+      "group"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Nonparametric tests",
+    "id": "friedman",
+    "title": "Friedman repeated-rank test",
+    "inputs": [
+      "y",
+      "group",
+      "subject"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "ANOVA & ANCOVA",
+    "id": "welch_anova",
+    "title": "Welch one-way ANOVA",
+    "inputs": [
+      "y",
+      "group"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "ANOVA & ANCOVA",
+    "id": "factorial",
+    "title": "Factorial ANOVA",
+    "inputs": [
+      "y",
+      "factors"
+    ],
+    "packages": [
+      "car"
+    ],
+    "options": {
+      "ss": "II",
+      "interactions": true
+    },
+    "summary": []
+  },
+  {
+    "group": "ANOVA & ANCOVA",
+    "id": "ancova",
+    "title": "ANCOVA",
+    "inputs": [
+      "y",
+      "group",
+      "covariates"
+    ],
+    "packages": [
+      "car"
+    ],
+    "options": {
+      "ss": "II",
+      "interactions": false
+    },
+    "summary": []
+  },
+  {
+    "group": "ANOVA & ANCOVA",
+    "id": "repeated",
+    "title": "Repeated-measures ANOVA",
+    "inputs": [
+      "y",
+      "subject",
+      "group"
+    ],
+    "packages": [
+      "car"
+    ],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "ANOVA & ANCOVA",
+    "id": "tukey",
+    "title": "Tukey comparisons",
+    "inputs": [
+      "y",
+      "group"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "ANOVA & ANCOVA",
+    "id": "gameshowell",
+    "title": "Games–Howell comparisons",
+    "inputs": [
+      "y",
+      "group"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "ANOVA & ANCOVA",
+    "id": "dunnett",
+    "title": "Dunnett comparisons",
+    "inputs": [
+      "y",
+      "group"
+    ],
+    "packages": [
+      "multcomp"
+    ],
+    "options": {
+      "reference": ""
+    },
+    "summary": []
+  },
+  {
+    "group": "ANOVA & ANCOVA",
+    "id": "contrasts",
+    "title": "Planned contrasts",
+    "inputs": [
+      "y",
+      "group"
+    ],
+    "packages": [
+      "multcomp"
+    ],
+    "options": {
+      "contrasts": "",
+      "adjust": "holm"
+    },
+    "summary": []
+  },
+  {
+    "group": "ANOVA & ANCOVA",
+    "id": "pairwise",
+    "title": "Adjusted pairwise comparisons",
+    "inputs": [
+      "y",
+      "group"
+    ],
+    "packages": [],
+    "options": {
+      "adjust": "holm",
+      "rank": false
+    },
+    "summary": []
+  },
+  {
+    "group": "Regression",
+    "id": "multinomial",
+    "title": "Multinomial logistic",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "nnet"
+    ],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Regression",
+    "id": "probit",
+    "title": "Binary probit",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Regression",
+    "id": "negbin",
+    "title": "Negative-binomial",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "MASS"
+    ],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Regression",
+    "id": "hurdle",
+    "title": "Hurdle count model",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "pscl"
+    ],
+    "options": {
+      "countFamily": "negbin"
+    },
+    "summary": []
+  },
+  {
+    "group": "Regression",
+    "id": "zeroinfl",
+    "title": "Zero-inflated count model",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "pscl"
+    ],
+    "options": {
+      "countFamily": "negbin"
+    },
+    "summary": []
+  },
+  {
+    "group": "Regression",
+    "id": "robustreg",
+    "title": "Robust linear regression",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "MASS"
+    ],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Regression",
+    "id": "quantile",
+    "title": "Quantile regression",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "quantreg"
+    ],
+    "options": {
+      "tau": 0.5
+    },
+    "summary": []
+  },
+  {
+    "group": "Regression",
+    "id": "spline",
+    "title": "Natural-spline regression",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [],
+    "options": {
+      "df": 4
+    },
+    "summary": []
+  },
+  {
+    "group": "Regression",
+    "id": "gam",
+    "title": "Generalized additive model",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "mgcv"
+    ],
+    "options": {
+      "family": "gaussian",
+      "df": 5
+    },
+    "summary": []
+  },
+  {
+    "group": "Multilevel & panel models",
+    "id": "mixed",
+    "title": "Linear mixed-effects model",
+    "inputs": [
+      "y",
+      "predictors",
+      "subject"
+    ],
+    "packages": [
+      "lme4"
+    ],
+    "options": {
+      "reml": true,
+      "randomSlope": ""
+    },
+    "summary": []
+  },
+  {
+    "group": "Multilevel & panel models",
+    "id": "glmm",
+    "title": "Generalized mixed-effects model",
+    "inputs": [
+      "y",
+      "predictors",
+      "subject"
+    ],
+    "packages": [
+      "lme4"
+    ],
+    "options": {
+      "family": "binomial",
+      "randomSlope": ""
+    },
+    "summary": []
+  },
+  {
+    "group": "Multilevel & panel models",
+    "id": "panel_fe",
+    "title": "Panel fixed effects",
+    "inputs": [
+      "y",
+      "predictors",
+      "subject",
+      "time"
+    ],
+    "packages": [
+      "plm"
+    ],
+    "options": {
+      "effects": "individual"
+    },
+    "summary": []
+  },
+  {
+    "group": "Multilevel & panel models",
+    "id": "panel_re",
+    "title": "Panel random effects",
+    "inputs": [
+      "y",
+      "predictors",
+      "subject",
+      "time"
+    ],
+    "packages": [
+      "plm"
+    ],
+    "options": {
+      "effects": "individual"
+    },
+    "summary": []
+  },
+  {
+    "group": "Multilevel & panel models",
+    "id": "panel_dynamic",
+    "title": "Dynamic panel GMM",
+    "inputs": [
+      "y",
+      "predictors",
+      "subject",
+      "time"
+    ],
+    "packages": [
+      "plm"
+    ],
+    "options": {
+      "lags": 2
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "decompose",
+    "title": "Seasonal decomposition (STL)",
+    "inputs": [
+      "y",
+      "time"
+    ],
+    "packages": [],
+    "options": {
+      "frequency": 12
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "naive",
+    "title": "Naïve forecast",
+    "inputs": [
+      "y",
+      "time"
+    ],
+    "packages": [
+      "forecast"
+    ],
+    "options": {
+      "frequency": 1,
+      "horizon": 12,
+      "evaluate": true,
+      "initial": 0,
+      "p": -1,
+      "d": -1,
+      "q": -1,
+      "P": 0,
+      "D": 0,
+      "Q": 0
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "snaive",
+    "title": "Seasonal naïve forecast",
+    "inputs": [
+      "y",
+      "time"
+    ],
+    "packages": [
+      "forecast"
+    ],
+    "options": {
+      "frequency": 12,
+      "horizon": 12,
+      "evaluate": true,
+      "initial": 0,
+      "p": -1,
+      "d": -1,
+      "q": -1,
+      "P": 0,
+      "D": 0,
+      "Q": 0
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "drift",
+    "title": "Random walk with drift",
+    "inputs": [
+      "y",
+      "time"
+    ],
+    "packages": [
+      "forecast"
+    ],
+    "options": {
+      "frequency": 1,
+      "horizon": 12,
+      "evaluate": true,
+      "initial": 0,
+      "p": -1,
+      "d": -1,
+      "q": -1,
+      "P": 0,
+      "D": 0,
+      "Q": 0
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "ets",
+    "title": "Exponential smoothing / ETS",
+    "inputs": [
+      "y",
+      "time"
+    ],
+    "packages": [
+      "forecast"
+    ],
+    "options": {
+      "frequency": 1,
+      "horizon": 12,
+      "evaluate": true,
+      "initial": 0,
+      "p": -1,
+      "d": -1,
+      "q": -1,
+      "P": 0,
+      "D": 0,
+      "Q": 0
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "arima",
+    "title": "ARIMA",
+    "inputs": [
+      "y",
+      "time"
+    ],
+    "packages": [
+      "forecast"
+    ],
+    "options": {
+      "frequency": 1,
+      "horizon": 12,
+      "evaluate": true,
+      "initial": 0,
+      "p": -1,
+      "d": -1,
+      "q": -1,
+      "P": 0,
+      "D": 0,
+      "Q": 0
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "sarima",
+    "title": "Seasonal ARIMA",
+    "inputs": [
+      "y",
+      "time"
+    ],
+    "packages": [
+      "forecast"
+    ],
+    "options": {
+      "frequency": 12,
+      "horizon": 12,
+      "evaluate": true,
+      "initial": 0,
+      "p": -1,
+      "d": -1,
+      "q": -1,
+      "P": 0,
+      "D": 0,
+      "Q": 0
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "tsreg",
+    "title": "Time-series regression with predictors",
+    "inputs": [
+      "y",
+      "time",
+      "predictors"
+    ],
+    "packages": [
+      "forecast"
+    ],
+    "options": {
+      "frequency": 1,
+      "horizon": 12,
+      "fourier": 0
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "ardl",
+    "title": "Distributed-lag / ARDL",
+    "inputs": [
+      "y",
+      "time",
+      "predictors"
+    ],
+    "packages": [
+      "ARDL"
+    ],
+    "options": {
+      "lags": 2
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "var",
+    "title": "Vector autoregression (VAR)",
+    "inputs": [
+      "variables",
+      "time"
+    ],
+    "packages": [
+      "vars"
+    ],
+    "options": {
+      "lags": 2,
+      "horizon": 12
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "vecm",
+    "title": "Cointegration / VECM",
+    "inputs": [
+      "variables",
+      "time"
+    ],
+    "packages": [
+      "urca",
+      "vars"
+    ],
+    "options": {
+      "lags": 2,
+      "rank": 1,
+      "horizon": 12
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "breaks",
+    "title": "Structural-break analysis",
+    "inputs": [
+      "y",
+      "time",
+      "predictors"
+    ],
+    "packages": [
+      "strucchange"
+    ],
+    "options": {
+      "breaks": 1,
+      "trim": 0.15
+    },
+    "summary": []
+  },
+  {
+    "group": "Time series",
+    "id": "countts",
+    "title": "Count time-series regression",
+    "inputs": [
+      "y",
+      "time",
+      "predictors"
+    ],
+    "packages": [
+      "MASS"
+    ],
+    "options": {
+      "family": "negbin",
+      "lags": 1
+    },
+    "summary": []
+  },
+  {
+    "group": "Survival analysis",
+    "id": "km",
+    "title": "Kaplan–Meier and log-rank",
+    "inputs": [
+      "time",
+      "event"
+    ],
+    "packages": [
+      "survival"
+    ],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Survival analysis",
+    "id": "cox",
+    "title": "Cox proportional hazards",
+    "inputs": [
+      "time",
+      "event",
+      "predictors"
+    ],
+    "packages": [
+      "survival"
+    ],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Survival analysis",
+    "id": "survreg",
+    "title": "Parametric survival regression",
+    "inputs": [
+      "time",
+      "event",
+      "predictors"
+    ],
+    "packages": [
+      "survival"
+    ],
+    "options": {
+      "distribution": "weibull"
+    },
+    "summary": []
+  },
+  {
+    "group": "Scales & dimension reduction",
+    "id": "pca",
+    "title": "Principal components analysis",
+    "inputs": [
+      "variables"
+    ],
+    "packages": [],
+    "options": {
+      "standardize": true
+    },
+    "summary": []
+  },
+  {
+    "group": "Scales & dimension reduction",
+    "id": "efa",
+    "title": "Exploratory factor analysis",
+    "inputs": [
+      "variables"
+    ],
+    "packages": [
+      "psych"
+    ],
+    "options": {
+      "nfactors": 2,
+      "rotation": "oblimin",
+      "factorMethod": "minres"
+    },
+    "summary": []
+  },
+  {
+    "group": "Resampling & study planning",
+    "id": "bootstrap",
+    "title": "Bootstrap confidence interval",
+    "inputs": [
+      "y"
+    ],
+    "packages": [
+      "boot"
+    ],
+    "options": {
+      "repetitions": 999,
+      "statistic": "mean",
+      "seed": 1729,
+      "resample": "iid",
+      "blockLength": 4
+    },
+    "summary": []
+  },
+  {
+    "group": "Resampling & study planning",
+    "id": "permutation",
+    "title": "Permutation location test",
+    "inputs": [
+      "y",
+      "group"
+    ],
+    "packages": [
+      "coin"
+    ],
+    "options": {
+      "repetitions": 9999,
+      "seed": 1729
+    },
+    "summary": []
+  },
+  {
+    "group": "Resampling & study planning",
+    "id": "power_t",
+    "title": "Power / sample size: means",
+    "inputs": [],
+    "packages": [
+      "pwr"
+    ],
+    "options": {
+      "effect": 0.5,
+      "power": 0.8,
+      "sample": 0,
+      "design": "two.sample"
+    },
+    "summary": []
+  },
+  {
+    "group": "Resampling & study planning",
+    "id": "power_prop",
+    "title": "Power / sample size: proportions",
+    "inputs": [],
+    "packages": [
+      "pwr"
+    ],
+    "options": {
+      "p1": 0.5,
+      "p2": 0.6,
+      "power": 0.8,
+      "sample": 0,
+      "design": "two.sample"
+    },
+    "summary": []
+  },
+  {
+    "group": "Resampling & study planning",
+    "id": "power_corr",
+    "title": "Power / sample size: correlation",
+    "inputs": [],
+    "packages": [
+      "pwr"
+    ],
+    "options": {
+      "effect": 0.3,
+      "power": 0.8,
+      "sample": 0
+    },
+    "summary": []
+  },
+  {
+    "group": "Resampling & study planning",
+    "id": "power_anova",
+    "title": "Power / sample size: ANOVA",
+    "inputs": [],
+    "packages": [
+      "pwr"
+    ],
+    "options": {
+      "effect": 0.25,
+      "groups": 3,
+      "power": 0.8,
+      "sample": 0
+    },
+    "summary": []
+  },
+  {
+    "group": "Resampling & study planning",
+    "id": "precision",
+    "title": "Sample size for precision",
+    "inputs": [],
+    "packages": [],
+    "options": {
+      "target": "proportion",
+      "margin": 0.05,
+      "proportion": 0.5,
+      "sd": 1,
+      "population": 0,
+      "responseRate": 1,
+      "designEffect": 1
+    },
+    "summary": []
+  },
+  {
+    "group": "Survey inference & missing data",
+    "id": "survey_desc",
+    "title": "Survey descriptive estimates",
+    "inputs": [
+      "variables",
+      "weight"
+    ],
+    "packages": [
+      "survey"
+    ],
+    "options": {
+      "surveyStat": "mean"
+    },
+    "summary": []
+  },
+  {
+    "group": "Survey inference & missing data",
+    "id": "survey_test",
+    "title": "Survey-adjusted comparisons",
+    "inputs": [
+      "y",
+      "group",
+      "weight"
+    ],
+    "packages": [
+      "survey"
+    ],
+    "options": {
+      "surveyTest": "means"
+    },
+    "summary": []
+  },
+  {
+    "group": "Survey inference & missing data",
+    "id": "impute",
+    "title": "Multiple imputation / pooled regression",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "mice"
+    ],
+    "options": {
+      "imputations": 5,
+      "iterations": 10,
+      "family": "gaussian",
+      "seed": 1729
+    },
+    "summary": []
+  },
+  {
+    "group": "Survey inference & missing data",
+    "id": "missing",
+    "title": "Missing-data patterns",
+    "inputs": [
+      "variables"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Predictive modeling",
+    "id": "ridge",
+    "title": "Ridge regression",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "glmnet"
+    ],
+    "options": {
+      "penalty": 0,
+      "family": "gaussian",
+      "trainFraction": 0.8,
+      "folds": 5,
+      "seed": 1729
+    },
+    "summary": []
+  },
+  {
+    "group": "Predictive modeling",
+    "id": "lasso",
+    "title": "Lasso regression",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "glmnet"
+    ],
+    "options": {
+      "penalty": 1,
+      "family": "gaussian",
+      "trainFraction": 0.8,
+      "folds": 5,
+      "seed": 1729
+    },
+    "summary": []
+  },
+  {
+    "group": "Predictive modeling",
+    "id": "elastic",
+    "title": "Elastic net",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "glmnet"
+    ],
+    "options": {
+      "penalty": 0.5,
+      "family": "gaussian",
+      "trainFraction": 0.8,
+      "folds": 5,
+      "seed": 1729
+    },
+    "summary": []
+  },
+  {
+    "group": "Predictive modeling",
+    "id": "tree",
+    "title": "Decision tree",
+    "inputs": [
+      "y",
+      "predictors"
+    ],
+    "packages": [
+      "rpart"
+    ],
+    "options": {
+      "complexity": 0.01,
+      "family": "gaussian",
+      "trainFraction": 0.8,
+      "folds": 5,
+      "seed": 1729
+    },
+    "summary": []
+  },
+  {
+    "group": "Predictive modeling",
+    "id": "classification",
+    "title": "Classification evaluation",
+    "inputs": [
+      "y",
+      "probability"
+    ],
+    "packages": [],
+    "options": {
+      "threshold": 0.5
+    },
+    "summary": []
+  },
+  {
+    "group": "Predictive modeling",
+    "id": "kmeans",
+    "title": "K-means clustering",
+    "inputs": [
+      "variables"
+    ],
+    "packages": [],
+    "options": {
+      "clusters": 3,
+      "standardize": true,
+      "seed": 1729
+    },
+    "summary": []
+  },
+  {
+    "group": "Predictive modeling",
+    "id": "hierarchical",
+    "title": "Hierarchical clustering",
+    "inputs": [
+      "variables"
+    ],
+    "packages": [],
+    "options": {
+      "clusters": 3,
+      "standardize": true,
+      "linkage": "ward.D2"
+    },
+    "summary": []
+  },
+  {
+    "group": "Data management",
+    "id": "merge",
+    "title": "Merge / join datasets",
+    "inputs": [
+      "keys"
+    ],
+    "packages": [],
+    "options": {
+      "join": "left",
+      "manyToMany": false
+    },
+    "summary": []
+  },
+  {
+    "group": "Data management",
+    "id": "append",
+    "title": "Append datasets",
+    "inputs": [],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Data management",
+    "id": "long",
+    "title": "Reshape wide to long",
+    "inputs": [
+      "subject",
+      "variables"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Data management",
+    "id": "wide",
+    "title": "Reshape long to wide",
+    "inputs": [
+      "subject",
+      "time",
+      "y"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  },
+  {
+    "group": "Data management",
+    "id": "duplicates",
+    "title": "Identify duplicate keys",
+    "inputs": [
+      "keys"
+    ],
+    "packages": [],
+    "options": {},
+    "summary": []
+  }
+]
