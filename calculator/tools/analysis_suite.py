@@ -11,6 +11,7 @@ def integrate_component(c):
         a=c.rindex('    return out;');c=c[:a]+'    this.analysisSuiteVals(out);\n'+c[a:]
     c=c.replace('"csPages","pX"','"csPages","analysisId","analysisSub","analysisPages","pX"')
     c=c.replace("csPages: {}, pX:","csPages: {}, analysisId: '__directory', analysisSub:'Setup', analysisPages: {}, pX:")
+    if 'out.analysisStart = () =>' not in c:c=c.replace('    if (!out.showWork) return out;', '    out.analysisStart = () => this.asStart();\n    if (!out.showWork) return out;',1)
     return c
 
 def integrate_template(t):

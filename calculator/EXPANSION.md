@@ -1,4 +1,4 @@
-# Statistical expansion — build 2026-10-24.25
+# Statistical expansion — build 2026-10-24.26
 
 The original embedded analyses, Charts pages, data editor, exports, plot history,
 report tools, settings and visual shell remain available. Tests now has expandable

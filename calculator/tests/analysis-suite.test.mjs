@@ -17,3 +17,5 @@ c.asOpen('append');c.asSet({other:'7,8,C,e,5'});const names=raw.names.map((_,i)=
 console.log('78 dedicated pages and setup callbacks, complete menu coverage, subtabs, safe packet aliases, missing values, stale signatures, cancellation, R/CSV exports, data preview apply and atomic undo passed.');
 
 c._raw={n:0,names:[],labels:[],vlabs:{},cols:[]};c.clearMemo();c.state={...c.state,cols:[],nRows:0,analysisId:'summary_t1',analysisPages:{},tab:'analysis'};assert.ok(c.renderVals().analysisEl);const emptyPacket=c.asPacket(catalogue.find(q=>q.id==='summary_t1'),{});assert.deepEqual(emptyPacket.data,{});console.log('Summary input and power pages render without a dataset.');
+
+c.state.screen="upload";let started;c.ingest=(...args)=>started=args;const upload=c.renderVals();assert.equal(typeof upload.analysisStart,"function");upload.analysisStart();assert.equal(started[3].n,0);assert.equal(started[2].tab,"analysis");console.log("Upload-screen summary workflow callback passed.");
