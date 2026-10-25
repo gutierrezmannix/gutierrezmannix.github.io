@@ -7,6 +7,7 @@ fixed-width Stata or R output for the selected syntax.
 
 MARK = '/* GM26 console output v1 */'
 MARK2 = '/* GM26 console output v2 */'
+MARK3 = '/* GM26 console output v3 */'
 
 
 def replace(text, before, after, count=1):
@@ -17,11 +18,13 @@ def replace(text, before, after, count=1):
 
 
 def integrate_component(c):
-    if MARK2 in c:
+    if MARK3 in c:
         return c
-    if MARK not in c:
-        c = integrate_v1(c)
-    return integrate_v2(c).replace(MARK, MARK2, 1)
+    if MARK2 not in c:
+        if MARK not in c:
+            c = integrate_v1(c)
+        c = integrate_v2(c).replace(MARK, MARK2, 1)
+    return integrate_v3(c).replace(MARK2, MARK3, 1)
 
 
 def integrate_v1(c):
@@ -42,4 +45,13 @@ def integrate_v2(c):
     # every console entry records when it was made, so the Output view can interleave results and charts
     c = replace(c, "  tagSg(entry) { if (entry.sg !== undefined) return entry;",
                 "  tagSg(entry) { if (!entry.at) entry = { ...entry, at: Date.now() }; if (entry.sg !== undefined) return entry;")
+    return c
+
+
+def integrate_v3(c):
+    # time series: the console shows the key commands; the session .do / .R file keeps the full script
+    c = replace(c, "if (d.t === 'ts') return dial === 'stata' ? d.stata : d.r; const s = this.withIf(",
+                "if (d.t === 'ts') return (d.short && (dial === 'stata' ? d.short.stata : d.short.r)) || (dial === 'stata' ? d.stata : d.r); const s = this.withIf(")
+    c = replace(c, "const body = S.conLog.map(d => { let s = ''; try { s = this.cmdText(d, dial); }",
+                "const body = S.conLog.map(d => { let s = ''; try { s = d.t === 'ts' ? (dial === 'stata' ? d.stata : d.r) : this.cmdText(d, dial); }")
     return c

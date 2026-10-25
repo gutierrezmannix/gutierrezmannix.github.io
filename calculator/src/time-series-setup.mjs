@@ -34,11 +34,12 @@ function tsExpected(t, from, to) {
 }
 export function tsPrepare(o) {
   const from = o.frequency || 'yearly', to = o.target && o.target !== 'same' ? o.target : from;
-  const agg = o.aggregate || 'none', groups = new Map(), sourceKeys = new Set(), examples = [], out = { frequency: to, inputRows: 0, duplicates: 0, invalidTime: 0, invalidUnit: 0, missingOutcome: 0, incomplete: 0, gaps: 0, rows: [], t: [], y: [], unit: [] };
+  const agg = o.aggregate || 'none', groups = new Map(), sourceKeys = new Set(), examples = [], idSeen = new Set(), out = { frequency: to, collapse: o.collapse ? o.collapse.stat : '', missingId: 0, repeatedIds: 0, badWeight: 0, cellN: [], inputRows: 0, duplicates: 0, invalidTime: 0, invalidUnit: 0, missingOutcome: 0, incomplete: 0, gaps: 0, rows: [], t: [], y: [], unit: [] };
   if (!o.y) return { ...out, error: 'Pick an outcome before preparing the series.' };
   if (o.source && (o.sourceValue == null || o.sourceValue === '')) return { ...out, error: 'Choose one value of the measurement/source variable, or clear that filter.' };
-  if (to !== from && agg === 'none') return { ...out, error: 'Choose an aggregation rule explicitly before changing the analysis frequency.' };
-  if (to === from && !['none', 'rate'].includes(agg)) return { ...out, error: 'Keep-original frequency preserves each observation. Choose a coarser frequency to sum or average periods.' };
+  if (o.collapse && agg === 'rate') return { ...out, error: 'Collapsing records and recomputing a population rate cannot be combined. Collapse a 0/1 or count outcome with Mean or Sum instead.' };
+  if (to !== from && agg === 'none' && !o.collapse) return { ...out, error: 'Choose an aggregation rule explicitly before changing the analysis frequency.' };
+  if (to === from && !['none', 'rate'].includes(agg) && !o.collapse) return { ...out, error: 'Keep-original frequency preserves each observation. Choose a coarser frequency to sum or average periods.' };
   if (agg === 'rate' && (!o.numerator || !o.population)) return { ...out, error: 'Recomputing a rate requires a count numerator and a population denominator.' };
   if (agg === 'rate' && (!Number.isFinite(Number(o.scale)) || Number(o.scale) <= 0)) return { ...out, error: 'The rate multiplier must be a positive number.' };
   for (let i = 0; i < o.y.length; i++) {
@@ -58,21 +59,25 @@ export function tsPrepare(o) {
     if (Number.isFinite(o.start) && tt < o.start || Number.isFinite(o.end) && tt > o.end) continue;
     out.inputRows++;
     const key = JSON.stringify([u, t]);
-    if (sourceKeys.has(key)) { out.duplicates++; if (examples.length < 4) examples.push((o.unit ? u + ' / ' : '') + tsDateLabel(t, from)); } sourceKeys.add(key);
+    const C = o.collapse;
+    if (C) { if (C.id) { const v0 = C.id[i]; if (v0 == null || v0 === '' || (typeof v0 === 'number' && !Number.isFinite(v0))) out.missingId++; else { const ik = JSON.stringify([u, t, String(v0)]); if (idSeen.has(ik)) out.repeatedIds++; idSeen.add(ik); } } }
+    else if (sourceKeys.has(key)) { out.duplicates++; { const ex = (o.unit ? u + ' / ' : '') + tsDateLabel(t, from); if (examples.length < 4 && !examples.includes(ex)) examples.push(ex); } } sourceKeys.add(key);
     const k = JSON.stringify([u, tt]); let g = groups.get(k);
     if (!g) { g = { u, t: tt, n: 0, sum: 0, valid: 0, pop: null, popVaries: false }; groups.set(k, g); }
     g.n++; const v = agg === 'rate' ? o.numerator[i] : o.y[i];
+    if (C && typeof v === 'number' && Number.isFinite(v)) { const w = C.weight ? C.weight[i] : 1; if (!(Number.isFinite(w) && w > 0)) { out.badWeight++; g.n--; continue; } (g.vals || (g.vals = [])).push(v); (g.ws || (g.ws = [])).push(w); }
     if (typeof v === 'number' && Number.isFinite(v)) { g.sum += v; g.valid++; if (agg === 'rate' && v < 0) return { ...out, error: 'A count numerator cannot be negative.' }; }
     else out.missingOutcome++;
     if (agg === 'rate') { const p = o.population[i]; if (!Number.isFinite(p) || p <= 0) return { ...out, error: 'Population must be observed and positive for every contributing row.' }; if (g.pop != null && Math.abs(g.pop - p) > 1e-8 * Math.max(1, p)) g.popVaries = true; g.pop = p; }
   }
   if (out.invalidTime || out.invalidUnit) return { ...out, error: out.invalidTime + ' invalid/missing time values and ' + out.invalidUnit + ' missing unit identifiers. Correct or explicitly filter these records.' };
-  if (out.duplicates) return { ...out, error: o.unit ? out.duplicates + ' extra observations share a unit and original period (' + examples.join('; ') + '). Resolve the source/methodology or refine the unit identifier before analysis. Records are never automatically averaged or deleted.' : out.duplicates + ' extra row(s) repeat a period (' + examples.join('; ') + '). If each row is a different unit (state, country…), choose it as the UNIT (PANEL) VARIABLE; if they are different measurements, use the source filter under More data preparation. Records are never automatically averaged or deleted.' };
+  if (out.duplicates) return { ...out, error: o.unit ? out.duplicates + ' extra observations share a unit and original period (' + examples.join('; ') + '). Resolve the source/methodology, refine the unit identifier, or — if each row is a person or record (survey) — choose EACH ROW IS: One person / record → collapse. Records are never averaged without that choice.' : out.duplicates + ' extra row(s) repeat a period (' + examples.join('; ') + '). If each row is a different unit (state, country…), choose it as the UNIT (PANEL) VARIABLE; if each row is a person or record (survey), choose EACH ROW IS: One person / record → collapse; if they are different measurements, use the source filter under More data preparation. Records are never averaged without that choice.' };
   for (const g of groups.values()) {
     if (g.popVaries) return { ...out, error: 'The population denominator varies within an aggregate period. Supply an appropriate period-level denominator; populations are never summed across months.' };
-    const complete = g.n === tsExpected(g.t, from, to) && g.valid === g.n;
+    const complete = o.collapse ? !!(g.vals && g.vals.length) : g.n === tsExpected(g.t, from, to) && g.valid === g.n;
+    if (o.collapse) out.cellN.push(g.vals ? g.vals.length : 0);
     if (!complete) out.incomplete++;
-    const y = !complete ? NaN : agg === 'mean' ? g.sum / g.valid : agg === 'rate' ? g.sum / g.pop * (Number(o.scale) || 100000) : g.sum;
+    const y = !complete ? NaN : o.collapse ? tsCollapseValue(g.vals, g.ws, o.collapse.stat) : agg === 'mean' ? g.sum / g.valid : agg === 'rate' ? g.sum / g.pop * (Number(o.scale) || 100000) : g.sum;
     out.rows.push({ u: g.u, t: g.t, y });
   }
   out.rows.sort((a, b) => a.u.localeCompare(b.u) || a.t - b.t);
@@ -150,9 +155,18 @@ export function tsSetupControls(C, out, picker, chip) {
       : !textTime ? '"' + tv + '" holds ' + fq + ' dates (e.g. "' + tread.example + '"). Choose ' + (fq[0].toUpperCase() + fq.slice(1)) + ' above.'
       : 'Text dates in "' + tv + '" are read as ' + fq + ' periods (e.g. "' + tread.example + '" → ' + tsDateLabel(textTime.find(Number.isFinite), frequency) + ')' + (tread.invalid ? '; ' + tread.invalid + ' value(s) could not be read (e.g. "' + tread.bad.join('", "') + '") and are left out' : '') + '.';
   }
+  const records = S.tsRows === 'records';
+  out.tsRowBtns = opts('tsRows', records ? 'records' : 'periods', [['periods', 'One period (or one unit in one period)'], ['records', 'One person / record (survey) → collapse']]);
+  out.tsRecords = records;
+  out.tsIdPk = picker('tsid', S.tsId || '', n => C.setState({ tsId: n }), c => c.name !== tv, [{ name: 'NONE', sub: 'no identifier', pick: () => C.setState({ tsId: '', pk: null, pq: '' }) }]);
+  out.tsMakeId = () => C.tsMakeId();
+  const stat = S.tsStat || 'mean';
+  out.tsStatBtns = opts('tsStat', stat, [['mean', 'Mean (share for 0/1)'], ['median', 'Median'], ['sum', 'Sum'], ['min', 'Minimum'], ['max', 'Maximum'], ['range', 'Range (max − min)']]);
+  out.tsWPk = picker('tsw', S.tsW || '', n => C.setState({ tsW: n }), c => c.type === 'numeric' && c.name !== tv, [{ name: 'NONE', sub: 'unweighted', pick: () => C.setState({ tsW: '', pk: null, pq: '' }) }]);
+  out.tsStatHint = { mean: 'Average of each unit-period’s records; for a 0/1 variable this is the share coded 1.', median: 'Middle value of each unit-period’s records (weighted median with a weight).', sum: 'Total of each unit-period’s records (weighted total with a weight).', min: 'Smallest value in each unit-period.', max: 'Largest value in each unit-period.', range: 'Largest minus smallest value in each unit-period.' }[stat] + (S.tsW && ['min', 'max', 'range'].includes(stat) ? ' Weights do not change minimum, maximum or range.' : '');
   const moreUsed = [source ? 'source filter' : '', target !== 'same' ? 'frequency change' : '', (S.tsAggregate || 'none') === 'rate' ? 'population rate' : ''].filter(Boolean);
   out.tsMoreLabel = 'More data preparation — source filter, change frequency, population rates' + (moreUsed.length ? ' (in use: ' + moreUsed.join(', ') + ')' : '');
-  const config = { mode, frequency, target, aggregate, time: tread ? textTime : nums(tv), part: nums(part), y: nums(yv), unit: vals(uv), source: sv, sourceValue: S.tsSourceValue, numerator: nums(S.tsCount), population: nums(S.tsPop), scale: Number(S.tsScale || 100000), mask: C.mask() };
+  const config = { collapse: records ? { stat, weight: S.tsW ? nums(S.tsW) : null, id: S.tsId ? vals(S.tsId) : null } : null, mode, frequency, target, aggregate, time: tread ? textTime : nums(tv), part: nums(part), y: nums(yv), unit: vals(uv), source: sv, sourceValue: S.tsSourceValue, numerator: nums(S.tsCount), population: nums(S.tsPop), scale: Number(S.tsScale || 100000), mask: C.mask() };
   const fullTime = config.time ? Array.from(config.time, (t, i) => {
     if (config.mask && !config.mask[i] || source && String(sv?.[i]) !== String(S.tsSourceValue)) return NaN;
     if (mode === 'parts') { const p = config.part?.[i], n = frequency === 'quarterly' ? 4 : 12; return Number.isInteger(t) && Number.isInteger(p) && p >= 1 && p <= n ? (t - 1960) * n + p - 1 : NaN; } return t;
@@ -199,8 +213,8 @@ export function tsScripts(c, prep, res) {
   rr.push('d$' + t + ' <- ' + (setup.mode === 'parts' ? '(d$' + setup.tv + ' - 1960) * ' + n + ' + d$' + setup.part + ' - 1' : 'd$' + setup.tv));
   const unit = setup.uv || u;
   if (!setup.uv) { st.push('gen byte ' + u + ' = 1'); rr.push('d$' + u + ' <- 1L'); }
-  st.push('assert !missing(' + t + ', ' + unit + ')', 'isid ' + unit + ' ' + t);
-  rr.push('stopifnot(!anyNA(d[c(' + q(unit) + ',' + q(t) + ')]), !anyDuplicated(d[c(' + q(unit) + ',' + q(t) + ')]))');
+  st.push('assert !missing(' + t + ', ' + unit + ')'); if (!prep.collapse) st.push('isid ' + unit + ' ' + t);
+  rr.push(prep.collapse ? 'stopifnot(!anyNA(d[c(' + q(unit) + ',' + q(t) + ')]))' : 'stopifnot(!anyNA(d[c(' + q(unit) + ',' + q(t) + ')]), !anyDuplicated(d[c(' + q(unit) + ',' + q(t) + ')]))');
   const ag = S.tsAggregate || 'none', coarser = freq !== setup.frequency;
   const ysrc = ag === 'rate' ? S.tsCount : setup.yv;
   st.push('gen double ' + y + ' = ' + ysrc); rr.push('d$' + y + ' <- d$' + ysrc);
@@ -213,7 +227,19 @@ export function tsScripts(c, prep, res) {
     st.push('replace ' + t + ' = ' + stc); rr.push('d$' + t + ' <- ' + rc);
   }
   for (const [k,op] of [['tsT0','>='],['tsT1','<=']]) { const v = tsPeriod(S[k],freq); if (Number.isFinite(v)) { st.push('keep if ' + t + ' ' + op + ' ' + v); rr.push('d <- d[d$' + t + ' ' + op + ' ' + v + ',,drop=FALSE]'); } }
-  if (coarser) {
+  if (prep.collapse) {
+    // records → one value per unit and period, like Stata's collapse (weights for mean, median and sum)
+    const stat = prep.collapse, w = S.tsW || '', wt = w && ['mean', 'median', 'sum'].includes(stat), lo = p + 'min';
+    st.push('drop if missing(' + y + ')'); if (w) st.push('drop if missing(' + w + ') | ' + w + ' <= 0');
+    st.push(stat === 'range' ? 'collapse (max) ' + y + ' (min) ' + lo + '=' + y + ', by(' + unit + ' ' + t + ')' : 'collapse (' + stat + ') ' + y + (wt ? ' [pw=' + w + ']' : '') + ', by(' + unit + ' ' + t + ')');
+    if (stat === 'range') st.push('replace ' + y + ' = ' + y + ' - ' + lo);
+    rr.push('d <- d[is.finite(d$' + y + ')' + (w ? ' & is.finite(d$' + w + ') & d$' + w + ' > 0' : '') + ',,drop=FALSE]');
+    if (stat === 'median' && wt) rr.push('wmedian <- function(x, w) { o <- order(x); x <- x[o]; cw <- cumsum(w[o]); h <- sum(w)/2; j <- which(cw >= h - 1e-12)[1]; if (abs(cw[j] - h) <= 1e-12 && j < length(x)) (x[j] + x[j+1])/2 else x[j] }');
+    const gy = 'g$' + y, gw = 'g$' + w;
+    const f = { mean: wt ? 'weighted.mean(' + gy + ', ' + gw + ')' : 'mean(' + gy + ')', median: wt ? 'wmedian(' + gy + ', ' + gw + ')' : 'median(' + gy + ')', sum: wt ? 'sum(' + gw + ' * ' + gy + ')' : 'sum(' + gy + ')', min: 'min(' + gy + ')', max: 'max(' + gy + ')', range: 'diff(range(' + gy + '))' }[stat];
+    rr.push('d <- do.call(rbind, lapply(split(d, interaction(d$' + unit + ',d$' + t + ',drop=TRUE)), function(g) {', '  b <- g[1,,drop=FALSE]', '  b$' + y + ' <- ' + f, '  b', '}))');
+  }
+  if (coarser && !prep.collapse) {
     let expectedSt, expectedR;
     if (setup.frequency === 'monthly' || setup.frequency === 'quarterly') expectedSt = expectedR = String(setup.frequency === 'quarterly' ? 4 : freq === 'yearly' ? 12 : 3);
     else { expectedSt = freq === 'yearly' ? 'mdy(1,1,' + t + '+1)-mdy(1,1,' + t + ')' : freq === 'monthly' ? 'dofm(' + t + '+1)-dofm(' + t + ')' : 'dofq(' + t + '+1)-dofq(' + t + ')'; expectedR = freq === 'yearly' ? 'as.numeric(as.Date(paste0(b$' + t + '+1,"-01-01"))-as.Date(paste0(b$' + t + ',"-01-01")))' : 'as.numeric(seq(as.Date("1960-01-01") + 0, length.out=1)[1])'; }
@@ -250,5 +276,23 @@ export function tsScripts(c, prep, res) {
   const L = Number((res.seType.match(/lag (\d+)/) || [0,1])[1]);
   st.push((res.pooled ? 'regress ' : 'newey ') + y + ' ' + terms.map(x => 'c.' + x).join(' ') + (res.pooled ? ' i.' + u + ', vce(cluster ' + u + ')' : ', lag(' + L + ')'), 'restore');
   rr.push('library(sandwich); library(lmtest)', 'm <- lm(' + y + ' ~ ' + terms.join(' + ') + (res.pooled ? ' + factor(' + u + ')' : '') + ',data=d,na.action=na.omit)', 'coeftest(m, vcov. = ' + (res.pooled ? 'vcovCL(m,cluster=~' + u + ',type="HC1",cadjust=TRUE), df=' + (res.nUnits-1) : 'NeweyWest(m,lag=' + L + ',prewhite=FALSE,adjust=TRUE)') + ')', '})');
-  return { stata: st.join('\n'), r: rr.join('\n').replace(/\b([dgb])\$([A-Za-z_][A-Za-z0-9_]*)/g,(_,obj,key)=>obj+'[['+q(key)+']]') };
+  const rx = x => x.replace(/\b([dgb])\$([A-Za-z_][A-Za-z0-9_]*)/g,(_,obj,key)=>obj+'[['+q(key)+']]');
+  // The console shows the key lines only; the full script goes to the .do / .R download and "Stata / R script".
+  const about = 'trend / interrupted time series of ' + setup.yv + ' over ' + setup.tv + (setup.uv ? ', units ' + setup.uv : '') + (prep.collapse ? ', records collapsed (' + prep.collapse + ')' : '') + ' — full script under "Stata / R script"';
+  const short = { stata: ['* ' + about, ...st.filter(x => /^(collapse|xtset|tsset|regress|newey) /.test(x))].join('\n'), r: rx(['# ' + about, ...rr.filter(x => /^(m <- lm\(|coeftest\()/.test(x))].join('\n')) };
+  return { stata: st.join('\n'), r: rx(rr.join('\n')), short };
+}
+
+// Summary of a unit-period's records (Stata collapse): mean, median, sum, min, max or range; weights apply to
+// mean (weighted mean), median (weighted median) and sum (weighted total).
+export function tsCollapseValue(v, w, stat) {
+  const n = v.length; if (!n) return NaN;
+  if (stat === 'min' || stat === 'max' || stat === 'range') { let lo = Infinity, hi = -Infinity; for (const x of v) { if (x < lo) lo = x; if (x > hi) hi = x; } return stat === 'min' ? lo : stat === 'max' ? hi : hi - lo; }
+  if (stat === 'sum') { let s = 0; for (let i = 0; i < n; i++) s += v[i] * w[i]; return s; }
+  if (stat === 'median') {
+    const ix = Array.from({ length: n }, (_, i) => i).sort((a, b) => v[a] - v[b]); let tot = 0; for (const x of w) tot += x;
+    let c = 0; for (let k = 0; k < n; k++) { c += w[ix[k]]; if (c > tot / 2 + 1e-12) return v[ix[k]]; if (Math.abs(c - tot / 2) <= 1e-12) return (v[ix[k]] + v[ix[k + 1]]) / 2; }
+    return v[ix[n - 1]];
+  }
+  let s = 0, sw = 0; for (let i = 0; i < n; i++) { s += v[i] * w[i]; sw += w[i]; } return s / sw;
 }

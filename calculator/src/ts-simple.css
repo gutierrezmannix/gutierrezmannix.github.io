@@ -18,3 +18,7 @@
 .ts-future input{width:100%;min-width:70px;box-sizing:border-box}
 .ts-problems{margin-top:10px}
 .ts-note{margin:8px 0 0;padding:7px 12px;font-size:12.5px;background:var(--cF4F9FA,#F4F9FA);border-left:3px solid var(--c357F93,#357F93);color:var(--c163F4C,#163F4C)}
+.ts-fold{margin-top:12px;border-top:1px solid var(--cE3DCCE,#E3DCCE);padding-top:8px}
+.ts-fold>summary{cursor:pointer;font:600 12.5px var(--fUI,'Hanken Grotesk',sans-serif);color:var(--c194F39,#194F39);padding:4px 0}
+.ts-fold-card{margin:10px 0 0;border:1px solid var(--cE3DCCE,#E3DCCE);border-radius:9px;padding:8px 12px;background:var(--cFFFFFF,#FFFFFF)}
+.ts-ev-more{margin-top:10px}

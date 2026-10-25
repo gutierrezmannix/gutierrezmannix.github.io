@@ -154,4 +154,18 @@
     return h('div',null,h('p',{className:'as-runtime-note'},'Runs in R inside your browser. The first run downloads R and its packages (internet needed); your data stays on this device.'),timeSec,tv?modelSec:null,tv?fcSec:null,problems,
       button(S.analysisBusy?'Running…':'Run analysis',()=>this.asRun(),{disabled:!!S.analysisBusy||!ready,className:'as-run',title:ready?'':(b.errors[0]||(kind==='system'?'Choose two or more variables.':'Choose the dependent variable.'))}),this.asRunStatus(h,button));
   }
+  // Time series tab: survey records → one value per unit and period (Stata collapse)
+  tsMakeId(){
+    const raw=this._raw;if(!raw)return;let name='obs_id',k=2;while(raw.names.includes(name))name='obs_id'+k++;
+    this.addDerivedCol(name,{k:'n',a:Float64Array.from({length:raw.n},(_,i)=>i+1)},'observation identifier (row number)','id');
+    this.setState({tsId:name});this.pushLog({t:'tsvars',stata:'generate long '+name+' = _n',r:'df$'+name+' <- seq_len(nrow(df))',res:'Each record now has its own key: '+name+' = 1 … '+raw.n.toLocaleString('en-US')+'.'});
+  }
+  tsCollapseText(prep,setup){
+    const S=this.state,n=prep.cellN.filter(x=>x>0).sort((a,b)=>a-b),med=n.length?n[Math.floor(n.length/2)]:0,stat={mean:'mean',median:'median',sum:'sum',min:'minimum',max:'maximum',range:'range'}[prep.collapse]||prep.collapse;
+    const per=setup.effective==='yearly'?'year':setup.effective==='quarterly'?'quarter':setup.effective==='monthly'?'month':setup.effective==='daily'?'day':'period';
+    return prep.inputRows.toLocaleString('en-US')+' records → '+(prep.valid||0)+' '+(prep.nUnits>1?'unit–'+per+'s':per+'s')+' ('+stat+' of '+(S.tsY||'the outcome')+(S.tsW?', weighted by '+S.tsW:'')+'). Records per '+(prep.nUnits>1?'unit–'+per:per)+': '+(n.length?n[0]+' to '+n[n.length-1]+' (median '+med+')':'—')+'.'
+      +(prep.missingOutcome?' '+prep.missingOutcome+(prep.missingOutcome===1?' record with a missing outcome is':' records with a missing outcome are')+' left out.':'')+(prep.badWeight?' '+prep.badWeight+(prep.badWeight===1?' record with a missing or non-positive weight is':' records with a missing or non-positive weight are')+' left out.':'')
+      +(S.tsId?(prep.repeatedIds?' Warning: '+prep.repeatedIds+' records repeat an '+S.tsId+' already seen in the same unit and period.':' Every '+S.tsId+' is unique within each unit and period.')+(prep.missingId?' '+prep.missingId+' records have no '+S.tsId+'.':''):'')
+      +' The model is then fitted to these values.';
+  }
   // GM26 time-series setup end

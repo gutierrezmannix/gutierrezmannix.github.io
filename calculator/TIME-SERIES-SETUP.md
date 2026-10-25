@@ -1,6 +1,34 @@
-# Time series setup, console output and the Output view — build 2026-10-25.28
+# Time series setup, console output and the Output view — build 2026-10-25.30
 
-## Tests → Time series pages (STL, naïve, drift, ETS, ARIMA, SARIMA, regression, ARDL, VAR, VECM, breaks, counts)
+## Build .30 — one time-series method, survey collapse, simpler layout
+
+**One method.** Time series now offers only **Trends and interrupted time series** (Tests ▾ → Time series), the
+design most used in political science for policy and event effects. The 13 R time-series pages (STL, naïve,
+drift, ETS, ARIMA, SARIMA, regression with ARIMA errors, ARDL, VAR, VECM, breaks, counts…) are removed from the
+menus and the model guide; their code remains.
+
+**Survey records.** Under *Each row is*, choose **One person / record (survey) → collapse**:
+
+- **Observation ID** (optional) — pick a respondent key or press **+ Create ID** (`generate long obs_id = _n`);
+  the summary reports whether every ID is unique within each unit and period.
+- **Weight** (optional) — applies to Mean (weighted mean), Median (weighted median) and Sum (weighted total).
+  Records with a missing or non-positive weight are left out.
+- **Collapse each period with** Mean (share for 0/1), Median, Sum, Minimum, Maximum or Range (max − min).
+
+Records are collapsed to one value per period (and per unit when a unit variable is set), like Stata's
+`collapse (stat) y [pw=w], by(unit time)`; the model is fitted to those values. Repeated periods without this
+choice still stop the run. The Stata / R script includes the collapse step.
+
+**Layout (Stata order).** 1 · Time, unit and outcome → Each row is (collapse options) → time information →
+*More data preparation* (analyse level/change, period range, source filter, frequency, rates) → units.
+2 · Event date and what changes after it; the event name and per-unit event periods are under *More event options*.
+3 · Results table → chart → before/after → *What this means*; diagnostics (ADF, ACF/PACF), the full script and
+"Add the event variables" are folded.
+
+**Console.** A time-series entry shows the key commands (collapse, xtset/tsset, regress/newey, or lm/coeftest);
+the full script is in the session .do / .R download and under "Stata / R script".
+
+## Tests → Time series pages (build .28; retired from the menus in .30)
 
 Each page now starts like Stata's `tsset`, then asks only for the model:
 

@@ -1,5 +1,5 @@
   // GM26 model guide methods begin
-  modelGuideData() { return __MODEL_GUIDE_DATA__; }
+  modelGuideData() { const retired=new Set(this.asRetired?this.asRetired():[]); return __MODEL_GUIDE_DATA__.filter(m=>!(m.route&&retired.has(m.route.analysisId))); }
   modelGuideCurrent() {
     const S=this.state;
     if(S.tab==='analysis'&&S.analysisId!=='__directory')return 'advanced-'+S.analysisId;
