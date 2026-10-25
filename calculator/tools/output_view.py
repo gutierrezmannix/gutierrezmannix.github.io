@@ -15,6 +15,11 @@ def integrate_component(c):
         c = re.sub(re.escape(BEGIN) + '.*?' + re.escape(END), lambda _: methods, c, flags=re.S)
     else:
         c = c.replace('  descFor() {', methods + '\n  descFor() {', 1)
+    hook = '  afterUpdateUI() {\n    this.menuFit();\n'
+    if hook not in c:
+        if c.count('  afterUpdateUI() {\n') != 1:
+            raise RuntimeError('output_view: afterUpdateUI anchor not found')
+        c = c.replace('  afterUpdateUI() {\n', hook, 1)
     return c
 
 

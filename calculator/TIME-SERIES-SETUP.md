@@ -48,3 +48,7 @@ download says that the first run needs internet.
 
 `node --test calculator/tests/*.test.mjs` includes `ts-dates.test.mjs` (date formats, frequencies, repeats,
 panels, gaps, missing values, trading days, panel suggestions).
+
+## Toolbar menus (build .29)
+
+The Tests ▾ and Charts ▾ dropdowns scroll as one list (the inner category list no longer scrolls separately), and an open menu is sized to end above the bottom of the window, accounting for the text-size zoom.

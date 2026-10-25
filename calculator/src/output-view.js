@@ -22,4 +22,6 @@
       cmdBox,
       items.length?h('div',{className:'ov-list'},...items.map(entry)):h('p',{className:'ov-empty'},'Nothing has been run yet. Results and charts will appear here as you work.'));
   }
+  // An open toolbar menu ends above the bottom of the window, with one scrollbar (its own).
+  menuFit(){try{for(const m of document.querySelectorAll('.mf-menu')){if(!m.getClientRects().length)continue;const z=parseFloat(document.documentElement.style.zoom)||1,top=m.getBoundingClientRect().top,room=Math.max(160,Math.floor((window.innerHeight-top-12)/z));m.style.boxSizing='border-box';if(m.style.maxHeight!==room+'px')m.style.maxHeight=room+'px';m.style.overflowY='auto';}}catch(e){}}
   // GM26 output view end
