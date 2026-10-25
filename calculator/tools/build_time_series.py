@@ -27,7 +27,7 @@ from stata_output import integrate_component as stata_component, integrate_templ
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-24.26'
+BUILD = '2026-10-24.27'
 
 
 def replace(text, before, after, count=1):

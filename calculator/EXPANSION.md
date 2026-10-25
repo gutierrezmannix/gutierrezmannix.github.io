@@ -1,4 +1,4 @@
-# Statistical expansion — build 2026-10-24.26
+# Statistical expansion — build 2026-10-24.27
 
 The original embedded analyses, Charts pages, data editor, exports, plot history,
 report tools, settings and visual shell remain available. Tests now has expandable
@@ -92,3 +92,36 @@ preview apply/undo. Browser verification additionally exercises real webR/packag
 loading, a proportion test, ARIMA forecasts/intervals, diagnostics, plot history
 and PNG export. Smoke-test coverage is not an independent reference validation of
 every advanced estimator or proof of suitability for every study design.
+
+## Individual census records → annual proportions (build .27)
+
+Under Tests → Time series, Annual proportions from individual records opens the
+ARIMA page in preparation mode. The same Source data selector is available for
+naïve, drift, ETS and ARIMA. Choose a binary numeric outcome, calendar year and
+optional positive population weight. Preview before estimation; the preview shows
+input/used counts, missing outcomes, observed ones, weight totals and proportions.
+It can be downloaded as CSV without replacing the original microdata. Active
+subgroup filters apply. Settings weights initialize the population-weight selector;
+the explicit preparation selection determines the weights used.
+
+For each year, the statistic is sum(weight × outcome) / sum(weight) over records
+with valid year and nonmissing binary outcome; unweighted estimates use weight 1.
+Missing time records are counted and disclosed. Nonbinary values, invalid eligible
+weights, empty-outcome years, noninteger years and gaps block forecasting. Changing
+preparation inputs/data invalidates the preview. No repeated records are ordered
+arbitrarily, no gaps are interpolated and the source dataset is not overwritten.
+
+Annual preparation fixes seasonal frequency at 1 and defaults to a 3-year horizon.
+With fewer than 20 time points, automatic ARIMA search uses max.p=2, max.q=2,
+max.order=2 and max.d=1. The sample count is the number of annual estimates, not
+individuals; provenance reports the contributing record counts separately.
+Forecasts model annual point estimates and do not propagate survey sampling or
+measurement error. Gaussian forecasts/intervals can extend outside [0,1]; they
+are not silently clipped. Rates reflect whichever outcome is coded 1.
+
+Additional validation: annual-proportions.test.mjs independently checks weighted
+and unweighted denominators, missingness, invalid weights/coding, filtering, gaps,
+stale previews, CSV export, default configuration and original-data preservation.
+annual_forecast_check.mjs runs actual webR forecasting for all four supported
+models using 14 annual points, verifies finite 3-year predictions/intervals and
+four rolling origins, and rechecks annual gaps inside R.
