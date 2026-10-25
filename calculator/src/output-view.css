@@ -1,0 +1,17 @@
+.ov-view{display:flex;flex-direction:column;gap:12px;padding:4px 2px 20px}
+.ov-head h2{margin:0 0 4px;font-size:20px}
+.ov-head p{margin:0;font-size:13px;color:var(--c5D5648,#5D5648)}
+.ov-cmd{display:flex;align-items:center;gap:8px;border:1px solid var(--cD2C5AF,#D2C5AF);border-radius:8px;background:var(--cFFFFFF,#FFFFFF);padding:4px 6px 4px 12px}
+.ov-cmd input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:13px var(--fMono,'Space Mono',monospace);padding:7px 0}
+.ov-prompt{font:700 13px var(--fMono,'Space Mono',monospace);color:var(--c226578,#226578)}
+.ov-list{display:flex;flex-direction:column;gap:14px;background:var(--cFFFFFF,#FFFFFF);border:1px solid var(--cE3DCCE,#E3DCCE);border-radius:9px;padding:14px 16px}
+.ov-entry,.ov-figure{margin:0;padding-bottom:12px;border-bottom:1px solid var(--cF2ECE1,#F2ECE1)}
+.ov-entry:last-child,.ov-figure:last-child{border-bottom:0;padding-bottom:0}
+.ov-line{margin:0 0 6px;font:700 12.5px/1.5 var(--fMono,'Space Mono',monospace);color:var(--c226578,#226578);white-space:pre-wrap;cursor:pointer}
+.ov-out{margin:0;font:12px/1.45 var(--fMono,'Space Mono',monospace);color:var(--c1A1711,#1A1711);white-space:pre;overflow-x:auto}
+.ov-res{margin:0;font:12px/1.45 var(--fMono,'Space Mono',monospace);color:var(--c433D31,#433D31);white-space:pre-wrap}
+.ov-plot{max-width:720px}
+.ov-plot svg{width:100%;height:auto;display:block}
+.ov-figure figcaption{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12.5px;color:var(--c433D31,#433D31)}
+.ov-figure figcaption span{flex:1}
+.ov-empty{margin:0;padding:24px;text-align:center;color:var(--c5D5648,#5D5648);background:var(--cFFFFFF,#FFFFFF);border:1px dashed var(--cD2C5AF,#D2C5AF);border-radius:9px}

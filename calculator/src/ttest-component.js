@@ -2,7 +2,7 @@
   ttRecord(out, options) {
     const E=this._E, S=this.state, r=E.ttDetails({...options,alpha:this.alpha(),weighted:!!S.weightVar});
     if(r.error){out.ttHasRes=false;out.ttHasErr=true;out.ttErr=r.error;return;}
-    const scripts=E.ttScripts({...options,alpha:this.alpha()});
+    const scripts=this.ttCommands(options);
     if (options.mode !== 'groups') {
       const paired = options.mode === 'paired', label = paired ? 'Mean paired difference' : 'Sample mean';
       const reference = paired ? 0 : options.mu;
@@ -20,5 +20,23 @@
     out.ttCmd=S.dialect==='r'?scripts.r:scripts.stata;
     out.ttCopyLabel=this.cpLabel('ttestx');out.ttCopy=()=>this.copyTSV('ttestx',table);
     const report=this._ttLast;out.ttLog=()=>this.pushLog({...report});
+  }
+  // Console, do-file and R export: the command as typed in Stata or R, by variable name. Subgroups are added
+  // by the console (withIf); the data are not embedded.
+  ttCommands(options){
+    const S=this.state,xn=S.exploreVar,alpha=this.alpha(),lv=Number((100*(1-alpha)).toFixed(4)),lev=lv===95?'':', level('+lv+')',conf=lv===95?'':', conf.level = '+Number((1-alpha).toFixed(6));
+    if(options.mode==='value'){const mu=Number(S.ttMu);return {stata:'ttest '+xn+' == '+mu+lev,r:'t.test(df$'+xn+', mu = '+mu+conf+')'};}
+    if(options.mode==='paired'){const y2=S.ttY2;return {stata:'ttest '+xn+' == '+y2+lev,r:'t.test(df$'+xn+', df$'+y2+', paired = TRUE'+conf+')'};}
+    const gv=S.ttG,g=this.ttGroups(),num=this.effMeta(gv)?.type==='numeric',q=v=>num?v:'"'+String(v).replace(/"/g,'\\"')+'"';
+    const sel=g.levels>2?' if inlist('+gv+', '+q(g.lo)+', '+q(g.hi)+')':'',rsel=g.levels>2?'subset(df, '+gv+' %in% c('+q(g.lo)+', '+q(g.hi)+'))':'df';
+    return {stata:'ttest '+xn+sel+', by('+gv+') unequal'+(lev?' '+lev.slice(2):''),r:'t.test('+xn+' ~ '+gv+', data = '+rsel+', var.equal = FALSE'+conf+')'};
+  }
+  // The two compared groups in the order Stata and R report them (sorted codes), and whether that reverses
+  // the order chosen on the page (first minus second).
+  ttGroups(){
+    const S=this.state,gv=S.ttG,f=gv?this.nvLevels(gv):null,labs=f?f.rows.map(r=>String(r.label)):[];
+    const A=labs.length===2?labs[0]:S.ttA,B=labs.length===2?labs[1]:S.ttB,num=this.effMeta(gv)?.type==='numeric';
+    const before=num?Number(A)>Number(B):String(A)>String(B);
+    return {levels:labs.length,first:A,second:B,lo:before?B:A,hi:before?A:B,flip:before};
   }
   // GM26 t-test methods end

@@ -54,8 +54,48 @@
     out.ttCells=out.ttCells.filter(c=>/^T \(DF\)$|^P$|COHEN|TEST VALUE/.test(c.k));
     const lines=[['Variable / group','Obs','Mean','Std. err.','Std. dev.',out.stataTtCI],...out.stataTtRows.map(r=>[r.label,r.n,r.mean,r.se,r.sd,r.ci])];
     const table=out.stataTtTitle+'\n'+lines.map(r=>r.join('\t')).join('\n')+'\n\n'+(options.mode==='value'?'Mean':'Mean difference (first minus second)')+'\t'+result.estimate+'\nStandard error\t'+result.se+'\nt\t'+result.t+'\ndf\t'+result.df+'\np (two-sided)\t'+result.p+'\nCI lower\t'+result.lo+'\nCI upper\t'+result.hi+'\nConfidence level\t'+(1-result.alpha)+'\nN (first sample / complete pairs)\t'+result.nA+(groups?'\nN (second sample)\t'+result.nB:'');
-    if(this._ttLast)this._ttLast.tbl=table;
+    if(this._ttLast){this._ttLast.tbl=table;this._ttLast.tblStata=this.ttStataText(options,result,data);this._ttLast.tblR=this.ttRText(options,result,data);}
     out.ttCopy=()=>this.copyTSV('ttestx',table);
+  }
+  // Console output as Stata and R print it (fixed width), for the t-test workspace.
+  ttStataText(options,result,data){
+    const S=this.state,paired=options.mode==='paired',groups=options.mode==='groups',lv=Number((100*(1-result.alpha)).toFixed(4));
+    const g=v=>{if(!Number.isFinite(v))return '.';if(v!==0&&(Math.abs(v)>=1e9||Math.abs(v)<1e-5))return v.toExponential(3).replace(/e([+-])(\d)$/,'e$10$2');for(let d=7;d>=1;d--){const t=Number(v.toPrecision(d)).toString().replace(/^(-?)0\./,'$1.');if(t.length<=9)return t;}return String(Math.round(v));};
+    const n=v=>Number(v).toLocaleString('en-US'),R=(v,w)=>String(v).padStart(w),ab=v=>{v=String(v);return v.length>8?v.slice(0,6)+'~'+v.slice(-1):v;};
+    const p4=v=>Number.isFinite(v)?v.toFixed(4):'.',dash='-'.repeat(78),mid='---------+'+'-'.repeat(68);
+    const row=(label,d,ci)=>{const se=d.sd/Math.sqrt(d.n),cr=this._E.ttCritical(result.alpha,d.n-1);return R(ab(label),8)+' |'+R(n(d.n),8)+R(g(d.mean),12)+R(g(se),12)+R(g(d.sd),12)+R(g(d.mean-cr*se),12)+R(g(d.mean+cr*se),12);};
+    const head=R(groups?'Group':'Variable',8)+' |     Obs        Mean    Std. err.   Std. dev.   ['+lv+'% conf. interval]';
+    const tails=(t,p,h)=>{const lo=t<0?p/2:1-p/2,hi=1-lo;return [h[0].padEnd(29)+h[1].padEnd(30)+h[2],' Pr(T < t) = '+p4(lo)+'         Pr(|T| > |t|) = '+p4(p)+'          Pr(T > t) = '+p4(hi)];};
+    const L=[];
+    if(groups){
+      const gg=this.ttGroups(),flip=gg.flip,s=flip?-1:1,a=flip?data.b:data.a,b=flip?data.a:data.b,la=this.vlabel(S.ttG,gg.lo),lb=this.vlabel(S.ttG,gg.hi);
+      const t=s*result.t,est=s*result.estimate,clo=flip?-result.hi:result.lo,chi=flip?-result.lo:result.hi;
+      L.push('Two-sample t test with unequal variances',dash,head,mid,row(la,a),row(lb,b),mid,R('diff',8)+' |'+R('',8)+R(g(est),12)+R(g(result.se),12)+R('',12)+R(g(clo),12)+R(g(chi),12),dash);
+      L.push(('    diff = mean('+ab(la)+') - mean('+ab(lb)+')').padEnd(66)+'t = '+R(p4(t),8),'H0: diff = 0'.padEnd(33)+"Satterthwaite's degrees of freedom = "+R(g(result.df),8),'',...tails(t,result.p,['    Ha: diff < 0','Ha: diff != 0','Ha: diff > 0']));
+    }else if(paired){
+      L.push('Paired t test',dash,head,mid,row(S.exploreVar,data.a),row(S.ttY2,data.b),mid,R('diff',8)+' |'+R(n(result.nA),8)+R(g(result.estimate),12)+R(g(result.se),12)+R(g(result.sd),12)+R(g(result.lo),12)+R(g(result.hi),12),dash);
+      L.push(('     mean(diff) = mean('+ab(S.exploreVar)+' - '+ab(S.ttY2)+')').padEnd(66)+'t = '+R(p4(result.t),8),' H0: mean(diff) = 0'.padEnd(47)+'Degrees of freedom = '+R(result.df,8),'',...tails(result.t,result.p,[' Ha: mean(diff) < 0','Ha: mean(diff) != 0','Ha: mean(diff) > 0']));
+    }else{
+      const mu=Number(S.ttMu);
+      L.push('One-sample t test',dash,head,mid,row(S.exploreVar,data.a),dash);
+      L.push(('    mean = mean('+ab(S.exploreVar)+')').padEnd(66)+'t = '+R(p4(result.t),8),('H0: mean = '+g(mu)).padEnd(47)+'Degrees of freedom = '+R(result.df,8),'',...tails(result.t,result.p,['   Ha: mean < '+g(mu),'Ha: mean != '+g(mu),'Ha: mean > '+g(mu)]));
+    }
+    return L.join('\n');
+  }
+  ttRText(options,result,data){
+    const S=this.state,paired=options.mode==='paired',groups=options.mode==='groups',conf=Number((100*(1-result.alpha)).toFixed(4));
+    const sig=(v,d=7)=>Number.isFinite(v)?String(Number(v.toPrecision(d))):'NA',pv=p=>p<2.2e-16?'< 2.2e-16':'= '+sig(p,4);
+    const L=[''];
+    if(groups){
+      const gg=this.ttGroups(),flip=gg.flip,s=flip?-1:1,a=flip?data.b:data.a,b=flip?data.a:data.b,la=this.vlabel(S.ttG,gg.lo),lb=this.vlabel(S.ttG,gg.hi);
+      const lo=flip?-result.hi:result.lo,hi=flip?-result.lo:result.hi,e1='mean in group '+la,e2='mean in group '+lb,w=Math.max(e1.length,e2.length);
+      L.push('\tWelch Two Sample t-test','','data:  '+S.exploreVar+' by '+S.ttG,'t = '+sig(s*result.t,5)+', df = '+sig(result.df,7)+', p-value '+pv(result.p),'alternative hypothesis: true difference in means between group '+la+' and group '+lb+' is not equal to 0',conf+' percent confidence interval:',' '+sig(lo)+' '+sig(hi),'sample estimates:',e1.padStart(w)+' '+e2.padStart(w),sig(a.mean).padStart(w)+' '+sig(b.mean).padStart(w));
+    }else if(paired){
+      L.push('\tPaired t-test','','data:  df$'+S.exploreVar+' and df$'+S.ttY2,'t = '+sig(result.t,5)+', df = '+result.df+', p-value '+pv(result.p),'alternative hypothesis: true mean difference is not equal to 0',conf+' percent confidence interval:',' '+sig(result.lo)+' '+sig(result.hi),'sample estimates:','mean difference',sig(result.estimate).padStart(15));
+    }else{
+      L.push('\tOne Sample t-test','','data:  df$'+S.exploreVar,'t = '+sig(result.t,5)+', df = '+result.df+', p-value '+pv(result.p),'alternative hypothesis: true mean is not equal to '+Number(S.ttMu),conf+' percent confidence interval:',' '+sig(result.lo)+' '+sig(result.hi),'sample estimates:','mean of x',sig(result.estimate).padStart(9));
+    }
+    return L.join('\n');
   }
   stataOutputVals(out) {
     const order=(rows,keys)=>rows&&[...rows].sort((a,b)=>{const x=keys.indexOf(a.k),y=keys.indexOf(b.k);return(x<0?keys.length:x)-(y<0?keys.length:y);});

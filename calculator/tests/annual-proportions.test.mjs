@@ -20,7 +20,9 @@ function mutate(col,i,value){const old=raw.cols[col].a[i];raw.cols[col].a[i]=val
 assert.ok(mutate(0,0,2).errors.some(e=>e.includes('not coded 0/1')));assert.ok(mutate(2,0,0).errors.some(e=>e.includes('weights')));assert.ok(mutate(2,0,NaN).errors.some(e=>e.includes('weights')));assert.ok(mutate(1,0,2000.5).errors.some(e=>e.includes('noninteger')));
 const originalYears=raw.cols[1].a.slice();for(let i=0;i<raw.n;i++)if(raw.cols[1].a[i]>=2007)raw.cols[1].a[i]++;c.clearMemo();a=c.asAnnual(config);assert.ok(a.errors.some(e=>e.includes('Missing calendar years: 2007')));raw.cols[1].a.set(originalYears);c.clearMemo();
 const originalY=raw.cols[0].a.slice();for(let i=0;i<20;i++)raw.cols[0].a[i]=NaN;c.clearMemo();assert.ok(c.asAnnual(config).errors.some(e=>e.includes('no usable binary responses')));raw.cols[0].a.set(originalY);c.clearMemo();
-const manual=c.asPacket(info,{...current,inputMode:'raw',fields:{y:['binary'],time:['year']}});assert.equal(manual.data.v1.values.length,282);assert.ok(!manual.annualPreparation);
+// Raw mode with repeated years is stopped before R starts (tsset-style), unless the rows are combined explicitly.
+assert.throws(()=>c.asPacket(info,{...current,inputMode:'raw',fields:{y:['binary'],time:['year']}}),/appear more than once.*panel variable/);
+const manual=c.asPacket(info,{...current,inputMode:'raw',tsRepeats:'mean',fields:{y:['binary'],time:['year']}});assert.equal(manual.data.v1.values.length,14);assert.ok(!manual.annualPreparation);
 let download;c.dlBlob=(b,name)=>download={b,name};c.state.analysisSub='Setup';nodes=flat(c.renderVals().analysisEl);nodes.find(n=>n.tag==='button'&&n.children[0]==='Download annual series CSV').props.onClick();assert.equal(download.name,'annual-proportions.csv');assert.match(await download.b.text(),/2000,21,20,1,4,24,0.333/);
 if(process.env.GM_ANNUAL_PACKET)fs.writeFileSync(process.env.GM_ANNUAL_PACKET,JSON.stringify(packet));
 clearTimeout(c._ghostT);console.log('Annual proportions: independent weighted/unweighted denominators, missing outcomes/years/weights, invalid coding, filtering, preview gating/staleness, CSV export, 14-point packet and original-data preservation passed.');

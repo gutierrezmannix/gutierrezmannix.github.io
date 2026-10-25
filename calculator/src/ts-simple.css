@@ -1,0 +1,20 @@
+.ts-sec{margin:14px 0 6px;padding-top:10px;border-top:1px solid var(--cE3DCCE,#E3DCCE)}
+.ts-sec h3{margin:0 0 4px;font-size:15px}
+.ts-lead{margin:0 0 10px;font-size:13px;color:var(--c5D5648,#5D5648)}
+.ts-hint{font-size:12px;color:var(--c5D5648,#5D5648)}
+.ts-tsset{margin:10px 0 0;padding:9px 12px;background:var(--cFAF7F1,#FAF7F1);border-left:3px solid var(--c2E7D58,#2E7D58);font:12px/1.5 var(--fMono,'Space Mono',monospace);white-space:pre-wrap;overflow-x:auto}
+.ts-repeats{margin:10px 0;padding:9px 12px;background:var(--cFDF3E2,#FDF3E2);border-left:3px solid var(--cF5C778,#F5C778)}
+.ts-repeats p{margin:0 0 8px;font-size:13px}
+.ts-buttons{display:flex;flex-wrap:wrap;gap:6px}
+.ts-buttons button[aria-pressed=true]{font-weight:700}
+.ts-checks{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 14px;max-height:180px;overflow-y:auto}
+.ts-checks legend{font-size:12px;margin-bottom:4px;padding:0}
+.ts-radio{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.ts-radio legend{font-size:12px;margin-bottom:4px;padding:0}
+.ts-order{display:grid;grid-template-columns:repeat(3,minmax(90px,1fr));gap:10px;grid-column:1/-1}
+.ts-more{margin-top:10px}
+.ts-more summary{cursor:pointer;font-size:13px;color:var(--c194F39,#194F39);margin-bottom:8px}
+.ts-future{margin-top:12px}
+.ts-future input{width:100%;min-width:70px;box-sizing:border-box}
+.ts-problems{margin-top:10px}
+.ts-note{margin:8px 0 0;padding:7px 12px;font-size:12.5px;background:var(--cF4F9FA,#F4F9FA);border-left:3px solid var(--c357F93,#357F93);color:var(--c163F4C,#163F4C)}

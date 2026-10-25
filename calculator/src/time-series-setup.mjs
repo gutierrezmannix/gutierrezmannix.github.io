@@ -58,7 +58,7 @@ export function tsPrepare(o) {
     if (Number.isFinite(o.start) && tt < o.start || Number.isFinite(o.end) && tt > o.end) continue;
     out.inputRows++;
     const key = JSON.stringify([u, t]);
-    if (sourceKeys.has(key)) { out.duplicates++; if (examples.length < 4) examples.push(u + ' / ' + tsDateLabel(t, from)); } sourceKeys.add(key);
+    if (sourceKeys.has(key)) { out.duplicates++; if (examples.length < 4) examples.push((o.unit ? u + ' / ' : '') + tsDateLabel(t, from)); } sourceKeys.add(key);
     const k = JSON.stringify([u, tt]); let g = groups.get(k);
     if (!g) { g = { u, t: tt, n: 0, sum: 0, valid: 0, pop: null, popVaries: false }; groups.set(k, g); }
     g.n++; const v = agg === 'rate' ? o.numerator[i] : o.y[i];
@@ -67,7 +67,7 @@ export function tsPrepare(o) {
     if (agg === 'rate') { const p = o.population[i]; if (!Number.isFinite(p) || p <= 0) return { ...out, error: 'Population must be observed and positive for every contributing row.' }; if (g.pop != null && Math.abs(g.pop - p) > 1e-8 * Math.max(1, p)) g.popVaries = true; g.pop = p; }
   }
   if (out.invalidTime || out.invalidUnit) return { ...out, error: out.invalidTime + ' invalid/missing time values and ' + out.invalidUnit + ' missing unit identifiers. Correct or explicitly filter these records.' };
-  if (out.duplicates) return { ...out, error: out.duplicates + ' extra observations share a unit and original period (' + examples.join('; ') + '). Resolve the source/methodology or refine the unit identifier before analysis. Records are never automatically averaged or deleted.' };
+  if (out.duplicates) return { ...out, error: o.unit ? out.duplicates + ' extra observations share a unit and original period (' + examples.join('; ') + '). Resolve the source/methodology or refine the unit identifier before analysis. Records are never automatically averaged or deleted.' : out.duplicates + ' extra row(s) repeat a period (' + examples.join('; ') + '). If each row is a different unit (state, country…), choose it as the UNIT (PANEL) VARIABLE; if they are different measurements, use the source filter under More data preparation. Records are never automatically averaged or deleted.' };
   for (const g of groups.values()) {
     if (g.popVaries) return { ...out, error: 'The population denominator varies within an aggregate period. Supply an appropriate period-level denominator; populations are never summed across months.' };
     const complete = g.n === tsExpected(g.t, from, to) && g.valid === g.n;
@@ -89,11 +89,26 @@ export function tsPrepare(o) {
 export function tsSetupControls(C, out, picker, chip) {
   const S = C.state, E = C._E;
   const find = names => S.cols.find(c => names.includes(c.name.toLowerCase()))?.name || '';
-  const tv = S.tsT != null ? S.tsT : find(['year', 'yr', 'time', 'date', 'period']);
-  const uv = S.tsU != null ? S.tsU : find(['cve_ent', 'entidad', 'country_name', 'country', 'state', 'unit', 'id']);
+  const textDates = () => C.memo('tsTxtGuess|' + (S.dver || 0), () => { for (const c of S.cols) { if (c.type === 'numeric') continue; const col = C._raw.cols[C._raw.names.indexOf(c.name)]; if (!col) continue; const r = E.tsdReadText(col.a.slice(0, 2000)); const n = col.a.slice(0, 2000).filter(v => v != null && v !== '').length; if (r.freq && n && r.invalid <= n * 0.1) return c.name; } return ''; });
+  const tv = S.tsT != null ? S.tsT : (find(['year', 'yr', 'time', 'date', 'fecha', 'period', 'periodo']) || textDates());
+  // Text dates (2015-01-01, 2015m1, "Nov 1, 2011"…) are read into the same Stata period codes as numeric dates.
+  const tmeta = tv ? C.effMeta(tv) : null;
+  const tread = tmeta && tmeta.type !== 'numeric' ? C.memo('tsTxt|' + tv + '|' + (S.dver || 0), () => {
+    const raw = C._raw, col = raw.cols[raw.names.indexOf(tv)], r = E.tsdReadText(col ? col.a : []);
+    let freq = r.freq === 'yearly' ? 'yearly' : r.freq, codes = r.codes;
+    if (freq === 'daily') { const k = E.tsdDailyKind(codes, null, null); if (['monthly', 'quarterly', 'yearly'].includes(k)) { codes = E.tsdFromDays(codes, k); freq = k; } }
+    return { freq, codes, raw: r.codes, rawFreq: r.freq, invalid: r.invalid, bad: r.bad, example: col ? col.a.find(v => v != null && v !== '') : '' };
+  }) : null;
+  const guessUnit = () => {
+    const named = find(['cve_ent', 'ent', 'entidad', 'estado', 'state', 'state_id', 'country_name', 'country', 'pais', 'municipio', 'cve_mun', 'unit', 'id']);
+    if (named || !tv) return named;
+    const t = tread ? tread.codes : C.numCore(tv)?.a; if (!t) return '';
+    return C.memo('tsUnitGuess|' + tv + '|' + (S.dver || 0), () => { const seen = new Set(); let dup = false; for (const v of t) { if (!Number.isFinite(v)) continue; if (seen.has(v)) { dup = true; break; } seen.add(v); } if (!dup) return ''; const names = S.cols.map(c => c.name).filter(n => n !== tv).slice(0, 60); const cand = E.tsdPanelCandidates(t, names.map(n => [n, C.effMeta(n)?.type === 'numeric' ? Array.from(C.numCore(n)?.a || [], v => Number.isFinite(v) ? String(v) : null) : (C.valsCore(n)?.a || [])])); return cand.length ? cand[0].name : ''; });
+  };
+  const uv = S.tsU != null ? S.tsU : guessUnit();
   const yv = S.tsY || '', part = S.tsPart || find(['month', 'mes']), source = S.tsSource || '';
   const mode = S.tsInputMode || (part && /^(year|yr|año|ano)$/i.test(tv) ? 'parts' : 'existing');
-  const frequency = S.tsFreq || (mode === 'parts' ? 'monthly' : /^(year|yr)$/i.test(tv) ? 'yearly' : 'generic');
+  const frequency = S.tsFreq || (mode === 'parts' ? 'monthly' : tread && tread.freq ? ({ yearly: 'yearly', quarterly: 'quarterly', monthly: 'monthly', daily: 'daily' }[tread.freq] || 'generic') : /^(year|yr)$/i.test(tv) ? 'yearly' : 'generic');
   const target = S.tsTarget || 'same', effective = target === 'same' ? frequency : target;
   const opts = (key, current, items, extra) => items.map(([value, label]) => ({ label, style: chip(value === current), click: () => C.setState({ [key]: value, ...(extra ? extra(value) : {}) }) }));
   const optional = key => [{ name: 'NONE', sub: 'no filter', pick: () => C.setState({ [key]: '', tsSourceValue: '', pk: null, pq: '' }) }];
@@ -102,7 +117,7 @@ export function tsSetupControls(C, out, picker, chip) {
   out.tsParts = mode === 'parts'; out.tsTimeLabel = mode === 'parts' ? 'YEAR COLUMN' : 'TIME VARIABLE';
   out.tsPartLabel = frequency === 'quarterly' ? 'QUARTER COLUMN (1–4)' : 'MONTH COLUMN (1–12)';
   out.tsTimeHint = mode === 'parts' ? 'Calendar dates are built from the year and period columns. Original observations are kept.' : 'Calendar variables use Stata numeric dates (monthly: months since 1960-01; daily: days since 1960-01-01). Choose Year + month / quarter for separate columns. Integer periods advance by 1.';
-  out.tsTPk = picker('tst', tv, n => C.setState({ tsT: n }), c => c.type === 'numeric');
+  out.tsTPk = picker('tst', tv, n => C.setState({ tsT: n, tsFreq: '', tsU: null, tsSel: [] }), () => true);
   out.tsPartPk = picker('tspart', part, n => C.setState({ tsPart: n }), c => c.type === 'numeric' && c.name !== tv);
   out.tsUPk = picker('tsu', uv, n => C.setState({ tsU: n, tsSel: [] }), c => c.name !== tv, [{ name: 'NONE', sub: 'one series; one observation per period required', pick: () => C.setState({ tsU: '', tsSel: [], pk: null, pq: '' }) }]);
   out.tsYPk = picker('tsy', yv, n => C.setState({ tsY: n }), c => c.type === 'numeric' && c.name !== tv);
@@ -128,7 +143,16 @@ export function tsSetupControls(C, out, picker, chip) {
   out.tsAggregationHint = 'Incomplete aggregate periods remain missing. Rates use summed counts and one period-level population, never a sum of repeated population values. A mean retains the original measure’s time unit.';
   out.tsPeriodFormat = effective === 'monthly' ? 'YYYY-MM, e.g. 2018-01' : effective === 'quarterly' ? 'YYYY-Q1, e.g. 2018-Q1' : effective === 'daily' ? 'YYYY-MM-DD' : 'integer period, e.g. 2018';
   out.tsValidation = ''; out.tsPrepared = ''; out.tsHasPreparation = false;
-  const config = { mode, frequency, target, aggregate, time: nums(tv), part: nums(part), y: nums(yv), unit: vals(uv), source: sv, sourceValue: S.tsSourceValue, numerator: nums(S.tsCount), population: nums(S.tsPop), scale: Number(S.tsScale || 100000), mask: C.mask() };
+  const textTime = tread ? (frequency === tread.freq ? tread.codes : frequency === 'daily' && tread.rawFreq === 'daily' ? tread.raw : null) : null;
+  if (tread) {
+    const fq = { yearly: 'annual', quarterly: 'quarterly', monthly: 'monthly', daily: 'daily' }[tread.freq] || tread.freq;
+    out.tsTimeHint = !tread.freq ? '"' + tv + '" does not look like dates. Use dates such as 2015-01-01, 2015-01, 2015m1, 2015q1, "Nov 1, 2011" or a year.'
+      : !textTime ? '"' + tv + '" holds ' + fq + ' dates (e.g. "' + tread.example + '"). Choose ' + (fq[0].toUpperCase() + fq.slice(1)) + ' above.'
+      : 'Text dates in "' + tv + '" are read as ' + fq + ' periods (e.g. "' + tread.example + '" → ' + tsDateLabel(textTime.find(Number.isFinite), frequency) + ')' + (tread.invalid ? '; ' + tread.invalid + ' value(s) could not be read (e.g. "' + tread.bad.join('", "') + '") and are left out' : '') + '.';
+  }
+  const moreUsed = [source ? 'source filter' : '', target !== 'same' ? 'frequency change' : '', (S.tsAggregate || 'none') === 'rate' ? 'population rate' : ''].filter(Boolean);
+  out.tsMoreLabel = 'More data preparation — source filter, change frequency, population rates' + (moreUsed.length ? ' (in use: ' + moreUsed.join(', ') + ')' : '');
+  const config = { mode, frequency, target, aggregate, time: tread ? textTime : nums(tv), part: nums(part), y: nums(yv), unit: vals(uv), source: sv, sourceValue: S.tsSourceValue, numerator: nums(S.tsCount), population: nums(S.tsPop), scale: Number(S.tsScale || 100000), mask: C.mask() };
   const fullTime = config.time ? Array.from(config.time, (t, i) => {
     if (config.mask && !config.mask[i] || source && String(sv?.[i]) !== String(S.tsSourceValue)) return NaN;
     if (mode === 'parts') { const p = config.part?.[i], n = frequency === 'quarterly' ? 4 : 12; return Number.isInteger(t) && Number.isInteger(p) && p >= 1 && p <= n ? (t - 1960) * n + p - 1 : NaN; } return t;

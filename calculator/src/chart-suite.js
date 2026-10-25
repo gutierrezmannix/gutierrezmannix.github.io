@@ -8,12 +8,12 @@
   }
   csMenu(R) {
     const E=this._E,h=R.createElement;
-    return h('nav',{'aria-label':'Chart categories',className:'cs-menu'},h('button',{type:'button',onClick:()=>this.csOpen('__directory')},'Browse all charts'),...E.CS_CATALOG.map(([category,items])=>h('details',{key:category},h('summary',null,category),h('div',{className:'cs-submenu'},...items.map(([id,title])=>h('button',{type:'button',key:id,onClick:()=>this.csOpen(id)},title))))));
+    return h('nav',{'aria-label':'Chart categories',className:'cs-menu'},h('button',{type:'button',onClick:()=>this.csOpen('__directory')},'Output — everything you have run'),...E.CS_CATALOG.map(([category,items])=>h('details',{key:category},h('summary',null,category),h('div',{className:'cs-submenu'},...items.map(([id,title])=>h('button',{type:'button',key:id,onClick:()=>this.csOpen(id)},title))))));
   }
   chartSuiteVals(out) {
     const S=this.state,E=this._E,R=React,h=R.createElement;if(!E?.CS_CATALOG)return;
     for(const g of out.mfNavGroups||[])for(const t of g.items||[])if(t.key==='plots'){
-      t.items=[];t.content=this.csMenu(R);t.title='Choose a chart family, then a specific chart';t.click=()=>this.csOpen('__directory');t.hasMenu=true;
+      t.items=[];t.content=this.csMenu(R);t.title='Choose a chart family, then a specific chart';t.click=()=>this.setState({mfNav:this.state.mfNav==='plots'?'':'plots',mfFile:false,mfDl:false});t.hasMenu=true;
     }
     out.isPlotsLegacy=out.isPlots&&!!E.csInfo(S.plotKind)?.legacy;out.isChartSuite=out.isPlots&&!out.isPlotsLegacy;
     if(!out.isPlots)return;
@@ -22,7 +22,7 @@
     out.chartPageHeader=header;
     if(out.isPlotsLegacy)return;
     out.plotEmpty=true;out.plotReady=false;out.plotChartEl=null;
-    if(!info){out.chartSuiteEl=h('section',{className:'cs-directory'},h('h2',null,'Charts'),h('p',null,'Choose a chart family, then open a dedicated workspace.'),h('div',{className:'cs-directory-grid'},...E.CS_CATALOG.map(([cat,items])=>h('section',{key:cat,className:'cs-card'},h('h3',null,cat),...items.map(([id,title])=>button(title,()=>this.csOpen(id),{key:id}))))));return;}
+    if(!info){out.chartSuiteEl=this.outputView(h,(text,fn,props={})=>h('button',{type:'button',onClick:fn,...props},text));return;}
     const id=info.id,c=(S.csPages||{})[id]||{},set=p=>this.csSet({...p,drawn:false}),cols=S.cols||[],numeric=cols.filter(v=>{const m=this.effMeta(v.name);return m&&(m.type==='numeric'||m.treatAs==='numeric');});
     const select=(key,label,type='any',optional=false)=>h('label',{key,className:'cs-field'},h('span',null,label),h('select',{'aria-label':label,value:c[key]||'',onChange:e=>set({[key]:e.target.value})},h('option',{value:''},optional?'None':'Select a variable'),...(type==='num'?numeric:cols).map(v=>h('option',{key:v.name,value:v.name},v.name+(v.label?' — '+v.label:'')))));
     const input=(key,label,type='text',def='')=>h('label',{key,className:'cs-field'},h('span',null,label),h('input',{'aria-label':label,type,value:c[key]??def,onChange:e=>set({[key]:e.target.value})}));

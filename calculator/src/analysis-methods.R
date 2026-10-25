@@ -3,7 +3,7 @@ gm_run <- function(packet) {
  accent<-if(!is.null(packet$color)&&grepl('^#[0-9A-Fa-f]{6}$',packet$color))packet$color else '#2E7D58'
  id<-packet$id;o<-packet$options;f<-packet$fields;alpha<-packet$alpha;level<-1-alpha
  opt<-function(k,default=NULL){x<-o[[k]];if(is.null(x)||identical(x,''))default else x}
- num<-function(k,default=0,min=-Inf,max=Inf,integer=FALSE){x<-as.numeric(opt(k,default));stopifnot(length(x)==1,is.finite(x),x>=min,x<=max);if(integer)stopifnot(x==floor(x));x}
+ num<-function(k,default=0,min=-Inf,max=Inf,integer=FALSE){x<-suppressWarnings(as.numeric(opt(k,default)));need(length(x)==1&&is.finite(x),paste0('Enter a number for "',k,'".'));need(x>=min,paste0('"',k,'" must be at least ',min,'.'));need(x<=max,paste0('"',k,'" must be at most ',max,'.'));if(integer)need(x==floor(x),paste0('"',k,'" must be a whole number.'));x}
  need<-function(ok,message){if(!isTRUE(ok))stop(message,call.=FALSE)}
  fields<-function(k)unlist(f[[k]],use.names=FALSE)
  decode<-function(cols){if(!length(cols))return(data.frame());a<-lapply(cols,function(c)vapply(c$values,function(v)if(is.null(v))if(c$type=='numeric')NA_real_ else NA_character_ else if(c$type=='numeric')as.numeric(v)else as.character(v),if(c$type=='numeric')numeric(1)else character(1)));d<-as.data.frame(a,stringsAsFactors=FALSE);for(k in names(cols))if(cols[[k]]$type=='categorical')d[[k]]<-factor(d[[k]]);d}
