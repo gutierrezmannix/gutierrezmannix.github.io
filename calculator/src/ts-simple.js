@@ -168,4 +168,12 @@
       +(S.tsId?(prep.repeatedIds?' Warning: '+prep.repeatedIds+' records repeat an '+S.tsId+' already seen in the same unit and period.':' Every '+S.tsId+' is unique within each unit and period.')+(prep.missingId?' '+prep.missingId+' records have no '+S.tsId+'.':''):'')
       +' The model is then fitted to these values.';
   }
+  // Run: fits the model shown in the setup, records the command and result in the console and Output, and
+  // shows the results (they then follow later changes to the setup).
+  tsRunNow(){
+    const d=this._tsLast,go=sel=>setTimeout(()=>{try{document.querySelector(sel)?.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},80);
+    if(!d){this.setState({tsRunMsg:'Not run: '+(this._tsWhy||'complete the setup above.')});go('#ts-results-anchor');return;}
+    const at=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    this.pushLog({...d});this.setState({tsRan:true,tsRunMsg:'✓ Fitted at '+at+' — the command and result are also in the console and Output.'});go('#ts-results-anchor');
+  }
   // GM26 time-series setup end

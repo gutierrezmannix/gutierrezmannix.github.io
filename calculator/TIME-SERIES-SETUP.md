@@ -80,3 +80,9 @@ panels, gaps, missing values, trading days, panel suggestions).
 ## Toolbar menus (build .29)
 
 The Tests ▾ and Charts ▾ dropdowns scroll as one list (the inner category list no longer scrolls separately), and an open menu is sized to end above the bottom of the window, accounting for the text-size zoom.
+
+## Run button (build .31)
+
+The time-series tab has a **Run** button at the end of the event card. Results appear after the first Run and
+then follow changes to the setup; each Run records the command and result in the console and Output. The status
+line next to the button says what is missing ("Choose the time variable and outcome…", "Fix the message below…").

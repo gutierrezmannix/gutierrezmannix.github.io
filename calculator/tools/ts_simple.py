@@ -46,13 +46,29 @@ def integrate_tab2(c):
     return c
 
 
+RUN_C_MARK = 'this.tsRunNow()'
+
+
+def integrate_tab3(c):
+    # Run button: results appear after the first Run; the status line says what is missing
+    if RUN_C_MARK in c:
+        return c
+    c = replace(c, "out.tsHasErr = false; out.tsHasRes = false; out.tsEmpty = true;",
+                "out.tsHasErr = false; out.tsHasRes = false; out.tsEmpty = true; out.tsRun = () => this.tsRunNow(); this._tsWhy = ''; out.tsRunStatus = /^Not run/.test(S.tsRunMsg || '') ? S.tsRunMsg : 'Choose the time variable and outcome, then press Run.';")
+    c = replace(c, "if (res.error) { out.tsHasErr = true; out.tsErr = res.error; }",
+                "if (res.error) { out.tsHasErr = true; out.tsErr = res.error; this._tsWhy = res.error; out.tsRunStatus = 'Fix the message below, then press Run.'; }")
+    c = replace(c, "out.tsEmpty = false; out.tsHasRes = true;",
+                "out.tsEmpty = false; out.tsHasRes = !!S.tsRan; out.tsRunStatus = S.tsRan ? (/^Not run/.test(S.tsRunMsg || '') ? '' : S.tsRunMsg || '') : 'Ready — press Run to fit the model.';")
+    return c
+
+
 def integrate_component(c):
     methods = (ROOT / 'src/ts-simple.js').read_text().rstrip()
     if C_BEGIN in c:
         c = re.sub(re.escape(C_BEGIN) + '.*?' + re.escape(C_END), lambda _: methods, c, flags=re.S)
     else:
         c = c.replace('  descFor() {', methods + '\n  descFor() {', 1)
-    return integrate_tab2(integrate_tab(c))
+    return integrate_tab3(integrate_tab2(integrate_tab(c)))
 
 
 def integrate_engine(e):
@@ -132,4 +148,16 @@ def integrate_template(t):
         t = re.sub(re.escape(T_MARK) + r'<style>.*?</style>', lambda _: T_MARK + css, t, count=1, flags=re.S)
     else:
         t = T_MARK + css + t
-    return integrate_layout(t)
+    return integrate_runbar(integrate_layout(t))
+
+
+RUN_MARK = '<!-- GM26 ts run v1 -->'
+
+
+def integrate_runbar(t):
+    # Run button at the end of the event card; results appear after the first Run
+    if RUN_MARK in t:
+        return t
+    anchor = '{{ tsTypeHint }}</div>\n              </div>\n              <sc-if value="{{ tsHasErr }}"'
+    t = replace(t, anchor, '{{ tsTypeHint }}</div>\n' + RUN_MARK + '<div class="ts-runbar"><button type="button" class="ts-run" data-testid="time-series-run" sc-camel-on-click="{{ tsRun }}">Run</button><span class="ts-run-status" role="status" data-testid="time-series-run-status">{{ tsRunStatus }}</span></div>\n              </div>\n              <div id="ts-results-anchor"></div>\n              <sc-if value="{{ tsHasErr }}"')
+    return t
