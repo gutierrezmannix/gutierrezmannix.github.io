@@ -1,0 +1,72 @@
+{
+  "id": "panel_dynamic",
+  "error": null,
+  "inputN": 625,
+  "analysisN": 525,
+  "excludedN": 100,
+  "tables": [
+    {
+      "title": "Model summary",
+      "columns": ["Statistic", "Value"],
+      "rows": [
+        [
+          "Number of observations",
+          525
+        ],
+        [
+          "Log likelihood",
+          null
+        ],
+        [
+          "AIC",
+          null
+        ],
+        [
+          "BIC",
+          null
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "Difference-GMM coefficients",
+      "columns": ["Term", "Estimate", "Std. Error", "z-value", "Pr(>|z|)"],
+      "rows": [
+        [
+          "lag(v1, 1)",
+          0.808532933248068,
+          0.104792450986869,
+          7.71556467697641,
+          1.20447761590933e-14
+        ],
+        [
+          "v2",
+          0.0668138668592499,
+          0.0130826410322497,
+          5.10706261025957,
+          3.27205355594521e-07
+        ],
+        [
+          "v31",
+          -0.48974514258458,
+          0.0866835025904436,
+          -5.649807955944,
+          1.6062718386853e-08
+        ]
+      ],
+      "totalRows": 3
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["Oneway (individual) effect Two-steps model Difference GMM ", "", "Call:", "plm::pgmm(formula = ff, data = pd, effect = \"individual\", model = \"twosteps\", ", "    collapse = TRUE, transformation = \"d\")", "", "Unbalanced Panel: n = 45, T = 13-14, N = 625", "", "Number of Observations Used: 525", "Residuals:", "    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. ", "-2.76984 -0.62785  0.00000 -0.01126  0.59402  2.57851 ", "", "Coefficients:", "            Estimate Std. Error z-value  Pr(>|z|)    ", "lag(v1, 1)  0.808533   0.104792  7.7156 1.204e-14 ***", "v2          0.066814   0.013083  5.1071 3.272e-07 ***", "v31        -0.489745   0.086684 -5.6498 1.606e-08 ***", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "", "Sargan test: chisq(0) = 4.873819e-30 (p-value = < 2.22e-16)", "Autocorrelation test (1): normal = -4.9523 (p-value = 7.3341e-07)", "Autocorrelation test (2): normal = -0.8188011 (p-value = 0.4129)", "Wald test for coefficients: chisq(3) = 115.4183 (p-value = < 2.22e-16)", "Oneway (individual) effect Two-steps model Difference GMM ", "", "Call:", "plm::pgmm(formula = ff, data = pd, effect = \"individual\", model = \"twosteps\", ", "    collapse = TRUE, transformation = \"d\")", "", "Unbalanced Panel: n = 45, T = 13-14, N = 625", "", "Number of Observations Used: 525", "Residuals:", "    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. ", "-2.76984 -0.62785  0.00000 -0.01126  0.59402  2.57851 ", "", "Coefficients:", "            Estimate Std. Error z-value  Pr(>|z|)    ", "lag(v1, 1)  0.808533   0.104792  7.7156 1.204e-14 ***", "v2          0.066814   0.013083  5.1071 3.272e-07 ***", "v31        -0.489745   0.086684 -5.6498 1.606e-08 ***", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "", "Sargan test: chisq(0) = 4.873819e-30 (p-value = < 2.22e-16)", "Autocorrelation test (1): normal = -4.9523 (p-value = 7.3341e-07)", "Autocorrelation test (2): normal = -0.8188011 (p-value = 0.4129)", "Wald test for coefficients: chisq(3) = 115.4183 (p-value = < 2.22e-16)"],
+  "notes": "The model is exactly identified (as many instruments as coefficients), so the Sargan test of overidentifying restrictions cannot be computed. Use more lags (3 or more) to test instrument validity; the Arellano-Bond AR(2) test is in Diagnostics.",
+  "warnings": [],
+  "labels": {
+    "v1": "democracy",
+    "v2": "gdp_growth",
+    "v3": "conflict",
+    "v4": "country",
+    "v5": "year"
+  },
+  "outputData": null
+}

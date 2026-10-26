@@ -34,7 +34,7 @@ def integrate_component(c):
     # Session .do / .R files declare the missing-value codes the app applied (Settings codes and auto-detected
     # codes such as 999), so the exported commands reproduce the app's results.
     c = patch(c, "(isDta ? 'library(haven); df <- read_dta(\"' + S.fileName + '\")' : 'df <- read.csv(\"' + S.fileName + '\")'), ''];",
-              "(isDta ? 'library(haven); df <- read_dta(\"' + S.fileName + '\")' : 'df <- read.csv(\"' + S.fileName + '\")'), ...this.missingDecodeLines(dial), ''];")
+              "(isDta ? 'library(haven); df <- read_dta(\"' + S.fileName + '\")' : 'df <- read.csv(\"' + S.fileName + '\", na.strings = c(\"\", \"NA\"))'), ...this.missingDecodeLines(dial), ''];")
     # Paired t-test shows its effect size (d = mean difference / SD of differences, as in the APA line).
     c = patch(c, "cell(pct + '% CI OF DIFF.', '[' + this.fmt(r2.mean - cr * se) + ', ' + this.fmt(r2.mean + cr * se) + ']')];",
               "cell(pct + '% CI OF DIFF.', '[' + this.fmt(r2.mean - cr * se) + ', ' + this.fmt(r2.mean + cr * se) + ']'), cell(\"COHEN'S D\", this.fmt(dd, 2))];")

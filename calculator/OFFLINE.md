@@ -212,3 +212,25 @@ error message matches R (11 new cases; 495 in total). Fixed:
   Now all apply, the filter label lists them, and Edit data → Clear removes them. Exported `keep if` lines quote only
   text values. They add `& !missing(x)` where Stata would otherwise keep missing values, because Stata treats
   missing as larger than any number.
+
+## Build .42 — three spot checks (dynamic panel GMM, hurdle model, paired chart)
+
+Fresh data were run through real R and the built-in engine: a democracy panel (45 countries × 14 years, a lagged
+dependent variable, GDP growth and a conflict indicator, a missing year, 2 and 4 instrument lags), and
+protest-event counts with many zeros (negative-binomial and Poisson hurdles, factor predictors, a population
+exposure, 90% level). All tables, notes and errors match R. Fixed:
+- **Dynamic panel GMM failed with any categorical predictor.** A 0/1 indicator such as conflict, which the app
+  reads as categorical, made the model stop with "Singular matrix" (R's specification failed too). Factor
+  predictors are now treatment-coded with the first level as base, as in every other model. This was changed in the
+  R specification and re-validated (12 cases).
+- **Arellano–Bond tests.** Diagnostics now report the AR(1) and AR(2) tests of the differenced residuals and the
+  Wald test, exactly as plm's `summary(pgmm, robust = TRUE)` (Windmeijer covariance), checked against R in every
+  case. The Sargan p-value no longer shows "NA". When the model is exactly identified (the default 2 lags), a note
+  explains that Sargan cannot test instrument validity and suggests more lags.
+- **Commands.** Dynamic panel: `xtabond2 y L.y x, gmm(L.y, laglimits(1 k) collapse) iv(x) noleveleq twostep robust`
+  (user-written; text panel identifiers are encoded) and a runnable `plm::pgmm` script. Hurdle: the R command now
+  includes the exposure offset and `factor()` for coded categories. Both R commands reproduce the app in R.
+- **Paired before-and-after plot.** Lines are coloured by direction (increase / decrease / no change) instead of
+  cycling colours by row. A bold line joins the two means, and the note gives the means, the mean change and the
+  counts. With more than 2,000 pairs the note states how many lines are actually drawn (it said "2,000" even when
+  only about half were).

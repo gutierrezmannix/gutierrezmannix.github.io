@@ -27,4 +27,15 @@ assert.equal(mcs.stata,'mcci 53 3 15 40');assert.equal(mcs.r,'binom.test(3, 18)'
 c.state={...c.state};assert.equal(c.cmdText({t:'filter',v:'majority',op:'!=',val:'0',cat:true},'stata'),'keep if majority != 0 & !missing(majority)');
 assert.equal(c.cmdText({t:'filter',v:'cabinet_type',op:'==',val:'single',cat:true},'stata'),'keep if cabinet_type == "single"');
 assert.equal(c.fltText({v:'a',op:'==',val:'1',more:[{v:'b',op:'!=',val:'0'}]}),'a == 1 & b != 0');
+// Dynamic panel: a 0/1 predictor read as categorical is treatment-coded (it used to make the GMM matrix singular), and
+// Diagnostics report the Arellano-Bond AR(1)/AR(2) and Wald tests exactly as plm's summary(pgmm, robust = TRUE).
+{const pk=JSON.parse(fs.readFileSync(new URL('./engine/cases/pass2-panel_dynamic_dem_catx.packet.json',import.meta.url),'utf8'));delete pk.__compare;const r=E.gmRun(pk);assert.ok(!r.error,r.error);
+ const dg=[].concat(r.diagnostics);for(const l of ['Autocorrelation test (1): normal = -4.9523 (p-value = 7.3341e-07)','Autocorrelation test (2): normal = -0.8188011 (p-value = 0.4129)','Wald test for coefficients: chisq(3) = 115.4183 (p-value = < 2.22e-16)'])assert.ok(dg.includes(l),l);
+ assert.match([].concat(r.notes).join(' '),/exactly identified/);}
+const dp=c.asCommands({id:'panel_dynamic',title:'Dynamic'},{id:'panel_dynamic',alpha:.05,fields:{y:['v1'],predictors:['v4','v3'],subject:['v6'],time:['v2']},options:{lags:3},data:{v1:{name:'democracy'},v2:{name:'year'},v3:{name:'majority',type:'categorical'},v4:{name:'ideol_range'},v6:{name:'cabinet_type',type:'categorical'}}});
+assert.match(dp.stata,/xtabond2 democracy L\.democracy ideol_range i\.majority, gmm\(L\.democracy, laglimits\(1 2\) collapse\) iv\(ideol_range i\.majority\) noleveleq twostep robust/);assert.match(dp.stata,/encode cabinet_type generate\(cabinet_type_c\)\nxtset cabinet_type_c year/);assert.match(dp.r,/lag\(democracy, 2:3\)/);
+const hu=c.asCommands({id:'hurdle',title:'Hurdle'},{id:'hurdle',alpha:.05,fields:{y:['v1'],predictors:['v3','v4'],offset:['v2']},options:{},data:{v1:{name:'protests'},v2:{name:'population_m'},v3:{name:'majority',type:'categorical'},v4:{name:'ideol_range'}}});
+assert.equal(hu.r,'pscl::hurdle(protests ~ factor(majority) + ideol_range + offset(log(population_m)), data = df, dist = "negbin")');
+// Paired chart: lines coloured by direction, a bold line through the means, and the summary of change.
+{const ps=E.csScene('paired',E.csPrepare('paired',{x:[1,2,3,4],y:[2,2,1,6]}),{x:'a',y:'b'});assert.match(ps.note,/Mean 2\.5 → 2\.75 \(mean change \+0\.25\)\. 2 of 4 pairs increased \(blue lines\), 1 decreased \(rust\), 1 unchanged/);assert.ok(ps.markup.includes('stroke-width="4"'));}
 clearTimeout(c._ghostT);console.log('Analysis commands (Cox, lasso, exact McNemar), alias relabelling and cumulative keep/drop filters passed.');

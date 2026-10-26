@@ -1,0 +1,100 @@
+{
+  "id": "hurdle",
+  "error": null,
+  "inputN": 320,
+  "analysisN": 310,
+  "excludedN": 10,
+  "tables": [
+    {
+      "title": "Model summary",
+      "columns": ["Statistic", "Value"],
+      "rows": [
+        [
+          "Number of observations",
+          310
+        ],
+        [
+          "Log likelihood",
+          -681.099523835626
+        ],
+        [
+          "AIC",
+          1374.19904767125
+        ],
+        [
+          "BIC",
+          1396.61848145613
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "count component",
+      "columns": ["Term", "Estimate", "Std. Error", "z value", "Pr(>|z|)"],
+      "rows": [
+        [
+          "(Intercept)",
+          1.12831896861415,
+          0.100057124129939,
+          11.2767479419943,
+          1.70949240680767e-29
+        ],
+        [
+          "v2",
+          0.142291150312071,
+          0.0341024336491619,
+          4.17246322581931,
+          3.01324244260718e-05
+        ],
+        [
+          "v31",
+          0.238215104128375,
+          0.0754901767325908,
+          3.15557751271673,
+          0.00160180698055908
+        ]
+      ],
+      "totalRows": 3
+    },
+    {
+      "title": "zero component",
+      "columns": ["Term", "Estimate", "Std. Error", "z value", "Pr(>|z|)"],
+      "rows": [
+        [
+          "(Intercept)",
+          -0.688225778631153,
+          0.266927067170656,
+          -2.57832892679687,
+          0.0099279444728815
+        ],
+        [
+          "v2",
+          0.508194159272187,
+          0.108470515393393,
+          4.68509029784825,
+          2.79836533476846e-06
+        ],
+        [
+          "v31",
+          -0.809115253296472,
+          0.242069277171133,
+          -3.34249460630422,
+          0.000830289688961985
+        ]
+      ],
+      "totalRows": 3
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "Call:", "pscl::hurdle(formula = ff, data = d, dist = opt(\"countFamily\", \"negbin\"))", "", "Pearson residuals:", "    Min      1Q  Median      3Q     Max ", "-1.4221 -0.7885 -0.5073  0.3006 12.0359 ", "", "Count model coefficients (truncated poisson with log link):", "            Estimate Std. Error z value Pr(>|z|)    ", "(Intercept)  1.12832    0.10006  11.277  < 2e-16 ***", "v2           0.14229    0.03410   4.172 3.01e-05 ***", "v31          0.23822    0.07549   3.156   0.0016 ** ", "Zero hurdle model coefficients (binomial with logit link):", "            Estimate Std. Error z value Pr(>|z|)    ", "(Intercept)  -0.6882     0.2669  -2.578  0.00993 ** ", "v2            0.5082     0.1085   4.685  2.8e-06 ***", "v31          -0.8091     0.2421  -3.342  0.00083 ***", "---", "Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 ", "", "Number of iterations in BFGS optimization: 13 ", "Log-likelihood: -681.1 on 6 Df"],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "protests",
+    "v2": "repression",
+    "v3": "democracy",
+    "v4": "region",
+    "v5": "population_m"
+  },
+  "outputData": null
+}

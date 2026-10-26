@@ -110,8 +110,10 @@ export function panelFit(ctx) {
 export function pgmmFit(ctx) {
   const Lg = ctx.num('lags', 2, { min: 2, max: 10, integer: true });
   const { id, tm } = panelIndex(ctx), d = ctx.d, N = id.nlevels, T = tm.nlevels, yv = d.get(ctx.y[0]);
-  // regressors without intercept (R's model.matrix(~ . − 1) gives the first factor all its dummies)
-  const mmX = modelMatrix(d, ctx.x.map(v => ({ vars: [v] })), { intercept: false }), xn = mmX.names, p = xn.length + 1;
+  // regressors as model.matrix(~ x)[, -1]: factors get treatment-coded dummies (first level is the base), so a
+  // categorical predictor (e.g. a 0/1 indicator read as categorical) stays identified after differencing; names as
+  // R's make.names
+  const mm1 = modelMatrix(d, ctx.x.map(v => ({ vars: [v] })), { intercept: true }), mmX = { X: mm1.X.map(r => r.slice(1)), names: mm1.names.slice(1).map(n => { let s = n.replace(/[^A-Za-z0-9._]/g, '.'); if (!/^([A-Za-z]|\.(?![0-9]))/.test(s)) s = 'X' + s; return s; }) }, xn = mmX.names, p = xn.length + 1;
   const grid = Array.from({ length: N }, () => new Array(T).fill(-1)); for (let i = 0; i < d.n; i++) grid[id.codes[i]][tm.codes[i]] = i;
   if (tm.levels.some(l => !Number.isFinite(Number(l)))) ctx.warn('NAs introduced by coercion'); // plm's lag() tries as.numeric(time)
   const TL1 = 2, rowsN = T - TL1, nGmm = Math.min(T - 2, Lg - 1);
@@ -148,8 +150,26 @@ export function pgmmFit(ctx) {
   const Dmat = L.t(Dm), DB = L.mul(Dmat, B2), Vr = L.add(L.add(L.add(B2, DB), L.t(DB)), L.mul(L.mul(Dmat, vcov1s), L.t(Dmat)));
   const cn = ['lag(' + ctx.y[0] + ', 1)', ...xn], rows = coef.map((b, j) => { const se = Math.sqrt(Vr[j][j]), z = b / se; return [cn[j], b, se, z, 2 * D.pnorm(-Math.abs(z))]; });
   const nobs = e2.flat().filter(v => v !== 0).length, sst = L.dot(we, L.mulVec(A2, we)), sdf = m - p;
-  const text = ['Oneway (individual) effect Two-steps model Difference GMM', '', 'Number of Observations Used: ' + nobs, '', 'Coefficients (Windmeijer-robust):', ...printCoefmat(cn, ['Estimate', 'Std. Error', 'z-value', 'Pr(>|z|)'], rows.map(r => r.slice(1))), '', 'Sargan test: chisq(' + sdf + ') = ' + fmtSig(sst, 7) + ' (p-value = ' + fmtP(D.pchisq(sst, sdf, false)) + ')', ''];
+  // Arellano-Bond tests of no autocorrelation in the differenced residuals (plm::mtest with the Windmeijer
+  // covariance, as summary(pgmm, robust = TRUE) reports them) and the Wald test of all coefficients.
+  const fpv = pv => { if (!(pv >= 2.220446049250313e-16)) return '< 2.22e-16'; return fmtSig(pv, 5); };
+  const mtest = order => {
+    let EVE = 0, num = 0; const EX = new Array(p).fill(0), XZ = L.zeros(m, p), ZVE = new Array(m).fill(0);
+    W.forEach((Wi, g) => {
+      const r = e2[g], rl = r.map((_, t) => t < order ? 0 : r[t - order]), Xg = YX[g].map(row => row.slice(1)), rr = r.reduce((a, v, t) => a + v * rl[t], 0);
+      EVE += rr * rr; num += rr;
+      Xg.forEach((x, t) => { for (let b = 0; b < p; b++) EX[b] += rl[t] * x[b]; Wi[t].forEach((w, a) => { for (let b = 0; b < p; b++) XZ[a][b] += w * x[b]; }); });
+      Wi.forEach((w, t) => w.forEach((v, a) => { ZVE[a] += v * r[t] * rr; }));
+    });
+    const mid = L.dot(L.mulVec(B2, EX), L.mulVec(L.t(XZ), L.mulVec(A2, ZVE))), quad = L.dot(EX, L.mulVec(Vr, EX)), stat = num / Math.sqrt(EVE - 2 * mid + quad);
+    return [stat, 2 * D.pnorm(Math.abs(stat), 0, 1, false)];
+  };
+  const abTests = [], [m1, p1] = mtest(1); abTests.push('Autocorrelation test (1): normal = ' + fmtSig(m1, 7) + ' (p-value = ' + fpv(p1) + ')');
+  if (rowsN > 2) { const [m2, p2] = mtest(2); abTests.push('Autocorrelation test (2): normal = ' + fmtSig(m2, 7) + ' (p-value = ' + fpv(p2) + ')'); }
+  const wald = L.dot(coef, L.mulVec(L.inv(Vr), coef)); abTests.push('Wald test for coefficients: chisq(' + p + ') = ' + fmtSig(wald, 7) + ' (p-value = ' + fpv(D.pchisq(wald, p, false)) + ')');
+  const text = ['Oneway (individual) effect Two-steps model Difference GMM', '', 'Number of Observations Used: ' + nobs, '', 'Coefficients (Windmeijer-robust):', ...printCoefmat(cn, ['Estimate', 'Std. Error', 'z-value', 'Pr(>|z|)'], rows.map(r => r.slice(1))), '', 'Sargan test: chisq(' + sdf + ') = ' + fmtSig(sst, 7) + ' (p-value = ' + fpv(sdf > 0 ? D.pchisq(sst, sdf, false) : sst > 0 ? 0 : 1) + ')', ...abTests, ''];
   ctx.diag(text);
   ctx.table('Difference-GMM coefficients', ['Term', 'Estimate', 'Std. Error', 'z-value', 'Pr(>|z|)'], rows);
+  if (m <= p) ctx.note('The model is exactly identified (as many instruments as coefficients), so the Sargan test of overidentifying restrictions cannot be computed. Use more lags (3 or more) to test instrument validity; the Arellano-Bond AR(2) test is in Diagnostics.');
   fitout(ctx, { kind: 'pgmm', n: nobs, nobs, coefTable: null, logLik: NaN, AIC: NaN, BIC: NaN, summaryText: () => text });
 }
