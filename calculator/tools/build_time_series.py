@@ -27,12 +27,12 @@ from console_output import integrate_component as console_component
 from ts_simple import integrate_component as tss_component, integrate_engine as tss_engine, integrate_template as tss_template
 from output_view import integrate_component as ov_component, integrate_template as ov_template
 from analysis_engine import integrate_engine as analysis_engine
-from offline_audit import integrate_component as audit_component, integrate_engine as audit_engine
+from offline_audit import integrate_component as audit_component, integrate_engine as audit_engine, integrate_template as audit_template
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-26.39'
+BUILD = '2026-10-26.40'
 
 
 def replace(text, before, after, count=1):
@@ -218,7 +218,7 @@ def main():
     template = integrate_ttests_template(integrate_network_template(integrate_jade_shell(integrate_commandbar_template(template))))
     match = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', template, re.S)
     template = template[:match.start(2)] + audit_component(ov_component(tss_component(console_component(analysis_component(chart_component(stata_component(regression_component(browse_component(guide_component(range_component(repair_component(match[2])))))))))))) + template[match.end(2):]
-    template = ov_template(tss_template(analysis_template(chart_template(stata_template(regression_template(browse_template(guide_template(range_template(repair_template(template))))))))))
+    template = audit_template(ov_template(tss_template(analysis_template(chart_template(stata_template(regression_template(browse_template(guide_template(range_template(repair_template(template)))))))))))
     asset = manifest[ENGINE]
     e = gzip.decompress(base64.b64decode(asset['data'])).decode()
     mod_begin, mod_end = '// GM26 time-series module begin', '// GM26 time-series module end'

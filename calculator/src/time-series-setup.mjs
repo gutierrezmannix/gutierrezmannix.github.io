@@ -81,12 +81,38 @@ export function tsPrepare(o) {
     out.rows.push({ u: g.u, t: g.t, y });
   }
   out.rows.sort((a, b) => a.u.localeCompare(b.u) || a.t - b.t);
+  // Time step: data observed every k periods (e.g. a biennial survey: 2014, 2016, …) form a regular series with
+  // delta k, as Stata's tsset …, delta(k). Detected as the greatest common divisor of the observed spacings.
+  const seen = new Map();
+  for (const r of out.rows) if (Number.isFinite(r.y)) { const a = seen.get(r.u) || []; a.push(r.t); seen.set(r.u, a); }
+  const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
+  let g = 0; for (const a of seen.values()) for (let j = 1; j < a.length; j++) g = gcd(g, a[j] - a[j - 1]);
+  out.stepDetected = g > 1 ? g : 1;
+  const step = Number.isInteger(Number(o.step)) && Number(o.step) >= 1 ? Number(o.step) : out.stepDetected;
+  out.step = step;
+  // Missing periods inside each unit's observed span; values the user supplies fill them (flagged, never silent).
+  out.missing = []; out.filled = 0;
+  const at = new Map(out.rows.map((r, i) => [r.u + '|' + r.t, i]));
+  for (const [u, a] of seen) {
+    const obs = new Map(out.rows.filter(r => r.u === u && Number.isFinite(r.y)).map(r => [r.t, r.y]));
+    for (let t = a[0] + step; t < a[a.length - 1]; t += step) {
+      if (obs.has(t)) continue;
+      let pt = t - step; while (!obs.has(pt)) pt -= step; let nt = t + step; while (!obs.has(nt)) nt += step;
+      const key = u + '|' + t, v = o.fills ? o.fills.get(key) : undefined, fill = typeof v === 'number' && Number.isFinite(v) ? v : null;
+      out.missing.push({ u, t, prev: { t: pt, y: obs.get(pt) }, next: { t: nt, y: obs.get(nt) }, fill });
+      if (fill !== null) { out.filled++; if (at.has(key)) out.rows[at.get(key)] = { u, t, y: fill, filled: true }; else out.rows.push({ u, t, y: fill, filled: true }); }
+    }
+  }
+  if (out.filled) out.rows.sort((a, b) => a.u.localeCompare(b.u) || a.t - b.t);
+  if (step > 1) out.rows = out.rows.filter(r => Number.isFinite(r.y) || seen.has(r.u) && (r.t - seen.get(r.u)[0]) % step === 0);
   const perUnit = new Map();
   for (const r of out.rows) { out.t.push(r.t); out.y.push(r.y); out.unit.push(r.u); if (Number.isFinite(r.y)) { const a = perUnit.get(r.u) || []; a.push(r.t); perUnit.set(r.u, a); } }
-  for (const times of perUnit.values()) for (let j = 1; j < times.length; j++) out.gaps += Math.max(0, times[j] - times[j - 1] - 1);
+  for (const times of perUnit.values()) for (let j = 1; j < times.length; j++) out.gaps += Math.max(0, Math.round((times[j] - times[j - 1]) / step) - 1);
+  out.offGrid = 0; for (const times of perUnit.values()) for (let j = 1; j < times.length; j++) if ((times[j] - times[j - 1]) % step) out.offGrid++;
   out.nUnits = perUnit.size; out.valid = out.y.filter(Number.isFinite).length;
   if (!out.valid) out.error = 'No complete periods with an observed outcome remain.';
-  else if (out.gaps) out.error = out.gaps + ' missing period(s) inside the analysis range. Gaps remain missing, never zero. This estimator requires a contiguous range: choose one using the period limits or use a method that explicitly supports gaps.';
+  else if (out.offGrid) out.error = 'Some observed periods are not a multiple of the time step (' + step + ') apart. Choose a time step of 1 under More data preparation.';
+  else if (out.gaps) out.error = out.gaps + ' missing period(s) inside the analysis range. Gaps remain missing, never zero. Fill them with values you choose under “Missing periods” below, choose a contiguous range using the period limits, or use a method that explicitly supports gaps.';
   if (o.average && perUnit.size > 1) { const spans = [...perUnit.values()].map(a => a.join(',')); if (spans.some(a => a !== spans[0])) out.error = 'Averaging units requires matching observed periods. Choose a common complete date range first.'; }
   return out;
 }
@@ -255,11 +281,21 @@ export function tsScripts(c, prep, res) {
     rr.push('  b$' + y + ' <- if(nrow(g)!=expected || anyNA(g$' + y + ')) NA_real_ else ' + (ag === 'mean' ? 'mean' : 'sum') + '(g$' + y + ')', '  b', '}))');
   }
   if (ag === 'rate') { const scale = Number(S.tsScale || 100000); st.push('replace ' + y + ' = ' + y + '/' + pop + '*' + scale); rr.push('d$' + y + ' <- d$' + y + '/d$' + pop + '*' + scale); }
+  // Values typed in the app for missing periods are written into the scripts, so they reproduce the same series.
+  const fills = (prep.missing || []).filter(m => m.fill !== null);
+  if (fills.length) {
+    st.push('* ' + fills.length + ' missing period(s) filled with values entered in the app (assumptions, not observed data)'); rr.push('# ' + fills.length + ' missing period(s) filled with values entered in the app (assumptions, not observed data)');
+    for (const m of fills) {
+      const us = setup.uv ? name(setup.uv,false) + ' == ' + literal(setup.uv,m.u) : u + ' == 1', ur = setup.uv ? 'd$' + setup.uv + ' == ' + literal(setup.uv,m.u,true) : 'd$' + u + ' == 1L';
+      st.push('drop if ' + us + ' & ' + t + ' == ' + m.t, 'set obs `=_N+1\'', 'replace ' + (setup.uv ? name(setup.uv,false) + ' = ' + literal(setup.uv,m.u) : u + ' = 1') + ' in l', 'replace ' + t + ' = ' + m.t + ' in l', 'replace ' + y + ' = ' + m.fill + ' in l');
+      rr.push('d <- d[!(' + ur + ' & d$' + t + ' == ' + m.t + '),,drop=FALSE]', 'd[nrow(d)+1, c(' + q(setup.uv || u) + ',' + q(t) + ',' + q(y) + ')] <- list(' + (setup.uv ? literal(setup.uv,m.u,true) : '1L') + ', ' + m.t + ', ' + m.fill + ')');
+    }
+  }
   if (S.tsAvg && prep.nUnits > 1) { st.push('collapse (mean) ' + y + ', by(' + t + ')', 'gen byte ' + u + ' = 1'); rr.push('d <- aggregate(d[' + q(y) + '], list(' + t + '=d$' + t + '), mean)', 'd$' + u + ' <- 1L'); }
   else if (setup.uv) { st.push('egen long ' + u + ' = group(' + setup.uv + ')'); rr.push('d$' + u + ' <- as.integer(factor(d$' + setup.uv + '))'); }
   const formats = {monthly:'tm',quarterly:'tq',daily:'td',weekly:'tw'};
   if (formats[freq]) st.push('format ' + t + ' %' + formats[freq]);
-  st.push('drop if missing(' + y + ')', (res.pooled ? 'xtset ' + u + ' ' : 'tsset ') + t);
+  st.push('drop if missing(' + y + ')', (res.pooled ? 'xtset ' + u + ' ' : 'tsset ') + t + (prep.step > 1 ? ', delta(' + prep.step + ')' : ''));
   rr.push('d <- d[is.finite(d$' + y + '),,drop=FALSE]', 'd <- d[order(d$' + u + ',d$' + t + '),,drop=FALSE]');
   const tr = S.tsTr || 'level', orig = p + 'original';
   if (tr !== 'level') { st.push('gen double ' + orig + ' = ' + y, 'replace ' + y + ' = ' + (tr === 'diff' ? orig + '-L.' + orig : '100*(' + orig + '/L.' + orig + '-1)') + (tr === 'pct' ? ' if L.' + orig + ' != 0' : ''), ...(tr === 'pct' ? ['replace ' + y + ' = . if L.' + orig + ' == 0'] : [])); rr.push('d$' + y + ' <- ave(d$' + y + ', d$' + u + ', FUN=function(x) c(NA_real_, ' + (tr === 'diff' ? 'diff(x)' : 'ifelse(head(x,-1)==0,NA_real_,100*(tail(x,-1)/head(x,-1)-1))') + '))'); }

@@ -225,4 +225,35 @@
     if(res.fe)lines.push('# (Intercept) and factor('+p+'unit) rows are not shown: the app removes each unit’s mean instead (same slopes and standard errors).');
     return lines.join('\n');
   }
+  // Missing periods: the time step (Stata's delta) and values the user chooses for missing unit-periods, visited
+  // one at a time with Previous / Next. Filled values are assumptions: they are counted, flagged and scripted.
+  tsFillSig(){const S=this.state;return [S.tsY||'',S.tsRows||'',S.tsStat||'',S.tsW||'',S.tsAggregate||'',S.tsTarget||'',S.tsSource||'',S.tsSourceValue||''].join('|');}
+  tsFillMap(){const f=(this.state.tsFill||{})[this.tsFillSig()]||{};return new Map(Object.entries(f).map(([k,v])=>[k,Number(v)]));}
+  tsSetFill(key,v){const sig=this.tsFillSig();this.setState(s=>{const all={...(s.tsFill||{})},cur={...(all[sig]||{})};if(v===null)delete cur[key];else cur[key]=v;all[sig]=cur;return {tsFill:all};});}
+  tsGapPanel(prep,setup){
+    const E=this._E,S=this.state,h=React.createElement,miss=prep&&prep.missing||[];if(!prep||(!miss.length&&!(prep.stepDetected>1)&&!(S.tsStep>1)))return null;
+    const per={yearly:'year',quarterly:'quarter',monthly:'month',weekly:'week',daily:'day'}[setup.effective]||'period',lab=t=>E.tsDateLabel(t,setup.effective),num=v=>this.fmt(v,4).replace(/\.?0+$/,'');
+    const btn=(label,click,on,extra={})=>h('button',{type:'button',className:'ts-gap-btn'+(on?' on':''),onClick:click,...extra},label);
+    const steps=[...new Set([1,2,3,4,prep.stepDetected])].sort((a,b)=>a-b),auto=!(Number(S.tsStep)>=1);
+    const stepRow=h('div',{className:'ts-gap-row'},h('span',{className:'ts-gap-k'},'TIME STEP'),btn('Automatic ('+(prep.stepDetected>1?'every '+prep.stepDetected+' '+per+'s':'every '+per)+')',()=>this.setState({tsStep:'',tsGapIx:0}),auto),...steps.map(k=>btn('Every '+(k>1?k+' '+per+'s':per),()=>this.setState({tsStep:k,tsGapIx:0}),!auto&&Number(S.tsStep)===k)));
+    const stepNote=prep.step>1?h('p',{className:'ts-gap-note'},'The data are observed every '+prep.step+' '+per+'s, so each observation follows the one '+prep.step+' '+per+'s earlier, as with Stata\u2019s tsset …, delta('+prep.step+'). Trends are still per '+per+'. Nothing is filled in.'):null;
+    if(!miss.length)return h('section',{className:'ts-gap',role:'group','aria-label':'Time step'},stepRow,stepNote);
+    const ix=Math.min(Math.max(0,S.tsGapIx||0),miss.length-1),m=miss[ix],key=m.u+'|'+m.t,filled=miss.filter(x=>x.fill!==null).length,open=miss.map((x,i)=>i).filter(i=>miss[i].fill===null);
+    const go=i=>this.setState({tsGapIx:(i+miss.length)%miss.length,tsGapVal:''}),nextOpen=from=>{const k=open.find(i=>i>from)??open[0];return k==null?from:k;};
+    const draft=S.tsGapVal!=null&&S.tsGapVal!==''?S.tsGapVal:(m.fill!==null?String(m.fill):''),val=Number(String(draft).replace(',','.')),okVal=String(draft).trim()!==''&&Number.isFinite(val);
+    const lin=m.prev.y+(m.next.y-m.prev.y)*(m.t-m.prev.t)/(m.next.t-m.prev.t);
+    const apply=()=>{if(!okVal)return;this.tsSetFill(key,val);this.setState({tsGapVal:''});const k=open.filter(i=>i!==ix);const nx=k.find(i=>i>ix)??k[0];if(nx!=null)this.setState({tsGapIx:nx});};
+    const applyAll=()=>{if(!okVal)return;const sig=this.tsFillSig();this.setState(s=>{const all={...(s.tsFill||{})},cur={...(all[sig]||{})};miss.forEach(x=>{if(x.fill===null)cur[x.u+'|'+x.t]=val;});all[sig]=cur;return {tsFill:all,tsGapVal:''};});};
+    const unit=setup.uv?this.vlabel(setup.uv,m.u)+' · ':'';
+    return h('section',{className:'ts-gap',role:'group','aria-label':'Time step and missing periods'},
+      h('div',{className:'ts-gap-title'},'MISSING PERIODS · '+miss.length+' inside the observed range · '+filled+' filled'),stepRow,stepNote,
+      h('div',{className:'ts-gap-row'},btn('◀ Previous',()=>go(ix-1),false,{'aria-label':'Previous missing period'}),h('span',{className:'ts-gap-pos',role:'status'},'Missing '+(ix+1)+' of '+miss.length),btn('Next ▶',()=>go(ix+1),false,{'aria-label':'Next missing period'}),btn('Next unfilled ▶▶',()=>go(nextOpen(ix)),false,{disabled:!open.length})),
+      h('div',{className:'ts-gap-card'},
+        h('div',{className:'ts-gap-what'},unit+lab(m.t)+(m.fill!==null?'  ·  filled with '+num(m.fill):'  ·  missing')),
+        h('div',{className:'ts-gap-ctx'},'Observed before: '+lab(m.prev.t)+' = '+num(m.prev.y)+'   ·   after: '+lab(m.next.t)+' = '+num(m.next.y)),
+        h('div',{className:'ts-gap-row'},h('label',{className:'ts-gap-k',htmlFor:'ts-gap-val'},'VALUE'),h('input',{id:'ts-gap-val',className:'ts-gap-input',inputMode:'decimal',value:draft,placeholder:'e.g. '+num(lin),onChange:e=>this.setState({tsGapVal:e.target.value}),onKeyDown:e=>{if(e.key==='Enter')apply();}}),
+          btn('Use value & go to next',apply,true,{disabled:!okVal}),btn('Straight line between neighbours ('+num(lin)+')',()=>this.setState({tsGapVal:String(Number(lin.toPrecision(10)))})),m.fill!==null?btn('Clear this value',()=>this.tsSetFill(key,null)):null),
+        h('div',{className:'ts-gap-row'},btn('Use this value for all '+open.length+' unfilled',applyAll,false,{disabled:!okVal||!open.length}),filled?btn('Clear all '+filled+' filled values',()=>{const sig=this.tsFillSig();this.setState(s=>({tsFill:{...(s.tsFill||{}),[sig]:{}}}));}):null)),
+      h('p',{className:'ts-gap-note'},'Filled values are your assumptions, not observed data. They are used as if observed, counted in the summary, and written into the Stata / R scripts. Report how you filled them.'));
+  }
   // GM26 time-series setup end

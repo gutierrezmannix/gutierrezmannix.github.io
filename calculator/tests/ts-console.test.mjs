@@ -29,4 +29,15 @@ assert.deepEqual(pr.units,['A','B','C']);assert.ok(Math.abs(pr.coefs[0].b-19.960
 const pt=c.tsRText(pr,scripts);assert.match(pt,/factor\(gmts_unit\)2 /);assert.match(pt,/\(Intercept\)         1\.9960e\+01  3\.8313e-01  5\.2097e\+01 0\.0003682 \*\*\*/);
 // Stata's %9.0g: at most 8 characters for positive numbers, 9 with a minus sign
 assert.deepEqual([0.022378659,-0.0060087,0.00051794,39.44028,123456789,-12345678].map(v=>c.stataG(v)),['.0223787','-.0060087','.0005179','39.44028','1.23e+08','-12345678']);
-clearTimeout(c._ghostT);console.log('Time-series console: coeftest and newey printouts, format.pval, unit numbering and %9.0g passed.');
+// Time step (Stata's delta): a biennial series is regular with step 2, not 7 gaps; estimates equal R's lm + NeweyWest.
+{const B=A.filter(r=>+r[1]%2===0),pp=E.tsPrepare({frequency:'yearly',y:B.map(r=>+r[2]),time:B.map(r=>+r[1]),unit:B.map(r=>r[0])});
+ assert.equal(pp.step,2);assert.equal(pp.gaps,0);assert.ok(!pp.error,pp.error);
+ const rb=E.tsAnalyze({t:pp.t,y:pp.y,unit:null,common:2005,type:'both',step:pp.step});assert.ok(!rb.error,rb.error);
+ const ref=[[19.291583333333,0.2396398129209],[0.406130952381,0.0256786470070],[3.266238095238,0.4303530248053],[-0.283059523810,0.0660596844143]];
+ rb.coefs.forEach((cf,i)=>{assert.ok(Math.abs(cf.b-ref[i][0])<1e-9&&Math.abs(cf.se-ref[i][1])<1e-9,cf.term);});
+ const p1=E.tsPrepare({frequency:'yearly',y:B.map(r=>+r[2]),time:B.map(r=>+r[1]),unit:B.map(r=>r[0]),step:1});assert.equal(p1.gaps,14);assert.equal(p1.missing.length,14);assert.match(p1.error,/14 missing period/);
+ // Values the user enters fill missing periods (flagged); neighbours are reported for each.
+ const m0=p1.missing[0];assert.deepEqual([m0.t,m0.prev.t,m0.next.t],[1991,1990,1992]);
+ const fills=new Map(p1.missing.map(m=>[m.u+'|'+m.t,(m.prev.y+m.next.y)/2])),pf=E.tsPrepare({frequency:'yearly',y:B.map(r=>+r[2]),time:B.map(r=>+r[1]),unit:B.map(r=>r[0]),step:1,fills});
+ assert.equal(pf.filled,14);assert.equal(pf.gaps,0);assert.ok(!pf.error);assert.equal(pf.t.length,29);}
+clearTimeout(c._ghostT);console.log('Time-series: time step, missing-period fills, coeftest and newey printouts, format.pval, unit numbering and %9.0g passed.');

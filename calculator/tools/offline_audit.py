@@ -46,11 +46,10 @@ def integrate_component(c):
     if a >= 0:
         b = c.index("    if (d.t === 'corr') {", a)
         c = c[:a] + "    if (d.t === 'sum' || d.t === 'tab1') return this.descStataText(d);\n" + c[b:]
-    c = patch(c, "return { conLog: [...base, this.tagSg({ ...d, res, tbl })].slice(-60) };", "return { conLog: [...base, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : undefined })].slice(-60) };")
-    c = patch(c, "upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl })].slice(-60);", "upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : undefined })].slice(-60);")
+    c = patch(c, "return { conLog: [...base, this.tagSg({ ...d, res, tbl })].slice(-60) };", "return { conLog: [...base, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : d.tblR })].slice(-60) };")
+    c = patch(c, "upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl })].slice(-60);", "upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : d.tblR })].slice(-60);")
     c = patch(c, "const tbx = d.t === 'ttestx' ? ((S.dialect === 'r' ? d.tblR : d.tblStata) || d.tbl) : d.tbl;", "const tbx = ((S.dialect === 'r' ? d.tblR : d.tblStata) || d.tbl);")
     # Time series (build .39): result tables keep their own Stata / R printouts in the console log.
-    c = c.replace("tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : undefined })", "tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : d.tblR })")
     c = patch(c, "res: out.tsPrepared, tbl: 'Term\\tEstimate\\tSE\\tt\\tp\\n' + out.tsRows.map(r => [r.term,r.b,r.se,r.t,r.p].join('\\t')).join('\\n') };",
               "res: out.tsPrepared, tbl: 'Term\\tEstimate\\tSE\\tt\\tp\\n' + out.tsRows.map(r => [r.term,r.b,r.se,r.t,r.p].join('\\t')).join('\\n'), tblStata: this.tsStataText(res, scripts), tblR: this.tsRText(res, scripts) };")
     # Period words: "per year", not "per yearly"; "per period" for integer periods.
@@ -64,6 +63,12 @@ def integrate_component(c):
               "(res.lb.p < a ? ' — autocorrelation left in residuals' : ' — no significant autocorrelation up to lag ' + res.lb.h) });")
     c = patch(c, "if (dw < 1.5 && !S.tsAr1) txt += 'The Durbin\\u2013Watson of ' + this.fmt(dw, 2) + ' shows strong autocorrelation — consider switching on AR1.';",
               "if (dw < 1.5 && !S.tsAr1) txt += 'The Durbin\\u2013Watson of ' + this.fmt(dw, 2) + ' points to positive autocorrelation (\\u03c1 \\u2248 ' + this.fmt(1 - dw / 2, 2) + ') — consider switching on AR1. ';\n          if (res.pooled && res.nUnits < 30) txt += 'Only ' + res.nUnits + ' units: standard errors are clustered by unit, and with fewer than about 30 clusters cluster-robust standard errors tend to be too small and p-values too optimistic (p-values here use t with ' + (res.nUnits - 1) + ' df). Treat significance as approximate, or check each unit separately or with a wild cluster bootstrap. ';")
+    # Time series (build .40): time step (Stata's delta) and values the user chooses for missing periods.
+    c = patch(c, "const prepKey = JSON.stringify([S.tsRows, S.tsStat, S.tsW, S.tsId, S.dver,", "const prepKey = JSON.stringify([S.tsStep, (S.tsFill || {})[this.tsFillSig()], S.tsRows, S.tsStat, S.tsW, S.tsId, S.dver,")
+    c = patch(c, "start: t0, end: t1, average: avg }))", "start: t0, end: t1, average: avg, step: S.tsStep, fills: this.tsFillMap() }))")
+    c = patch(c, "E.tsAnalyze({ t: prep.t, y: prep.y, unit: okU ? prep.unit : null, sel: null,", "E.tsAnalyze({ t: prep.t, y: prep.y, unit: okU ? prep.unit : null, sel: null, step: prep.step || 1,")
+    c = patch(c, "if (prep.collapse) out.tsPrepared = this.tsCollapseText(prep, setup); /* GM26 ts collapse v1 */",
+              "if (prep.collapse) out.tsPrepared = this.tsCollapseText(prep, setup); /* GM26 ts collapse v1 */\n        if (prep.step > 1) out.tsPrepared += ' Time step: every ' + prep.step + ' periods (observed periods ' + prep.step + ' apart are consecutive).';\n        if (prep.filled) out.tsPrepared += ' ' + prep.filled + ' missing period(s) filled with values you entered (assumptions, not data; written into the scripts).';\n        out.tsGapEl = this.tsGapPanel(prep, setup);")
     return c
 
 
@@ -91,4 +96,12 @@ def integrate_engine(e):
               "  for (const [k, v] of csPretty(y0, y1, 4).entries()) { kids.push(")
     e = patch(e, "  for (let k = 0; k <= 5; k++) { const v = t0 + (t1 - t0) * k / 5; kids.push(R.createElement('text', { key: 'xt' + k,",
               "  const tu = o.frequency === 'monthly' ? 12 : o.frequency === 'quarterly' ? 4 : 1, xTicks = (t1 - t0) / tu >= 2 ? csPretty(t0 / tu, t1 / tu, 5, true).map(v => v * tu) : csPretty(t0, t1, 5, true);\n  for (const [k, v] of xTicks.entries()) { kids.push(R.createElement('text', { key: 'xt' + k,")
+    # Time series (build .40): consecutive observations are one time step apart (delta), not always one period.
+    e = e.replace("p.t - s.pts[i-1].t !== 1", "p.t - s.pts[i-1].t !== (o.step || 1)")
     return e
+
+
+def integrate_template(t):
+    # Time series (build .40): the time-step and missing-period panel sits under the preparation summary.
+    return patch(t, '<div class="ts-setup-warning" data-testid="time-series-validation">{{ tsValidation }}</div></sc-if>',
+                 '<div class="ts-setup-warning" data-testid="time-series-validation">{{ tsValidation }}</div>{{ tsGapEl }}</sc-if>')

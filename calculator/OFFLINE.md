@@ -171,3 +171,20 @@ Gaps and averaging over units with different periods are refused with clear mess
   fractional positions ("1996" at 1995.8). Monthly and quarterly axes tick at the start of each year.
 - Stata `%9.0g` numbers in the console now follow Stata's width rule (`.0223787`, not `.02237866`); this also
   corrects `summarize` output.
+
+## Build .40 — time step and missing periods (Time series)
+
+A biennial survey (2014, 2016, …, 2022) collapsed by state was refused with "128 missing period(s) inside the
+analysis range": every odd year counted as missing (32 states × 4 years).
+- **Time step (Stata's `delta`).** The tab detects data observed every k periods (the greatest common divisor of the
+  observed spacings) and treats them as a regular series, like `tsset year, delta(2)`. Trends stay per year. A
+  TIME STEP row shows the detected step and lets you choose another. Scripts write `xtset …, delta(2)`.
+  Biennial estimates equal R's `lm` + `NeweyWest` on the same years.
+- **Missing periods panel.** For genuine gaps, the panel lists each missing unit-period inside the observed range.
+  **◀ Previous / Next ▶** move from one missing period to the next, and **Next unfilled ▶▶** skips ones already
+  filled. Each shows the observed values before and after. You type a value, or use the straight line between the
+  neighbours as a suggestion. **Use value & go to next** saves it and moves on. You can also use one value for all
+  unfilled periods, clear one value, or clear all.
+- Filled values are assumptions, not data. The summary counts them, and the exported Stata / R scripts add those
+  rows (`set obs` / `replace … in l`; `d[nrow(d)+1, …] <-`), so the scripts reproduce the app's estimates (checked
+  in R). Fills are kept per outcome and preparation, so they never carry over to another variable.
