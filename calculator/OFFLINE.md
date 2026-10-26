@@ -110,3 +110,19 @@ against R. Quartiles use Stata's definition (`summarize, detail`; R type 2). Fix
   would differ), `table()` (codes for value-labelled numerics), and for weighted data `weighted.mean(...)` and
   `prop.table(xtabs(w ~ x, data = df)) * 100` instead of unweighted commands. All checked against real R.
 - Weighted SD uses Stata's analytic-weight formula (weights normalised to N), matching `summarize [aw=]`.
+
+## Build .37 — spot check (Panel timelines)
+
+Panel and multiple-series timelines were re-tested offline with a balanced panel, a panel with missing years and a
+missing value, and survey microdata collapsed by state and year (weighted and unweighted). The plotted means equal
+R's `aggregate()` / `weighted.mean()` for every unit and year. Fixed:
+- **Lines no longer bridge missing periods.** A unit observed in 2003 and again in 2006 was drawn as one continuous
+  line, as if 2004–05 had been observed. Lines now break where a series has no observation for a period that other
+  series have, or for a step of a regular (e.g. annual) time grid; the note says so.
+- **Year axes read as years:** `2000 2002 2004 …` instead of `2,000  2,001.8  2,003.6 …` (thousands separators and
+  fractional years).
+- **Round tick values on every chart** (as R's `pretty()`): `10 15 20 25 …` instead of five equal splits such as
+  `10 15.8 21.6 …`.
+- **Legend colour keys were invisible** on every chart with a group legend (the plot-area clip hid them); they now
+  show.
+- Timelines leave a small margin (4%, as R's default axes) so the first and last markers are not cut at the edge.
