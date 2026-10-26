@@ -27,6 +27,10 @@ c.csOpen('hist');assert.equal(c.state.plotKind,'hist');assert.equal(c.state.csPa
 assert.deepEqual(E.csPretty(2000,2009,5,true),[2000,2002,2004,2006,2008]);assert.deepEqual(E.csPretty(2000,2001,5,true),[2000,2001]);assert.deepEqual(E.csPretty(10,39),[10,15,20,25,30,35]);
 {const yrs=[2000,2001,2002,2003,2006,2007,2000,2001,2002,2004,2005];const tl=E.csScene('multiline',E.csPrepare('multiline',{x:yrs,y:yrs.map((v,i)=>v-1990+i),g:yrs.map((_,i)=>i<6?'B':'C')}));
  assert.deepEqual([...tl.markup.matchAll(/<path d="([^"]*)" fill="none"/g)].map(m=>m[1].split('M').length-1),[2,2]);assert.ok(tl.markup.includes('>2002</text>')&&!/2,00\d/.test(tl.markup));assert.match(tl.markup,/<rect class="cs-key"[^>]*\/><text/);assert.ok(!tl.markup.includes('clip-path="url(#cs-clip)"><rect class="cs-key"'));}
+// Slope charts: column names on the x axis (no 0–1 scale), each line labelled, means per category, edge padding.
+{const sd=E.csPrepare('slope',{x:['N','N','S','S','W'],lo:[50,52,60,null,55],y:[54,56,63,70,57]});assert.equal(sd.n,4);const sl=E.csScene('slope',sd,{lo:'t2016',y:'t2020'});
+ assert.deepEqual(sl.table,[['N',51,55,4],['S',60,63,3],['W',55,57,2]]);for(const t of ['>t2016</text>','>t2020</text>','>N</text>','>S</text>','>W</text>'])assert.ok(sl.markup.includes(t),t);assert.ok(!sl.markup.includes('>0.2</text>'));assert.ok(sl.yr[0]<51&&sl.yr[1]>63);assert.match(sl.note,/mean of t2016 to the mean of t2020/);
+ const many=E.csScene('slope',E.csPrepare('slope',{x:Array.from({length:40},(_,i)=>'C'+i),lo:Array(40).fill(1).map((_,i)=>i%7),y:Array(40).fill(1).map((_,i)=>i%5)}),{});assert.match(many.note,/Labels are shown for \d+ of 40/);}
 clearTimeout(c._ghostT);console.log('37 chart pages: mean t intervals, Wilson intervals, tied-event Kaplan–Meier, weighted pie denominators, masks/missingness, complete pairs, imported CI validation, GeoJSON joins, large-data hexbin, SVG safety, dedicated navigation and legacy preservation passed.');
 // Exercise every dedicated page through the shipped component, including all native field callbacks.
 const flatten=n=>!n?[]:Array.isArray(n)?n.flatMap(flatten):typeof n==='object'?[n,...flatten(n.children)]:[];

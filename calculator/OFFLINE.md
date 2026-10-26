@@ -126,3 +126,21 @@ R's `aggregate()` / `weighted.mean()` for every unit and year. Fixed:
 - **Legend colour keys were invisible** on every chart with a group legend (the plot-area clip hid them); they now
   show.
 - Timelines leave a small margin (4%, as R's default axes) so the first and last markers are not cut at the edge.
+
+## Build .38 — spot check (Slope chart)
+
+Re-tested offline with state turnout data in two columns (2016, 2020): by region, by 40 states, weighted by
+population, and with a missing value in each column. Category means and weighted means equal R's `aggregate()` /
+`weighted.mean()` on complete pairs; rows missing either value are excluded and counted. Fixed:
+- **Lines were unlabelled.** Each region's line had its own colour, but nothing said which colour was which region
+  (the legend only explained the endpoint dots). Each line is now labelled at its second value. Labels are spaced so
+  they do not overlap; with many categories, only labels that fit are drawn and the note says how many (every
+  category stays in the data table and in each point's tooltip).
+- **The x axis showed a meaningless 0–1 scale** (`0 0.2 0.4 …`). It now names the two columns
+  (`turnout2016`, `turnout2020`). Same fix for the paired before-and-after plot.
+- **Axis titles were wrong**: the slope chart's x title was the category variable and its y title only the
+  second column. It now reads "Mean value". The dumbbell chart had its titles swapped; the paired plot's y title is "Value".
+- Legends on the dumbbell and paired charts name the two columns instead of "First value / Second value".
+- First and last points are no longer cut in half at the plot edge (slope and dumbbell charts).
+- Chart data tables show 7 significant digits, as R prints (`63.45`, not `63.449999999999996`); **Copy chart data**
+  keeps full precision.
