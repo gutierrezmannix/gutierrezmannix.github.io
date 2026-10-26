@@ -87,7 +87,36 @@ def integrate_component(c):
               "if (d.t === 'filter') { const numStore = (this.effMeta(d.v) || {}).type === 'numeric' && d.val !== '' && isFinite(Number(d.val)), q = d.cat && !numStore ? '\"' + d.val + '\"' : d.val, miss = d.val !== '.' && (d.op === '!=' || (numStore && (d.op === '>' || d.op === '>='))) ? ' & !missing(' + d.v + ')' : ''; return dial === 'stata' ? 'keep if ' + d.v + ' ' + d.op + ' ' + q + miss : 'df <- subset(df, ' + d.v + ' ' + d.op + ' ' + q + ')'; }")
     # Session .R files read blank text cells as missing, as the app does (read.csv would make "" a category).
     c = patch(c, "'df <- read.csv(\"' + S.fileName + '\")'), ...this.missingDecodeLines(dial)", "'df <- read.csv(\"' + S.fileName + '\", na.strings = c(\"\", \"NA\"))'), ...this.missingDecodeLines(dial)")
+    # Correlation in the console: Stata's pwcorr …, sig obs layout and R's cor.test() printout.
+    c = c.replace("this.descRText(d) : d.tblR })", "this.descRText(d) : d.t === 'corr' ? this.corrRText(d) : d.tblR })")
+    a = c.index("    if (d.t === 'corr') {\n      const c = M['corr|' + d.x + '|' + d.y]; if (!c || c.error) return '';\n      return R('', 13)") if "    if (d.t === 'corr') {\n      const c = M['corr|' + d.x + '|' + d.y]; if (!c || c.error) return '';\n      return R('', 13)" in c else -1
+    if a >= 0:
+        b = c.index("    if (d.t === 'ttest' || d.t === 'anova') {", a)
+        c = c[:a] + "    if (d.t === 'corr') return this.corrStataText(d);\n" + c[b:]
+    # Compare means (two-variable tab) in the console: Stata ttest / oneway and R t.test / summary(aov) printouts.
+    c = c.replace("d.t === 'corr' ? this.corrRText(d) : d.tblR })", "d.t === 'corr' ? this.corrRText(d) : (d.t === 'ttest' || d.t === 'anova') ? this.meansRText(d) : d.tblR })")
+    a = c.find("    if (d.t === 'ttest' || d.t === 'anova') {\n      const G = M['grp|' + d.g + '|' + d.y]; if (!G) return '';")
+    if a >= 0:
+        b = c.index("\n    }\n", a) + len("\n    }\n")
+        c = c[:a] + "    if (d.t === 'ttest' || d.t === 'anova') return this.meansStataText(d);\n" + c[b:]
+    # Regression in the console as Stata and R print it, with commands Stata and R can run.
+    c = c.replace("(d.t === 'ttest' || d.t === 'anova') ? this.meansRText(d) : d.tblR })", "(d.t === 'ttest' || d.t === 'anova') ? this.meansRText(d) : d.t === 'reg' ? this.regRText(d) : d.tblR })")
+    c = patch(c, "return d.t === 'reg' && d.vce ? this.vceCmd(s, d, dial) : s; }", "return this.regFix(d.t === 'reg' && d.vce ? this.vceCmd(s, d, dial) : s, d, dial); }")
+    c = patch(c, "    if (d.t === 'reg') {\n      const key = d.m === 'ols' ? 'reg|ols|' : d.m === 'logistic' ? 'reg|logit|' : d.m === 'ologit' ? 'reg|olog|' : 'reg|pois|';\n      const Mo = M[", "    if (d.t === 'reg') {\n      const stx = this.regStataText(d); if (stx) return stx;\n      const key = d.m === 'ols' ? 'reg|ols|' : d.m === 'logistic' ? 'reg|logit|' : d.m === 'ologit' ? 'reg|olog|' : 'reg|pois|';\n      const Mo = M[")
+    # Margins R code: the model line is the command's "m <- …" line (robust, clustered and coeftest commands are
+    # several lines); before, multi-line commands produced "m <- library(sandwich)…".
+    c = patch(c, "const mline = regLine.replace(/^summary\\(([\\s\\S]*)\\)\\s*$/, '$1');\n              out.mgCmd = 'library(ggeffects)\\nm <- ' + mline + '\\nplot(",
+              "const rl = regLine.split('\\n'), mi = rl.findIndex(l => /^m <- /.test(l)), mline = mi >= 0 ? rl.slice(0, mi + 1).join('\\n') : 'm <- ' + regLine.replace(/^summary\\(([\\s\\S]*)\\)\\s*$/, '$1');\n              out.mgCmd = 'library(ggeffects)\\n' + mline + '\\nplot(")
+    # Console: regression tables appear under their command (they were logged before the model was fitted).
+    c = patch(c, "const tbx = ((S.dialect === 'r' ? d.tblR : d.tblStata) || d.tbl);", "const tbx = this.conTable(d, S.dialect);")
+    # Timeline commands reproduce the chart (yearly means, band, gaps), instead of drawing the raw rows.
+    c = patch(c, "        if (dial !== 'stata' && yl.length > 1) return 'library(ggplot2); long <- tidyr::pivot_longer(", "        if (true) { const rng0 = (d.t0 || d.t1) ? [d.t0 ? d.x + ' >= ' + d.t0 : '', d.t1 ? d.x + ' <= ' + d.t1 : ''].filter(Boolean) : []; return this.lineCmd(d, dial, yl, inL, rng0); }\n        if (dial !== 'stata' && yl.length > 1) return 'library(ggplot2); long <- tidyr::pivot_longer(")
+    # Clustered SEs with few clusters are flagged where the results are shown (they tend to be too small).
+    c = patch(c, "cluster: 'SEs CLUSTERED BY ' + String(S.regCl).toUpperCase() + ' (' + M.vce.G + ' CLUSTERS)',", "cluster: 'SEs CLUSTERED BY ' + String(S.regCl).toUpperCase() + ' (' + M.vce.G + ' CLUSTERS' + (M.vce.G < 30 ? ' — FEWER THAN ~30 CLUSTERS: THESE SEs CAN BE TOO SMALL AND p-VALUES TOO OPTIMISTIC; TREAT SIGNIFICANCE AS APPROXIMATE' : '') + ')',")
     return c
+
+
+PZ_BOTH = 'function pzBoth(x) {\n  const DBL_EPS = 2.220446049250313e-16;\n  const a = [2.2352520354606839287, 161.02823106855587881, 1067.6894854603709582, 18154.981253343561249, 0.065682337918207449113];\n  const b = [47.20258190468824187, 976.09855173777669322, 10260.932208618978205, 45507.789335026729956];\n  const c = [0.39894151208813466764, 8.8831497943883759412, 93.506656132177855979, 597.27027639480026226, 2494.5375852903726711, 6848.1904505362823326, 11602.651437647350124, 9842.7148383839780218, 1.0765576773720192317e-8];\n  const d = [22.266688044328115691, 235.38790178262499861, 1519.377599407554805, 6485.558298266760755, 18615.571640885098091, 34900.952721145977266, 38912.003286093271411, 19685.429676859990727];\n  const p = [0.21589853405795699, 0.1274011611602473639, 0.022235277870649807, 0.001421619193227893466, 2.9112874951168792e-5, 0.02307344176494017303];\n  const q = [1.28426009614491121, 0.468238212480865118, 0.0659881378689285515, 0.00378239633202758244, 7.29751555083966205e-5];\n  const SQRT32 = 5.656854249492380195206754896838, M_1_SQRT_2PI = 0.398942280401432677939946059934;\n  let cum, ccum; const y = Math.abs(x);\n  if (Number.isNaN(x)) return [NaN, NaN];\n  if (y <= 0.67448975) {\n    let xnum, xden; if (y > DBL_EPS * 0.5) { const xsq = x * x; xnum = a[4] * xsq; xden = xsq; for (let i = 0; i < 3; i++) { xnum = (xnum + a[i]) * xsq; xden = (xden + b[i]) * xsq; } } else { xnum = xden = 0; }\n    const temp = x * (xnum + a[3]) / (xden + b[3]); cum = 0.5 + temp; ccum = 0.5 - temp;\n  } else if (y <= SQRT32) {\n    let xnum = c[8] * y, xden = y; for (let i = 0; i < 7; i++) { xnum = (xnum + c[i]) * y; xden = (xden + d[i]) * y; }\n    let temp = (xnum + c[7]) / (xden + d[7]);\n    const xsq = Math.trunc(y * 16) / 16, del = (y - xsq) * (y + xsq);\n    cum = Math.exp(-xsq * xsq * 0.5) * Math.exp(-del * 0.5) * temp; ccum = 1 - cum;\n    if (x > 0) { temp = cum; cum = ccum; ccum = temp; }\n  } else if (y < 1e170) {\n    const xsq0 = 1 / (x * x); let xnum = p[5] * xsq0, xden = xsq0; for (let i = 0; i < 4; i++) { xnum = (xnum + p[i]) * xsq0; xden = (xden + q[i]) * xsq0; }\n    let temp = xsq0 * (xnum + p[4]) / (xden + q[4]); temp = (M_1_SQRT_2PI - temp) / y;\n    const xsq = Math.trunc(x * 16) / 16, del = (x - xsq) * (x + xsq);\n    cum = Math.exp(-xsq * xsq * 0.5) * Math.exp(-del * 0.5) * temp; ccum = 1 - cum;\n    if (x > 0) { temp = cum; cum = ccum; ccum = temp; }\n  } else { if (x > 0) { cum = 1; ccum = 0; } else { cum = 0; ccum = 1; } }\n  return [cum, ccum];\n}\n'
 
 
 def integrate_engine(e):
@@ -116,6 +145,23 @@ def integrate_engine(e):
               "  const tu = o.frequency === 'monthly' ? 12 : o.frequency === 'quarterly' ? 4 : 1, xTicks = (t1 - t0) / tu >= 2 ? csPretty(t0 / tu, t1 / tu, 5, true).map(v => v * tu) : csPretty(t0, t1, 5, true);\n  for (const [k, v] of xTicks.entries()) { kids.push(R.createElement('text', { key: 'xt' + k,")
     # Time series (build .40): consecutive observations are one time step apart (delta), not always one period.
     e = e.replace("p.t - s.pts[i-1].t !== 1", "p.t - s.pts[i-1].t !== (o.step || 1)")
+    # Normal and chi-square tails used by the classic tabs (regression, crosstab…): R's pnorm (Cody's algorithm) and the
+    # upper incomplete gamma computed directly, so very small p-values have full relative precision (the console
+    # printouts match R digit for digit; the old approximation was off by ~1e-7 absolute).
+    e = patch(e, """export function pZ(z) {
+  if (!isFinite(z)) return NaN;
+  const x = Math.abs(z) / Math.SQRT2;""", PZ_BOTH + """export function pZ(z) {
+  if (!isFinite(z)) return NaN;
+  return Math.max(0, Math.min(1, 2 * pzBoth(-Math.abs(z))[0]));
+  const x = Math.abs(z) / Math.SQRT2;""")
+    e = patch(e, "export function pChi2(x, k) { if (!isFinite(x) || x < 0 || k < 1) return NaN; return Math.max(0, Math.min(1, 1 - gammp(k / 2, x / 2))); }",
+              "export function pChi2(x, k) { if (!isFinite(x) || x < 0 || k < 1) return NaN; const a = k / 2, y = x / 2; if (y < a + 1) return Math.max(0, Math.min(1, 1 - gammp(a, y))); let b = y + 1 - a, c = 1e30, d = 1 / b, h = d; for (let i = 1; i < 300; i++) { const an = -i * (i - a); b += 2; d = an * d + b; if (Math.abs(d) < 1e-300) d = 1e-300; c = b + an / c; if (Math.abs(c) < 1e-300) c = 1e-300; d = 1 / d; const del = d * c; h *= del; if (Math.abs(del - 1) < 1e-15) break; } return Math.max(0, Math.min(1, Math.exp(-y + a * Math.log(y) - gammln(a)) * h)); }")
+    # Timeline chart: lines and bands break where a period has no data (as the panel timelines), instead of joining
+    # the observed periods on either side.
+    e = patch(e, "    s.pts.forEach((p, i) => { if (isFinite(p.lo) && isFinite(p.hi)) run.push(p); else flush(i); });",
+              "    const allT = ser.flatMap(q => q.pts.map(p => p.t)), segStart = new Set(csSegments(s.pts.map(p => ({ x: p.t })), allT).slice(1).map(sg => sg[0].x));\n    s.pts.forEach((p, i) => { if (segStart.has(p.t)) flush(i); if (isFinite(p.lo) && isFinite(p.hi)) run.push(p); else flush(i); });")
+    e = patch(e, "    s.pts.forEach((p, i) => { d += (i ? 'L' : 'M') + sx(p.t).toFixed(1) + ',' + sy(p.y).toFixed(1); });",
+              "    { const allT = ser.flatMap(q => q.pts.map(p => p.t)); csSegments(s.pts.map(p => ({ x: p.t, p })), allT).forEach(sg => sg.forEach((q, i) => { d += (i ? 'L' : 'M') + sx(q.p.t).toFixed(1) + ',' + sy(q.p.y).toFixed(1); })); }")
     return e
 
 

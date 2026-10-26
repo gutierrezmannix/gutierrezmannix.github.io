@@ -17,7 +17,7 @@ assert.equal(c.tsRText(res,scripts),['','t test of coefficients:','',
 'gmts_trend   0.394414   0.022379 17.6246 5.600e-16 ***',
 'gmts_post    3.018086   0.540545  5.5834 7.259e-06 ***',
 'gmts_since  -0.244214   0.069187 -3.5298  0.001573 ** ',
-'---',"Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1"].join('\n'));
+'---','Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1'].join('\n'));
 const st=c.tsStataText(res,scripts);
 assert.match(st,/F\(3, 26\)          =     251\.17/);// R: Wald F with NeweyWest covariance = 251.1688
 assert.match(st,/\n  gmts_trend \|   \.3944143   \.0223787    17\.62   0\.000 /);assert.match(st,/\n       _cons \|    19\.5629   \.2268158    86\.25   0\.000 /);

@@ -43,4 +43,17 @@ assert.equal(hu.r,'pscl::hurdle(protests ~ factor(majority) + ideol_range + offs
  const sc=E.csScene('conjoint',d,{});for(const t of ['>Gender</text>','>Male (ref.)</text>','>Female</text>','>Age</text>'])assert.ok(sc.markup.includes(t),t);assert.equal(sc.table.length,4);assert.deepEqual(sc.table[0],['Gender','Male','All',0,null,null]);assert.match(sc.note,/reference levels/);
  const bad=E.csPrepare('conjoint',{x:['A'],y:[.2],lo:[NaN],hi:[NaN]});assert.throws(()=>E.csScene('conjoint',bad,{}),/Level “A” has no confidence bounds/);
  const mm=E.csScene('conjoint',E.csPrepare('conjoint',{x:['A','B'],y:[.45,.55],lo:[.4,.5],hi:[.5,.6]}),{refLine:'0.5'});assert.match(mm.note,/Dashed line at 0\.5/);}
+// Exact normal / chi-square tails (R's pnorm and pchisq), so console printouts match R digit for digit.
+assert.equal(E.pZ(6.4131).toExponential(4),'1.4259e-10');assert.ok(Math.abs(E.pChi2(693.6064,2)/2.428197e-151-1)<1e-5);
+// R's coeftest() table (printCoefmat rules), checked against real R output for glm(parties ~ democ, poisson).
+assert.equal(c.rCoefText(['(Intercept)','democ'],[{b:0.5990069,se:0.0934032,t:6.413128,p:1.4259e-10},{b:0.1094283,se:0.0295522,t:3.702907,p:0.00021322}],'z'),['','z test of coefficients:','','            Estimate Std. Error z value  Pr(>|z|)    ','(Intercept) 0.599007   0.093403  6.4131 1.426e-10 ***','democ       0.109428   0.029552  3.7029 0.0002132 ***','---','Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1'].join('\n'));
+// Regression commands Stata and R can run: text factors encoded; clustered R fits drop rows without a cluster.
+c.effMeta=n=>({type:n==='region'?'string':'numeric'});
+assert.equal(c.regFix('regress turnout lgdp i.compulsory i.region, vce(robust)',{t:'reg',xs:[{n:'lgdp'},{n:'compulsory',c:true},{n:'region',c:true}]},'stata'),'encode region, generate(region_c)\nregress turnout lgdp i.compulsory i.region_c, vce(robust)');
+assert.match(c.regFix('m <- glm(protest ~ democ, family = binomial, data = df)\ncoeftest(m, vcov = vcovCL(m, cluster = ~region))',{t:'reg',m:'logistic',xs:[],vce:{type:'cluster',cl:'region'}},'r'),/data = subset\(df, !is\.na\(region\)\)/);
+assert.equal(c.regFix('summary(glm(parties ~ democ, family = poisson, data = df))',{t:'reg',m:'poisson',xs:[]},'r'),'library(lmtest)\nm <- glm(parties ~ democ, family = poisson, data = df)\ncoeftest(m)');
+// Timeline commands draw the plotted means (not the raw rows), with the band and breaks at missing periods.
+c.numVals=n=>n==='year'?{a:Float64Array.from([1990,1991,1992,1994,1990,1991])}:null;
+const tl=c.lineCmd({x:'year',ci:'ci'},'stata',['democracy'],null,[]);assert.match(tl,/collapse \(mean\) democracy \(sd\) gm_sd=democracy \(count\) gm_n=democracy, by\(year\)\ntsset year\ntsfill/);assert.match(tl,/\(rarea gm_lo gm_hi year, sort\) \(line democracy year, sort cmissing\(n\)\)/);
+assert.match(c.lineCmd({x:'year',g:'region'},'r',['democracy'],['"Asia"','"Africa"'],[]),/aggregate\(democracy ~ year \+ region, d,[\s\S]*expand\.grid\(year = seq\(min\(a\$year\), max\(a\$year\), by = 1\), region = unique\(a\$region\)\)[\s\S]*colour = region\)\) \+ geom_line\(\)/);
 clearTimeout(c._ghostT);console.log('Analysis commands (Cox, lasso, exact McNemar), alias relabelling and cumulative keep/drop filters passed.');

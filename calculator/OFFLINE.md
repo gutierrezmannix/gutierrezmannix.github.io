@@ -253,3 +253,39 @@ of `cregg` (feature, level, estimate, lower, upper) and plotted. Fixed:
   meaningless "All" legend is gone.
 - Intervals are no longer cut at the plot edge (axes padded, round ticks). The data table lists attribute, level,
   group, estimate and bounds.
+
+## Build .44 — correlation, t-tests, regression and the Timeline chart
+
+Tested with a 160-country dataset (log GDP, democracy, turnout, compulsory voting, region, protest, trust, number of
+parties; missing values) and a 30-country democracy panel, 1990–2020 (2005 missing). All estimates on the pages
+equal R:
+- correlation: `cor.test`, Spearman, slope;
+- t-tests: Welch, one-sample, paired;
+- ANOVA: `aov`, Bartlett's test;
+- regression: `lm` with classical and HC1 SEs and the robust Wald F, `glm` logit with clustered SEs, `MASS::polr`
+  and Poisson `glm`;
+- Timeline: yearly means and t-based 95% bands.
+
+Fixed:
+- **Regression results never appeared in the console or the Output view.** The entry was logged when Run model was
+  pressed, before the model was fitted, so only the command showed. The table now appears once the model is fitted.
+- **Console output as Stata and R print it:**
+  - Correlation: `pwcorr …, sig obs` and R's `cor.test` printout.
+  - Compare means: `ttest …, unequal` / `oneway` (with Bartlett's test) and `t.test` / `summary(aov)`.
+  - Regression in Stata: the `regress` ANOVA table, or the "Linear regression" header with *Robust std. err.* and
+    the cluster note; logit / ologit / Poisson headers; factor variables as blocks with their levels; `%9.0g` numbers.
+  - Regression in R: `coeftest()` tables and `summary(polr)`.
+  - The R printouts were diffed against real R and are identical.
+- **Commands that run.**
+  - Stata `regress … i.region` failed for text variables (Stata needs numbers), so they are `encode`d first.
+  - R's clustered `vcovCL` stopped with "cannot handle NAs in 'cluster'" when the cluster variable had missing
+    values; the R command now drops those rows, as the app and Stata do.
+  - The margins R code read `m <- library(sandwich)…` for robust and clustered models.
+- **Timeline chart:**
+  - Its commands drew the raw rows (`twoway line y x` / `plot(y ~ x, type = "l")`, which zig-zag through every
+    country), while the chart plots the mean per year. They now collapse to means, add the confidence band, and
+    fill missing periods (`tsfill` / a completed grid). This was checked in R.
+  - Lines and bands now break at years with no data instead of joining 2004 to 2006.
+- **Few clusters are flagged on the Regression page**: "4 clusters — fewer than ~30: these SEs can be too small".
+- **Exact p-values:** the classic tabs' normal and χ² tails now use R's algorithms. Very small p-values in console
+  printouts matched R only to about 1e-7 before.

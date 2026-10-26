@@ -221,7 +221,7 @@
     const cols=['Estimate','Std. Error','t value','Pr(>|t|)',...(stars?['']:[])],cells=shown.map((r,i)=>[fcs[2*i],fcs[2*i+1],ft[i],fp[i],...(stars?[st(r.p)]:[])]);
     const w=cols.map((c,j)=>Math.max(c.length,...cells.map(r=>r[j].length))),w0=Math.max(...names.map(n=>n.length));
     const lines=['','t test of coefficients:','',' '.repeat(w0)+cols.map((c,j)=>' '+c.padStart(w[j])).join(''),...cells.map((r,i)=>names[i].padEnd(w0)+r.map((c,j)=>' '+c.padStart(w[j])).join(''))];
-    if(stars)lines.push('---',"Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1");
+    if(stars)lines.push('---','Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1');
     if(res.fe)lines.push('# (Intercept) and factor('+p+'unit) rows are not shown: the app removes each unit’s mean instead (same slopes and standard errors).');
     return lines.join('\n');
   }

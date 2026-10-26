@@ -154,6 +154,111 @@
       for(const r of rows){cum+=r.c;out.push(R(String(r.label).slice(0,lw),lw)+' |'+R(cnt(r.c),11)+R((100*r.c/tot).toFixed(2),12)+R((100*cum/tot).toFixed(2),12));}
       out.push('-'.repeat(lw+1)+'+-----------------------------------',R('Total',lw)+' |'+R(d.w?G(tot*norm):this.fmtN(tot),11)+R('100.00',12));return out.join('\n');}
     return '';}
+  // Correlation in the console: Stata's pwcorr x y, sig obs layout and R's cor.test() printout.
+  corrStataText(d){const M=this.memoView(),c=M['corr|'+d.x+'|'+d.y];if(!c||c.error)return '';const R=(v,w)=>String(v).padStart(w),nm=v=>this.abbr(v,8),cnt=v=>{const a=(this.numVals(v)||{}).a||[],mk=this.mask();let k=0;for(let i=0;i<a.length;i++)if(Number.isFinite(a[i])&&(!mk||mk[i]))k++;return k;};
+    const p4=v=>Number.isFinite(v)?v.toFixed(4):'.',blank='             |';
+    return [R('',13)+'|'+R(nm(d.x),9)+R(nm(d.y),9),'-------------+------------------',R(this.abbr(d.x,12),12)+' |'+R('1.0000',9)+' ',blank,blank+R(cnt(d.x),9),blank,R(this.abbr(d.y,12),12)+' |'+R(p4(c.pearson.r),9)+R('1.0000',9)+' ',blank+R(p4(c.pearson.p),9),blank+R(c.n,9)+R(cnt(d.y),9),blank].join('\n');}
+  corrRText(d){const M=this.memoView(),c=M['corr|'+d.x+'|'+d.y];if(!c||c.error)return '';const r=c.pearson.r,n=c.n,t=r*Math.sqrt((n-2)/(1-r*r)),f=(v,k)=>this.rFormat([v],k)[0].trim(),p=c.pearson.p;
+    const L=['','\tPearson’s product-moment correlation'.replace('’',"'"),'','data:  df$'+d.x+' and df$'+d.y,'t = '+f(t,5)+', df = '+(n-2)+', p-value '+(p<2.2e-16?'< 2.2e-16':'= '+f(p,4)),'alternative hypothesis: true correlation is not equal to 0'];
+    if(n>3){const z=Math.atanh(r),h=1.959963984540054/Math.sqrt(n-3),ci=this.rFormat([Math.tanh(z-h),Math.tanh(z+h)]);L.push('95 percent confidence interval:',' '+ci.join(' '));}
+    const e=f(r,7),w=Math.max(3,e.length);L.push('sample estimates:','cor'.padStart(w)+' ',e.padStart(w)+' ');return L.join('\n');}
+  // Compare means (two-variable tab) in the console: Stata's ttest …, by() unequal / oneway (with Bartlett's test)
+  // and R's t.test() / summary(aov()) printouts, from the same group statistics the page shows.
+  meansGroups(d){const M=this.memoView(),G=M['grp|'+d.g+'|'+d.y];if(!G)return null;const L=this.sortGroups(G.levels.filter(g=>g.n>=2&&isFinite(g.sd)),'name');return L.length>=2?L:null;}
+  meansStataText(d){const L=this.meansGroups(d);if(!L)return '';const E=this._E,R=(v,w)=>String(v).padStart(w),g=v=>this.stataG(v),n=v=>Number(v).toLocaleString('en-US'),p4=v=>Number.isFinite(v)?v.toFixed(4):'.',ab=v=>{v=String(v);return v.length>8?v.slice(0,6)+'~'+v.slice(-1):v;},dash='-'.repeat(78),mid='---------+'+'-'.repeat(68);
+    if(L.length===2){const [a,b]=L,se=Math.sqrt(a.sd**2/a.n+b.sd**2/b.n),T=E.welch(a,b),t=(a.mean-b.mean)/se,cr=E.ttCritical(.05,T.df),row=x=>{const s=x.sd/Math.sqrt(x.n),c=E.ttCritical(.05,x.n-1);return R(ab(x.label),8)+' |'+R(n(x.n),8)+R(g(x.mean),12)+R(g(s),12)+R(g(x.sd),12)+R(g(x.mean-c*s),12)+R(g(x.mean+c*s),12);},lo=T.p/2,tl=t<0?lo:1-lo;
+      return ['Two-sample t test with unequal variances',dash,'   Group |     Obs        Mean    Std. err.   Std. dev.   [95% conf. interval]',mid,row(a),row(b),mid,R('diff',8)+' |'+R('',8)+R(g(a.mean-b.mean),12)+R(g(se),12)+R('',12)+R(g(a.mean-b.mean-cr*se),12)+R(g(a.mean-b.mean+cr*se),12),dash,
+        ('    diff = mean('+ab(a.label)+') - mean('+ab(b.label)+')').padEnd(66)+'t = '+R(p4(t),8),'H0: diff = 0'.padEnd(33)+"Satterthwaite's degrees of freedom = "+R(g(T.df),8),'','    Ha: diff < 0'.padEnd(29)+'Ha: diff != 0'.padEnd(30)+'Ha: diff > 0',' Pr(T < t) = '+p4(tl)+'         Pr(|T| > |t|) = '+p4(T.p)+'          Pr(T > t) = '+p4(1-tl)].join('\n');}
+    const N=L.reduce((t,x)=>t+x.n,0),k=L.length,gm=L.reduce((t,x)=>t+x.n*x.mean,0)/N,ssb=L.reduce((t,x)=>t+x.n*(x.mean-gm)**2,0),ssw=L.reduce((t,x)=>t+(x.n-1)*x.sd**2,0),F=(ssb/(k-1))/(ssw/(N-k)),pF=E.pF(F,k-1,N-k);
+    const sp=ssw/(N-k),bart=((N-k)*Math.log(sp)-L.reduce((t,x)=>t+(x.n-1)*Math.log(x.sd**2),0))/(1+(L.reduce((t,x)=>t+1/(x.n-1),0)-1/(N-k))/(3*(k-1))),pb=1-E.pChi2(bart,k-1);void pb;
+    const ss=v=>{let t=v.toPrecision(9);if(t.length>10)t=v.toPrecision(8);return t.includes('e')?g(v):t;},line='-'.repeat(72);
+    return ['                        Analysis of variance','    Source              SS         df      MS            F     Prob > F',line,'Between groups'.padEnd(20)+R(ss(ssb),10)+R(k-1,7)+R(ss(ssb/(k-1)),13)+R(F.toFixed(2),10)+R(p4(pF),11),' Within groups'.padEnd(20)+R(ss(ssw),10)+R(N-k,7)+R(ss(ssw/(N-k)),13),line,'    Total'.padEnd(20)+R(ss(ssb+ssw),10)+R(N-1,7)+R(ss((ssb+ssw)/(N-1)),13),'',"Bartlett's equal-variances test: chi2("+(k-1)+') = '+R(bart.toFixed(4),8)+'    Prob>chi2 = '+E.pChi2(bart,k-1).toFixed(3)].join('\n');}
+  meansRText(d){const L=this.meansGroups(d);if(!L)return '';const E=this._E,f=(v,k)=>this.rFormat([v],k)[0].trim();
+    if(L.length===2){const [a,b]=L,se=Math.sqrt(a.sd**2/a.n+b.sd**2/b.n),T=E.welch(a,b),t=(a.mean-b.mean)/se,cr=E.ttCritical(.05,T.df),ci=this.rFormat([a.mean-b.mean-cr*se,a.mean-b.mean+cr*se]),e1='mean in group '+a.label,e2='mean in group '+b.label,ev=this.rFormat([a.mean,b.mean]),w1=Math.max(e1.length,ev[0].length),w2=Math.max(e2.length,ev[1].length);
+      return ['','\tWelch Two Sample t-test','','data:  '+d.y+' by '+d.g,'t = '+f(t,5)+', df = '+f(T.df,5)+', p-value '+(T.p<2.2e-16?'< 2.2e-16':'= '+f(T.p,4)),'alternative hypothesis: true difference in means between group '+a.label+' and group '+b.label+' is not equal to 0','95 percent confidence interval:',' '+ci.join(' '),'sample estimates:',e1.padStart(w1)+' '+e2.padStart(w2)+' ',ev[0].padStart(w1)+' '+ev[1].padStart(w2)+' '].join('\n');}
+    const N=L.reduce((t,x)=>t+x.n,0),k=L.length,gm=L.reduce((t,x)=>t+x.n*x.mean,0)/N,ssb=L.reduce((t,x)=>t+x.n*(x.mean-gm)**2,0),ssw=L.reduce((t,x)=>t+(x.n-1)*x.sd**2,0),F=(ssb/(k-1))/(ssw/(N-k)),pF=E.pF(F,k-1,N-k);
+    // print.anova → printCoefmat(digits = 4): Df as is, Sum Sq / Mean Sq zapsmall()ed then formatted, F rounded to 3 decimals, format.pval(digits = 3)
+    const zap=v=>{const mx=Math.max(...v.map(Math.abs));const r=mx>0?Math.max(0,4-Math.ceil(Math.log10(mx))):4;return v.map(x=>Number(x.toFixed(r)));};
+    const df=[k-1,N-k].map(String),sq=this.rFormat(zap([ssb,ssw]),4),ms=this.rFormat(zap([ssb/(k-1),ssw/(N-k)]),4),fv=[this.rFormat([Number(F.toFixed(3))],4)[0],''],pv=[this.tsRPval?this.tsRPval([pF],3)[0]:f(pF,3),''];
+    const stars=pF<0.1,st=v=>(v<0.001?'***':v<0.01?'**':v<0.05?'*':v<0.1?'.':' ').padEnd(3),cols=['Df','Sum Sq','Mean Sq','F value','Pr(>F)',...(stars?['']:[])],cells=[0,1].map(i=>[df[i],sq[i],ms[i],fv[i],pv[i],...(stars?[i?'   ':st(pF)]:[])]);
+    const rn=[d.g,'Residuals'],rw=Math.max(...rn.map(x=>x.length))+2,w=cols.map((c,j)=>Math.max(c.length,...cells.map(r=>r[j].trim().length)));
+    const out=[' '.repeat(rw)+cols.map((c,j)=>' '+c.padStart(w[j])).join(''),...cells.map((r,i)=>rn[i].padEnd(rw)+r.map((c,j)=>' '+c.trim().padStart(w[j])).join(''))];
+    if(stars)out.push('---','Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1');
+    const yv=(this.numVals(d.y)||{}).a||[],gl=this.groupLab(d.g)||[],mk=this.mask();let miss=0;for(let i=0;i<yv.length;i++)if((!mk||mk[i])&&(!Number.isFinite(yv[i])||gl[i]==null||gl[i]===''))miss++;
+    if(miss)out.push(miss+' observation'+(miss>1?'s':'')+' deleted due to missingness');return out.join('\n');}
+  // Regression in the console, as Stata and R print it. Stata: regress / logit / ologit / poisson headers (ANOVA
+  // table for classical OLS; "Linear regression" and Robust std. err. for robust or clustered fits), factor
+  // variables as blocks with their levels, %9.0g numbers. R: coeftest() tables (printCoefmat rules) and
+  // summary(polr) for ordered logit. Numbers are the page's estimates.
+  regModelFor(d){const M=this.memoView(),key=d.m==='ols'?'reg|ols|':d.m==='logistic'?'reg|logit|':d.m==='ologit'?'reg|olog|':'reg|pois|';const Mo=M[key+d.y+'|'+d.xs.map(x=>x.n).join(',')+'|'+(d.ix||[]).map(p=>p.a+'*'+p.b).join(',')+'|'+(d.vce?d.vce.type+':'+(d.vce.type==='cluster'?d.vce.cl:(d.vce.psu||'')+'/'+(d.vce.st||'')):'c')];return Mo&&!Mo.error?Mo:null;}
+  regRows(d,Mo){const lvOrder=v=>{const nums=v.every(x=>x!==''&&isFinite(Number(x)));return v.slice().sort((a,b)=>nums?Number(a)-Number(b):(a<b?-1:a>b?1:0));};const out=[],used=new Set();
+    for(const x of d.xs){if(!x.c){const c=Mo.coefs.find(q=>q.term===x.n);if(c){out.push({kind:'x',v:x.n,c});used.add(c);}continue;}
+      const pre=x.n+' = ',cs=Mo.coefs.filter(q=>q.term.startsWith(pre)),lv=lvOrder(cs.map(q=>q.term.slice(pre.length)));if(cs.length)out.push({kind:'f',v:x.n,levels:lv.map(l=>({l,c:cs.find(q=>q.term===pre+l)}))});cs.forEach(q=>used.add(q));}
+    for(const c of Mo.coefs)if(!used.has(c)&&c.term!=='(constant)')out.push({kind:'x',v:c.term,c});const cons=Mo.coefs.find(q=>q.term==='(constant)');return {out,cons};}
+  regStataText(d){const Mo=this.regModelFor(d);if(!Mo)return '';const E=this._E,R=(v,w)=>String(v).padStart(w),G=v=>this.stataG(v),ols=d.m==='ols',rob=d.vce&&(d.vce.type==='robust'||d.vce.type==='cluster'),cl=d.vce&&d.vce.type==='cluster';
+    if(d.vce&&!rob)return '';
+    const dfT=ols?(Mo.dfT!=null&&Mo.dfT>0?Mo.dfT:Mo.df2):Infinity,crit=Number.isFinite(dfT)?E.critInv(.05,dfT):1.959963984540054,zc=ols?'t':'z',L=[],n=this.fmtN(Mo.n),f4=v=>Number.isFinite(v)?v.toFixed(4):'.',ss=v=>{let t=v.toPrecision(9);if(t.length>10)t=v.toPrecision(8);return t.includes('e')?G(v):t;};
+    if(ols&&!rob){const R2=(l,k,v)=>l+'   '+k.padEnd(16)+'='+R(v,10),ssm=Mo.sst-Mo.sse,top='-------------+----------------------------------';
+      L.push(R2('      Source |       SS           df       MS   ','Number of obs',n),R2(top,'F('+Mo.df1+', '+Mo.df2+')',Mo.F.toFixed(2)),R2('       Model |'+R(ss(ssm),12)+R(Mo.df1,10)+R(ss(ssm/Mo.df1),12),'Prob > F',f4(Mo.pModel)),R2('    Residual |'+R(ss(Mo.sse),12)+R(Mo.df2,10)+R(ss(Mo.sse/Mo.df2),12),'R-squared',f4(Mo.R2)),R2(top,'Adj R-squared',f4(Mo.adjR2)),R2('       Total |'+R(ss(Mo.sst),12)+R(Mo.df1+Mo.df2,10)+R(ss(Mo.sst/(Mo.df1+Mo.df2)),12),'Root MSE',String(Number(Mo.rmse.toPrecision(5)))),'');}
+    else if(ols){const H=(l,k,v)=>l.padEnd(48)+k.padEnd(18)+'='+R(v,11);L.push(H('Linear regression','Number of obs',n),H('','F('+Mo.df1+', '+Mo.df2+')',Number.isFinite(Mo.F)?Mo.F.toFixed(2):'.'),H('','Prob > F',f4(Mo.pModel)),H('','R-squared',f4(Mo.R2)),H('','Root MSE',String(Number(Mo.rmse.toPrecision(5)))),'');}
+    else{const title={logistic:'Logistic regression',ologit:'Ordered logistic regression',poisson:'Poisson regression'}[d.m],H=(l,k,v)=>l.padEnd(56)+k.padEnd(14)+'= '+R(v,6),lr=2*(Mo.ll-Mo.llNull),k=Mo.coefs.filter(q=>q.term!=='(constant)').length;
+      L.push(H(title,'Number of obs',n));if(!rob)L.push(H('','LR chi2('+k+')',lr.toFixed(2)),H('','Prob > chi2',f4(E.pChi2(lr,k))));L.push(H((rob?'Log pseudolikelihood = ':'Log likelihood = ')+Number(Mo.ll.toPrecision(8)),'Pseudo R2',f4(Mo.mcfadden)),'');}
+    if(cl){const G0=this.groupLab(d.vce.cl)||[],mk=this.mask();const set=new Set();G0.forEach((g,i)=>{if(g!=null&&g!==''&&(!mk||mk[i]))set.add(g);});L.push(('(Std. err. adjusted for '+set.size+' clusters in '+d.vce.cl+')').padStart(78));}
+    const row=(lab,c)=>lab+' |'+R(G(c.b),11)+R(G(c.se),11)+R(Number.isFinite(c.t)?c.t.toFixed(2):'.',9)+R(Number.isFinite(c.p)?c.p.toFixed(3):'.',8)+R(G(c.b-crit*c.se),13)+R(G(c.b+crit*c.se),12);
+    L.push('------------------------------------------------------------------------------');if(rob)L.push('             |               Robust');L.push(R(this.abbr(d.y,12),12)+' | Coefficient  '+(rob?'std. err.':'Std. err.')+'      '+zc+'    P>|'+zc+'|     [95% conf. interval]','-------------+----------------------------------------------------------------');
+    const {out,cons}=this.regRows(d,Mo);out.forEach(r=>{if(r.kind==='x')L.push(row(R(this.abbr(r.v,12),12),r.c));else{if(L[L.length-1]!=='             |')L.push('             |');L.push(R(this.abbr(r.v,12),12)+' |');r.levels.forEach(q=>{if(q.c)L.push(row(R(String(q.l).slice(0,10),11)+' ',q.c));});L.push('             |');}});
+    if(cons)L.push(row(R('_cons',12),cons));
+    if(Mo.cuts&&Mo.cuts.length){L.push('-------------+----------------------------------------------------------------');Mo.cuts.forEach((c,i)=>L.push(R('/cut'+(i+1),12)+' |'+R(G(c.b),11)+R(G(c.se),11)+R('',17)+R(G(c.b-crit*c.se),13)+R(G(c.b+crit*c.se),12)));}
+    L.push('------------------------------------------------------------------------------');return L.join('\n');}
+  rCoefText(names,rows,stat){// lmtest's print.coeftest: printCoefmat(digits = 5)
+    const fin=v=>Number.isFinite(v),digits=5,cs=rows.flatMap(r=>[r.b,r.se]),acs=cs.map(Math.abs).filter(v=>fin(v)&&v!==0),digmin=1+(acs.length?Math.floor(Math.log10(Math.min(...acs))):0),dec=Math.max(1,digits-digmin);
+    const fcs=this.rFormat(cs.map(v=>fin(v)?Number(v.toFixed(Math.min(dec,100))):v),digits);cs.forEach((v,i)=>{if(fin(v)&&v!==0&&Number(fcs[i])===0)fcs[i]=this.rFormat([v],digits-1)[0];});
+    const ft=this.rFormat(rows.map(r=>fin(r.t)?Number(r.t.toFixed(4)):r.t),digits),fp=this.tsRPval(rows.map(r=>r.p)),stars=rows.some(r=>r.p<0.1),st=v=>(v<0.001?'***':v<0.01?'**':v<0.05?'*':v<0.1?'.':' ').padEnd(3);
+    const cols=['Estimate','Std. Error',stat+' value','Pr(>|'+stat+'|)',...(stars?['']:[])],cells=rows.map((r,i)=>[fcs[2*i],fcs[2*i+1],ft[i],fp[i],...(stars?[st(r.p)]:[])]),w=cols.map((c,j)=>Math.max(c.length,...cells.map(r=>r[j].length))),w0=Math.max(...names.map(x=>x.length));
+    const L=['',stat+' test of coefficients:','',' '.repeat(w0)+cols.map((c,j)=>' '+c.padStart(w[j])).join(''),...cells.map((r,i)=>names[i].padEnd(w0)+r.map((c,j)=>' '+c.padStart(w[j])).join(''))];if(stars)L.push('---','Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1');return L.join('\n');}
+  regRText(d){const Mo=this.regModelFor(d);if(!Mo||(d.vce&&d.vce.type!=='robust'&&d.vce.type!=='cluster'))return '';const {out,cons}=this.regRows(d,Mo),names=[],rows=[];
+    if(cons&&d.m!=='ologit'){names.push('(Intercept)');rows.push(cons);}out.forEach(r=>{if(r.kind==='x'){names.push(r.v);rows.push(r.c);}else r.levels.forEach(q=>{if(q.c){names.push('factor('+r.v+')'+q.l);rows.push(q.c);}});});
+    if(d.m!=='ologit'||d.vce)return this.rCoefText(names,rows,d.m==='ols'?'t':'z');
+    // summary(polr)
+    const f4=vals=>this.rFormat(vals,4),xs=d.xs.map(x=>x.c?'factor('+x.n+')':x.n).join(' + '),call='MASS::polr(formula = factor('+d.y+') ~ '+xs+', data = df, Hess = TRUE)',parts=call.split(/(?<=, )/);let line='',lines=[];parts.forEach(pt=>{if(line.length>=60){lines.push(line);line='    ';}line+=pt;});lines.push(line);lines=lines.map(l=>l.replace(/\s+$/,''));
+    const tv=rows.map(c=>c.b/c.se),cv=[f4(rows.map(c=>c.b)),f4(rows.map(c=>c.se)),f4(tv)],w0=Math.max(...names.map(x=>x.length)),hd=['Value','Std. Error','t value'],cw=hd.map((h,j)=>Math.max(h.length,...cv[j].map(x=>x.length)));
+    const zn=(Mo.levels||[]).slice(0,-1).map((l,i)=>l+'|'+Mo.levels[i+1]),all=[...rows.map(c=>[c.b,c.se,c.b/c.se]),...Mo.cuts.map(c=>[c.b,c.se,c.b/c.se])].flat().map(v=>Number(v.toFixed(4))),fa=this.rFormat(all).map(x=>x.trim()),aw=Math.max(...fa.map(x=>x.length)),k=rows.length,iw=hd.map(h=>Math.max(h.length,aw)),zw=Math.max(...zn.map(x=>x.length));
+    const dev=-2*Mo.ll,fmtN2=v=>{let t=String(Number(v.toPrecision(7)));if(!t.includes('.'))t+='.00';else if(t.split('.')[1].length<2)t+='0';return t;};
+    const yv=(this.numVals(d.y)||{}).a||[],mk=this.mask(),cols=d.xs.map(x=>x.c?(this.groupLab(x.n)||[]):((this.numVals(x.n)||{}).a||[]));let miss=0;for(let i=0;i<yv.length;i++){if(mk&&!mk[i])continue;if(!Number.isFinite(yv[i])||cols.some(cn=>cn[i]==null||cn[i]===''||(typeof cn[i]==='number'&&!Number.isFinite(cn[i]))))miss++;}
+    const out2=['Call:',...lines,'','Coefficients:',' '.repeat(w0)+hd.map((h,j)=>' '+h.padStart(cw[j])).join(''),...names.map((nm,i)=>nm.padEnd(w0)+cv.map((c,j)=>' '+c[i].padStart(cw[j])).join('')),'','Intercepts:',' '.repeat(zw)+hd.map((h,j)=>' '+h.padEnd(iw[j])).join(''),...zn.map((z,i)=>z.padEnd(zw)+[0,1,2].map(j=>' '+fa[3*(k+i)+j].padEnd(iw[j])).join('')),'','Residual Deviance: '+fmtN2(dev)+' ','AIC: '+fmtN2(dev+2*(k+Mo.cuts.length))+' '];
+    if(miss)out2.push('('+miss+' observation'+(miss>1?'s':'')+' deleted due to missingness)');return out2.join('\n');}
+  // Stata needs numbers for factor variables (text variables are encoded first); R's clustered vcov needs rows
+  // with an observed cluster; classical lm / glm print the coeftest() table.
+  regFix(s,d,dial){if(d.t!=='reg'||!s)return s;
+    if(dial==='stata'){const str=[...d.xs.filter(x=>x.c).map(x=>x.n),...(d.ix||[]).flatMap(p=>[p.ca?p.a:null,p.cb?p.b:null]).filter(Boolean)].filter((v,i,a)=>a.indexOf(v)===i&&(this.effMeta(v)||{}).type!=='numeric');if(!str.length)return s;
+      return str.map(v=>'encode '+v+', generate('+v+'_c)').join('\n')+'\n'+str.reduce((t,v)=>t.replace(new RegExp('\\bi\\.'+v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','g'),'i.'+v+'_c'),s);}
+    if(d.vce&&d.vce.type==='cluster')s=s.replace(/data = (df|sub)\b/,(m,x)=>'data = subset('+x+', !is.na('+d.vce.cl+'))');
+    if(!d.vce&&d.m!=='ologit'){const lines=s.split('\n'),last=lines.pop(),mm=last.match(/^summary\(((?:lm|glm)\([\s\S]*\))\)\s*$/);if(mm)return [...lines,'library(lmtest)','m <- '+mm[1],'coeftest(m)'].join('\n');}
+    return s;}
+  // The table shown under a console / Output entry. Regression entries are logged when Run model is pressed, before
+  // the model is fitted, so their tables are filled in (and kept in the entry) once the same model is on screen.
+  conTable(d,dial){const t=(dial==='r'?d.tblR:d.tblStata)||d.tbl;if(t||d.t!=='reg')return t||'';
+    try{const cur=this.descFor&&this.descFor(),sig=x=>x&&JSON.stringify([x.m,x.y,x.xs,x.ix||[],x.vce||null,x.w||'']);if(!cur||sig(cur)!==sig(d))return '';const st=this.tableFor(d),r=this.regRText(d);if(st){d.tblStata=st;d.tbl=st;}if(r)d.tblR=r;return (dial==='r'?r:st)||'';}catch(e){return '';}}
+  // Timeline commands that draw what the chart draws: the mean of each variable at each time (by group when lines
+  // are separated), the t-based confidence band, and breaks where a period has no data (tsfill / completed grid).
+  lineCmd(d,dial,yl,inL,rng){const x=d.x,g=inL?d.g:'',ci=d.ci==='ci'&&yl.length===1,y=yl[0],q=v=>JSON.stringify(String(v));
+    const xs=[...new Set(Array.from((this.numVals(x)||{}).a||[]).filter(Number.isFinite))].sort((a,b)=>a-b),gcd=(a,b)=>{while(b>1e-9){[a,b]=[b,a%b];}return a;};let k=0;for(let i=1;i<xs.length;i++)k=gcd(k,xs[i]-xs[i-1]);const intX=xs.every(Number.isInteger),step=intX&&k>=1?Math.round(k):0;
+    const gv=inL?inL.map(v=>v.replace(/^"|"$/g,'')):[],gNum=g&&(this.effMeta(g)||{}).type==='numeric',gs=gv.slice().sort((a,b)=>gNum?Number(a)-Number(b):(a<b?-1:a>b?1:0));
+    if(dial==='stata'){const conds=[...(inL?['inlist('+g+', '+inL.join(', ')+')']:[]),...rng],L=['preserve'];if(conds.length)L.push('keep if '+conds.join(' & '));
+      L.push('collapse (mean) '+yl.join(' ')+(ci?' (sd) gm_sd='+y+' (count) gm_n='+y:'')+(d.w?' [aw='+d.w+']':'')+', by('+x+(g?' '+g:'')+')');
+      const gid=g?(gNum?g:g+'_c'):'';if(g&&!gNum)L.push('encode '+g+', generate('+g+'_c)');
+      if(step){L.push((g?'xtset '+gid+' ':'tsset ')+x+(step>1?', delta('+step+')':''),'tsfill'+(g?', full':''));}
+      if(ci)L.push('gen gm_lo = '+y+' - invttail(gm_n-1, '+((d.alpha||0.05)/2)+')*gm_sd/sqrt(gm_n)','gen gm_hi = '+y+' + invttail(gm_n-1, '+((d.alpha||0.05)/2)+')*gm_sd/sqrt(gm_n)');
+      const series=g?gs.map((v,i)=>({cond:' if '+gid+' == '+(gNum?v:(i+1)),lab:v})):[{cond:'',lab:''}],lay=[];
+      series.forEach(sr=>{if(ci)lay.push('(rarea gm_lo gm_hi '+x+sr.cond+', sort)');yl.forEach(v=>lay.push('(line '+v+' '+x+sr.cond+', sort cmissing(n))'));});
+      L.push('twoway '+lay.join(' ')+(g?', legend(order('+gs.map((v,i)=>((ci?2:1)*(i+1)*yl.length)+' '+q(v)).join(' ')+'))':''),'restore');return L.join('\n');}
+    const filt=[...(inL?[g+' %in% c('+inL.join(', ')+')']:[]),...rng],dat=filt.length?'subset(df, '+filt.join(' & ')+')':'df',by=x+(g?' + '+g:''),L=['library(ggplot2)','d <- '+dat];
+    if(yl.length>1)L.push('long <- tidyr::pivot_longer(d, c('+yl.join(', ')+'))','ggplot(long, aes('+x+', value, linetype = name'+(g?', colour = '+g:'')+')) + stat_summary(fun = mean, geom = "line")');
+    else{L.push('a <- do.call(data.frame, aggregate('+y+' ~ '+by+', d, function(v) c(m = mean(v), n = length(v), s = sd(v))))');
+      if(step)L.push('a <- merge(expand.grid('+x+' = seq(min(a$'+x+'), max(a$'+x+'), by = '+step+')'+(g?', '+g+' = unique(a$'+g+')':'')+'), a, all.x = TRUE)');
+      const m=y+'.m',hw='qt('+(1-(d.alpha||0.05)/2)+', '+y+'.n - 1) * '+y+'.s / sqrt('+y+'.n)';
+      L.push('ggplot(a, aes('+x+', '+m+(g?', colour = '+g:'')+')) + '+(ci?'geom_ribbon(aes(ymin = '+m+' - '+hw+', ymax = '+m+' + '+hw+(g?', fill = '+g:'')+'), alpha = 0.2, colour = NA) + ':'')+'geom_line()');}
+    return L.join('\n');}
   descRText(d){const M=this.memoView();
     if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';if(d.w)return '[1] '+this.rFormat([s.mean])[0].trim();
       const mx=Math.max(Math.abs(s.mn),Math.abs(s.mx))||1,z=v=>Number(v.toFixed(Math.max(0,5-Math.ceil(Math.log10(mx))))),vals=this.rFormat([s.mn,s.q1,s.med,s.mean,s.q3,s.mx].map(z),4),names=['Min.','1st Qu.','Median','Mean','3rd Qu.','Max.'];
