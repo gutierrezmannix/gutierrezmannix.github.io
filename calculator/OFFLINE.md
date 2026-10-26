@@ -57,3 +57,16 @@ Method-by-method notes and the few documented deviations are in `tools/engine/NO
 - Validation: `tools/engine/README.md` (workflow), `tools/engine/cases/*.mjs` (case generators),
   `tests/engine/cases/` (packets and R reference outputs), `tools/engine/ref.R` (R runner),
   `tools/engine/compare.mjs` (comparison), `tools/engine/dist_check.mjs` (distribution functions vs R).
+
+## Build .33 — spot check (Kruskal–Wallis)
+
+A randomly chosen capability was re-tested end to end (offline, from `file://`): statistics, df and p-values
+match R's `kruskal.test` to ~13 digits on two datasets, with subgroups, missing data and every error message.
+Fixed from that check:
+- **Analyses now appear in the console, the Output view and the session .do / .R file** (all 65 Tests ▾
+  methods): the equivalent Stata and R commands by variable name (e.g. `kwallis life_expectancy, by(region)`,
+  `kruskal.test(life_expectancy ~ region, data = df)`; a comment where there is no single equivalent command)
+  and the result tables. Clicking the entry reopens the analysis.
+- Kruskal–Wallis adds a **Group summaries** table (N, median, mean rank, rank sum — as Stata's `kwallis`
+  reports), also added to the R specification and validated against R.
+- Kruskal–Wallis and Friedman Diagnostics name the variables (`data: life_expectancy by region`).

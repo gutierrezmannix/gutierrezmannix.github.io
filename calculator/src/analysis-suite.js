@@ -59,11 +59,58 @@
     try{
       const result=await this.asCompute(packet,token);
       if(token!==this._asToken)return;if(signature!==this.asSignature())throw Error('Data or settings changed during computation. Run again with the current selections.');
-      this._asResult={signature,result:this.tsRelabel(result,packet),packet};this.setState({analysisError:result.error||'',analysisSub:result.error?'Setup':'Results'});
+      this._asResult={signature,result:this.tsRelabel(result,packet),packet};this.setState({analysisError:result.error||'',analysisSub:result.error?'Setup':'Results'});if(!result.error)this.asLog(info,packet,this._asResult.result);
     }catch(e){if(token===this._asToken)this.setState({analysisError:e.message||String(e)},()=>this.asRunReveal());}finally{if(token===this._asToken){this._asBusy=false;this.setState({analysisBusy:false,analysisStatus:''});}}
   }
   // The built-in engine (validated against R) runs in a Web Worker so the page stays responsive and Cancel can
   // stop it; where workers are unavailable it runs on the page. No internet connection is used.
+  // Every completed analysis goes to the console, the Output view and the session .do / .R file: the equivalent
+  // Stata and R commands by variable name (a comment where there is no single equivalent) and the result tables.
+  asLog(info,packet,result){try{const cmd=this.asCommands(info,packet),lab=k=>result.labels?.[k]||k,txt=v=>v==null?'.':typeof v==='number'?(Number.isInteger(v)?String(v):Math.abs(v)>0&&Math.abs(v)<1e-4?v.toExponential(3):String(Number(v.toPrecision(6)))):String(v).replace(/\bv\d+\b/g,lab);
+    const tbl=(result.tables||[]).filter(t=>!/^Predictions|^Holdout predictions|^Predicted survival|^Data preview|^Cluster membership|scores$/i.test(t.title)).map(t=>{const cols=[].concat(t.columns).map(txt),rows=[].concat(t.rows).slice(0,40).map(r=>[].concat(r).map(txt)),w=cols.map((c,j)=>Math.max(c.length,...rows.map(r=>(r[j]||'').length)));return [t.title,cols.map((c,j)=>j?c.padStart(w[j]):c.padEnd(w[j])).join('  '),...rows.map(r=>r.map((c,j)=>j?c.padStart(w[j]):c.padEnd(w[j])).join('  ')),...(t.totalRows>40?['  … '+(t.totalRows-40)+' more rows (see the Tests page)']:[])].join('\n');}).join('\n\n');
+    this.pushLog({t:'asx',id:info.id,title:info.title,stata:cmd.stata,r:cmd.r,tbl,res:info.title+(result.analysisN?' · N = '+result.analysisN:'')});}catch(e){}}
+  asCommands(info,packet){
+    const f=packet.fields||{},o=packet.options||{},nm=k=>packet.data?.[k]?.name||k,v=r=>(f[r]||[]).map(nm),one=r=>v(r)[0]||'',Y=one('y'),G=one('group'),X=v('predictors'),V=v('variables'),S=one('subject'),T=one('time'),E=one('event'),W=one('weight');
+    const q=s=>/^[A-Za-z.][A-Za-z0-9._]*$/.test(s)?s:'`'+s+'`',rx=X.map(q).join(' + '),sx=X.join(' '),num=k=>o[k]??info.options?.[k];
+    const sum=info.id.startsWith('summary_t')||o.inputMode==='summary';
+    const C={
+      summary_t1:()=>['ttesti '+num('n1')+' '+num('mean1')+' '+num('sd1')+' '+num('null'),null],summary_t2:()=>['ttesti '+num('n1')+' '+num('mean1')+' '+num('sd1')+' '+num('n2')+' '+num('mean2')+' '+num('sd2')+', unequal',null],summary_tp:()=>['ttesti '+num('pairs')+' '+num('meanDifference')+' '+num('sdDifference')+' '+num('null'),null],
+      prop1:()=>sum?['prtesti '+num('trials')+' '+num('successes')+' '+num('null')+', count','prop.test('+num('successes')+', '+num('trials')+', p = '+num('null')+', correct = FALSE)']:['prtest '+Y+' == '+num('null'),'prop.test(sum(df$'+q(Y)+'), nrow(df), p = '+num('null')+', correct = FALSE)'],
+      prop2:()=>sum?['prtesti '+num('trials1')+' '+num('successes1')+' '+num('trials2')+' '+num('successes2')+', count','prop.test(c('+num('successes1')+', '+num('successes2')+'), c('+num('trials1')+', '+num('trials2')+'), correct = FALSE)']:['prtest '+Y+', by('+G+')','prop.test(tapply(df$'+q(Y)+', df$'+q(G)+', sum), table(df$'+q(G)+'), correct = FALSE)'],
+      binomial:()=>sum?['bitesti '+num('trials')+' '+num('successes')+' '+num('null'),'binom.test('+num('successes')+', '+num('trials')+', p = '+num('null')+')']:['bitest '+Y+' == '+num('null'),'binom.test(sum(df$'+q(Y)+'), nrow(df), p = '+num('null')+')'],
+      fisher:()=>sum?[null,'fisher.test(matrix(c('+String(num('table')).trim().split(/[\s,;]+/).join(', ')+'), 2, byrow = TRUE))']:['tabulate '+G+' '+one('group2')+', exact','fisher.test(table(df$'+q(G)+', df$'+q(one('group2'))+'))'],
+      mcnemar:()=>sum?[null,null]:['symmetry '+Y+' '+one('y2'),'mcnemar.test(table(df$'+q(Y)+', df$'+q(one('y2'))+'))'],
+      mannwhitney:()=>['ranksum '+Y+', by('+G+')','wilcox.test('+q(Y)+' ~ '+q(G)+', data = df, exact = FALSE, conf.int = TRUE)'],
+      signedrank:()=>['signrank '+Y+' = '+one('y2'),'wilcox.test(df$'+q(Y)+', df$'+q(one('y2'))+', paired = TRUE, exact = FALSE, conf.int = TRUE)'],
+      kruskal:()=>['kwallis '+Y+', by('+G+')','kruskal.test('+q(Y)+' ~ '+q(G)+', data = df)'],
+      friedman:()=>[null,'friedman.test('+q(Y)+' ~ '+q(G)+' | '+q(S)+', data = df)'],
+      welch_anova:()=>[null,'oneway.test('+q(Y)+' ~ '+q(G)+', data = df, var.equal = FALSE)'],
+      tukey:()=>['pwmean '+Y+', over('+G+') mcompare(tukey) effects','TukeyHSD(aov('+q(Y)+' ~ '+q(G)+', data = df))'],
+      dunnett:()=>['pwmean '+Y+', over('+G+') mcompare(dunnett) effects',null],
+      factorial:()=>['anova '+Y+' '+v('factors').join(o.interactions===false?' ':'##'),'car::Anova(lm('+q(Y)+' ~ '+v('factors').map(q).join(o.interactions===false?' + ':' * ')+', data = df), type = "'+(o.ss||'II')+'")'],
+      ancova:()=>['anova '+Y+' '+G+' '+v('covariates').map(c=>'c.'+c).join(' '),'car::Anova(lm('+q(Y)+' ~ '+[G,...v('covariates')].map(q).join(' + ')+', data = df), type = "'+(o.ss||'II')+'")'],
+      multinomial:()=>['mlogit '+Y+' '+sx,'nnet::multinom('+q(Y)+' ~ '+rx+', data = df)'],probit:()=>['probit '+Y+' '+sx,'glm('+q(Y)+' ~ '+rx+', family = binomial(link = "probit"), data = df)'],
+      negbin:()=>['nbreg '+Y+' '+sx,'MASS::glm.nb('+q(Y)+' ~ '+rx+', data = df)'],quantile:()=>['qreg '+Y+' '+sx+', quantile('+(num('tau')??0.5)+')','quantreg::rq('+q(Y)+' ~ '+rx+', tau = '+(num('tau')??0.5)+', data = df)'],
+      robustreg:()=>[null,'MASS::rlm('+q(Y)+' ~ '+rx+', data = df, maxit = 200)'],zeroinfl:()=>[null,'pscl::zeroinfl('+q(Y)+' ~ '+rx+', data = df, dist = "'+(o.countFamily||'negbin')+'")'],hurdle:()=>[null,'pscl::hurdle('+q(Y)+' ~ '+rx+', data = df, dist = "'+(o.countFamily||'negbin')+'")'],
+      mixed:()=>['mixed '+Y+' '+sx+' || '+S+':'+(o.randomSlope?' '+nm(o.randomSlope):'')+(o.reml===false?', mle':', reml'),'lme4::lmer('+q(Y)+' ~ '+rx+' + (1'+(o.randomSlope?' + '+q(nm(o.randomSlope)):'')+' | '+q(S)+'), data = df)'],
+      glmm:()=>[({binomial:'melogit',poisson:'mepoisson',negbin:'menbreg'})[o.family||'binomial']+' '+Y+' '+sx+' || '+S+':',null],
+      panel_fe:()=>['xtset '+S+' '+T+'\nxtreg '+Y+' '+sx+', fe vce(cluster '+S+')',null],panel_re:()=>['xtset '+S+' '+T+'\nxtreg '+Y+' '+sx+', re vce(cluster '+S+')',null],
+      km:()=>['stset '+T+', failure('+E+')\nsts list'+(G?', by('+G+')':'')+(G?'\nsts test '+G:''),'survival::survfit(survival::Surv('+q(T)+', '+q(E)+') ~ '+(G?q(G):'1')+', data = df)'],
+      cox:()=>['stset '+T+', failure('+E+')\nstcox '+sx,'survival::coxph(survival::Surv('+q(T)+', '+q(E)+') ~ '+rx+', data = df)'],
+      survreg:()=>[['weibull','exponential','lognormal','loglogistic'].includes(o.distribution||'weibull')?'stset '+T+', failure('+E+')\nstreg '+sx+', distribution('+(o.distribution||'weibull')+') time':null,'survival::survreg(survival::Surv('+q(T)+', '+q(E)+') ~ '+rx+', data = df, dist = "'+(o.distribution||'weibull')+'")'],
+      pca:()=>['pca '+V.join(' '),'prcomp(df[c('+V.map(x=>JSON.stringify(x)).join(', ')+')], scale. = '+(o.standardize===false?'FALSE':'TRUE')+')'],
+      efa:()=>['factor '+V.join(' ')+', factors('+(num('nfactors')||2)+')'+((o.rotation||'oblimin')!=='none'?'\nrotate, '+(o.rotation||'oblimin'):''),'psych::fa(df[c('+V.map(x=>JSON.stringify(x)).join(', ')+')], nfactors = '+(num('nfactors')||2)+', rotate = "'+(o.rotation||'oblimin')+'", fm = "'+(o.factorMethod||'minres')+'")'],
+      bootstrap:()=>['bootstrap r('+({mean:'mean',median:'p50',sd:'sd'})[o.statistic||'mean']+'), reps('+(num('repetitions')||999)+') seed('+(num('seed')??1729)+'): summarize '+Y+((o.statistic||'mean')==='median'?', detail':''),null],
+      survey_desc:()=>['svyset '+(one('psu')||'_n')+' [pweight = '+W+']'+(one('strata')?', strata('+one('strata')+')':'')+'\nsvy: '+((o.surveyStat||'mean')==='total'?'total':'mean')+' '+V.join(' '),'survey::svy'+((o.surveyStat||'mean')==='total'?'total':'mean')+'(~'+V.map(q).join(' + ')+', design = survey::svydesign(ids = ~'+(one('psu')?q(one('psu')):'1')+(one('strata')?', strata = ~'+q(one('strata')):'')+', weights = ~'+q(W)+', data = df, nest = TRUE))'],
+      missing:()=>['misstable summarize '+V.join(' '),'colSums(is.na(df[c('+V.map(x=>JSON.stringify(x)).join(', ')+')]))'],
+      kmeans:()=>['cluster kmeans '+V.join(' ')+', k('+(num('clusters')||3)+')','kmeans(scale(df[c('+V.map(x=>JSON.stringify(x)).join(', ')+')]), '+(num('clusters')||3)+', nstart = 25)'],
+      lasso:()=>['lasso linear '+Y+' '+sx,null],ridge:()=>['elasticnet linear '+Y+' '+sx+', alpha(0)',null],elastic:()=>['elasticnet linear '+Y+' '+sx,null],
+      duplicates:()=>['duplicates report '+v('keys').join(' '),null],
+    };
+    const desc=info.title+': '+[['outcome',Y],['group',G],['predictors',X.join(', ')],['variables',V.join(', ')],['subject',S],['time',T],['event',E],['weight',W]].filter(x=>x[1]).map(x=>x[0]+' '+x[1]).join('; ');
+    const [st,r]=(C[info.id]||(()=>[null,null]))();
+    return {stata:st||'* '+desc+' (computed in GM26; no single Stata command)',r:r||'# '+desc+' (computed in GM26; see "Download reproducible R analysis")'};
+  }
   asCompute(packet,token){
     const inline=()=>new Promise((resolve,reject)=>setTimeout(()=>{try{resolve(this._E.gmRun(packet));}catch(e){reject(e);}},20));
     if(this._asWorker===undefined){try{const url=URL.createObjectURL(new Blob([this._E.gmEngineSource()],{type:'text/javascript'}));this._asWorker=new Worker(url);URL.revokeObjectURL(url);}catch(e){this._asWorker=null;}}

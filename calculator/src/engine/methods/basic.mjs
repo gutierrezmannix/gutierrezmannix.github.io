@@ -218,7 +218,8 @@ register(['mannwhitney', 'signedrank', 'kruskal', 'friedman'], ctx => {
   } else if (id === 'kruskal') {
     const gg = ctx.group(ctx.value('group')), n = yy.length, r = rank(yy), k = gg.nlevels, sums = new Array(k).fill(0), cnt = gg.counts(); r.forEach((v, i) => { sums[gg.codes[i]] += v; });
     const ties = tieCounts(r), stat = ((12 * sum(sums.map((s, j) => s * s / cnt[j])) / (n * (n + 1)) - 3 * (n + 1)) / (1 - sum(ties.map(t => t ** 3 - t)) / (n ** 3 - n)));
-    const h = { statistic: stat, statName: 'Kruskal-Wallis chi-squared', parameter: [k - 1], p: D.pchisq(stat, k - 1, false), method: 'Kruskal-Wallis rank sum test', alternative: null }; test(ctx, h); ctx.diag(htestPrint(h));
+    const h = { statistic: stat, statName: 'Kruskal-Wallis chi-squared', parameter: [k - 1], p: D.pchisq(stat, k - 1, false), method: 'Kruskal-Wallis rank sum test', alternative: null, data: ctx.y[0] + ' by ' + ctx.g[0] }; test(ctx, h); ctx.diag(htestPrint(h));
+    ctx.table('Group summaries', ['Group', 'N', 'Median', 'Mean.rank', 'Rank.sum'], gg.levels.map((l, j) => { const ys = yy.filter((_, i) => gg.codes[i] === j); return [l, cnt[j], quantile7(ys, 0.5)[0], sums[j] / cnt[j], sums[j]]; }));
   } else {
     const gg = ctx.group(ctx.value('group')), sv = ctx.value('subject'), ss = isFactor(sv) ? sv : new Factor(sv), k = gg.nlevels, nb = ss.nlevels;
     const cell = Array.from({ length: nb }, () => new Array(k).fill(0)), Y = Array.from({ length: nb }, () => new Array(k).fill(NaN));
@@ -226,7 +227,7 @@ register(['mannwhitney', 'signedrank', 'kruskal', 'friedman'], ctx => {
     need(cell.every(r => r.every(v => v === 1)), 'Exactly one complete observation per subject × condition is required.');
     const R = Y.map(rank), cs = new Array(k).fill(0); R.forEach(r => r.forEach((v, j) => { cs[j] += v; }));
     const tiesSum = sum(R.map(r => sum(tieCounts(r).map(t => t ** 3 - t)))), stat = (12 * sum(cs.map(c => (c - nb * (k + 1) / 2) ** 2))) / (nb * k * (k + 1) - tiesSum / (k - 1));
-    const h = { statistic: stat, statName: 'Friedman chi-squared', parameter: [k - 1], p: D.pchisq(stat, k - 1, false), method: 'Friedman rank sum test', alternative: null }; test(ctx, h); ctx.diag(htestPrint(h));
+    const h = { statistic: stat, statName: 'Friedman chi-squared', parameter: [k - 1], p: D.pchisq(stat, k - 1, false), method: 'Friedman rank sum test', alternative: null, data: ctx.y[0] + ', ' + ctx.g[0] + ' and ' + ctx.subject[0] }; test(ctx, h); ctx.diag(htestPrint(h));
   }
 });
 

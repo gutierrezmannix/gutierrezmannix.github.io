@@ -17,6 +17,41 @@
         ]
       ],
       "totalRows": 1
+    },
+    {
+      "title": "Group summaries",
+      "columns": ["Group", "N", "Median", "Mean.rank", "Rank.sum"],
+      "rows": [
+        [
+          "east",
+          23,
+          10,
+          39.3260869565217,
+          904.5
+        ],
+        [
+          "north",
+          20,
+          9.5,
+          37.075,
+          741.5
+        ],
+        [
+          "south",
+          17,
+          11,
+          48.3823529411765,
+          822.5
+        ],
+        [
+          "west",
+          20,
+          9.5,
+          38.575,
+          771.5
+        ]
+      ],
+      "totalRows": 4
     }
   ],
   "plots": [],
