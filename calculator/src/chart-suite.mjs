@@ -44,6 +44,7 @@ export function csPrepare(kind,o={}){
  return {rows,n:rows.length,excluded:eligible-rows.length,eligible,panels,weighted:!!w};
 }
 export function csScene(kind,data,o={}){
+ if(kind==='conjoint')return csConjointScene(data,o);
  const W=820,H=Math.max(500,['pie','donut'].includes(kind)?new Set(data.rows.map(r=>r.x)).size*23+100:440+Math.ceil(new Set(data.rows.map(r=>r.g)).size/3)*18),L=130,T=35,R=35,B=70+Math.ceil(new Set(data.rows.map(r=>r.g)).size/3)*16,PW=W-L-R,PH=H-T-B;
  const catAxis=['groupbar','stackcount','likert','violin','mean','proportion','coefficient','modelcompare','marginal','conjoint','heatmap','corrmap'].includes(kind),clipId=String(o.clipId||'cs-clip').replace(/[^A-Za-z0-9_-]/g,'');
  const pal=o.palette?.length?o.palette:['#2E7D58','#357F93','#B0572F','#80470E','#755786','#536159','#CE7714'];
@@ -100,6 +101,37 @@ export function csScene(kind,data,o={}){
  let markup=`<title>${esc(o.title||csInfo(kind)?.title)}</title><desc>${esc(o.description||note)}</desc><defs><clipPath id="${clipId}"><rect x="${L}" y="${T}" width="${PW}" height="${PH}"/></clipPath></defs><rect width="${W}" height="${H}" fill="#FFFEFA"/><g font-family="sans-serif" font-size="${font}" fill="#20362F">${a.map(v=>!['pie','donut'].includes(kind)&&/^<(path|circle|polygon|rect|line)\b/.test(v)&&!v.includes('class="cs-key"')?'<g clip-path="url(#'+clipId+')">'+v+'</g>':v).join('')}${tx(W/2,H-7,o.xlabel||'','text-anchor="middle"')}${tx(18,H/2,o.ylabel||'',`text-anchor="middle" transform="rotate(-90 18 ${H/2})"`)}</g>`;
  if(o.patterns){const defs=pal.map((c,i)=>`<pattern id="${clipId}-p${i}" width="${6+i%3*2}" height="${6+i%3*2}" patternUnits="userSpaceOnUse" patternTransform="rotate(${i%2?45:-45})"><rect width="12" height="12" fill="${c}"/><path d="M0 0V12" stroke="#20362F" stroke-width="1"/></pattern>`).join('');pal.forEach((c,i)=>{markup=markup.split('fill="'+c+'"').join('fill="url(#'+clipId+'-p'+i+')"');});markup=markup.replace('<defs>','<defs>'+defs);}
  return {markup,width:W,height:H,table,n:data.n,excluded:data.excluded,note,xr,yr};
+}
+// Conjoint plots in the conventional layout: levels grouped under their attribute (feature), estimates on the
+// horizontal axis, reference levels (estimate at the reference value with no interval, as cregg/amce output gives
+// them) as hollow points, a dashed line at 0 (AMCEs) or 0.5 (marginal means), and one row per group when comparing
+// subgroups.
+export function csConjointScene(data,o={}){
+ const rows=data.rows,ref=Number(o.refLine??0)||0,fmtv=v=>num(v)?Number(v.toPrecision(4)).toString():'';
+ const groups=[...new Set(rows.map(r=>r.g))],attrs=[...new Set(rows.map(r=>r.a==null?'':String(r.a)))],pal=o.palette?.length?o.palette:['#2E7D58','#357F93','#B0572F','#80470E','#755786','#536159','#CE7714'];
+ if(groups.length>12)throw Error('Compare at most 12 groups in one conjoint plot.');
+ for(const r of rows){const lo=num(r.lo),hi=num(r.hi);r.isRef=!lo&&!hi&&Math.abs(r.y-ref)<1e-12;if(!r.isRef&&(!lo||!hi))throw Error('Level “'+r.x+'” has no confidence bounds. Supply them, or leave them blank only for reference levels (estimate '+ref+').');if(!r.isRef&&(r.lo>r.y||r.hi<r.y))throw Error('Level “'+r.x+'”: the confidence bounds must contain the estimate.');}
+ const lines=[];for(const a of attrs){if(a)lines.push({head:a});const lv=[...new Set(rows.filter(r=>(r.a??'')===a).map(r=>r.x))];for(const x of lv)lines.push({a,x,rs:rows.filter(r=>(r.a??'')===a&&r.x===x)});}
+ if(lines.length>120)throw Error('This plot shows at most 120 rows. Filter the estimates to fewer attributes or levels.');
+ const font=Math.max(10,Math.min(22,+o.font||12)),RH=Math.max(font+8,groups.length*9+12),lab=l=>l.x+(l.rs.every(r=>r.isRef)?' (ref.)':'');
+ const W=820,L=Math.min(300,Math.max(130,Math.max(...lines.map(l=>l.head?0:lab(l).length))*font*.6+(attrs.some(Boolean)?30:16))),R=30,T=40,leg=groups.length>1?Math.ceil(groups.length/3)*18+10:0,H=T+lines.length*RH+52+leg,PW=W-L-R;
+ const vals=rows.flatMap(r=>r.isRef?[r.y]:[r.lo,r.hi]).concat(ref),[v0,v1]=csRange(vals),pad=(v1-v0)*.06,xr=[num(o.xmin)?+o.xmin:v0-pad,num(o.xmax)?+o.xmax:v1+pad];if(!(xr[0]<xr[1]))throw Error('Axis minimum must be smaller than maximum.');
+ const X=v=>L+(v-xr[0])/(xr[1]-xr[0])*PW,tx=(x,y,t,at='')=>`<text x="${x}" y="${y}" ${at}>${esc(t)}</text>`,col=i=>pal[i%pal.length],a=[],table=[];
+ a.push(tx(W/2,22,o.title||csInfo('conjoint').title,'text-anchor="middle" font-weight="700"'));
+ for(const v of csPretty(xr[0],xr[1],6)){a.push(`<line x1="${X(v)}" y1="${T}" x2="${X(v)}" y2="${T+lines.length*RH}" stroke="#D8DED2"/>`,tx(X(v),T+lines.length*RH+18,fmt(v),'text-anchor="middle"'));}
+ a.push(`<line x1="${X(ref)}" y1="${T}" x2="${X(ref)}" y2="${T+lines.length*RH}" stroke="#536159" stroke-dasharray="5 4"/>`,`<line x1="${L}" y1="${T+lines.length*RH}" x2="${L+PW}" y2="${T+lines.length*RH}" stroke="#20362F"/>`);
+ lines.forEach((l,i)=>{const yc=T+(i+.5)*RH;if(l.head){a.push(tx(12,yc+4,l.head,'font-weight="700"'));return;}
+  a.push(tx(L-8,yc+4,lab(l),'text-anchor="end"'));
+  groups.forEach((g,gi)=>{const r=l.rs.find(q=>q.g===g);if(!r)return;const y=yc+(gi-(groups.length-1)/2)*Math.min(9,(RH-6)/Math.max(1,groups.length-1||1));
+   const title=(l.a?l.a+': ':'')+l.x+(groups.length>1?' · '+g:'')+(r.isRef?' — reference level':' — '+fmtv(r.y)+' ['+fmtv(r.lo)+', '+fmtv(r.hi)+']');
+   if(!r.isRef)a.push(`<line x1="${X(r.lo)}" y1="${y}" x2="${X(r.hi)}" y2="${y}" stroke="${col(gi)}" stroke-width="2"/>`);
+   a.push(`<circle cx="${X(r.y)}" cy="${y}" r="4" fill="${r.isRef?'#FFFEFA':col(gi)}" stroke="${r.isRef?'#536159':'#20362F'}" stroke-width="${r.isRef?1.5:.6}"><title>${esc(title)}</title></circle>`);
+   table.push([l.a||'',l.x,g,r.y,r.isRef?null:r.lo,r.isRef?null:r.hi]);});});
+ if(groups.length>1)groups.forEach((g,i)=>a.push(`<rect class="cs-key" x="${L+(i%3)*210-12}" y="${T+lines.length*RH+40+Math.floor(i/3)*18}" width="8" height="8" fill="${col(i)}" stroke="#20362F"/>`,tx(L+(i%3)*210,T+lines.length*RH+48+Math.floor(i/3)*18,g)));
+ a.push(tx(L+PW/2,H-8,o.ylabel||'Estimate','text-anchor="middle"'));
+ const nref=rows.filter(r=>r.isRef).length,note='Plots supplied estimates and confidence bounds; does not fit a model. Dashed line at '+ref+(ref===0?' (no effect relative to the reference level).':' (marginal means: no preference).')+(nref?' Hollow points marked (ref.) are reference levels, fixed at '+ref+' without an interval.':'')+' Use estimates computed with standard errors clustered by respondent.';
+ const markup=`<title>${esc(o.title||csInfo('conjoint').title)}</title><desc>${esc(o.description||note)}</desc><rect width="${W}" height="${H}" fill="#FFFEFA"/><g font-family="sans-serif" font-size="${font}" fill="#20362F">${a.join('')}</g>`;
+ return {markup,width:W,height:H,table,n:data.n,excluded:data.excluded,note,xr,yr:[0,lines.length]};
 }
 export function csGeoScene(data,o={}){
  const geo=o.geo,key=o.geoKey;if(!geo||!key)throw Error('Upload a GeoJSON boundary file and enter its identifier property.');

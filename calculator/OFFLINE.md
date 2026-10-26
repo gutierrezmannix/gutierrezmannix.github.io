@@ -234,3 +234,22 @@ exposure, 90% level). All tables, notes and errors match R. Fixed:
   cycling colours by row. A bold line joins the two means, and the note gives the means, the mean change and the
   counts. With more than 2,000 pairs the note states how many lines are actually drawn (it said "2,000" even when
   only about half were).
+
+## Build .43 — spot check (Conjoint / AMCE plot)
+
+AMCEs were computed in R for a simulated candidate-choice conjoint (600 respondents × 5 tasks; gender, age,
+party, experience, immigration position; linear probability model with standard errors clustered by respondent).
+The same was done for subgroup AMCEs by respondent party and for marginal means. Each was exported in the layout
+of `cregg` (feature, level, estimate, lower, upper) and plotted. Fixed:
+- **Standard AMCE output could not be plotted.** Reference levels come with estimate 0 and blank bounds, and the
+  whole chart refused ("Each estimate needs finite lower and upper confidence bounds"). Reference levels are now
+  drawn as hollow points at 0, marked "(ref.)". A non-reference level with missing bounds still gets a clear error
+  naming the level.
+- **Conventional layout.** The chart is now horizontal, with levels grouped under bold attribute headings (new
+  optional field *Attribute (feature)*). It was vertical with rotated level labels, which collided with the legend
+  and showed "50" and "65" without saying they were ages.
+- **Reference line at 0 (AMCE) or 0.5 (marginal means).**
+- **Subgroup comparisons** (e.g. respondent party) are drawn side by side under each level, with a legend. The
+  meaningless "All" legend is gone.
+- Intervals are no longer cut at the plot edge (axes padded, round ticks). The data table lists attribute, level,
+  group, estimate and bounds.

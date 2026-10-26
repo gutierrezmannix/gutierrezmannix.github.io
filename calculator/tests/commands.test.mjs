@@ -38,4 +38,9 @@ const hu=c.asCommands({id:'hurdle',title:'Hurdle'},{id:'hurdle',alpha:.05,fields
 assert.equal(hu.r,'pscl::hurdle(protests ~ factor(majority) + ideol_range + offset(log(population_m)), data = df, dist = "negbin")');
 // Paired chart: lines coloured by direction, a bold line through the means, and the summary of change.
 {const ps=E.csScene('paired',E.csPrepare('paired',{x:[1,2,3,4],y:[2,2,1,6]}),{x:'a',y:'b'});assert.match(ps.note,/Mean 2\.5 → 2\.75 \(mean change \+0\.25\)\. 2 of 4 pairs increased \(blue lines\), 1 decreased \(rust\), 1 unchanged/);assert.ok(ps.markup.includes('stroke-width="4"'));}
+// Conjoint plots: cregg-style output with reference levels (estimate 0, blank bounds) plots, grouped by attribute.
+{const d=E.csPrepare('conjoint',{x:['Male','Female','35','65'],y:[0,.07,0,-.03],lo:[NaN,.05,NaN,-.06],hi:[NaN,.1,NaN,-.001]});d.rows.forEach((r,i)=>{r.a=['Gender','Gender','Age','Age'][r.i];});
+ const sc=E.csScene('conjoint',d,{});for(const t of ['>Gender</text>','>Male (ref.)</text>','>Female</text>','>Age</text>'])assert.ok(sc.markup.includes(t),t);assert.equal(sc.table.length,4);assert.deepEqual(sc.table[0],['Gender','Male','All',0,null,null]);assert.match(sc.note,/reference levels/);
+ const bad=E.csPrepare('conjoint',{x:['A'],y:[.2],lo:[NaN],hi:[NaN]});assert.throws(()=>E.csScene('conjoint',bad,{}),/Level “A” has no confidence bounds/);
+ const mm=E.csScene('conjoint',E.csPrepare('conjoint',{x:['A','B'],y:[.45,.55],lo:[.4,.5],hi:[.5,.6]}),{refLine:'0.5'});assert.match(mm.note,/Dashed line at 0\.5/);}
 clearTimeout(c._ghostT);console.log('Analysis commands (Cox, lasso, exact McNemar), alias relabelling and cumulative keep/drop filters passed.');
