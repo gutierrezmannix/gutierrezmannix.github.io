@@ -38,6 +38,17 @@ def integrate_component(c):
     # Paired t-test shows its effect size (d = mean difference / SD of differences, as in the APA line).
     c = patch(c, "cell(pct + '% CI OF DIFF.', '[' + this.fmt(r2.mean - cr * se) + ', ' + this.fmt(r2.mean + cr * se) + ']')];",
               "cell(pct + '% CI OF DIFF.', '[' + this.fmt(r2.mean - cr * se) + ', ' + this.fmt(r2.mean + cr * se) + ']'), cell(\"COHEN'S D\", this.fmt(dd, 2))];")
+    # Descriptive statistics in the console as Stata and R print them (summarize / tabulate in Stata layout and value
+    # order; summary(…, quantile.type = 2) — the page's quartiles — table(), and weighted R equivalents).
+    c = patch(c, "if (d.t === 'sum') return 'summary(df$' + d.x + ')';", "if (d.t === 'sum') return d.w ? 'weighted.mean(df$' + d.x + ', df$' + d.w + ', na.rm = TRUE)' : 'summary(df$' + d.x + ', quantile.type = 2)';")
+    c = patch(c, "if (d.t === 'tab1') return 'table(df$' + d.x + ')';", "if (d.t === 'tab1') return d.w ? 'prop.table(xtabs(' + d.w + ' ~ ' + d.x + ', data = df)) * 100' : 'table(df$' + d.x + ')';")
+    a = c.index("    if (d.t === 'sum') {\n      const s = M['desc|' + d.x]; if (!s || !s.n) return '';\n      return '    Variable |") if "    if (d.t === 'sum') {\n      const s = M['desc|' + d.x]; if (!s || !s.n) return '';\n      return '    Variable |" in c else -1
+    if a >= 0:
+        b = c.index("    if (d.t === 'corr') {", a)
+        c = c[:a] + "    if (d.t === 'sum' || d.t === 'tab1') return this.descStataText(d);\n" + c[b:]
+    c = patch(c, "return { conLog: [...base, this.tagSg({ ...d, res, tbl })].slice(-60) };", "return { conLog: [...base, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : undefined })].slice(-60) };")
+    c = patch(c, "upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl })].slice(-60);", "upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : undefined })].slice(-60);")
+    c = patch(c, "const tbx = d.t === 'ttestx' ? ((S.dialect === 'r' ? d.tblR : d.tblStata) || d.tbl) : d.tbl;", "const tbx = ((S.dialect === 'r' ? d.tblR : d.tblStata) || d.tbl);")
     return c
 
 
@@ -51,4 +62,7 @@ def integrate_engine(e):
     e = patch(e, "  p += (ver === 113 ? 12 : 49) * K;", "  p += (ver <= 113 ? 12 : 49) * K;")
     e = patch(e, "        else if (t === 253) { const v = dv.getInt32(q, le); cols[c].a[r] = v > 2147483620 ? NaN : v; }\n        else if (t === 252) { const v = dv.getInt16(q, le); cols[c].a[r] = v > 32740 ? NaN : v; }\n        else if (t === 251) { const v = dv.getInt8(q); cols[c].a[r] = v > 100 ? NaN : v; }",
               "        else if (t === 253) { const v = dv.getInt32(q, le); cols[c].a[r] = v > (old ? 2147483646 : 2147483620) ? NaN : v; }\n        else if (t === 252) { const v = dv.getInt16(q, le); cols[c].a[r] = v > (old ? 32766 : 32740) ? NaN : v; }\n        else if (t === 251) { const v = dv.getInt8(q); cols[c].a[r] = v > (old ? 126 : 100) ? NaN : v; }")
+    # summarize [aw=]: weighted SD with Stata's analytic-weight formula (weights normalised to the number of
+    # observations), so it equals the command shown; unweighted SD is unchanged.
+    e = patch(e, "sd: sw > 1 ? Math.sqrt(ss / (sw - 1)) : NaN,", "sd: n > 1 ? Math.sqrt(ss / sw * n / (n - 1)) : NaN,")
     return e

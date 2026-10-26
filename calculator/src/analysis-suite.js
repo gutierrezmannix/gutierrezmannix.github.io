@@ -118,6 +118,31 @@
   missingDecodeLines(dial){const S=this.state,out=[];let toks=[];try{toks=this.toks().nums||[];}catch(e){}
     for(const col of (S.cols||[]).filter(c=>c.type==='numeric')){const codes=[...new Set([...toks,...(S.autoScreen?(col.autoCodes||[]):[])].filter(Number.isFinite))];if(!codes.length)continue;const nm=col.name,r=/^[A-Za-z.][A-Za-z0-9._]*$/.test(nm)?'df$'+nm:'df[["'+nm+'"]]';out.push(dial==='stata'?'mvdecode '+nm+', mv('+codes.join(' ')+')':r+'['+r+' %in% c('+codes.join(', ')+')] <- NA');}
     if(out.length)out.unshift((dial==='stata'?'* ':'# ')+'Values treated as missing in GM26');return out;}
+  // Descriptive statistics in the console, as Stata and R print them: summarize / tabulate (Stata %9.0g numbers,
+  // value order) and summary() / table() / weighted equivalents (R's print formatting).
+  stataG(v){if(!Number.isFinite(v))return '.';if(v!==0&&(Math.abs(v)>=1e9||Math.abs(v)<1e-5))return v.toExponential(3).replace(/e([+-])(\d)$/,'e$10$2');for(let d=7;d>=1;d--){const t=Number(v.toPrecision(d)).toString().replace(/^(-?)0\./,'$1.');if(t.length<=9)return t;}return String(Math.round(v));}
+  rFormat(vals,d=7){const need=v=>{const t=Number(v.toPrecision(d));for(let k=1;k<=d;k++)if(Number(v.toPrecision(k))===t)return k;return d;};const f=vals.filter(v=>Number.isFinite(v)&&v!==0);let rgt=0,sg=1;for(const v of f){const k=need(v),e=Math.floor(Math.log10(Math.abs(Number(v.toPrecision(k)))));rgt=Math.max(rgt,k-1-e);sg=Math.max(sg,k);}
+    const fixed=vals.map(v=>Number.isFinite(v)?v.toFixed(Math.min(rgt,20)):'NA'),sci=vals.map(v=>Number.isFinite(v)?v.toExponential(sg-1).replace(/e([+-])(\d)$/,'e$10$2'):'NA'),use=Math.max(...fixed.map(x=>x.length))<=Math.max(...sci.map(x=>x.length))?fixed:sci,w=Math.max(...use.map(x=>x.length));return use.map(x=>x.padStart(w));}
+  rNamed(names,vals,head=''){const w=Math.max(...names.map(n=>n.length),...vals.map(v=>v.length)),per=Math.max(1,Math.floor(81/(w+1))),out=[];if(head!==null)out.push(head);for(let i=0;i<names.length;i+=per){out.push(names.slice(i,i+per).map(n=>n.padStart(w)).join(' ')+' ');out.push(vals.slice(i,i+per).map(v=>v.padStart(w)).join(' ')+' ');}return out.join('\n');}
+  descOrder(name,rows){const vm=this._raw?.vlabs?.[name],rev=vm?new Map([...vm.entries()].map(([k,v])=>[String(v),Number(k)])):null,code=r=>{const l=String(r.label);if(rev&&rev.has(l))return rev.get(l);const n=Number(l);return l.trim()!==''&&Number.isFinite(n)?n:null;};
+    const num=rows.every(r=>code(r)!==null);return rows.slice().sort((a,b)=>num?code(a)-code(b):(String(a.label)<String(b.label)?-1:String(a.label)>String(b.label)?1:0));}
+  descStataText(d){const M=this.memoView(),R=(v,w)=>String(v).padStart(w),G=v=>this.stataG(v);
+    if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';const nm=R(this.abbr(d.x,12),12);
+      if(d.w)return '    Variable |     Obs      Weight        Mean   Std. dev.       Min        Max\n-------------+-----------------------------------------------------------------\n'+nm+' |'+R(this.fmtN(s.n),8)+R(G(s.sw),12)+R(G(s.mean),12)+R(G(s.sd),12)+R(G(s.mn),10)+R(G(s.mx),11);
+      return '    Variable |        Obs        Mean    Std. dev.       Min        Max\n-------------+---------------------------------------------------------\n'+nm+' |'+R(this.fmtN(s.n),11)+R(G(s.mean),12)+R(G(s.sd),12)+R(G(s.mn),11)+R(G(s.mx),11);}
+    if(d.t==='tab1'){const fr=M['freq|'+d.x];if(!fr||!fr.rows.length)return '';const rows=this.descOrder(d.x,fr.rows),tot=fr.totalW,norm=d.w?fr.totalRaw/tot:1,lw=Math.min(24,Math.max(11,d.x.length,...rows.map(r=>String(r.label).length))),cnt=v=>d.w?G(v*norm):this.fmtN(v);let cum=0;
+      const out=[R(this.abbr(d.x,lw),lw)+' |      Freq.     Percent        Cum.','-'.repeat(lw+1)+'+-----------------------------------'];
+      for(const r of rows){cum+=r.c;out.push(R(String(r.label).slice(0,lw),lw)+' |'+R(cnt(r.c),11)+R((100*r.c/tot).toFixed(2),12)+R((100*cum/tot).toFixed(2),12));}
+      out.push('-'.repeat(lw+1)+'+-----------------------------------',R('Total',lw)+' |'+R(d.w?G(tot*norm):this.fmtN(tot),11)+R('100.00',12));return out.join('\n');}
+    return '';}
+  descRText(d){const M=this.memoView();
+    if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';if(d.w)return '[1] '+this.rFormat([s.mean])[0].trim();
+      const mx=Math.max(Math.abs(s.mn),Math.abs(s.mx))||1,z=v=>Number(v.toFixed(Math.max(0,5-Math.ceil(Math.log10(mx))))),vals=this.rFormat([s.mn,s.q1,s.med,s.mean,s.q3,s.mx].map(z),4),names=['Min.','1st Qu.','Median','Mean','3rd Qu.','Max.'];
+      if(s.missing){names.push("NA's");vals.push(String(s.missing));}return this.rNamed(names,vals,null);}
+    if(d.t==='tab1'){const fr=M['freq|'+d.x];if(!fr||!fr.rows.length)return '';const rows=this.descOrder(d.x,fr.rows),vm=this._raw?.vlabs?.[d.x],rev=vm?new Map([...vm.entries()].map(([k,v])=>[String(v),String(k)])):null,nm=r=>rev&&rev.has(String(r.label))?rev.get(String(r.label)):String(r.label);
+      if(d.w)return this.rNamed(rows.map(nm),this.rFormat(rows.map(r=>100*r.c/fr.totalW)),d.x);
+      return this.rNamed(rows.map(nm),rows.map(r=>String(r.c)),'');}
+    return '';}
   asCompute(packet,token){
     const inline=()=>new Promise((resolve,reject)=>setTimeout(()=>{try{resolve(this._E.gmRun(packet));}catch(e){reject(e);}},20));
     if(this._asWorker===undefined){try{const url=URL.createObjectURL(new Blob([this._E.gmEngineSource()],{type:'text/javascript'}));this._asWorker=new Worker(url);URL.revokeObjectURL(url);}catch(e){this._asWorker=null;}}

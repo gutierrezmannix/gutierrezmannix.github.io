@@ -11,7 +11,7 @@
       h('input',{'aria-label':(dial==='stata'?'Stata':'R')+' command',value:S.ovCmd||'',placeholder:dial==='stata'?'Type a Stata command — e.g. summarize edad · tab sexo · regress y x1 x2':'Type a command — e.g. summary(df$edad)',onChange:e=>this.setState({ovCmd:e.target.value})}),
       button('Run',null,{type:'submit'}));
     const entry=it=>{
-      if(it.d){const d=it.d,out=d.t==='ttestx'?((dial==='r'?d.tblR:d.tblStata)||d.tbl):d.tbl;let cmd='';try{cmd=this.cmdText(d,dial);}catch(e){cmd='';}
+      if(it.d){const d=it.d,out=(dial==='r'?d.tblR:d.tblStata)||d.tbl;let cmd='';try{cmd=this.cmdText(d,dial);}catch(e){cmd='';}
         return h('article',{key:it.key,className:'ov-entry'},h('pre',{className:'ov-line',title:'Click to run again',onClick:()=>this.rerunCmd(d)},prompt+cmd),out?h('pre',{className:'ov-out'},out):d.res?h('pre',{className:'ov-res'},d.res):null);}
       const p=it.p,prev=items[items.indexOf(it)-1],prevCmd=prev?(prev.d?(()=>{try{return this.cmdText(prev.d,dial);}catch(e){return '';}})():prev.p.cmd):'';
       return h('figure',{key:it.key,className:'ov-figure'},p.cmd&&p.cmd!==prevCmd?h('pre',{className:'ov-line'},prompt+p.cmd):null,h('div',{className:'ov-plot',role:'img','aria-label':p.title,dangerouslySetInnerHTML:{__html:p.xml}}),

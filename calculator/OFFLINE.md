@@ -98,3 +98,15 @@ Fixed:
   checked by diffing against real R output for every mode.
 - Console summary lines show whole degrees of freedom as `t(419)` instead of `t(419.00)`.
 - The paired t-test shows Cohen's d (mean difference / SD of differences), like the other designs.
+
+## Build .36 — spot check (Descriptive statistics)
+
+N, mean, SD, min/max, missing counts, CI, auto-detected missing codes and weighted percentages were re-checked
+against R. Quartiles use Stata's definition (`summarize, detail`; R type 2). Fixed:
+- Console `summarize` output now has Stata's layout and `%9.0g` numbers (`74.06833  2.766519  64.8  81.5`;
+  with weights, Stata's Obs/Weight columns); `tabulate` lists categories in value order as Stata does (labels of
+  coded variables in code order).
+- The R console shows what R prints: `summary(df$x, quantile.type = 2)` (the page's quartiles; R's default type 7
+  would differ), `table()` (codes for value-labelled numerics), and for weighted data `weighted.mean(...)` and
+  `prop.table(xtabs(w ~ x, data = df)) * 100` instead of unweighted commands. All checked against real R.
+- Weighted SD uses Stata's analytic-weight formula (weights normalised to N), matching `summarize [aw=]`.
