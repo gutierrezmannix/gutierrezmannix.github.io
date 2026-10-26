@@ -86,3 +86,15 @@ block bootstrap; BCa (Diagnostics) equals `boot.ci`; validation messages, Cancel
   moving-block bootstrap (Stata has no built-in equivalent).
 - The results note states the interval: "Lower and Upper: 95% percentile bootstrap interval; the bias-corrected
   (BCa) interval is under Diagnostics" (added to the R specification and validated).
+
+## Build .35 — spot check (t-test tab)
+
+One-sample, Welch two-sample (all groups and two chosen groups), paired, 90% level, subgroup and weights were
+re-tested offline: t, df, p, CIs and means equal R's `t.test`; weights are refused with a clear message;
+console commands and session scripts are correct (`ttest y if …, by(g) unequal`, `t.test(…, data = sub)`).
+Fixed:
+- The R-style console printout now matches R's `print.htest` character for character (df to 5 significant
+  digits, `1.319e-08` exponents, common decimals for the confidence interval and estimates, column alignment);
+  checked by diffing against real R output for every mode.
+- Console summary lines show whole degrees of freedom as `t(419)` instead of `t(419.00)`.
+- The paired t-test shows Cohen's d (mean difference / SD of differences), like the other designs.

@@ -84,16 +84,23 @@
   }
   ttRText(options,result,data){
     const S=this.state,paired=options.mode==='paired',groups=options.mode==='groups',conf=Number((100*(1-result.alpha)).toFixed(4));
-    const sig=(v,d=7)=>Number.isFinite(v)?String(Number(v.toPrecision(d))):'NA',pv=p=>p<2.2e-16?'< 2.2e-16':'= '+sig(p,4);
+    // R's format(): minimal significant digits (≤ digits), a common number of decimals for a vector, fixed or
+    // scientific notation whichever is narrower, padded to a common width.
+    const need=(v,d)=>{const t=Number(v.toPrecision(d));for(let k=1;k<=d;k++)if(Number(v.toPrecision(k))===t)return k;return d;};
+    const rfmt=(vals,d=7)=>{const f=vals.filter(v=>Number.isFinite(v)&&v!==0);let rgt=0,sg=1;for(const v of f){const k=need(v,d),e=Math.floor(Math.log10(Math.abs(Number(v.toPrecision(k)))));rgt=Math.max(rgt,k-1-e);sg=Math.max(sg,k);}
+      const fixed=vals.map(v=>Number.isFinite(v)?v.toFixed(Math.min(rgt,20)):'NA'),sci=vals.map(v=>Number.isFinite(v)?v.toExponential(sg-1).replace(/e([+-])(\d)$/,'e$10$2'):'NA');
+      const fw=Math.max(...fixed.map(x=>x.length)),sw=Math.max(...sci.map(x=>x.length)),use=fw<=sw?fixed:sci,w=Math.max(...use.map(x=>x.length));return use.map(x=>x.padStart(w));};
+    const sig=(v,d=7)=>rfmt([v],d)[0],pv=p=>p<2.2e-16?'< 2.2e-16':'= '+sig(p,4),ci=(a,b)=>' '+rfmt([a,b]).join(' ');
+    const est=(names,vals)=>{const v=rfmt(vals),w=Math.max(...names.map(n=>n.length),...v.map(x=>x.length));return [names.map(n=>n.padStart(w)).join(' ')+' ',v.map(x=>x.padStart(w)).join(' ')+' '];};
     const L=[''];
     if(groups){
       const gg=this.ttGroups(),flip=gg.flip,s=flip?-1:1,a=flip?data.b:data.a,b=flip?data.a:data.b,la=this.vlabel(S.ttG,gg.lo),lb=this.vlabel(S.ttG,gg.hi);
       const lo=flip?-result.hi:result.lo,hi=flip?-result.lo:result.hi,e1='mean in group '+la,e2='mean in group '+lb,w=Math.max(e1.length,e2.length);
-      L.push('\tWelch Two Sample t-test','','data:  '+S.exploreVar+' by '+S.ttG,'t = '+sig(s*result.t,5)+', df = '+sig(result.df,7)+', p-value '+pv(result.p),'alternative hypothesis: true difference in means between group '+la+' and group '+lb+' is not equal to 0',conf+' percent confidence interval:',' '+sig(lo)+' '+sig(hi),'sample estimates:',e1.padStart(w)+' '+e2.padStart(w),sig(a.mean).padStart(w)+' '+sig(b.mean).padStart(w));
+      L.push('\tWelch Two Sample t-test','','data:  '+S.exploreVar+' by '+S.ttG,'t = '+sig(s*result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(result.p),'alternative hypothesis: true difference in means between group '+la+' and group '+lb+' is not equal to 0',conf+' percent confidence interval:',ci(lo,hi),'sample estimates:',...est([e1,e2],[a.mean,b.mean]));void w;
     }else if(paired){
-      L.push('\tPaired t-test','','data:  df$'+S.exploreVar+' and df$'+S.ttY2,'t = '+sig(result.t,5)+', df = '+result.df+', p-value '+pv(result.p),'alternative hypothesis: true mean difference is not equal to 0',conf+' percent confidence interval:',' '+sig(result.lo)+' '+sig(result.hi),'sample estimates:','mean difference',sig(result.estimate).padStart(15));
+      L.push('\tPaired t-test','','data:  df$'+S.exploreVar+' and df$'+S.ttY2,'t = '+sig(result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(result.p),'alternative hypothesis: true mean difference is not equal to 0',conf+' percent confidence interval:',ci(result.lo,result.hi),'sample estimates:',...est(['mean difference'],[result.estimate]));
     }else{
-      L.push('\tOne Sample t-test','','data:  df$'+S.exploreVar,'t = '+sig(result.t,5)+', df = '+result.df+', p-value '+pv(result.p),'alternative hypothesis: true mean is not equal to '+Number(S.ttMu),conf+' percent confidence interval:',' '+sig(result.lo)+' '+sig(result.hi),'sample estimates:','mean of x',sig(result.estimate).padStart(9));
+      L.push('\tOne Sample t-test','','data:  df$'+S.exploreVar,'t = '+sig(result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(result.p),'alternative hypothesis: true mean is not equal to '+Number(S.ttMu),conf+' percent confidence interval:',ci(result.lo,result.hi),'sample estimates:',...est(['mean of x'],[result.estimate]));
     }
     return L.join('\n');
   }

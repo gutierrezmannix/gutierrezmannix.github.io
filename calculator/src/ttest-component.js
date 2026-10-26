@@ -16,7 +16,7 @@
     const estimateName=options.mode==='value'?'Mean':'Mean difference (first minus second)';
     const table='Statistic\tValue\n'+[[estimateName,r.estimate],['Standard error',r.se],['t',r.t],['df',r.df],['p (two-sided)',r.p],['CI lower',r.lo],['CI upper',r.hi],['Confidence level',1-r.alpha],['N (first sample / complete pairs)',r.nA],...(options.mode==='groups'?[['N (second sample)',r.nB]]:[])].map(row=>row.join('\t')).join('\n');
     const setup={};['exploreVar','ttMode','ttMu','ttG','ttA','ttB','ttY2','subg','flt','missingCodes','autoScreen','alphaSel'].forEach(k=>{setup[k]=S[k];});
-    this._ttLast={t:'ttestx',r:scripts.r,stata:scripts.stata,setup,tbl:table,res:(options.mode==='value'?'One-sample':options.mode==='groups'?'Welch independent-samples':'Paired-samples')+' t-test: t('+this.fmt(r.df,2)+') = '+this.fmt(r.t,3)+', '+this.apaP(r.p)};
+    this._ttLast={t:'ttestx',r:scripts.r,stata:scripts.stata,setup,tbl:table,res:(options.mode==='value'?'One-sample':options.mode==='groups'?'Welch independent-samples':'Paired-samples')+' t-test: t('+(Number.isInteger(r.df)?String(r.df):this.fmt(r.df,2))+') = '+this.fmt(r.t,3)+', '+this.apaP(r.p)};
     out.ttCmd=S.dialect==='r'?scripts.r:scripts.stata;
     out.ttCopyLabel=this.cpLabel('ttestx');out.ttCopy=()=>this.copyTSV('ttestx',table);
     const report=this._ttLast;out.ttLog=()=>this.pushLog({...report});
