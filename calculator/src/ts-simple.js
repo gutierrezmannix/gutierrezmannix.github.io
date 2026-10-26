@@ -176,4 +176,53 @@
     const at=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
     this.pushLog({...d});this.setState({tsRan:true,tsRunMsg:'✓ Fitted at '+at+' — the command and result are also in the console and Output.'});go('#ts-results-anchor');
   }
+  // The console shows what Stata and R print for the exported commands (newey / regress, vce(cluster); coeftest()
+  // with NeweyWest / vcovCL), with the script's variable names and the app's estimates.
+  tsVarNames(res,scripts){const p=((scripts&&scripts.short&&scripts.short.stata||'').match(/(\S+)outcome\b/)||[0,'gmts_'])[1],units=(res.units||[]).map(String);
+    return {p,rows:res.coefs.map((c,j)=>{const t=c.term;return {...c,j,name:t==='(constant)'?'_cons':/^time/.test(t)?p+'trend':/level shift/.test(t)?p+'post':/change in trend/.test(t)?p+'since':/spike/.test(t)?p+'pulse':/lag\)$/.test(t)?p+'lag':'',level:/^unit = /.test(t)?units.indexOf(t.slice(7))+1:0};})};}
+  tsStataText(res,scripts){
+    if(!res||!res.coefs||!res.V)return '';const E=this._E,{p,rows}=this.tsVarNames(res,scripts),R=(v,w)=>String(v).padStart(w),G=v=>this.stataG(v),dep=p+'outcome';
+    const pct=Math.round((1-this.alpha())*100),crit=E.critInv(this.alpha(),res.df),hdr=(l,k,v)=>l.padEnd(48)+k.padEnd(18)+'='+R(v,11),out=[];
+    if(!res.pooled){
+      // F test of every coefficient except the constant, with the Newey–West covariance (as newey reports it)
+      const ix=rows.filter(r=>r.name!=='_cons').map(r=>r.j),q=ix.length,A=ix.map(i=>ix.map(j=>res.V[i][j])),b=ix.map(i=>res.coefs[i].b),n=q;
+      const M=A.map((r,i)=>[...r,...A.map((_,j)=>i===j?1:0)]);let ok=true;
+      for(let c=0;c<n;c++){let piv=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[piv][c]))piv=r;if(!(Math.abs(M[piv][c])>1e-300)){ok=false;break;}[M[c],M[piv]]=[M[piv],M[c]];const d=M[c][c];for(let k=0;k<2*n;k++)M[c][k]/=d;for(let r=0;r<n;r++)if(r!==c){const f=M[r][c];if(f)for(let k=0;k<2*n;k++)M[r][k]-=f*M[c][k];}}
+      let F=NaN;if(ok&&q){let w=0;for(let i=0;i<n;i++)for(let j=0;j<n;j++)w+=b[i]*M[i][n+j]*b[j];F=w/q;}const pf=E.pF(F,q,res.df);
+      out.push(hdr('Regression with Newey-West standard errors','Number of obs',this.fmtN(res.n)),hdr('Maximum lag = '+((res.seType.match(/lag (\d+)/)||[0,''])[1]),'F('+q+', '+res.df+')',Number.isFinite(F)?F.toFixed(2):'.'),hdr('','Prob > F',Number.isFinite(pf)?pf.toFixed(4):'.'),'');
+    }else{
+      const K=res.fe?res.P+res.nUnits:res.P,rmse=Math.sqrt(res.sse/(res.n-K));
+      out.push(hdr('Linear regression','Number of obs',this.fmtN(res.n)));if(!res.fe)out.push(hdr('','R-squared',res.r2.toFixed(4)));
+      out.push(hdr('','Root MSE',Number(rmse.toPrecision(5)).toString().replace(/^0\./,'.')),'',('(Std. err. adjusted for '+res.nUnits+' clusters in '+p+'unit)').padStart(78));
+    }
+    const row=(lab,c)=>lab+' |'+R(G(c.b),11)+R(G(c.se),11)+R(!Number.isFinite(c.t)?'.':Math.abs(c.t)>=99999.995?c.t.toExponential(1).replace(/e\+?(-?)(\d+)$/,(m,g,d)=>'e'+(g||'+')+d.padStart(2,'0')):c.t.toFixed(2),9)+R(Number.isFinite(c.p)?c.p.toFixed(3):'.',8)+R(G(c.b-crit*c.se),13)+R(G(c.b+crit*c.se),12);
+    out.push('------------------------------------------------------------------------------','             |'+(res.pooled?'               Robust':'             Newey-West'),R(this.abbr(dep,12),12)+' | Coefficient  std. err.      t    P>|t|     ['+pct+'% conf. interval]','-------------+----------------------------------------------------------------');
+    rows.filter(r=>r.name&&r.name!=='_cons').forEach(r=>out.push(row(R(this.abbr(r.name,12),12),r)));
+    const lv=rows.filter(r=>r.level);if(lv.length){out.push('             |',R(this.abbr(p+'unit',12),12)+' |');lv.forEach(r=>out.push(row(R(r.level,11)+' ',r)));}
+    rows.filter(r=>r.name==='_cons').forEach(r=>out.push(row(R('_cons',12),r)));
+    out.push('------------------------------------------------------------------------------');
+    if(res.fe)out.push('Note: '+p+'unit indicators and _cons are not shown; the app removes each unit’s mean instead (same slopes and standard errors).');
+    return out.join('\n');
+  }
+  // R's format.pval (as printCoefmat calls it) and printCoefmat for coeftest()
+  tsRPval(pv,digits=4){const eps=2.220446049250313e-16,r=pv.map(()=>''),idx=pv.map((v,i)=>i),nz=idx.filter(i=>!(pv[i]<eps)),z=idx.filter(i=>pv[i]<eps);
+    const fix=nz.filter(i=>{const e=Math.floor(Math.log10(pv[i]>0?pv[i]:1e-50));return e>=-3||(e===-4&&digits>1);}),sci=nz.filter(i=>!fix.includes(i));
+    for(const g of [fix,sci])if(g.length){const f=this.rFormat(g.map(i=>pv[i]),digits);g.forEach((i,k)=>{r[i]=f[k];});}
+    if(z.length){let d=Math.max(1,digits-2),sep=' ';if(nz.length){const nc=Math.max(...nz.map(i=>r[i].length));if(d>1&&d+6>nc)d=Math.max(1,nc-7);sep=d===1&&nc<=6?'':' ';}else sep=d===1?'':' ';z.forEach(i=>{r[i]='<'+sep+this.rFormat([eps],d)[0].trim();});}
+    return r;}
+  tsRText(res,scripts){
+    if(!res||!res.coefs)return '';const {p,rows}=this.tsVarNames(res,scripts),digits=5;
+    const shown=rows.filter(r=>r.name||r.level),names=shown.map(r=>r.name==='_cons'?'(Intercept)':r.level?'factor('+p+'unit)'+r.level:r.name);
+    const cs=shown.flatMap(r=>[r.b,r.se]),acs=cs.map(Math.abs).filter(v=>Number.isFinite(v)&&v!==0),digmin=1+(acs.length?Math.floor(Math.log10(Math.min(...acs))):0),dec=Math.max(1,digits-digmin);
+    const fin=v=>Number.isFinite(v),rounded=cs.map(v=>fin(v)?Number(v.toFixed(Math.min(dec,100))):v),fcs=this.rFormat(rounded,digits);
+    cs.forEach((v,i)=>{if(fin(v)&&v!==0&&Number(fcs[i])===0)fcs[i]=this.rFormat([v],digits-1)[0].trim();if(!fin(v))fcs[i]=Number.isNaN(v)?'NaN':'NA';});
+    const ft=this.rFormat(shown.map(r=>fin(r.t)?Number(r.t.toFixed(4)):r.t),digits),fp=this.tsRPval(shown.map(r=>r.p));
+    const stars=shown.some(r=>r.p<0.1),st=v=>(v<0.001?'***':v<0.01?'**':v<0.05?'*':v<0.1?'.':' ').padEnd(3);
+    const cols=['Estimate','Std. Error','t value','Pr(>|t|)',...(stars?['']:[])],cells=shown.map((r,i)=>[fcs[2*i],fcs[2*i+1],ft[i],fp[i],...(stars?[st(r.p)]:[])]);
+    const w=cols.map((c,j)=>Math.max(c.length,...cells.map(r=>r[j].length))),w0=Math.max(...names.map(n=>n.length));
+    const lines=['','t test of coefficients:','',' '.repeat(w0)+cols.map((c,j)=>' '+c.padStart(w[j])).join(''),...cells.map((r,i)=>names[i].padEnd(w0)+r.map((c,j)=>' '+c.padStart(w[j])).join(''))];
+    if(stars)lines.push('---',"Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1");
+    if(res.fe)lines.push('# (Intercept) and factor('+p+'unit) rows are not shown: the app removes each unit’s mean instead (same slopes and standard errors).');
+    return lines.join('\n');
+  }
   // GM26 time-series setup end

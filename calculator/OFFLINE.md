@@ -144,3 +144,30 @@ population, and with a missing value in each column. Category means and weighted
 - First and last points are no longer cut in half at the plot edge (slope and dumbbell charts).
 - Chart data tables show 7 significant digits, as R prints (`63.45`, not `63.449999999999996`); **Copy chart data**
   keeps full precision.
+
+## Build .39 — spot check (Time series / interrupted time series)
+
+The Time series tab was re-tested offline: a single series (Newey–West), AR(1), level shift, trend change and
+one-period spike, change and % change, a date window, pooled units, the average of all units, 10 units with fixed
+effects, monthly dates, survey microdata collapsed by state and year with weights, and series with gaps. Every
+coefficient, standard error, t, p, R², Durbin–Watson and Ljung–Box statistic equals R (`lm` + `sandwich::NeweyWest`
+/ `vcovCL`, `lmtest::coeftest`, `Box.test`) to 10+ digits, and the exported Stata and R scripts run the same models.
+Gaps and averaging over units with different periods are refused with clear messages. Fixed:
+- **Few clusters are now flagged.** With 3 units the app reported "a significant level shift (p = .034)" from
+  cluster-robust standard errors, which are unreliable with few clusters (they tend to be too small). With fewer than
+  about 30 units the explanation now says so, gives the degrees of freedom used, and suggests checking each unit
+  separately or a wild cluster bootstrap.
+- **Console output as Stata and R print it.** The console showed the app's own table under a `newey` / `coeftest`
+  command. It now shows Stata's `newey` (or `regress …, vce(cluster)`) output, with the Newey–West F test, and R's
+  `coeftest()` printout. Both use the script's variable names (`gmts_trend`, `gmts_post`, …). The R text was
+  checked character for character against real R.
+- **Pooled units are numbered as Stata's `egen group()` and R's `factor()` number them**, so the constant and unit
+  indicators match the exported commands whatever the row order of the data.
+- **Wording:** "per year" / "per month" instead of "per yearly"; "per period" instead of "per generic".
+- **Diagnostics wording:** Durbin–Watson below 1.5 now reads "positive autocorrelation (ρ ≈ 0.32)" instead of "strong
+  autocorrelation"; Ljung–Box says "no significant autocorrelation up to lag 6" instead of "residuals look like
+  noise" (the two messages had seemed to contradict each other).
+- **Chart axes:** round ticks (`0 10 20 30`, `1990 1995 2000 …`). Year labels had been rounded but drawn at
+  fractional positions ("1996" at 1995.8). Monthly and quarterly axes tick at the start of each year.
+- Stata `%9.0g` numbers in the console now follow Stata's width rule (`.0223787`, not `.02237866`); this also
+  corrects `summarize` output.

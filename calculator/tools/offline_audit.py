@@ -49,6 +49,21 @@ def integrate_component(c):
     c = patch(c, "return { conLog: [...base, this.tagSg({ ...d, res, tbl })].slice(-60) };", "return { conLog: [...base, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : undefined })].slice(-60) };")
     c = patch(c, "upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl })].slice(-60);", "upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : undefined })].slice(-60);")
     c = patch(c, "const tbx = d.t === 'ttestx' ? ((S.dialect === 'r' ? d.tblR : d.tblStata) || d.tbl) : d.tbl;", "const tbx = ((S.dialect === 'r' ? d.tblR : d.tblStata) || d.tbl);")
+    # Time series (build .39): result tables keep their own Stata / R printouts in the console log.
+    c = c.replace("tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : undefined })", "tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : d.tblR })")
+    c = patch(c, "res: out.tsPrepared, tbl: 'Term\\tEstimate\\tSE\\tt\\tp\\n' + out.tsRows.map(r => [r.term,r.b,r.se,r.t,r.p].join('\\t')).join('\\n') };",
+              "res: out.tsPrepared, tbl: 'Term\\tEstimate\\tSE\\tt\\tp\\n' + out.tsRows.map(r => [r.term,r.b,r.se,r.t,r.p].join('\\t')).join('\\n'), tblStata: this.tsStataText(res, scripts), tblR: this.tsRText(res, scripts) };")
+    # Period words: "per year", not "per yearly"; "per period" for integer periods.
+    c = patch(c, "tname: setup.effective }));", "tname: ({ yearly: 'year', quarterly: 'quarter', monthly: 'month', weekly: 'week', daily: 'day', trading: 'trading day' })[setup.effective] || 'period' }));")
+    c = c.replace("' per ' + setup.effective + (sg(", "' per ' + (({ yearly: 'year', quarterly: 'quarter', monthly: 'month', weekly: 'week', daily: 'day', trading: 'trading day' })[setup.effective] || 'period') + (sg(")
+    c = patch(c, "xlab: setup.effective + ' period',", "xlab: ({ yearly: 'Year', quarterly: 'Quarter', monthly: 'Month', weekly: 'Week', daily: 'Day', trading: 'Trading day' })[setup.effective] || 'Period',")
+    # Diagnostics wording: Durbin–Watson reports the implied first-order correlation; Ljung–Box states what it tests.
+    c = patch(c, "dw < 1.5 ? 'strong autocorrelation — try AR1' : dw > 2.5 ? 'negative autocorrelation' : 'about 2 = little autocorrelation' }];",
+              "dw < 1.5 ? 'positive autocorrelation (\\u03c1 \\u2248 ' + this.fmt(1 - dw / 2, 2) + ') — try AR1' : dw > 2.5 ? 'negative autocorrelation (\\u03c1 \\u2248 ' + this.fmt(1 - dw / 2, 2) + ')' : 'about 2 = little first-order autocorrelation' }];")
+    c = patch(c, "(res.lb.p < a ? ' — autocorrelation left in residuals' : ' — residuals look like noise') });",
+              "(res.lb.p < a ? ' — autocorrelation left in residuals' : ' — no significant autocorrelation up to lag ' + res.lb.h) });")
+    c = patch(c, "if (dw < 1.5 && !S.tsAr1) txt += 'The Durbin\\u2013Watson of ' + this.fmt(dw, 2) + ' shows strong autocorrelation — consider switching on AR1.';",
+              "if (dw < 1.5 && !S.tsAr1) txt += 'The Durbin\\u2013Watson of ' + this.fmt(dw, 2) + ' points to positive autocorrelation (\\u03c1 \\u2248 ' + this.fmt(1 - dw / 2, 2) + ') — consider switching on AR1. ';\n          if (res.pooled && res.nUnits < 30) txt += 'Only ' + res.nUnits + ' units: standard errors are clustered by unit, and with fewer than about 30 clusters cluster-robust standard errors tend to be too small and p-values too optimistic (p-values here use t with ' + (res.nUnits - 1) + ' df). Treat significance as approximate, or check each unit separately or with a wild cluster bootstrap. ';")
     return c
 
 
@@ -65,4 +80,15 @@ def integrate_engine(e):
     # summarize [aw=]: weighted SD with Stata's analytic-weight formula (weights normalised to the number of
     # observations), so it equals the command shown; unweighted SD is unchanged.
     e = patch(e, "sd: sw > 1 ? Math.sqrt(ss / (sw - 1)) : NaN,", "sd: n > 1 ? Math.sqrt(ss / sw * n / (n - 1)) : NaN,")
+    # Time series (build .39): units are ordered as Stata's egen group() / R's factor() number them, so the constant
+    # and unit indicators match the exported regress / lm commands; the covariance matrix is kept for the F test.
+    e = patch(e, "  let series = [...G.entries()].map(([u, m]) => ({ u, pts: [...m.entries()].map(([t, c]) => ({ t, y: c[0] / c[1] })).sort((a, b) => a.t - b.t) }));",
+              "  let series = [...G.entries()].map(([u, m]) => ({ u, pts: [...m.entries()].map(([t, c]) => ({ t, y: c[0] / c[1] })).sort((a, b) => a.t - b.t) }));\n  { const numU = !uA || Array.prototype.every.call(uA, v => v == null || v === '' || typeof v === 'number'); series.sort((a, b) => numU ? Number(a.u) - Number(b.u) : (a.u < b.u ? -1 : a.u > b.u ? 1 : 0)); }")
+    e = patch(e, "  return { coefs, n, P, r2: sst ? 1 - sse / sst : NaN,", "  return { coefs, V: Vc, sse, df, units: series.map(s => s.u), n, P, r2: sst ? 1 - sse / sst : NaN,")
+    # Time-series chart: round tick values placed where their labels say (labels were rounded but drawn at
+    # fractional periods, e.g. "1996" at 1995.8); monthly and quarterly axes tick at the start of a year.
+    e = patch(e, "  for (let k = 0; k <= 4; k++) { const v = y0 + (y1 - y0) * k / 4; kids.push(",
+              "  for (const [k, v] of csPretty(y0, y1, 4).entries()) { kids.push(")
+    e = patch(e, "  for (let k = 0; k <= 5; k++) { const v = t0 + (t1 - t0) * k / 5; kids.push(R.createElement('text', { key: 'xt' + k,",
+              "  const tu = o.frequency === 'monthly' ? 12 : o.frequency === 'quarterly' ? 4 : 1, xTicks = (t1 - t0) / tu >= 2 ? csPretty(t0 / tu, t1 / tu, 5, true).map(v => v * tu) : csPretty(t0, t1, 5, true);\n  for (const [k, v] of xTicks.entries()) { kids.push(R.createElement('text', { key: 'xt' + k,")
     return e
