@@ -28,7 +28,7 @@
     }
   ],
   "diagnostics": ["BOOTSTRAP CONFIDENCE INTERVAL CALCULATIONS", "Based on 3000 bootstrap replicates", "", "CALL : ", "boot::boot.ci(boot.out = bt, conf = level, type = c(\"perc\", \"bca\"))", "", "Intervals : ", "Level     Percentile            BCa          ", "95%   (49.03, 52.26 )   (48.91, 52.23 )  ", "Calculations and Intervals on Original Scale"],
-  "notes": [],
+  "notes": "Lower and Upper: 95% percentile bootstrap interval; the bias-corrected (BCa) interval is under Diagnostics.",
   "warnings": [],
   "labels": {
     "v1": "w"

@@ -70,3 +70,19 @@ Fixed from that check:
 - Kruskal–Wallis adds a **Group summaries** table (N, median, mean rank, rank sum — as Stata's `kwallis`
   reports), also added to the R specification and validated against R.
 - Kruskal–Wallis and Friedman Diagnostics name the variables (`data: life_expectancy by region`).
+
+## Build .34 — spot check (Bootstrap)
+
+Re-tested end to end offline: estimates, bootstrap SE, bias and percentile intervals equal R's `boot` exactly
+(same random draws) for mean / median / sd, other seeds, 90% level, 50,000 replicates, subgroups and the moving-
+block bootstrap; BCa (Diagnostics) equals `boot.ci`; validation messages, Cancel and re-run work. Fixed:
+- **The IF subgroup now applies to Tests ▾ analyses** (the bar says "applies to every tab", but analysis pages
+  silently used every row); the bar is shown there, survey methods use it as the estimation domain, and the
+  console commands carry the condition (`… if region == "North"`, `sub <- subset(df, …)`).
+- **Session .do / .R files declare missing-value codes** the app applied (Settings codes and auto-detected codes
+  such as 999: `mvdecode x, mv(999)` / `df$x[df$x %in% c(999)] <- NA`), so exported commands reproduce results.
+- Bootstrap console commands: runnable R `boot`/`tsboot` code (verified to reproduce the app in R); Stata
+  `bootstrap … : summarize y [if …]` + `estat bootstrap, percentile`; no misleading Stata command for the
+  moving-block bootstrap (Stata has no built-in equivalent).
+- The results note states the interval: "Lower and Upper: 95% percentile bootstrap interval; the bias-corrected
+  (BCa) interval is under Diagnostics" (added to the R specification and validated).

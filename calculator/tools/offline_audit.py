@@ -20,12 +20,21 @@ def integrate_component(c):
     c = patch(c, "if (this._vcBusy || typeof fetch === 'undefined') return;", "if (this._vcBusy || typeof fetch === 'undefined' || (typeof navigator !== 'undefined' && navigator.onLine === false)) return;")
     # Tests-menu analyses appear in the console, the Output view and the session .do / .R file; clicking the
     # entry reopens the analysis page.
-    c = patch(c, "if (d.t === 'ts') return (d.short", "if (d.t === 'asx') return dial === 'stata' ? d.stata : d.r; if (d.t === 'ts') return (d.short")
+    c = c.replace("if (d.t === 'asx') return dial === 'stata' ? d.stata : d.r; if (d.t === 'ts') return (d.short", "if (d.t === 'ts') return (d.short")  # build .33 form
+    c = patch(c, "if (d.t === 'ts') return (d.short", "if (d.t === 'asx') return /^survey_/.test(d.id) ? (dial === 'stata' ? d.stata : d.r) : (dial === 'stata' && d.stataIfDone ? d.stata : this.withIf(dial === 'stata' ? d.stata : d.r, d.sg, dial)); if (d.t === 'ts') return (d.short")
     c = patch(c, "if (d.t === 'ts' || d.t === 'tsvars' || d.t === 'gen01') return dial === 'stata' ? d.stata : d.r;", "if (d.t === 'ts' || d.t === 'tsvars' || d.t === 'gen01' || d.t === 'asx') return dial === 'stata' ? d.stata : d.r;")
     c = patch(c, "if (d.t === 'ts') { this.setState(Object.assign({ tab: 'ts' }, d.setup || {})); return; }", "if (d.t === 'asx') { this.asOpen(d.id); return; }\n    if (d.t === 'ts') { this.setState(Object.assign({ tab: 'ts' }, d.setup || {})); return; }")
     c = patch(c, "if (d.t === 'ts') return d.tbl || d.res || '';", "if (d.t === 'ts' || d.t === 'asx') return d.tbl || d.res || '';")
     c = patch(c, "if (d.t === 'ts') return d.res || '';", "if (d.t === 'ts' || d.t === 'asx') return d.res || '';")
     c = patch(c, "if (d.t === 'ts') return 'Time series with explicit calendar preparation: ' + (d.res || '');", "if (d.t === 'asx') return d.res || d.title || 'Analysis';\n    if (d.t === 'ts') return 'Time series with explicit calendar preparation: ' + (d.res || '');")
+    # The IF subgroup ("applies to every tab") also applies to Tests-menu analyses (survey methods use it as the
+    # estimation domain); before, analysis pages silently used all rows.
+    c = patch(c, "sgTab(tab) { tab = tab || this.state.tab; return ['ttest', 'one', 'two', 'reg', 'plots', 'browse', 'sem', 'text', 'ts'].includes(tab) ? tab : null; }",
+              "sgTab(tab) { tab = tab || this.state.tab; return ['ttest', 'one', 'two', 'reg', 'plots', 'browse', 'sem', 'text', 'ts', 'analysis'].includes(tab) && !(tab === 'analysis' && (this.state.analysisId === '__directory' || (this.asCatalog?.().find(q => q.id === this.state.analysisId) || {}).group === 'Data management')) ? tab : null; }")
+    # Session .do / .R files declare the missing-value codes the app applied (Settings codes and auto-detected
+    # codes such as 999), so the exported commands reproduce the app's results.
+    c = patch(c, "(isDta ? 'library(haven); df <- read_dta(\"' + S.fileName + '\")' : 'df <- read.csv(\"' + S.fileName + '\")'), ''];",
+              "(isDta ? 'library(haven); df <- read_dta(\"' + S.fileName + '\")' : 'df <- read.csv(\"' + S.fileName + '\")'), ...this.missingDecodeLines(dial), ''];")
     return c
 
 

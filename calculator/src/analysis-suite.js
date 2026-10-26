@@ -68,7 +68,8 @@
   // Stata and R commands by variable name (a comment where there is no single equivalent) and the result tables.
   asLog(info,packet,result){try{const cmd=this.asCommands(info,packet),lab=k=>result.labels?.[k]||k,txt=v=>v==null?'.':typeof v==='number'?(Number.isInteger(v)?String(v):Math.abs(v)>0&&Math.abs(v)<1e-4?v.toExponential(3):String(Number(v.toPrecision(6)))):String(v).replace(/\bv\d+\b/g,lab);
     const tbl=(result.tables||[]).filter(t=>!/^Predictions|^Holdout predictions|^Predicted survival|^Data preview|^Cluster membership|scores$/i.test(t.title)).map(t=>{const cols=[].concat(t.columns).map(txt),rows=[].concat(t.rows).slice(0,40).map(r=>[].concat(r).map(txt)),w=cols.map((c,j)=>Math.max(c.length,...rows.map(r=>(r[j]||'').length)));return [t.title,cols.map((c,j)=>j?c.padStart(w[j]):c.padEnd(w[j])).join('  '),...rows.map(r=>r.map((c,j)=>j?c.padStart(w[j]):c.padEnd(w[j])).join('  ')),...(t.totalRows>40?['  … '+(t.totalRows-40)+' more rows (see the Tests page)']:[])].join('\n');}).join('\n\n');
-    this.pushLog({t:'asx',id:info.id,title:info.title,stata:cmd.stata,r:cmd.r,tbl,res:info.title+(result.analysisN?' · N = '+result.analysisN:'')});}catch(e){}}
+    const sg=this.tagSg({}).sg,ifx=sg&&sg.length?sg.map(c=>this.condExpr(c,'stata')).filter(Boolean).join(' & '):'';let stata=cmd.stata,ifDone=false;if(ifx&&info.id==='bootstrap'&&/: summarize /.test(stata)){stata=stata.replace(/(: summarize \S+)/,'$1 if '+ifx);ifDone=true;}
+    this.pushLog({t:'asx',id:info.id,title:info.title,stata,r:cmd.r,stataIfDone:ifDone,tbl,res:info.title+(result.analysisN?' · N = '+result.analysisN:'')});}catch(e){}}
   asCommands(info,packet){
     const f=packet.fields||{},o=packet.options||{},nm=k=>packet.data?.[k]?.name||k,v=r=>(f[r]||[]).map(nm),one=r=>v(r)[0]||'',Y=one('y'),G=one('group'),X=v('predictors'),V=v('variables'),S=one('subject'),T=one('time'),E=one('event'),W=one('weight');
     const q=s=>/^[A-Za-z.][A-Za-z0-9._]*$/.test(s)?s:'`'+s+'`',rx=X.map(q).join(' + '),sx=X.join(' '),num=k=>o[k]??info.options?.[k];
@@ -100,7 +101,9 @@
       survreg:()=>[['weibull','exponential','lognormal','loglogistic'].includes(o.distribution||'weibull')?'stset '+T+', failure('+E+')\nstreg '+sx+', distribution('+(o.distribution||'weibull')+') time':null,'survival::survreg(survival::Surv('+q(T)+', '+q(E)+') ~ '+rx+', data = df, dist = "'+(o.distribution||'weibull')+'")'],
       pca:()=>['pca '+V.join(' '),'prcomp(df[c('+V.map(x=>JSON.stringify(x)).join(', ')+')], scale. = '+(o.standardize===false?'FALSE':'TRUE')+')'],
       efa:()=>['factor '+V.join(' ')+', factors('+(num('nfactors')||2)+')'+((o.rotation||'oblimin')!=='none'?'\nrotate, '+(o.rotation||'oblimin'):''),'psych::fa(df[c('+V.map(x=>JSON.stringify(x)).join(', ')+')], nfactors = '+(num('nfactors')||2)+', rotate = "'+(o.rotation||'oblimin')+'", fm = "'+(o.factorMethod||'minres')+'")'],
-      bootstrap:()=>['bootstrap r('+({mean:'mean',median:'p50',sd:'sd'})[o.statistic||'mean']+'), reps('+(num('repetitions')||999)+') seed('+(num('seed')??1729)+'): summarize '+Y+((o.statistic||'mean')==='median'?', detail':''),null],
+      bootstrap:()=>{const st=o.statistic||'mean',B=num('repetitions')||999,seed=num('seed')??1729,lv=Number((1-packet.alpha).toFixed(6)),lo=Number((packet.alpha/2).toFixed(6)),fn=st==='sd'?'sd':st;
+        if((o.resample||'iid')==='block')return [null,'set.seed('+seed+')\nd <- na.omit(df[c('+JSON.stringify(Y)+', '+JSON.stringify(T)+')])\nb <- boot::tsboot(d[[1]][order(d[[2]])], '+fn+', R = '+B+', l = '+(num('blockLength')||4)+', sim = "fixed")\nquantile(b$t, c('+lo+', '+(1-lo)+'))'];
+        return ['bootstrap r('+({mean:'mean',median:'p50',sd:'sd'})[st]+'), reps('+B+') seed('+seed+'): summarize '+Y+(st==='median'?', detail':'')+'\nestat bootstrap, percentile','set.seed('+seed+')\nb <- boot::boot(na.omit(df$'+q(Y)+'), function(a, i) '+fn+'(a[i]), R = '+B+')\nboot::boot.ci(b, conf = '+lv+', type = c("perc", "bca"))'];},
       survey_desc:()=>['svyset '+(one('psu')||'_n')+' [pweight = '+W+']'+(one('strata')?', strata('+one('strata')+')':'')+'\nsvy: '+((o.surveyStat||'mean')==='total'?'total':'mean')+' '+V.join(' '),'survey::svy'+((o.surveyStat||'mean')==='total'?'total':'mean')+'(~'+V.map(q).join(' + ')+', design = survey::svydesign(ids = ~'+(one('psu')?q(one('psu')):'1')+(one('strata')?', strata = ~'+q(one('strata')):'')+', weights = ~'+q(W)+', data = df, nest = TRUE))'],
       missing:()=>['misstable summarize '+V.join(' '),'colSums(is.na(df[c('+V.map(x=>JSON.stringify(x)).join(', ')+')]))'],
       kmeans:()=>['cluster kmeans '+V.join(' ')+', k('+(num('clusters')||3)+')','kmeans(scale(df[c('+V.map(x=>JSON.stringify(x)).join(', ')+')]), '+(num('clusters')||3)+', nstart = 25)'],
@@ -111,6 +114,10 @@
     const [st,r]=(C[info.id]||(()=>[null,null]))();
     return {stata:st||'* '+desc+' (computed in GM26; no single Stata command)',r:r||'# '+desc+' (computed in GM26; see "Download reproducible R analysis")'};
   }
+  // Missing-value codes the app treats as missing (Settings and auto-detected), as Stata/R recode lines.
+  missingDecodeLines(dial){const S=this.state,out=[];let toks=[];try{toks=this.toks().nums||[];}catch(e){}
+    for(const col of (S.cols||[]).filter(c=>c.type==='numeric')){const codes=[...new Set([...toks,...(S.autoScreen?(col.autoCodes||[]):[])].filter(Number.isFinite))];if(!codes.length)continue;const nm=col.name,r=/^[A-Za-z.][A-Za-z0-9._]*$/.test(nm)?'df$'+nm:'df[["'+nm+'"]]';out.push(dial==='stata'?'mvdecode '+nm+', mv('+codes.join(' ')+')':r+'['+r+' %in% c('+codes.join(', ')+')] <- NA');}
+    if(out.length)out.unshift((dial==='stata'?'* ':'# ')+'Values treated as missing in GM26');return out;}
   asCompute(packet,token){
     const inline=()=>new Promise((resolve,reject)=>setTimeout(()=>{try{resolve(this._E.gmRun(packet));}catch(e){reject(e);}},20));
     if(this._asWorker===undefined){try{const url=URL.createObjectURL(new Blob([this._E.gmEngineSource()],{type:'text/javascript'}));this._asWorker=new Worker(url);URL.revokeObjectURL(url);}catch(e){this._asWorker=null;}}

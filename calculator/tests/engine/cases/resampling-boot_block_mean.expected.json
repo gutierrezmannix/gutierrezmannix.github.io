@@ -28,7 +28,7 @@
     }
   ],
   "diagnostics": [],
-  "notes": "Moving-block bootstrap assumes an approximately stationary series and a defensible block length.",
+  "notes": ["Moving-block bootstrap assumes an approximately stationary series and a defensible block length.", "Lower and Upper: 95% percentile interval of the block-bootstrap replicates."],
   "warnings": [],
   "labels": {
     "v1": "y",

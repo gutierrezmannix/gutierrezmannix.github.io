@@ -161,6 +161,7 @@ register('bootstrap', ctx => {
   const cols = ['Estimate', 'Bootstrap.SE', 'Bias'], row = [t0, sdt, mt - t0];
   cols.push('Lower', 'Upper', 'Replicates'); row.push(ci[0], ci[1], B);
   ctx.table('Bootstrap estimate', cols, [row]);
+  ctx.note(scheme === 'block' ? 'Lower and Upper: ' + rnum(100 * ctx.level) + '% percentile interval of the block-bootstrap replicates.' : 'Lower and Upper: ' + rnum(100 * ctx.level) + '% percentile bootstrap interval; the bias-corrected (BCa) interval is under Diagnostics.');
   let svg; try { const v = tt.filter(Number.isFinite), br = histBreaks(v), c = histCounts(v, br); svg = svgPlot({ xlab: 'Resampled statistic', ylab: 'Frequency', layers: [{ type: 'rect', x0: br.slice(0, -1), x1: br.slice(1), y0: c.map(() => 0), y1: c, fill: '#D6E8DD', stroke: '#194F39' }] }); }
   catch (e) { svg = svgPlot({ layers: [{ type: 'text', x: [0.5], y: [0.5], labels: [e.message] }], xlim: [0, 1], ylim: [0, 1] }); }
   ctx.plot('Bootstrap distribution', svg);
