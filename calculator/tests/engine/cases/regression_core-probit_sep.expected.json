@@ -1,0 +1,17 @@
+{
+  "id": "probit",
+  "error": "The model did not converge. Estimates are not released.",
+  "inputN": 120,
+  "analysisN": 120,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": ["", "Call:", "glm(formula = ff, family = binomial(link = \"probit\"), data = d)", "", "Coefficients:", "             Estimate Std. Error z value Pr(>|z|)", "(Intercept)    -4.033    222.742  -0.018    0.986", "v2            418.673  14045.248   0.030    0.976", "", "(Dispersion parameter for binomial family taken to be 1)", "", "    Null deviance: 1.6582e+02  on 119  degrees of freedom", "Residual deviance: 1.0143e-06  on 118  degrees of freedom", "AIC: 4", "", "Number of Fisher Scoring iterations: 25", ""],
+  "notes": [],
+  "warnings": ["glm.fit: algorithm did not converge", "glm.fit: fitted probabilities numerically 0 or 1 occurred"],
+  "labels": {
+    "v1": "y",
+    "v2": "x"
+  },
+  "outputData": null
+}

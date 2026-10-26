@@ -1,0 +1,51 @@
+{
+  "id": "tukey",
+  "error": null,
+  "inputN": 30,
+  "analysisN": 30,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Tukey simultaneous comparisons",
+      "columns": ["Term", "diff", "lwr", "upr", "p adj"],
+      "rows": [
+        [
+          "trt-ctl",
+          1.56505555555555,
+          0.453106933667264,
+          2.67700417744385,
+          0.007485152007082
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Group summaries",
+      "columns": ["Group", "N", "Mean", "SD"],
+      "rows": [
+        [
+          "ctl",
+          12,
+          9.46616666666667,
+          0.843364887420228
+        ],
+        [
+          "trt",
+          18,
+          11.0312222222222,
+          1.74190050217489
+        ]
+      ],
+      "totalRows": 2
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

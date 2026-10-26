@@ -1,0 +1,64 @@
+{
+  "id": "prop1",
+  "error": null,
+  "inputN": 0,
+  "analysisN": 9,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          2.77777777777778,
+          "1",
+          0.0955807045456288,
+          "1-sample proportions test without continuity correction"
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Estimates",
+      "columns": ["Estimate", "Value"],
+      "rows": [
+        [
+          "p",
+          0.222222222222222
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Confidence interval",
+      "columns": ["Lower", "Upper", "Confidence"],
+      "rows": [
+        [
+          0.0632251071178467,
+          0.547411030893011,
+          0.95
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Sample proportions",
+      "columns": ["Group", "Successes", "Trials", "Proportion"],
+      "rows": [
+        [
+          1,
+          2,
+          9,
+          0.222222222222222
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "two.sided",
+  "warnings": "Chi-squared approximation may be incorrect",
+  "labels": [],
+  "outputData": null
+}

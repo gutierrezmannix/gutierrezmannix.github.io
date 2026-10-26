@@ -1,0 +1,18 @@
+{
+  "id": "friedman",
+  "error": "Exactly one complete observation per subject × condition is required.",
+  "inputN": 44,
+  "analysisN": 44,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "time",
+    "v3": "id"
+  },
+  "outputData": null
+}

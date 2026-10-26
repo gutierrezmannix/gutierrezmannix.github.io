@@ -1,0 +1,17 @@
+{
+  "id": "dunnett",
+  "error": "ref = 10 must be in 1L:3",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "dose"
+  },
+  "outputData": null
+}

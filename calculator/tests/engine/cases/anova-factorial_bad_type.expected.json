@@ -1,0 +1,22 @@
+{
+  "id": "factorial",
+  "error": "'arg' should be one of “II”, “III”, “2”, “3”",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": ["", "Call:", "lm(formula = ff, data = d)", "", "Residuals:", "     Min       1Q   Median       3Q      Max ", "-2.59840 -0.67213 -0.07858  0.57044  3.12560 ", "", "Coefficients:", "            Estimate Std. Error t value Pr(>|t|)    ", "(Intercept)   6.4193     0.3000  21.397  < 2e-16 ***", "v2lo         -1.0969     0.3954  -2.774  0.00682 ** ", "v3y           1.0211     0.3912   2.610  0.01071 *  ", "v3z           0.5626     0.4975   1.131  0.26136    ", "v2lo:v3y     -0.2782     0.5562  -0.500  0.61825    ", "v2lo:v3z     -1.4096     0.6308  -2.235  0.02808 *  ", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "", "Residual standard error: 1.123 on 84 degrees of freedom", "Multiple R-squared:  0.4721,\tAdjusted R-squared:  0.4407 ", "F-statistic: 15.02 on 5 and 84 DF,  p-value: 1.604e-10", "", "", "\tstudentized Breusch-Pagan test", "", "data:  m", "BP = 8.1405, df = 5, p-value = 0.1487", "", "          GVIF Df GVIF^(1/(2*Df))", "v2    2.778947  1        1.667018", "v3    5.376250  2        1.522719", "v2:v3 8.841242  2        1.724361"],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "yield",
+    "v2": "A",
+    "v3": "B",
+    "v4": "C",
+    "v5": "cov",
+    "v6": "cov2",
+    "v7": "Bm"
+  },
+  "outputData": null
+}

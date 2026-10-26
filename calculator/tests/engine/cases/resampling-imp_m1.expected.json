@@ -1,0 +1,17 @@
+{
+  "id": "impute",
+  "error": "\"imputations\" must be at least 2.",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x1"
+  },
+  "outputData": null
+}

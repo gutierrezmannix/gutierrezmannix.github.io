@@ -1,0 +1,17 @@
+{
+  "id": "contrasts",
+  "error": "'x' must be an array of at least two dimensions",
+  "inputN": 90,
+  "analysisN": 82,
+  "excludedN": 8,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

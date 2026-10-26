@@ -1,0 +1,24 @@
+{
+  "id": "efa",
+  "error": "infinite or missing values in 'x'",
+  "inputN": 300,
+  "analysisN": 300,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": ["NaNs produced", "imaginary eigen value condition encountered in fa\n Try again with SMC=FALSE \n exiting fa"],
+  "labels": {
+    "v1": "item1",
+    "v2": "item2",
+    "v3": "item3",
+    "v4": "item4",
+    "v5": "item5",
+    "v6": "item6",
+    "v7": "item7",
+    "v8": "item8",
+    "v9": "item9"
+  },
+  "outputData": null
+}

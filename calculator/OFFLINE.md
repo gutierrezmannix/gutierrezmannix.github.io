@@ -1,0 +1,59 @@
+# Working offline — build 2026-10-25.32
+
+GM26.1 now runs every function without an internet connection, including from a downloaded copy of
+`index.html` opened from disk (`file://`). Nothing is fetched at run time.
+
+## What changed
+
+**Tests ▾ analyses no longer download R.** The 65 advanced analyses (proportions and categorical tests,
+nonparametric tests, ANOVA/ANCOVA and multiple comparisons, regression models, multilevel and panel models,
+survival analysis, PCA/factor analysis, resampling and power, survey inference and imputation, predictive models,
+data management) used to run in R inside the browser (webR), which downloaded R and its packages from
+`webr.r-wasm.org` on first use. They now run in a built-in statistical engine (`src/engine/`, JavaScript),
+embedded in the page and started in a Web Worker (the page stays responsive and **Cancel** stops a run).
+
+**The engine reproduces R.** The R code that used to run (`src/analysis-methods.R`) is the specification. For
+every method, test packets are run through the original R engine with real R 4.3.3 and its packages (car,
+multcomp, MASS, pscl, quantreg, mgcv, nnet, lme4, plm, survival, psych, boot, coin, survey, mice, glmnet, rpart,
+pwr) and through the built-in engine, and every table cell, note, error message and plot title is compared
+(`node --test calculator/tests/engine.test.mjs`: 467 cases across all 65 methods, all matching; relative tolerance 1e-6 unless documented — e.g. mixed models with random slopes, where R's optimizer stops slightly short of the optimum, agree to 1e-4). Random procedures
+(bootstrap, permutation, train/holdout splits, cross-validation folds, k-means starts, multiple imputation) use an
+exact port of R's random-number generator, so with the same seed they give the same draws as R.
+Method-by-method notes and the few documented deviations are in `tools/engine/NOTES-*.md`.
+
+**"Download reproducible R analysis"** still exports an R script that re-runs the same analysis in R.
+
+## Audit of the rest of the program (all offline)
+
+- Every tab: descriptive statistics, t-tests, contingency tables, means, correlation, regression (linear, logit,
+  ordered logit, Poisson), text analysis, network models (ERGM), SEM, scale reliability, time series, browse,
+  overview, data tools — checked with all network requests blocked, from the site and from `file://`.
+- Every chart type (37) including maps (bundled world map), model-estimate charts and GeoJSON maps.
+- Console commands (describe, codebook, summarize, tabulate, crosstab, correlate, pwcorr, ttest, oneway,
+  regress, logit, poisson, generate, replace, recode, rename, label, count, display, sort, histogram, scatter,
+  mean, keep, drop, destring, help).
+- Files: CSV, TSV, Stata .dta, saved sessions (save and reopen); exports: .do and .R scripts, Word and HTML
+  reports, PNG/SVG plots, ZIP of plots, CSV.
+- Fonts, map boundaries, React and every script are embedded; the only optional request is the "new version
+  available" check, which is skipped while offline.
+
+## Fixes found in the audit
+
+- Stata 7 files (.dta format 110–112, still written by R's `foreign::write.dta`) now open; previously only
+  Stata 8+ was accepted.
+- Fisher's exact test on large r × c tables: where R stops with an FEXACT workspace error, the p-value is now
+  estimated from 100,000 random tables with the same margins (identical to R's
+  `fisher.test(simulate.p.value = TRUE, B = 1e5)` with the same seed).
+- 2 × 2 tables typed on one line as `a, b, c, d` (as the label asks) are read as a 2 × 2 table for Fisher and
+  McNemar (R stopped with "A 2×2 paired count table is required").
+- The cached weight array now follows the chosen weight variable (a weight set by `svyset` or a restored session
+  could otherwise reuse the previous weight in some charts).
+- Time series: a **Run** button (build .31).
+
+## Developer notes
+
+- Engine sources: `src/engine/**/*.mjs`; `tools/engine/bundle.mjs` packs them into `src/engine/engine.bundle.js`
+  (run automatically by `tools/build_time_series.py` when sources change; requires Node).
+- Validation: `tools/engine/README.md` (workflow), `tools/engine/cases/*.mjs` (case generators),
+  `tests/engine/cases/` (packets and R reference outputs), `tools/engine/ref.R` (R runner),
+  `tools/engine/compare.mjs` (comparison), `tools/engine/dist_check.mjs` (distribution functions vs R).

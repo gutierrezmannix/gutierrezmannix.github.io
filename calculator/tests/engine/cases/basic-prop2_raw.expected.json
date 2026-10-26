@@ -1,0 +1,77 @@
+{
+  "id": "prop2",
+  "error": null,
+  "inputN": 80,
+  "analysisN": 80,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          1.01086048454469,
+          "1",
+          0.314696781784074,
+          "2-sample test for equality of proportions without continuity correction"
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Estimates",
+      "columns": ["Estimate", "Value"],
+      "rows": [
+        [
+          "prop 1",
+          0.657894736842105
+        ],
+        [
+          "prop 2",
+          0.547619047619048
+        ]
+      ],
+      "totalRows": 2
+    },
+    {
+      "title": "Confidence interval",
+      "columns": ["Lower", "Upper", "Confidence"],
+      "rows": [
+        [
+          -0.102822661664835,
+          0.32337404011095,
+          0.95
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Sample proportions",
+      "columns": ["Group", "Successes", "Trials", "Proportion"],
+      "rows": [
+        [
+          1,
+          25,
+          38,
+          0.657894736842105
+        ],
+        [
+          2,
+          23,
+          42,
+          0.547619047619048
+        ]
+      ],
+      "totalRows": 2
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": ["First minus second: control minus treated", "two.sided"],
+  "warnings": [],
+  "labels": {
+    "v1": "voted",
+    "v2": "arm"
+  },
+  "outputData": null
+}

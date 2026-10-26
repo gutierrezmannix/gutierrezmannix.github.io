@@ -1,0 +1,17 @@
+{
+  "id": "negbin",
+  "error": "Count outcomes must be nonnegative integers.",
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "count",
+    "v2": "x"
+  },
+  "outputData": null
+}

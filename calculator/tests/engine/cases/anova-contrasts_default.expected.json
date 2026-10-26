@@ -1,0 +1,66 @@
+{
+  "id": "contrasts",
+  "error": null,
+  "inputN": 90,
+  "analysisN": 82,
+  "excludedN": 8,
+  "tables": [
+    {
+      "title": "Planned contrasts",
+      "columns": ["Estimate", "SE", "P.adjusted"],
+      "rows": [
+        [
+          -1.62138571428572,
+          0.35055914718495,
+          2.92488160145155e-05
+        ],
+        [
+          0.834208333333352,
+          0.411412907694012,
+          0.0460094980674879
+        ]
+      ],
+      "totalRows": 2
+    },
+    {
+      "title": "Group summaries",
+      "columns": ["Group", "N", "Mean", "SD"],
+      "rows": [
+        [
+          "ctl",
+          28,
+          9.72471428571428,
+          0.819463322892573
+        ],
+        [
+          "drugA",
+          20,
+          11.3461,
+          1.32940310705693
+        ],
+        [
+          "drugB",
+          18,
+          11.7933333333333,
+          0.580782129849861
+        ],
+        [
+          "drugC",
+          16,
+          10.959125,
+          1.90415762215212
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "\t Simultaneous Tests for General Linear Hypotheses", "", "Fit: lm(formula = y ~ 0 + g, data = dd)", "", "Linear Hypotheses:", "       Estimate Std. Error t value Pr(>|t|)    ", "1 == 0  -1.6214     0.3506  -4.625 2.92e-05 ***", "2 == 0   0.8342     0.4114   2.028    0.046 *  ", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "(Adjusted p values reported -- holm method)", ""],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

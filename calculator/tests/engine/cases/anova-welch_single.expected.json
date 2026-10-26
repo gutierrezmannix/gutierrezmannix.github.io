@@ -1,0 +1,17 @@
+{
+  "id": "welch_anova",
+  "error": "At least two observed groups are required.",
+  "inputN": 20,
+  "analysisN": 20,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

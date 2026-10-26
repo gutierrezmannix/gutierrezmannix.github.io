@@ -1,0 +1,99 @@
+{
+  "id": "merge",
+  "error": null,
+  "inputN": 5,
+  "analysisN": 5,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Data preview: first 200 rows",
+      "columns": ["v1", "v2", "v3.x", "v3.y", "v4"],
+      "rows": [
+        [
+          "3",
+          "p",
+          1,
+          12,
+          "B"
+        ],
+        [
+          "1",
+          "q",
+          2,
+          14,
+          "D"
+        ],
+        [
+          "1",
+          "q",
+          2,
+          15,
+          null
+        ],
+        [
+          "2",
+          "r",
+          3,
+          11,
+          "A"
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "Data operation summary",
+      "columns": ["Input.rows", "Output.rows", "Output.columns"],
+      "rows": [
+        [
+          5,
+          4,
+          5
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "Preview the output before replacing the active dataset.",
+  "warnings": [],
+  "labels": {
+    "v1": "id",
+    "v2": "a",
+    "v3": "v",
+    "v4": "b"
+  },
+  "outputData": {
+    "names": ["v1", "v2", "v3.x", "v3.y", "v4"],
+    "rows": [
+      [
+        "3",
+        "p",
+        1,
+        12,
+        "B"
+      ],
+      [
+        "1",
+        "q",
+        2,
+        14,
+        "D"
+      ],
+      [
+        "1",
+        "q",
+        2,
+        15,
+        null
+      ],
+      [
+        "2",
+        "r",
+        3,
+        11,
+        "A"
+      ]
+    ]
+  }
+}

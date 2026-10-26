@@ -1,0 +1,16 @@
+{
+  "id": "bootstrap",
+  "error": "estimated adjustment 'w' is infinite",
+  "inputN": 43,
+  "analysisN": 43,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score"
+  },
+  "outputData": null
+}

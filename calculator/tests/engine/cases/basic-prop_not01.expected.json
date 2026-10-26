@@ -1,0 +1,16 @@
+{
+  "id": "prop1",
+  "error": "Outcome must be coded 0/1.",
+  "inputN": 80,
+  "analysisN": 80,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score"
+  },
+  "outputData": null
+}

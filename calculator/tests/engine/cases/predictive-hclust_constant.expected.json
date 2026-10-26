@@ -1,0 +1,17 @@
+{
+  "id": "hierarchical",
+  "error": "Choose nonconstant numeric variables.",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "alpha",
+    "v2": "flat"
+  },
+  "outputData": null
+}

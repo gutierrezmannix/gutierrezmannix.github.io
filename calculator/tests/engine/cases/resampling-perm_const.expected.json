@@ -1,0 +1,17 @@
+{
+  "id": "permutation",
+  "error": "missing value where TRUE/FALSE needed",
+  "inputN": 60,
+  "analysisN": 60,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": "The conditional covariance matrix has zero diagonal elements",
+  "labels": {
+    "v1": "y",
+    "v2": "arm"
+  },
+  "outputData": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "long",
+  "error": "Long reshape requires unique subject IDs in wide data.",
+  "inputN": 3,
+  "analysisN": 3,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "sid",
+    "v2": "t1",
+    "v3": "t2"
+  },
+  "outputData": null
+}

@@ -1,0 +1,17 @@
+{
+  "id": "tukey",
+  "error": "No complete observations for the selected variables.",
+  "inputN": 3,
+  "analysisN": 0,
+  "excludedN": 3,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

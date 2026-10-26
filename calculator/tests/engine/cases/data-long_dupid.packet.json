@@ -1,0 +1,1 @@
+{"id":"long","alpha":0.05,"options":{"inputMode":"raw"},"fields":{"subject":["v1"],"variables":["v2","v3"]},"data":{"v1":{"name":"sid","type":"categorical","values":["b","b","c"]},"v2":{"name":"t1","type":"numeric","values":[1,2,3]},"v3":{"name":"t2","type":"numeric","values":[4,5,6]}},"color":"#2E7D58"}

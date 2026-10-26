@@ -1,0 +1,20 @@
+{
+  "id": "mixed",
+  "error": "Select predictors.",
+  "inputN": 240,
+  "analysisN": 240,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "z",
+    "v4": "f",
+    "v5": "subject"
+  },
+  "outputData": null
+}

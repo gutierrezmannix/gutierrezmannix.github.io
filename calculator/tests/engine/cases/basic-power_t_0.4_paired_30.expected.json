@@ -1,0 +1,38 @@
+{
+  "id": "power_t",
+  "error": null,
+  "inputN": 0,
+  "analysisN": 0,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Power and sample size",
+      "columns": ["Quantity", "Value"],
+      "rows": [
+        [
+          "n",
+          30
+        ],
+        [
+          "d",
+          0.4
+        ],
+        [
+          "sig.level",
+          0.05
+        ],
+        [
+          "power",
+          0.562813607141207
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "     Paired t test power calculation ", "", "              n = 30", "              d = 0.4", "      sig.level = 0.05", "          power = 0.5628136", "    alternative = two.sided", "", "NOTE: n is number of *pairs*", ""],
+  "notes": "For two-sample and balanced ANOVA designs, n denotes observations per group. Round planned sample sizes upward.",
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

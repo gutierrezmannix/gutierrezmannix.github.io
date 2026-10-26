@@ -1,0 +1,18 @@
+{
+  "id": "mixed",
+  "error": "number of observations (=20) <= number of random effects (=20) for term (1 + v2 | v3); the random-effects parameters and the residual variance (or scale parameter) are probably unidentifiable",
+  "inputN": 20,
+  "analysisN": 20,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "g"
+  },
+  "outputData": null
+}

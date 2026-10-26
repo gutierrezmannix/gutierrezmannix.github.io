@@ -1,0 +1,18 @@
+{
+  "id": "glmm",
+  "error": "negative values not allowed for the 'Poisson' family",
+  "inputN": 400,
+  "analysisN": 400,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "g"
+  },
+  "outputData": null
+}

@@ -1,0 +1,1 @@
+{"id":"bootstrap","alpha":0.05,"options":{"inputMode":"raw","resample":"block","blockLength":10},"fields":{"y":["v1"],"time":["v2"]},"data":{"v1":{"name":"y","type":"numeric","values":[10.254,9.026,10.805,8.627,12.23,10.562,12.353,10.377,11.808,8.16]},"v2":{"name":"t","type":"numeric","values":[44,19,64,65,28,24,53,59,47,1]}},"color":"#2E7D58"}

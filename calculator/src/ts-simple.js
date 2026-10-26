@@ -151,7 +151,7 @@
     const fcSec=forecasting?h('section',{className:'ts-sec',key:'fc'},h('h3',null,'3 · Forecast'),h('div',{className:'cs-controls'},field('Forecast ahead',h('input',{'aria-label':'Forecast ahead',type:'number',min:1,max:500,step:1,value:horizon,onChange:e=>opt('horizon',e.target.value===''?'':Number(e.target.value))}),(f.units||'periods'))),futureSec,more):h('section',{className:'ts-sec',key:'fc'},more);
     const ready=!b.errors.length&&(kind==='system'?(c.fields?.variables||[]).length>=2:!!yv);
     const problems=b.errors.length?h('div',{className:'ts-problems',role:'alert'},...b.errors.map((e,i)=>h('p',{key:i,className:'as-error'},e))):!ready?h('p',{className:'ts-hint'},!tv?'Choose the time variable to start.':kind==='system'?'Choose two or more variables to run.':'Choose the dependent variable to run.'):null;
-    return h('div',null,h('p',{className:'as-runtime-note'},'Runs in R inside your browser. The first run downloads R and its packages (internet needed); your data stays on this device.'),timeSec,tv?modelSec:null,tv?fcSec:null,problems,
+    return h('div',null,h('p',{className:'as-runtime-note'},'Runs in your browser with the built-in statistical engine. No internet connection is needed; your data stay on this device.'),timeSec,tv?modelSec:null,tv?fcSec:null,problems,
       button(S.analysisBusy?'Running…':'Run analysis',()=>this.asRun(),{disabled:!!S.analysisBusy||!ready,className:'as-run',title:ready?'':(b.errors[0]||(kind==='system'?'Choose two or more variables.':'Choose the dependent variable.'))}),this.asRunStatus(h,button));
   }
   // Time series tab: survey records → one value per unit and period (Stata collapse)

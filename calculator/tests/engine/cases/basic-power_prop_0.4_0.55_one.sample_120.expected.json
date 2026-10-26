@@ -1,0 +1,38 @@
+{
+  "id": "power_prop",
+  "error": null,
+  "inputN": 0,
+  "analysisN": 0,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Power and sample size",
+      "columns": ["Quantity", "Value"],
+      "rows": [
+        [
+          "h",
+          0.301525341951891
+        ],
+        [
+          "n",
+          120
+        ],
+        [
+          "sig.level",
+          0.05
+        ],
+        [
+          "power",
+          0.910377139730063
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "     proportion power calculation for binomial distribution (arcsine transformation) ", "", "              h = 0.3015253", "              n = 120", "      sig.level = 0.05", "          power = 0.9103771", "    alternative = two.sided", ""],
+  "notes": "For two-sample and balanced ANOVA designs, n denotes observations per group. Round planned sample sizes upward.",
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

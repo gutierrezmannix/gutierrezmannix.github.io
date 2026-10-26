@@ -1,0 +1,74 @@
+{
+  "id": "dunnett",
+  "error": null,
+  "inputN": 90,
+  "analysisN": 82,
+  "excludedN": 8,
+  "tables": [
+    {
+      "title": "Dunnett simultaneous intervals",
+      "columns": ["Term", "Estimate", "lwr", "upr"],
+      "rows": [
+        [
+          "ctl - drugB",
+          -2.06861904761905,
+          -2.82323650260293,
+          -1.31400159263517
+        ],
+        [
+          "drugA - drugB",
+          -0.447233333333334,
+          -1.25876177826717,
+          0.364295111600503
+        ],
+        [
+          "drugC - drugB",
+          -0.834208333333334,
+          -1.69244371265,
+          0.0240270459833301
+        ]
+      ],
+      "totalRows": 3
+    },
+    {
+      "title": "Group summaries",
+      "columns": ["Group", "N", "Mean", "SD"],
+      "rows": [
+        [
+          "ctl",
+          28,
+          9.72471428571428,
+          0.819463322892573
+        ],
+        [
+          "drugA",
+          20,
+          11.3461,
+          1.32940310705693
+        ],
+        [
+          "drugB",
+          18,
+          11.7933333333333,
+          0.580782129849861
+        ],
+        [
+          "drugC",
+          16,
+          10.959125,
+          1.90415762215212
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "\t Simultaneous Tests for General Linear Hypotheses", "", "Multiple Comparisons of Means: Dunnett Contrasts", "", "", "Fit: aov(formula = y ~ g, data = dd)", "", "Linear Hypotheses:", "                   Estimate Std. Error t value Pr(>|t|)    ", "ctl - drugB == 0    -2.0686     0.3617  -5.719   <0.001 ***", "drugA - drugB == 0  -0.4472     0.3890  -1.150    0.515    ", "drugC - drugB == 0  -0.8342     0.4114  -2.028    0.113    ", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "(Adjusted p values reported -- single-step method)", ""],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

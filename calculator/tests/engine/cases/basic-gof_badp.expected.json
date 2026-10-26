@@ -1,0 +1,14 @@
+{
+  "id": "gof",
+  "error": "Expected probabilities must match categories and sum to one.",
+  "inputN": 0,
+  "analysisN": 74,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

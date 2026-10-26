@@ -1,0 +1,18 @@
+{
+  "id": "hierarchical",
+  "error": "invalid clustering method m",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "alpha",
+    "v2": "beta",
+    "v3": "gamma"
+  },
+  "outputData": null
+}

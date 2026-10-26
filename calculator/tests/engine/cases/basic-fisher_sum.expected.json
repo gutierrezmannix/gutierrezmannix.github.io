@@ -1,0 +1,68 @@
+{
+  "id": "fisher",
+  "error": null,
+  "inputN": 0,
+  "analysisN": 28,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          null,
+          "",
+          0.0200176485544637,
+          "Fisher's Exact Test for Count Data"
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Estimates",
+      "columns": ["Estimate", "Value"],
+      "rows": [
+        [
+          "odds ratio",
+          0.122217299433151
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Confidence interval",
+      "columns": ["Lower", "Upper", "Confidence"],
+      "rows": [
+        [
+          0.0136195975057876,
+          0.796471264611126,
+          0.95
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Count table",
+      "columns": ["Term", "V1", "V2"],
+      "rows": [
+        [
+          "1",
+          3,
+          9
+        ],
+        [
+          "2",
+          12,
+          4
+        ]
+      ],
+      "totalRows": 2
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "two.sided",
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

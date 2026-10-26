@@ -1,0 +1,18 @@
+{
+  "id": "duplicates",
+  "error": "Choose key columns.",
+  "inputN": 5,
+  "analysisN": 5,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "id",
+    "v2": "a",
+    "v3": "v"
+  },
+  "outputData": null
+}

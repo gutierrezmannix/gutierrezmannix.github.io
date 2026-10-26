@@ -1,0 +1,54 @@
+{
+  "id": "signedrank",
+  "error": null,
+  "inputN": 80,
+  "analysisN": 80,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          221,
+          "",
+          1.71403343270546e-06,
+          "Wilcoxon signed rank test with continuity correction"
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Estimates",
+      "columns": ["Estimate", "Value"],
+      "rows": [
+        [
+          "(pseudo)median",
+          -1.00006232064388
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Confidence interval",
+      "columns": ["Lower", "Upper", "Confidence"],
+      "rows": [
+        [
+          -1.49997329692535,
+          -0.99999900408794,
+          0.95
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "two.sided",
+  "warnings": [],
+  "labels": {
+    "v1": "pre",
+    "v2": "post"
+  },
+  "outputData": null
+}

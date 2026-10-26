@@ -1,0 +1,66 @@
+{
+  "id": "binomial",
+  "error": null,
+  "inputN": 80,
+  "analysisN": 80,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          48,
+          "80",
+          0.000352084117445696,
+          "Exact binomial test"
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Estimates",
+      "columns": ["Estimate", "Value"],
+      "rows": [
+        [
+          "probability of success",
+          0.6
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Confidence interval",
+      "columns": ["Lower", "Upper", "Confidence"],
+      "rows": [
+        [
+          0.48437694049549,
+          0.70799064374469,
+          0.95
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Sample proportions",
+      "columns": ["Group", "Successes", "Trials", "Proportion"],
+      "rows": [
+        [
+          1,
+          48,
+          80,
+          0.6
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "two.sided",
+  "warnings": [],
+  "labels": {
+    "v1": "voted"
+  },
+  "outputData": null
+}

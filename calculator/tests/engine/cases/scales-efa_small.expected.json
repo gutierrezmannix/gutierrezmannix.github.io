@@ -1,0 +1,237 @@
+{
+  "id": "efa",
+  "error": null,
+  "inputN": 40,
+  "analysisN": 40,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Factor loadings",
+      "columns": ["Term", "MR1"],
+      "rows": [
+        [
+          "v1",
+          0.795502201198965
+        ],
+        [
+          "v2",
+          0.65142784055589
+        ],
+        [
+          "v3",
+          0.364592420758014
+        ],
+        [
+          "v4",
+          0.432147995199901
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "Communalities",
+      "columns": ["Term", "Communality", "Uniqueness"],
+      "rows": [
+        [
+          "v1",
+          0.632823752112399,
+          0.367176247887601
+        ],
+        [
+          "v2",
+          0.424358231451309,
+          0.575641768548691
+        ],
+        [
+          "v3",
+          0.132927633274189,
+          0.867072366725811
+        ],
+        [
+          "v4",
+          0.186751889755294,
+          0.813248110244706
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "Factor scores",
+      "columns": ["Term", "MR1"],
+      "rows": [
+        [
+          "1",
+          1.27041227842023
+        ],
+        [
+          "2",
+          -0.00124513435837301
+        ],
+        [
+          "3",
+          -0.436161096401303
+        ],
+        [
+          "4",
+          -0.735719047485065
+        ],
+        [
+          "5",
+          -0.44066686107834
+        ],
+        [
+          "6",
+          1.71541089662298
+        ],
+        [
+          "7",
+          1.52889569315607
+        ],
+        [
+          "8",
+          -0.608260119862522
+        ],
+        [
+          "9",
+          -0.621391850915364
+        ],
+        [
+          "10",
+          -0.163029604195162
+        ],
+        [
+          "11",
+          -1.55650785747041
+        ],
+        [
+          "12",
+          -0.325315250894601
+        ],
+        [
+          "13",
+          -0.645896400547541
+        ],
+        [
+          "14",
+          0.565043863269631
+        ],
+        [
+          "15",
+          0.0329540309430112
+        ],
+        [
+          "16",
+          0.176614489441908
+        ],
+        [
+          "17",
+          -1.41770103294182
+        ],
+        [
+          "18",
+          0.868588317513751
+        ],
+        [
+          "19",
+          0.0723714710797544
+        ],
+        [
+          "20",
+          0.601740016513678
+        ],
+        [
+          "21",
+          0.772042508371931
+        ],
+        [
+          "22",
+          -1.60939513688614
+        ],
+        [
+          "23",
+          0.0972843290788687
+        ],
+        [
+          "24",
+          -0.363957567408879
+        ],
+        [
+          "25",
+          -0.947070972051044
+        ],
+        [
+          "26",
+          0.429719798109234
+        ],
+        [
+          "27",
+          0.262948651293478
+        ],
+        [
+          "28",
+          -1.09142063887985
+        ],
+        [
+          "29",
+          0.662979148641348
+        ],
+        [
+          "30",
+          1.57826107935229
+        ],
+        [
+          "31",
+          0.26700851209159
+        ],
+        [
+          "32",
+          1.26982393013299
+        ],
+        [
+          "33",
+          0.962279298161432
+        ],
+        [
+          "34",
+          -0.720871615138023
+        ],
+        [
+          "35",
+          0.322262664456089
+        ],
+        [
+          "36",
+          -0.519134140427871
+        ],
+        [
+          "37",
+          0.020108273300519
+        ],
+        [
+          "38",
+          0.109028374773799
+        ],
+        [
+          "39",
+          0.100981598876532
+        ],
+        [
+          "40",
+          -1.48301489665881
+        ]
+      ],
+      "totalRows": 40
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["Factor Analysis using method =  minres", "Call: psych::fa(r = z, nfactors = num(\"nfactors\", 2, min = 1, max = ncol(z) - ", "    1, integer = TRUE), rotate = opt(\"rotation\", \"oblimin\"), ", "    scores = \"regression\", fm = opt(\"factorMethod\", \"minres\"))", "Standardized loadings (pattern matrix) based upon correlation matrix", "    MR1   h2   u2 com", "v1 0.80 0.63 0.37   1", "v2 0.65 0.42 0.58   1", "v3 0.36 0.13 0.87   1", "v4 0.43 0.19 0.81   1", "", "                MR1", "SS loadings    1.38", "Proportion Var 0.34", "", "Mean item complexity =  1", "Test of the hypothesis that 1 factor is sufficient.", "", "df null model =  6  with the objective function =  0.84 with Chi Square =  31.1", "df of  the model are 2  and the objective function was  0.31 ", "", "The root mean square of the residuals (RMSR) is  0.15 ", "The df corrected root mean square of the residuals is  0.27 ", "", "The harmonic n.obs is  40 with the empirical chi square  11.48  with prob <  0.0032 ", "The total n.obs was  40  with Likelihood Chi Square =  11.12  with prob <  0.0038 ", "", "Tucker Lewis Index of factoring reliability =  -0.116", "RMSEA index =  0.337  and the 90 % confidence intervals are  0.166 0.55", "BIC =  3.75", "Fit based upon off diagonal values = 0.81", "Measures of factor score adequacy             ", "                                                   MR1", "Correlation of (regression) scores with factors   0.87", "Multiple R square of scores with factors          0.75", "Minimum correlation of possible factor scores     0.51", "Kaiser-Meyer-Olkin factor adequacy", "Call: psych::KMO(r = z)", "Overall MSA =  0.53", "MSA for each item = ", "  v1   v2   v3   v4 ", "0.58 0.66 0.41 0.46 ", "$chisq", "[1] 31.09685", "", "$p.value", "[1] 2.429246e-05", "", "$df", "[1] 6", ""],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "item1",
+    "v2": "item2",
+    "v3": "item3",
+    "v4": "item4"
+  },
+  "outputData": null
+}

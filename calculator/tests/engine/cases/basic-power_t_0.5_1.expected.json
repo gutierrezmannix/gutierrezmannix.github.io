@@ -1,0 +1,38 @@
+{
+  "id": "power_t",
+  "error": null,
+  "inputN": 0,
+  "analysisN": 0,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Power and sample size",
+      "columns": ["Quantity", "Value"],
+      "rows": [
+        [
+          "n",
+          1
+        ],
+        [
+          "d",
+          0.5
+        ],
+        [
+          "sig.level",
+          0.05
+        ],
+        [
+          "power",
+          null
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "     Two-sample t test power calculation ", "", "              n = 1", "              d = 0.5", "      sig.level = 0.05", "          power = NaN", "    alternative = two.sided", "", "NOTE: n is number in *each* group", ""],
+  "notes": "For two-sample and balanced ANOVA designs, n denotes observations per group. Round planned sample sizes upward.",
+  "warnings": "NaNs produced",
+  "labels": [],
+  "outputData": null
+}

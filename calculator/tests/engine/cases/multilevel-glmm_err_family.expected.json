@@ -1,0 +1,22 @@
+{
+  "id": "glmm",
+  "error": "argument is of length zero",
+  "inputN": 400,
+  "analysisN": 400,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "yb",
+    "v2": "yp",
+    "v3": "x",
+    "v4": "z",
+    "v5": "f",
+    "v6": "subject",
+    "v7": "yes"
+  },
+  "outputData": null
+}

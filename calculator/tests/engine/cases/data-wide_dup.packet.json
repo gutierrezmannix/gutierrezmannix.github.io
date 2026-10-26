@@ -1,0 +1,1 @@
+{"id":"wide","alpha":0.05,"options":{"inputMode":"raw"},"fields":{"subject":["v1"],"time":["v2"],"y":["v3"]},"data":{"v1":{"name":"sid","type":"categorical","values":["b","b"]},"v2":{"name":"yr","type":"numeric","values":[2001,2001]},"v3":{"name":"y","type":"numeric","values":[1,2]}},"color":"#2E7D58"}

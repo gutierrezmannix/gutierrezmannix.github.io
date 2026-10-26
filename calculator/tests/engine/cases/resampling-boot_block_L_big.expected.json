@@ -1,0 +1,17 @@
+{
+  "id": "bootstrap",
+  "error": "\"blockLength\" must be at most 9.",
+  "inputN": 10,
+  "analysisN": 10,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "t"
+  },
+  "outputData": null
+}

@@ -1,0 +1,16 @@
+{
+  "id": "impute",
+  "error": "Choose outcome and predictors.",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y"
+  },
+  "outputData": null
+}

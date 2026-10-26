@@ -1,0 +1,18 @@
+{
+  "id": "spline",
+  "error": "The model is rank deficient. Remove redundant predictors or empty interaction cells.",
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": ["", "Call:", "lm(formula = ff, data = d)", "", "Residuals:", "     Min       1Q   Median       3Q      Max ", "-2.07864 -0.58150 -0.02047  0.57887  1.76151 ", "", "Coefficients: (1 not defined because of singularities)", "                         Estimate Std. Error t value Pr(>|t|)  ", "(Intercept)              -0.38009    0.31321  -1.214   0.2269  ", "splines::ns(v2, df = 3)1  0.24388    0.38134   0.640   0.5235  ", "splines::ns(v2, df = 3)2  0.08789    0.32281   0.272   0.7858  ", "splines::ns(v2, df = 3)3       NA         NA      NA       NA  ", "splines::ns(v3, df = 3)1  0.52071    0.28644   1.818   0.0712 .", "splines::ns(v3, df = 3)2  0.87040    0.74549   1.168   0.2449  ", "splines::ns(v3, df = 3)3  0.88393    0.45029   1.963   0.0516 .", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "", "Residual standard error: 0.833 on 144 degrees of freedom", "Multiple R-squared:  0.06635,\tAdjusted R-squared:  0.03393 ", "F-statistic: 2.047 on 5 and 144 DF,  p-value: 0.07558", ""],
+  "notes": [],
+  "warnings": "shoving 'interior' knots matching boundary knots to inside",
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "z"
+  },
+  "outputData": null
+}

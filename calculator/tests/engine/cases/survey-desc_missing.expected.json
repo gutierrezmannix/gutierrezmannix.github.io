@@ -1,0 +1,70 @@
+{
+  "id": "survey_desc",
+  "error": null,
+  "inputN": 240,
+  "analysisN": 126,
+  "excludedN": 114,
+  "tables": [
+    {
+      "title": "Design-based estimates",
+      "columns": ["Term", "Estimate", "SE", "Lower", "Upper"],
+      "rows": [
+        [
+          "v1",
+          38.6430767462967,
+          1.3111145476331,
+          35.8636380688832,
+          41.4225154237102
+        ],
+        [
+          "v3college",
+          0.275848688976411,
+          0.037126721886771,
+          0.197143554505931,
+          0.35455382344689
+        ],
+        [
+          "v3grad",
+          0.217126156356945,
+          0.054567603942948,
+          0.101448003592483,
+          0.332804309121407
+        ],
+        [
+          "v3hs",
+          0.507025154666644,
+          0.0390939069987702,
+          0.424149774052689,
+          0.5899005352806
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "Survey design",
+      "columns": ["Observations", "Design.DF"],
+      "rows": [
+        [
+          126,
+          16
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": ["Domain estimation retains the full sampled design before subsetting the analytic domain.", "Lonely-PSU strata require a defensible design-specific treatment; no automatic adjustment is imposed."],
+  "warnings": [],
+  "labels": {
+    "v1": "income",
+    "v2": "sex",
+    "v3": "edu",
+    "v4": "smoke",
+    "v5": "w",
+    "v6": "psu",
+    "v7": "stratum",
+    "v8": "region"
+  },
+  "outputData": null
+}

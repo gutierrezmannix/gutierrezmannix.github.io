@@ -1,0 +1,18 @@
+{
+  "id": "factorial",
+  "error": "The model is rank deficient. Remove redundant predictors or empty interaction cells.",
+  "inputN": 82,
+  "analysisN": 82,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": ["", "Call:", "lm(formula = ff, data = d)", "", "Residuals:", "     Min       1Q   Median       3Q      Max ", "-2.59840 -0.67213 -0.08131  0.57044  3.12560 ", "", "Coefficients: (1 not defined because of singularities)", "            Estimate Std. Error t value Pr(>|t|)    ", "(Intercept)   6.4193     0.3048  21.060  < 2e-16 ***", "v2lo         -1.0969     0.4017  -2.731  0.00783 ** ", "v3y           1.0211     0.3974   2.569  0.01212 *  ", "v3z          -0.8470     0.3939  -2.150  0.03467 *  ", "v2lo:v3y     -0.2782     0.5651  -0.492  0.62390    ", "v2lo:v3z          NA         NA      NA       NA    ", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "", "Residual standard error: 1.14 on 77 degrees of freedom", "Multiple R-squared:  0.4666,\tAdjusted R-squared:  0.4389 ", "F-statistic: 16.84 on 4 and 77 DF,  p-value: 5.886e-10", ""],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "yield",
+    "v2": "A",
+    "v3": "B"
+  },
+  "outputData": null
+}

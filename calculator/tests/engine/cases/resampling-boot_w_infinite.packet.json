@@ -1,0 +1,1 @@
+{"id":"bootstrap","alpha":0.05,"options":{"inputMode":"raw","statistic":"median"},"fields":{"y":["v1"]},"data":{"v1":{"name":"score","type":"numeric","values":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,2]}},"color":"#2E7D58"}

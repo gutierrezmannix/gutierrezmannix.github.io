@@ -1,0 +1,26 @@
+{
+  "id": "precision",
+  "error": null,
+  "inputN": 0,
+  "analysisN": 0,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Precision planning",
+      "columns": ["Completed", "Invitations"],
+      "rows": [
+        [
+          1568,
+          2612
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "Normal-approximation planning; the design effect and expected response rate must come from substantive knowledge.",
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

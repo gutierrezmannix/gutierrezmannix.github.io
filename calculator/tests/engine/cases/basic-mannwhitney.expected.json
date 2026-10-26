@@ -1,0 +1,64 @@
+{
+  "id": "mannwhitney",
+  "error": null,
+  "inputN": 80,
+  "analysisN": 80,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          847.5,
+          "",
+          0.636852363057345,
+          "Wilcoxon rank sum test with continuity correction"
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Estimates",
+      "columns": ["Estimate", "Value"],
+      "rows": [
+        [
+          "difference in location",
+          0.332745494034194
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Confidence interval",
+      "columns": ["Lower", "Upper", "Confidence"],
+      "rows": [
+        [
+          -1.10003655570393,
+          1.70000699712248,
+          0.95
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Effect size",
+      "columns": "Rank.biserial",
+      "rows": [
+        [
+          0.0620300751879699
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": ["two.sided", "Rank-sum inference concerns distribution/location. A median interpretation requires additional shape assumptions."],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

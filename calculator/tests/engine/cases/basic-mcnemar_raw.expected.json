@@ -1,0 +1,48 @@
+{
+  "id": "mcnemar",
+  "error": null,
+  "inputN": 80,
+  "analysisN": 80,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          2.56,
+          "1",
+          0.109598583399116,
+          "McNemar's Chi-squared test with continuity correction"
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Count table",
+      "columns": ["Term", "0", "1"],
+      "rows": [
+        [
+          "0",
+          24,
+          8
+        ],
+        [
+          "1",
+          17,
+          31
+        ]
+      ],
+      "totalRows": 2
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "before",
+    "v2": "after"
+  },
+  "outputData": null
+}

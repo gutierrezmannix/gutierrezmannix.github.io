@@ -1,0 +1,18 @@
+{
+  "id": "factorial",
+  "error": "At least two observed groups are required.",
+  "inputN": 30,
+  "analysisN": 30,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "yield",
+    "v2": "A",
+    "v3": "B"
+  },
+  "outputData": null
+}

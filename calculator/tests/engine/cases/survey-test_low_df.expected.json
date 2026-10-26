@@ -1,0 +1,23 @@
+{
+  "id": "survey_test",
+  "error": "The design has insufficient degrees of freedom for this comparison.",
+  "inputN": 240,
+  "analysisN": 24,
+  "excludedN": 216,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "Domain estimation retains the full sampled design before subsetting the analytic domain.",
+  "warnings": [],
+  "labels": {
+    "v1": "income",
+    "v2": "sex",
+    "v3": "edu",
+    "v4": "smoke",
+    "v5": "w",
+    "v6": "psu",
+    "v7": "stratum",
+    "v8": "region"
+  },
+  "outputData": null
+}

@@ -1,0 +1,76 @@
+{
+  "id": "contrasts",
+  "error": null,
+  "inputN": 90,
+  "analysisN": 82,
+  "excludedN": 8,
+  "tables": [
+    {
+      "title": "Planned contrasts",
+      "columns": ["Estimate", "SE", "P.adjusted"],
+      "rows": [
+        [
+          -1.62138571428572,
+          0.35055914718495,
+          5.84976320290309e-05
+        ],
+        [
+          -0.447233333333335,
+          0.389022971148618,
+          1
+        ],
+        [
+          -1.68164404761903,
+          0.54051114354126,
+          0.0104118545546887
+        ],
+        [
+          -4.92441547619047,
+          0.837729878028957,
+          3.89097864150756e-07
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "Group summaries",
+      "columns": ["Group", "N", "Mean", "SD"],
+      "rows": [
+        [
+          "ctl",
+          28,
+          9.72471428571428,
+          0.819463322892573
+        ],
+        [
+          "drugA",
+          20,
+          11.3461,
+          1.32940310705693
+        ],
+        [
+          "drugB",
+          18,
+          11.7933333333333,
+          0.580782129849861
+        ],
+        [
+          "drugC",
+          16,
+          10.959125,
+          1.90415762215212
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "\t Simultaneous Tests for General Linear Hypotheses", "", "Fit: lm(formula = y ~ 0 + g, data = dd)", "", "Linear Hypotheses:", "       Estimate Std. Error t value Pr(>|t|)    ", "1 == 0  -1.6214     0.3506  -4.625 5.85e-05 ***", "2 == 0  -0.4472     0.3890  -1.150   1.0000    ", "3 == 0  -1.6816     0.5405  -3.111   0.0104 *  ", "4 == 0  -4.9244     0.8377  -5.878 3.89e-07 ***", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "(Adjusted p values reported -- bonferroni method)", ""],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "binomial",
+  "error": "Successes cannot exceed trials.",
+  "inputN": 0,
+  "analysisN": 0,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

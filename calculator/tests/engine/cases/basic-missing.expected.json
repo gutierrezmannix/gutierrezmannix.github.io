@@ -1,0 +1,72 @@
+{
+  "id": "missing",
+  "error": null,
+  "inputN": 80,
+  "analysisN": 80,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Missingness",
+      "columns": ["Variable", "Missing", "Percent"],
+      "rows": [
+        [
+          "v1",
+          4,
+          5
+        ],
+        [
+          "v2",
+          15,
+          18.75
+        ],
+        [
+          "v3",
+          8,
+          10
+        ]
+      ],
+      "totalRows": 3
+    },
+    {
+      "title": "Missing-data patterns",
+      "columns": ["Var1", "Freq"],
+      "rows": [
+        [
+          "FALSE FALSE FALSE",
+          58
+        ],
+        [
+          "FALSE FALSE TRUE",
+          4
+        ],
+        [
+          "FALSE TRUE FALSE",
+          11
+        ],
+        [
+          "FALSE TRUE TRUE",
+          3
+        ],
+        [
+          "TRUE FALSE FALSE",
+          3
+        ],
+        [
+          "TRUE TRUE TRUE",
+          1
+        ]
+      ],
+      "totalRows": 6
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "Observed missingness patterns do not establish MCAR, MAR or MNAR.",
+  "warnings": [],
+  "labels": {
+    "v1": "a",
+    "v2": "b",
+    "v3": "c"
+  },
+  "outputData": null
+}

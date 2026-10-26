@@ -1,0 +1,16 @@
+{
+  "id": "bootstrap",
+  "error": "\"repetitions\" must be a whole number.",
+  "inputN": 40,
+  "analysisN": 40,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score"
+  },
+  "outputData": null
+}

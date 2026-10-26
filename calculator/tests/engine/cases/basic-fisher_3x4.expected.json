@@ -1,0 +1,59 @@
+{
+  "id": "fisher",
+  "error": null,
+  "inputN": 40,
+  "analysisN": 40,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          null,
+          "",
+          0.396635194817817,
+          "Fisher's Exact Test for Count Data"
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Count table",
+      "columns": ["Term", "east", "north", "south", "west"],
+      "rows": [
+        [
+          "a",
+          5,
+          5,
+          2,
+          2
+        ],
+        [
+          "b",
+          2,
+          4,
+          1,
+          7
+        ],
+        [
+          "c",
+          5,
+          2,
+          2,
+          3
+        ]
+      ],
+      "totalRows": 3
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "two.sided",
+  "warnings": [],
+  "labels": {
+    "v1": "region",
+    "v2": "zone"
+  },
+  "outputData": null
+}

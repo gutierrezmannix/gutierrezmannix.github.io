@@ -1,0 +1,62 @@
+{
+  "id": "quantile",
+  "error": null,
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Model summary",
+      "columns": ["Statistic", "Value"],
+      "rows": [
+        [
+          "Number of observations",
+          150
+        ],
+        [
+          "Log likelihood",
+          -262.4272213198
+        ],
+        [
+          "AIC",
+          528.8544426396
+        ],
+        [
+          "BIC",
+          null
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "Quantile coefficients",
+      "columns": ["Term", "Value", "Std. Error", "t value", "Pr(>|t|)"],
+      "rows": [
+        [
+          "(Intercept)",
+          1.5,
+          0.119587466253314,
+          12.5431205041392,
+          0
+        ],
+        [
+          "v2",
+          1,
+          0.128334205993156,
+          7.79215480597069,
+          1.07003295113373e-12
+        ]
+      ],
+      "totalRows": 2
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "Call: quantreg::rq(formula = ff, tau = num(\"tau\", 0.5, min = 0.001, ", "    max = 0.999), data = d)", "", "tau: [1] 0.37", "", "Coefficients:", "            coefficients lower bd upper bd", "(Intercept) 1.50000      1.50000  2.09922 ", "v2          1.00000      0.42687  1.00000 "],
+  "notes": "Quantile inference uses the nid sparsity estimator.",
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x"
+  },
+  "outputData": null
+}

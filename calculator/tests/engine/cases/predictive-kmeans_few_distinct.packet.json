@@ -1,0 +1,1 @@
+{"id":"kmeans","alpha":0.05,"options":{"inputMode":"raw","clusters":4},"fields":{"variables":["v1","v2"]},"data":{"v1":{"name":"u","type":"numeric","values":[1,2,3,1,2,3,1,2,3,1,2,3]},"v2":{"name":"w","type":"numeric","values":[2,4,6,2,4,6,2,4,6,2,4,6]}},"color":"#2E7D58"}

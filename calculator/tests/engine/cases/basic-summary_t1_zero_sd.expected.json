@@ -1,0 +1,14 @@
+{
+  "id": "summary_t1",
+  "error": "The summaries imply zero standard error.",
+  "inputN": 0,
+  "analysisN": 30,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

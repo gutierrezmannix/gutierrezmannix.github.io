@@ -1,0 +1,84 @@
+{
+  "id": "zeroinfl",
+  "error": null,
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Model summary",
+      "columns": ["Statistic", "Value"],
+      "rows": [
+        [
+          "Number of observations",
+          150
+        ],
+        [
+          "Log likelihood",
+          -268.522172219948
+        ],
+        [
+          "AIC",
+          545.044344439896
+        ],
+        [
+          "BIC",
+          557.086885616281
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "count component",
+      "columns": ["Term", "Estimate", "Std. Error", "z value", "Pr(>|z|)"],
+      "rows": [
+        [
+          "(Intercept)",
+          0.457268888173352,
+          0.0833101371374919,
+          5.48875447676545,
+          4.04777797018737e-08
+        ],
+        [
+          "v2",
+          0.431636469628293,
+          0.0821119687278661,
+          5.25668153273507,
+          1.46677987045338e-07
+        ]
+      ],
+      "totalRows": 2
+    },
+    {
+      "title": "zero component",
+      "columns": ["Term", "Estimate", "Std. Error", "z value", "Pr(>|z|)"],
+      "rows": [
+        [
+          "(Intercept)",
+          -0.680868775045529,
+          0.213320197570378,
+          -3.19176891265019,
+          0.00141404414483163
+        ],
+        [
+          "v2",
+          0.178926009098691,
+          0.239154176891767,
+          0.748161756671583,
+          0.454362595420437
+        ]
+      ],
+      "totalRows": 2
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "Call:", "pscl::zeroinfl(formula = ff, data = d, dist = opt(\"countFamily\", \"negbin\"))", "", "Pearson residuals:", "    Min      1Q  Median      3Q     Max ", "-0.9808 -0.7884 -0.7036  0.4842  8.1569 ", "", "Count model coefficients (poisson with log link):", "            Estimate Std. Error z value Pr(>|z|)    ", "(Intercept)  0.45727    0.08331   5.489 4.05e-08 ***", "v2           0.43164    0.08211   5.257 1.47e-07 ***", "", "Zero-inflation model coefficients (binomial with logit link):", "            Estimate Std. Error z value Pr(>|z|)   ", "(Intercept)  -0.6809     0.2133  -3.192  0.00141 **", "v2            0.1789     0.2392   0.748  0.45436   ", "---", "Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 ", "", "Number of iterations in BFGS optimization: 10 ", "Log-likelihood: -268.5 on 4 Df"],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "count",
+    "v2": "x",
+    "v3": "t"
+  },
+  "outputData": null
+}

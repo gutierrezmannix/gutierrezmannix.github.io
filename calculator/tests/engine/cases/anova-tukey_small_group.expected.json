@@ -1,0 +1,17 @@
+{
+  "id": "tukey",
+  "error": "Every group needs at least two observations.",
+  "inputN": 21,
+  "analysisN": 21,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

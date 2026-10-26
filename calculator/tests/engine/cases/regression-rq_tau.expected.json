@@ -1,0 +1,77 @@
+{
+  "id": "quantile",
+  "error": null,
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Model summary",
+      "columns": ["Statistic", "Value"],
+      "rows": [
+        [
+          "Number of observations",
+          150
+        ],
+        [
+          "Log likelihood",
+          -287.46410052927
+        ],
+        [
+          "AIC",
+          582.928201058539
+        ],
+        [
+          "BIC",
+          null
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "Quantile coefficients",
+      "columns": ["Term", "Value", "Std. Error", "t value", "Pr(>|t|)"],
+      "rows": [
+        [
+          "(Intercept)",
+          3.30672325976231,
+          0.47005774778804,
+          7.0347170647071,
+          7.16435799574811e-11
+        ],
+        [
+          "v2",
+          1.00348494325798,
+          0.157653887567627,
+          6.36511384996784,
+          2.37834307803553e-09
+        ],
+        [
+          "v3b",
+          -0.158282905906532,
+          0.550227402143701,
+          -0.287668162817513,
+          0.77400868701038
+        ],
+        [
+          "v3c",
+          0.108017782146368,
+          0.503562939767766,
+          0.214507013157449,
+          0.830451012211753
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "Call: quantreg::rq(formula = ff, tau = num(\"tau\", 0.5, min = 0.001, ", "    max = 0.999), data = d)", "", "tau: [1] 0.83", "", "Coefficients:", "            coefficients lower bd upper bd", "(Intercept)  3.30672      2.98934  4.31206", "v2           1.00348      0.84408  1.22916", "v3b         -0.15828     -1.22424  0.28484", "v3c          0.10802     -0.97820  0.65043"],
+  "notes": "Quantile inference uses the nid sparsity estimator.",
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "g"
+  },
+  "outputData": null
+}

@@ -1,0 +1,105 @@
+{
+  "id": "zeroinfl",
+  "error": null,
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Model summary",
+      "columns": ["Statistic", "Value"],
+      "rows": [
+        [
+          "Number of observations",
+          150
+        ],
+        [
+          "Log likelihood",
+          -225.332488517924
+        ],
+        [
+          "AIC",
+          464.664977035849
+        ],
+        [
+          "BIC",
+          485.739424094522
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "count component",
+      "columns": ["Term", "Estimate", "Std. Error", "z value", "Pr(>|z|)"],
+      "rows": [
+        [
+          "(Intercept)",
+          0.783042048881786,
+          0.171337460739824,
+          4.57017423685784,
+          4.87318884724333e-06
+        ],
+        [
+          "v2",
+          0.428330159526976,
+          0.134581697140773,
+          3.18267764953909,
+          0.00145919969494905
+        ],
+        [
+          "v3",
+          -0.0378136736144319,
+          0.136309119054958,
+          -0.277411180386149,
+          0.781464397687688
+        ],
+        [
+          "Log(theta)",
+          0.608617935842701,
+          0.453219963818474,
+          1.34287539038432,
+          0.179312326355733
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "zero component",
+      "columns": ["Term", "Estimate", "Std. Error", "z value", "Pr(>|z|)"],
+      "rows": [
+        [
+          "(Intercept)",
+          -0.624337309897206,
+          0.442387121851455,
+          -1.41129178282646,
+          0.158158596408133
+        ],
+        [
+          "v2",
+          0.383240007816122,
+          0.344453067711719,
+          1.11260442637969,
+          0.26587835857023
+        ],
+        [
+          "v3",
+          1.27264471177306,
+          0.361479154053946,
+          3.52065865348112,
+          0.000430476382822934
+        ]
+      ],
+      "totalRows": 3
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "Call:", "pscl::zeroinfl(formula = ff, data = d, dist = opt(\"countFamily\", \"negbin\"))", "", "Pearson residuals:", "    Min      1Q  Median      3Q     Max ", "-0.9964 -0.6162 -0.3830  0.2475  4.8067 ", "", "Count model coefficients (negbin with log link):", "            Estimate Std. Error z value Pr(>|z|)    ", "(Intercept)  0.78304    0.17134   4.570 4.87e-06 ***", "v2           0.42833    0.13458   3.183  0.00146 ** ", "v3          -0.03781    0.13631  -0.277  0.78146    ", "Log(theta)   0.60862    0.45322   1.343  0.17931    ", "", "Zero-inflation model coefficients (binomial with logit link):", "            Estimate Std. Error z value Pr(>|z|)    ", "(Intercept)  -0.6243     0.4424  -1.411  0.15816    ", "v2            0.3832     0.3445   1.113  0.26588    ", "v3            1.2726     0.3615   3.521  0.00043 ***", "---", "Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 ", "", "Theta = 1.8379 ", "Number of iterations in BFGS optimization: 15 ", "Log-likelihood: -225.3 on 7 Df"],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "count",
+    "v2": "x",
+    "v3": "z"
+  },
+  "outputData": null
+}

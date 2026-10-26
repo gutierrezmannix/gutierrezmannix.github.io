@@ -1,0 +1,74 @@
+{
+  "id": "dunnett",
+  "error": null,
+  "inputN": 16,
+  "analysisN": 16,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Dunnett simultaneous intervals",
+      "columns": ["Term", "Estimate", "lwr", "upr"],
+      "rows": [
+        [
+          "t1 - c",
+          0.0190833333333335,
+          -2.15793069307796,
+          2.19609735974463
+        ],
+        [
+          "t2 - c",
+          -0.296583333333333,
+          -2.1364960003585,
+          1.54332933369183
+        ],
+        [
+          "t3 - c",
+          -1.11891666666667,
+          -3.29593069307796,
+          1.05809735974462
+        ]
+      ],
+      "totalRows": 3
+    },
+    {
+      "title": "Group summaries",
+      "columns": ["Group", "N", "Mean", "SD"],
+      "rows": [
+        [
+          "c",
+          4,
+          0.73825,
+          0.435167687985524
+        ],
+        [
+          "t1",
+          3,
+          0.757333333333333,
+          0.979947617647665
+        ],
+        [
+          "t2",
+          6,
+          0.441666666666667,
+          1.43619269830572
+        ],
+        [
+          "t3",
+          3,
+          -0.380666666666667,
+          0.588883972725811
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "\t Simultaneous Tests for General Linear Hypotheses", "", "Multiple Comparisons of Means: Dunnett Contrasts", "", "", "Fit: aov(formula = y ~ g, data = dd)", "", "Linear Hypotheses:", "            Estimate Std. Error t value Pr(>|t|)", "t1 - c == 0  0.01908    0.80996   0.024    1.000", "t2 - c == 0 -0.29658    0.68454  -0.433    0.949", "t3 - c == 0 -1.11892    0.80996  -1.381    0.409", "(Adjusted p values reported -- single-step method)", ""],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

@@ -1,0 +1,19 @@
+{
+  "id": "pca",
+  "error": "Variables must be numeric and nonconstant.",
+  "inputN": 220,
+  "analysisN": 220,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "item1",
+    "v2": "item2",
+    "v3": "item3",
+    "v4": "grp"
+  },
+  "outputData": null
+}

@@ -1,0 +1,22 @@
+{
+  "id": "lasso",
+  "error": "x should be a matrix with 2 or more columns",
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "event",
+    "v3": "dose",
+    "v4": "age",
+    "v5": "index",
+    "v6": "noise",
+    "v7": "region"
+  },
+  "outputData": null
+}

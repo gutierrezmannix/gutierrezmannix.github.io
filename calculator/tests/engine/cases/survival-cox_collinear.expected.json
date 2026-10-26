@@ -1,0 +1,23 @@
+{
+  "id": "cox",
+  "error": "Coefficient estimates or standard errors are not finite/positive. Review model identification and convergence.",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": ["Call:", "survival::coxph(formula = ff, data = d, model = TRUE, x = TRUE)", "", "  n= 90, number of events= 57 ", "", "     coef exp(coef) se(coef)   z Pr(>|z|)   ", "v3 0.4246    1.5289   0.1516 2.8  0.00511 **", "v8     NA        NA   0.0000  NA       NA   ", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "", "   exp(coef) exp(-coef) lower .95 upper .95", "v3     1.529     0.6541     1.136     2.058", "v8        NA         NA        NA        NA", "", "Concordance= 0.595  (se = 0.043 )", "Likelihood ratio test= 7.83  on 1 df,   p=0.005", "Wald test            = 7.84  on 1 df,   p=0.005", "Score (logrank) test = 7.92  on 1 df,   p=0.005", ""],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "time",
+    "v2": "event",
+    "v3": "x1",
+    "v4": "x2",
+    "v5": "arm",
+    "v6": "trt",
+    "v7": "gnum",
+    "v8": "x1copy"
+  },
+  "outputData": null
+}

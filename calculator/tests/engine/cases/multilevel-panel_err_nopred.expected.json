@@ -1,0 +1,21 @@
+{
+  "id": "panel_re",
+  "error": "Select predictors.",
+  "inputN": 200,
+  "analysisN": 200,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "z",
+    "v4": "firm",
+    "v5": "year",
+    "v6": "f"
+  },
+  "outputData": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "permutation",
+  "error": "‘block’ contains levels with less than two observations",
+  "inputN": 9,
+  "analysisN": 9,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "arm",
+    "v3": "site"
+  },
+  "outputData": null
+}

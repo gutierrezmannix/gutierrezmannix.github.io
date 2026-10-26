@@ -1,0 +1,14 @@
+{
+  "id": "summary_t1",
+  "error": "\"seed\" must be at least 0.",
+  "inputN": 0,
+  "analysisN": 0,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

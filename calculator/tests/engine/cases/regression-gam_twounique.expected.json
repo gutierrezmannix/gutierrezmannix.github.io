@@ -1,0 +1,18 @@
+{
+  "id": "gam",
+  "error": "A term has fewer unique covariate combinations than specified maximum degrees of freedom",
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": "basis dimension, k, increased to minimum possible\n",
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "w"
+  },
+  "outputData": null
+}

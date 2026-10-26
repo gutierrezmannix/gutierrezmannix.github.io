@@ -1,0 +1,18 @@
+{
+  "id": "glmm",
+  "error": "Response is constant",
+  "inputN": 400,
+  "analysisN": 400,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "g"
+  },
+  "outputData": null
+}

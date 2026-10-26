@@ -1,0 +1,16 @@
+{
+  "id": "bootstrap",
+  "error": "estimated adjustment 'a' is NA",
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score"
+  },
+  "outputData": null
+}

@@ -1,0 +1,17 @@
+{
+  "id": "hurdle",
+  "error": "'arg' should be one of “poisson”, “negbin”, “geometric”",
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "count",
+    "v2": "x"
+  },
+  "outputData": null
+}

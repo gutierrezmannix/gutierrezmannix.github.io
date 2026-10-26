@@ -1,0 +1,17 @@
+{
+  "id": "quantile",
+  "error": "\"tau\" must be at most 0.999.",
+  "inputN": 150,
+  "analysisN": 150,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x"
+  },
+  "outputData": null
+}

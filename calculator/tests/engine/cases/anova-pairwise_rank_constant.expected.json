@@ -1,0 +1,60 @@
+{
+  "id": "pairwise",
+  "error": null,
+  "inputN": 9,
+  "analysisN": 9,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Adjusted pairwise p-values",
+      "columns": ["Term", "a", "b"],
+      "rows": [
+        [
+          "b",
+          null,
+          null
+        ],
+        [
+          "c",
+          0.127205139241507,
+          0.127205139241507
+        ]
+      ],
+      "totalRows": 2
+    },
+    {
+      "title": "Group summaries",
+      "columns": ["Group", "N", "Mean", "SD"],
+      "rows": [
+        [
+          "a",
+          3,
+          1,
+          0
+        ],
+        [
+          "b",
+          3,
+          1,
+          0
+        ],
+        [
+          "c",
+          3,
+          4,
+          1
+        ]
+      ],
+      "totalRows": 3
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

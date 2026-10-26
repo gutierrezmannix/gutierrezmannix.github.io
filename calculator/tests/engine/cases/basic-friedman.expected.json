@@ -1,0 +1,32 @@
+{
+  "id": "friedman",
+  "error": null,
+  "inputN": 45,
+  "analysisN": 45,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          6.4,
+          "2",
+          0.0407622039783662,
+          "Friedman rank sum test"
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "time",
+    "v3": "id"
+  },
+  "outputData": null
+}

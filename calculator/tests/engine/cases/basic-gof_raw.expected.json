@@ -1,0 +1,53 @@
+{
+  "id": "gof",
+  "error": null,
+  "inputN": 80,
+  "analysisN": 80,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Counts",
+      "columns": ["Observed", "Expected"],
+      "rows": [
+        [
+          23,
+          20
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          17,
+          20
+        ],
+        [
+          20,
+          20
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          0.9,
+          "3",
+          0.825427809041661,
+          "Chi-squared test for given probabilities"
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "region"
+  },
+  "outputData": null
+}

@@ -1,0 +1,115 @@
+{
+  "id": "long",
+  "error": null,
+  "inputN": 3,
+  "analysisN": 3,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Data preview: first 200 rows",
+      "columns": ["v1", "v2", "measurement", "value"],
+      "rows": [
+        [
+          "b",
+          9,
+          "t1",
+          1
+        ],
+        [
+          "a",
+          8,
+          "t1",
+          2
+        ],
+        [
+          "c",
+          7,
+          "t1",
+          null
+        ],
+        [
+          "b",
+          9,
+          "t2",
+          4
+        ],
+        [
+          "a",
+          8,
+          "t2",
+          5
+        ],
+        [
+          "c",
+          7,
+          "t2",
+          6
+        ]
+      ],
+      "totalRows": 6
+    },
+    {
+      "title": "Data operation summary",
+      "columns": ["Input.rows", "Output.rows", "Output.columns"],
+      "rows": [
+        [
+          3,
+          6,
+          4
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "Preview the output before replacing the active dataset.",
+  "warnings": [],
+  "labels": {
+    "v1": "sid",
+    "v2": "k",
+    "v3": "t1",
+    "v4": "t2"
+  },
+  "outputData": {
+    "names": ["v1", "v2", "measurement", "value"],
+    "rows": [
+      [
+        "b",
+        9,
+        "t1",
+        1
+      ],
+      [
+        "a",
+        8,
+        "t1",
+        2
+      ],
+      [
+        "c",
+        7,
+        "t1",
+        null
+      ],
+      [
+        "b",
+        9,
+        "t2",
+        4
+      ],
+      [
+        "a",
+        8,
+        "t2",
+        5
+      ],
+      [
+        "c",
+        7,
+        "t2",
+        6
+      ]
+    ]
+  }
+}

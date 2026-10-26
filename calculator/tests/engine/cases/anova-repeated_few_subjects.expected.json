@@ -1,0 +1,30 @@
+{
+  "id": "repeated",
+  "error": null,
+  "inputN": 15,
+  "analysisN": 3,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Design",
+      "columns": ["Subjects", "Conditions"],
+      "rows": [
+        [
+          3,
+          5
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "Univariate Type III Repeated-Measures ANOVA Assuming Sphericity", "", "            Sum Sq num Df Error SS den Df  F value   Pr(>F)   ", "(Intercept) 6924.7      1   87.753      2 157.8236 0.006277 **", "condition      9.9      4   11.149      8   1.7808 0.225837   ", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1"],
+  "notes": "Diagnostics include sphericity and Greenhouse–Geisser/Huynh–Feldt corrections.",
+  "warnings": "one or more error SSP matrix:\ncorresponding non-sphericity tests and corrections not available",
+  "labels": {
+    "v1": "rt",
+    "v2": "id",
+    "v3": "cond"
+  },
+  "outputData": null
+}

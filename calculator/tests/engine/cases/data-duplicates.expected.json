@@ -1,0 +1,55 @@
+{
+  "id": "duplicates",
+  "error": null,
+  "inputN": 8,
+  "analysisN": 8,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Duplicate keys",
+      "columns": ["Source.row", "v1", "v2"],
+      "rows": [
+        [
+          2,
+          "1",
+          2
+        ],
+        [
+          3,
+          "2",
+          3
+        ],
+        [
+          4,
+          "2",
+          4
+        ],
+        [
+          6,
+          "1",
+          6
+        ],
+        [
+          7,
+          null,
+          7
+        ],
+        [
+          8,
+          null,
+          8
+        ]
+      ],
+      "totalRows": 6
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "6 rows belong to duplicated keys.",
+  "warnings": [],
+  "labels": {
+    "v1": "id",
+    "v2": "v"
+  },
+  "outputData": null
+}

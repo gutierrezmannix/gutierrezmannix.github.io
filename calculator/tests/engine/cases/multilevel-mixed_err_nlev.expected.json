@@ -1,0 +1,18 @@
+{
+  "id": "mixed",
+  "error": "number of levels of each grouping factor must be < number of observations (problems: v3)",
+  "inputN": 30,
+  "analysisN": 30,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "g"
+  },
+  "outputData": null
+}

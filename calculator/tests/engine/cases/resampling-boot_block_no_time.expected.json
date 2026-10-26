@@ -1,0 +1,16 @@
+{
+  "id": "bootstrap",
+  "error": "Block bootstrap requires a time variable.",
+  "inputN": 70,
+  "analysisN": 70,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y"
+  },
+  "outputData": null
+}

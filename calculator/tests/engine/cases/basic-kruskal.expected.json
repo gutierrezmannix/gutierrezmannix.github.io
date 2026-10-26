@@ -1,0 +1,31 @@
+{
+  "id": "kruskal",
+  "error": null,
+  "inputN": 80,
+  "analysisN": 80,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          2.61648394590959,
+          "3",
+          0.454607024124706,
+          "Kruskal-Wallis rank sum test"
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "region"
+  },
+  "outputData": null
+}

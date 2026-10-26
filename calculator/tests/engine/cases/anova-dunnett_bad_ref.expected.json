@@ -1,0 +1,17 @@
+{
+  "id": "dunnett",
+  "error": "The control label is not an observed group.",
+  "inputN": 90,
+  "analysisN": 82,
+  "excludedN": 8,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

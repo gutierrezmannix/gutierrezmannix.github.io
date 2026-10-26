@@ -1,0 +1,74 @@
+{
+  "id": "pairwise",
+  "error": null,
+  "inputN": 90,
+  "analysisN": 82,
+  "excludedN": 8,
+  "tables": [
+    {
+      "title": "Adjusted pairwise p-values",
+      "columns": ["Term", "ctl", "drugA", "drugB"],
+      "rows": [
+        [
+          "drugA",
+          0.000181087789878995,
+          null,
+          null
+        ],
+        [
+          "drugB",
+          1.17521674956155e-07,
+          0.428105121175356,
+          null
+        ],
+        [
+          "drugC",
+          0.247936721410086,
+          0.428105121175356,
+          0.374059853116133
+        ]
+      ],
+      "totalRows": 3
+    },
+    {
+      "title": "Group summaries",
+      "columns": ["Group", "N", "Mean", "SD"],
+      "rows": [
+        [
+          "ctl",
+          28,
+          9.72471428571428,
+          0.819463322892573
+        ],
+        [
+          "drugA",
+          20,
+          11.3461,
+          1.32940310705693
+        ],
+        [
+          "drugB",
+          18,
+          11.7933333333333,
+          0.580782129849861
+        ],
+        [
+          "drugC",
+          16,
+          10.959125,
+          1.90415762215212
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

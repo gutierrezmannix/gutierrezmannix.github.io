@@ -1,0 +1,16 @@
+{
+  "id": "bootstrap",
+  "error": "Choose a numeric outcome.",
+  "inputN": 30,
+  "analysisN": 30,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "grp"
+  },
+  "outputData": null
+}

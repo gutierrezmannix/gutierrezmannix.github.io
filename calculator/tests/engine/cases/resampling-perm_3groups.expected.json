@@ -1,0 +1,17 @@
+{
+  "id": "permutation",
+  "error": "Exactly 2 groups are required.",
+  "inputN": 60,
+  "analysisN": 60,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "site"
+  },
+  "outputData": null
+}

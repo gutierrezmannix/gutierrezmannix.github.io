@@ -1,0 +1,61 @@
+{
+  "id": "contrasts",
+  "error": null,
+  "inputN": 90,
+  "analysisN": 82,
+  "excludedN": 8,
+  "tables": [
+    {
+      "title": "Planned contrasts",
+      "columns": ["Estimate", "SE", "P.adjusted"],
+      "rows": [
+        [
+          1.84500238095238,
+          0.29839503942189,
+          2.68962412341978e-08
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Group summaries",
+      "columns": ["Group", "N", "Mean", "SD"],
+      "rows": [
+        [
+          "ctl",
+          28,
+          9.72471428571428,
+          0.819463322892573
+        ],
+        [
+          "drugA",
+          20,
+          11.3461,
+          1.32940310705693
+        ],
+        [
+          "drugB",
+          18,
+          11.7933333333333,
+          0.580782129849861
+        ],
+        [
+          "drugC",
+          16,
+          10.959125,
+          1.90415762215212
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "\t Simultaneous Tests for General Linear Hypotheses", "", "Fit: lm(formula = y ~ 0 + g, data = dd)", "", "Linear Hypotheses:", "       Estimate Std. Error t value Pr(>|t|)    ", "1 == 0   1.8450     0.2984   6.183 2.69e-08 ***", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "(Adjusted p values reported -- BY method)", ""],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

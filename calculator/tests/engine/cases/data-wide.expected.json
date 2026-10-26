@@ -1,0 +1,73 @@
+{
+  "id": "wide",
+  "error": null,
+  "inputN": 5,
+  "analysisN": 5,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Data preview: first 200 rows",
+      "columns": ["v1", "v3.2001", "v3.2000"],
+      "rows": [
+        [
+          "b",
+          1,
+          3
+        ],
+        [
+          "a",
+          2,
+          4
+        ],
+        [
+          "c",
+          5,
+          null
+        ]
+      ],
+      "totalRows": 3
+    },
+    {
+      "title": "Data operation summary",
+      "columns": ["Input.rows", "Output.rows", "Output.columns"],
+      "rows": [
+        [
+          5,
+          3,
+          3
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "Preview the output before replacing the active dataset.",
+  "warnings": [],
+  "labels": {
+    "v1": "sid",
+    "v2": "yr",
+    "v3": "y",
+    "v4": "extra"
+  },
+  "outputData": {
+    "names": ["v1", "v3.2001", "v3.2000"],
+    "rows": [
+      [
+        "b",
+        1,
+        3
+      ],
+      [
+        "a",
+        2,
+        4
+      ],
+      [
+        "c",
+        5,
+        null
+      ]
+    ]
+  }
+}

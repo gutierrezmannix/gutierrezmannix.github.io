@@ -1,0 +1,30 @@
+{
+  "id": "permutation",
+  "error": null,
+  "inputN": 3000,
+  "analysisN": 3000,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Results",
+      "columns": ["Statistic", "P"],
+      "rows": [
+        [
+          1.95154718354873,
+          0.05
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "Permutation inference requires exchangeability within the specified design/strata.",
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "g",
+    "v3": "s"
+  },
+  "outputData": null
+}

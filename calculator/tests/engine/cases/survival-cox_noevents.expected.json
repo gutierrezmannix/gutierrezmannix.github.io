@@ -1,0 +1,22 @@
+{
+  "id": "cox",
+  "error": "At least one observed event is required.",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "time",
+    "v2": "event",
+    "v3": "x1",
+    "v4": "x2",
+    "v5": "arm",
+    "v6": "trt",
+    "v7": "gnum"
+  },
+  "outputData": null
+}

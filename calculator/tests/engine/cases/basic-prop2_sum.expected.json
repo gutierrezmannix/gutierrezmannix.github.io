@@ -1,0 +1,74 @@
+{
+  "id": "prop2",
+  "error": null,
+  "inputN": 0,
+  "analysisN": 178,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          4.39313891727685,
+          "1",
+          0.0360838221603788,
+          "2-sample test for equality of proportions without continuity correction"
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Estimates",
+      "columns": ["Estimate", "Value"],
+      "rows": [
+        [
+          "prop 1",
+          0.411111111111111
+        ],
+        [
+          "prop 2",
+          0.568181818181818
+        ]
+      ],
+      "totalRows": 2
+    },
+    {
+      "title": "Confidence interval",
+      "columns": ["Lower", "Upper", "Confidence"],
+      "rows": [
+        [
+          -0.302135433168119,
+          -0.0120059809732951,
+          0.95
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Sample proportions",
+      "columns": ["Group", "Successes", "Trials", "Proportion"],
+      "rows": [
+        [
+          1,
+          37,
+          90,
+          0.411111111111111
+        ],
+        [
+          2,
+          50,
+          88,
+          0.568181818181818
+        ]
+      ],
+      "totalRows": 2
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "two.sided",
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

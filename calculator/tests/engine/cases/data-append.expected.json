@@ -1,0 +1,102 @@
+{
+  "id": "append",
+  "error": null,
+  "inputN": 5,
+  "analysisN": 5,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Data preview: first 200 rows",
+      "columns": ["v1", "v2", "v3"],
+      "rows": [
+        [
+          "3",
+          "p",
+          1
+        ],
+        [
+          "1",
+          "q",
+          2
+        ],
+        [
+          "2",
+          "r",
+          3
+        ],
+        [
+          "2",
+          "s",
+          null
+        ],
+        [
+          "5",
+          null,
+          5
+        ],
+        [
+          "7",
+          "z",
+          9
+        ]
+      ],
+      "totalRows": 6
+    },
+    {
+      "title": "Data operation summary",
+      "columns": ["Input.rows", "Output.rows", "Output.columns"],
+      "rows": [
+        [
+          5,
+          6,
+          3
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": "Preview the output before replacing the active dataset.",
+  "warnings": [],
+  "labels": {
+    "v1": "id",
+    "v2": "a",
+    "v3": "v"
+  },
+  "outputData": {
+    "names": ["v1", "v2", "v3"],
+    "rows": [
+      [
+        "3",
+        "p",
+        1
+      ],
+      [
+        "1",
+        "q",
+        2
+      ],
+      [
+        "2",
+        "r",
+        3
+      ],
+      [
+        "2",
+        "s",
+        null
+      ],
+      [
+        "5",
+        null,
+        5
+      ],
+      [
+        "7",
+        "z",
+        9
+      ]
+    ]
+  }
+}

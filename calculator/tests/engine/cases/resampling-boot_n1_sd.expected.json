@@ -1,0 +1,16 @@
+{
+  "id": "bootstrap",
+  "error": "missing value where TRUE/FALSE needed",
+  "inputN": 1,
+  "analysisN": 1,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score"
+  },
+  "outputData": null
+}

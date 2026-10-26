@@ -1,0 +1,17 @@
+{
+  "id": "kmeans",
+  "error": "Choose nonconstant numeric variables.",
+  "inputN": 120,
+  "analysisN": 120,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "alpha",
+    "v2": "flat"
+  },
+  "outputData": null
+}

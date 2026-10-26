@@ -1,0 +1,16 @@
+{
+  "id": "bootstrap",
+  "error": "arguments imply differing number of rows: 1, 0",
+  "inputN": 25,
+  "analysisN": 25,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": "NULL",
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score"
+  },
+  "outputData": null
+}

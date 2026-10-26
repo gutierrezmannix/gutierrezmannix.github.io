@@ -1,0 +1,31 @@
+{
+  "id": "summary_t1",
+  "error": null,
+  "inputN": 0,
+  "analysisN": 30,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Results",
+      "columns": ["Estimate", "SE", "t", "DF", "P", "Lower", "Upper"],
+      "rows": [
+        [
+          0.7,
+          0.346890953086605,
+          2.01792521186114,
+          29,
+          0.0529352460049774,
+          -0.00947165984038967,
+          1.40947165984039
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

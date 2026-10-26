@@ -1,0 +1,1 @@
+{"id":"repeated","alpha":0.05,"options":{"inputMode":"raw"},"fields":{"y":["v1"],"subject":["v2"],"group":["v3"]},"data":{"v1":{"name":"rt","type":"numeric","values":[23.52,22.83,21.12]},"v2":{"name":"id","type":"categorical","values":["s0","s0","s0"]},"v3":{"name":"cond","type":"categorical","values":["b","c","a"]}},"color":"#2E7D58"}

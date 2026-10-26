@@ -1,0 +1,23 @@
+{
+  "id": "survey_desc",
+  "error": "No complete observations in the selected survey domain.",
+  "inputN": 240,
+  "analysisN": 240,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "income",
+    "v2": "sex",
+    "v3": "edu",
+    "v4": "smoke",
+    "v5": "w",
+    "v6": "psu",
+    "v7": "stratum",
+    "v8": "region"
+  },
+  "outputData": null
+}

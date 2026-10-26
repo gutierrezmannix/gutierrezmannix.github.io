@@ -1,0 +1,17 @@
+{
+  "id": "gameshowell",
+  "error": "A comparison has zero sampling variance.",
+  "inputN": 9,
+  "analysisN": 9,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

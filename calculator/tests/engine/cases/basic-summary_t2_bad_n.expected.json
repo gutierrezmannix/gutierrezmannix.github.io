@@ -1,0 +1,14 @@
+{
+  "id": "summary_t2",
+  "error": "\"n1\" must be at least 2.",
+  "inputN": 0,
+  "analysisN": 0,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

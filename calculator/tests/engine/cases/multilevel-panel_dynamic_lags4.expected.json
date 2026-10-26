@@ -1,0 +1,73 @@
+{
+  "id": "panel_dynamic",
+  "error": null,
+  "inputN": 200,
+  "analysisN": 150,
+  "excludedN": 50,
+  "tables": [
+    {
+      "title": "Model summary",
+      "columns": ["Statistic", "Value"],
+      "rows": [
+        [
+          "Number of observations",
+          150
+        ],
+        [
+          "Log likelihood",
+          null
+        ],
+        [
+          "AIC",
+          null
+        ],
+        [
+          "BIC",
+          null
+        ]
+      ],
+      "totalRows": 4
+    },
+    {
+      "title": "Difference-GMM coefficients",
+      "columns": ["Term", "Estimate", "Std. Error", "z-value", "Pr(>|z|)"],
+      "rows": [
+        [
+          "lag(v1, 1)",
+          0.276390276748335,
+          0.322254330411317,
+          0.857677463621845,
+          0.391070587604076
+        ],
+        [
+          "v2",
+          0.795994699406551,
+          0.174365433068843,
+          4.56509461420759,
+          4.99269112298866e-06
+        ],
+        [
+          "v3",
+          -0.216016788294834,
+          0.130548087167758,
+          -1.6546913323766,
+          0.0979871261675238
+        ]
+      ],
+      "totalRows": 3
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["Oneway (individual) effect Two-steps model Difference GMM ", "", "Call:", "plm::pgmm(formula = ff, data = pd, effect = \"individual\", model = \"twosteps\", ", "    collapse = TRUE, transformation = \"d\")", "", "Balanced Panel: n = 25, T = 8, N = 200", "", "Number of Observations Used: 150", "Residuals:", "   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. ", "-3.5430 -0.7214  0.1702  0.2236  1.0562  3.3051 ", "", "Coefficients:", "           Estimate Std. Error z-value  Pr(>|z|)    ", "lag(v1, 1)  0.27639    0.32225  0.8577   0.39107    ", "v2          0.79599    0.17437  4.5651 4.993e-06 ***", "v3         -0.21602    0.13055 -1.6547   0.09799 .  ", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "", "Sargan test: chisq(2) = 5.03444 (p-value = 0.080684)", "Autocorrelation test (1): normal = -1.045653 (p-value = 0.29572)", "Autocorrelation test (2): normal = -1.110808 (p-value = 0.26665)", "Wald test for coefficients: chisq(3) = 38.9521 (p-value = 1.7767e-08)", "Oneway (individual) effect Two-steps model Difference GMM ", "", "Call:", "plm::pgmm(formula = ff, data = pd, effect = \"individual\", model = \"twosteps\", ", "    collapse = TRUE, transformation = \"d\")", "", "Balanced Panel: n = 25, T = 8, N = 200", "", "Number of Observations Used: 150", "Residuals:", "   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. ", "-3.5430 -0.7214  0.1702  0.2236  1.0562  3.3051 ", "", "Coefficients:", "           Estimate Std. Error z-value  Pr(>|z|)    ", "lag(v1, 1)  0.27639    0.32225  0.8577   0.39107    ", "v2          0.79599    0.17437  4.5651 4.993e-06 ***", "v3         -0.21602    0.13055 -1.6547   0.09799 .  ", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "", "Sargan test: chisq(2) = 5.03444 (p-value = 0.080684)", "Autocorrelation test (1): normal = -1.045653 (p-value = 0.29572)", "Autocorrelation test (2): normal = -1.110808 (p-value = 0.26665)", "Wald test for coefficients: chisq(3) = 38.9521 (p-value = 1.7767e-08)"],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "z",
+    "v4": "firm",
+    "v5": "year",
+    "v6": "f"
+  },
+  "outputData": null
+}

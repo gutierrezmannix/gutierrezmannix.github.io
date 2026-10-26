@@ -1,0 +1,50 @@
+{
+  "id": "dunnett",
+  "error": null,
+  "inputN": 30,
+  "analysisN": 30,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Dunnett simultaneous intervals",
+      "columns": ["Term", "Estimate", "lwr", "upr"],
+      "rows": [
+        [
+          "trt - ctl",
+          1.56505555555555,
+          0.45310693367666,
+          2.67700417743445
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Group summaries",
+      "columns": ["Group", "N", "Mean", "SD"],
+      "rows": [
+        [
+          "ctl",
+          12,
+          9.46616666666667,
+          0.843364887420228
+        ],
+        [
+          "trt",
+          18,
+          11.0312222222222,
+          1.74190050217489
+        ]
+      ],
+      "totalRows": 2
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "\t Simultaneous Tests for General Linear Hypotheses", "", "Multiple Comparisons of Means: Dunnett Contrasts", "", "", "Fit: aov(formula = y ~ g, data = dd)", "", "Linear Hypotheses:", "               Estimate Std. Error t value Pr(>|t|)   ", "trt - ctl == 0   1.5651     0.5428   2.883  0.00749 **", "---", "Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1", "(Adjusted p values reported -- single-step method)", ""],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}

@@ -1,0 +1,19 @@
+{
+  "id": "panel_dynamic",
+  "error": "argument 'order' (1) specifies an order larger or equal than the number of available observations (1)",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x",
+    "v3": "id",
+    "v4": "yr"
+  },
+  "outputData": null
+}

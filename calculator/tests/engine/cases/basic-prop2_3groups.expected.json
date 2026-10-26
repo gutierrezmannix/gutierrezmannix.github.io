@@ -1,0 +1,17 @@
+{
+  "id": "prop2",
+  "error": "Exactly 2 groups are required.",
+  "inputN": 80,
+  "analysisN": 80,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "voted",
+    "v2": "region"
+  },
+  "outputData": null
+}

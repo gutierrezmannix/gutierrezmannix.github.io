@@ -1,0 +1,19 @@
+{
+  "id": "merge",
+  "error": "Both inputs have duplicate keys. Explicitly enable many-to-many merging after inspecting duplicates.",
+  "inputN": 5,
+  "analysisN": 5,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "id",
+    "v2": "a",
+    "v3": "v",
+    "v4": "b"
+  },
+  "outputData": null
+}

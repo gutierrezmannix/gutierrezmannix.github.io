@@ -1,0 +1,38 @@
+{
+  "id": "power_corr",
+  "error": null,
+  "inputN": 0,
+  "analysisN": 0,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Power and sample size",
+      "columns": ["Quantity", "Value"],
+      "rows": [
+        [
+          "n",
+          60
+        ],
+        [
+          "r",
+          0.25
+        ],
+        [
+          "sig.level",
+          0.05
+        ],
+        [
+          "power",
+          0.492905893723575
+        ]
+      ],
+      "totalRows": 4
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "     approximate correlation power calculation (arctangh transformation) ", "", "              n = 60", "              r = 0.25", "      sig.level = 0.05", "          power = 0.4929059", "    alternative = two.sided", ""],
+  "notes": "For two-sample and balanced ANOVA designs, n denotes observations per group. Round planned sample sizes upward.",
+  "warnings": [],
+  "labels": [],
+  "outputData": null
+}

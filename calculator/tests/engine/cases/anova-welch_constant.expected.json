@@ -1,0 +1,31 @@
+{
+  "id": "welch_anova",
+  "error": null,
+  "inputN": 8,
+  "analysisN": 8,
+  "excludedN": 0,
+  "tables": [
+    {
+      "title": "Test",
+      "columns": ["Statistic", "DF", "P", "Method"],
+      "rows": [
+        [
+          null,
+          "1, NaN",
+          null,
+          "One-way analysis of means (not assuming equal variances)"
+        ]
+      ],
+      "totalRows": 1
+    }
+  ],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "score",
+    "v2": "arm"
+  },
+  "outputData": null
+}
