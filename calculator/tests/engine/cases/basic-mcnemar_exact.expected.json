@@ -6,40 +6,36 @@
   "excludedN": 0,
   "tables": [
     {
-      "title": "Test",
-      "columns": ["Statistic", "DF", "P", "Method"],
+      "title": "Exact McNemar test",
+      "columns": ["Discordant.pairs", "Changed.0.to.1", "Changed.1.to.0", "P.exact"],
       "rows": [
         [
+          25,
           8,
-          "25",
-          0.107752144336701,
-          "Exact binomial test"
+          17,
+          0.107752144336701
         ]
       ],
       "totalRows": 1
     },
     {
-      "title": "Estimates",
-      "columns": ["Estimate", "Value"],
+      "title": "Effect size (95% exact interval)",
+      "columns": ["Measure", "Estimate", "Lower", "Upper"],
       "rows": [
         [
-          "probability of success",
-          0.32
-        ]
-      ],
-      "totalRows": 1
-    },
-    {
-      "title": "Confidence interval",
-      "columns": ["Lower", "Upper", "Confidence"],
-      "rows": [
-        [
+          "Share of changes that go 0 to 1",
+          0.32,
           0.14949542261357,
-          0.535000717497372,
-          0.95
+          0.535000717497372
+        ],
+        [
+          "Odds ratio of change (0 to 1 / 1 to 0)",
+          0.470588235294118,
+          0.175772625554778,
+          1.15054095270426
         ]
       ],
-      "totalRows": 1
+      "totalRows": 2
     },
     {
       "title": "Count table",
@@ -60,8 +56,8 @@
     }
   ],
   "plots": [],
-  "diagnostics": [],
-  "notes": "two.sided",
+  "diagnostics": ["", "\tExact binomial test", "", "data:  z[1, 2] and z[1, 2] + z[2, 1]", "number of successes = 8, number of trials = 25, p-value = 0.1078", "alternative hypothesis: true probability of success is not equal to 0.5", "95 percent confidence interval:", " 0.1494954 0.5350007", "sample estimates:", "probability of success ", "                  0.32 ", ""],
+  "notes": "Exact two-sided binomial test of the discordant pairs: under no change, moves 0 to 1 and 1 to 0 are equally likely. The odds ratio is the conditional odds ratio of matched pairs (as Stata mcc reports); its interval is the exact Clopper-Pearson interval for the share, transformed.",
   "warnings": [],
   "labels": {
     "v1": "before",

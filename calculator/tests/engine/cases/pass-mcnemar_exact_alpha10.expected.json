@@ -1,0 +1,67 @@
+{
+  "id": "mcnemar_exact",
+  "error": null,
+  "inputN": 180,
+  "analysisN": 166,
+  "excludedN": 14,
+  "tables": [
+    {
+      "title": "Exact McNemar test",
+      "columns": ["Discordant.pairs", "Changed.0.to.1", "Changed.1.to.0", "P.exact"],
+      "rows": [
+        [
+          32,
+          13,
+          19,
+          0.377085587475449
+        ]
+      ],
+      "totalRows": 1
+    },
+    {
+      "title": "Effect size (90% exact interval)",
+      "columns": ["Measure", "Estimate", "Lower", "Upper"],
+      "rows": [
+        [
+          "Share of changes that go 0 to 1",
+          0.40625,
+          0.259661964942015,
+          0.566512627010542
+        ],
+        [
+          "Odds ratio of change (0 to 1 / 1 to 0)",
+          0.684210526315789,
+          0.350734330327467,
+          1.30687226966659
+        ]
+      ],
+      "totalRows": 2
+    },
+    {
+      "title": "Count table",
+      "columns": ["Term", "0", "1"],
+      "rows": [
+        [
+          "0",
+          78,
+          13
+        ],
+        [
+          "1",
+          19,
+          56
+        ]
+      ],
+      "totalRows": 2
+    }
+  ],
+  "plots": [],
+  "diagnostics": ["", "\tExact binomial test", "", "data:  z[1, 2] and z[1, 2] + z[2, 1]", "number of successes = 13, number of trials = 32, p-value = 0.3771", "alternative hypothesis: true probability of success is not equal to 0.5", "90 percent confidence interval:", " 0.2596620 0.5665126", "sample estimates:", "probability of success ", "               0.40625 ", ""],
+  "notes": "Exact two-sided binomial test of the discordant pairs: under no change, moves 0 to 1 and 1 to 0 are equally likely. The odds ratio is the conditional odds ratio of matched pairs (as Stata mcc reports); its interval is the exact Clopper-Pearson interval for the share, transformed.",
+  "warnings": [],
+  "labels": {
+    "v1": "before",
+    "v2": "after"
+  },
+  "outputData": null
+}

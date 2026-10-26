@@ -1,0 +1,17 @@
+{
+  "id": "mcnemar_exact",
+  "error": "Paired outcomes must be coded 0/1.",
+  "inputN": 6,
+  "analysisN": 6,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "before",
+    "v2": "after"
+  },
+  "outputData": null
+}

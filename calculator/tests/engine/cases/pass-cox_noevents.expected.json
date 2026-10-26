@@ -1,0 +1,18 @@
+{
+  "id": "cox",
+  "error": "At least one observed event is required.",
+  "inputN": 6,
+  "analysisN": 6,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "months",
+    "v2": "ended",
+    "v3": "majority"
+  },
+  "outputData": null
+}

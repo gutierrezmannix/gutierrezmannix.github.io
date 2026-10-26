@@ -69,6 +69,24 @@ def integrate_component(c):
     c = patch(c, "E.tsAnalyze({ t: prep.t, y: prep.y, unit: okU ? prep.unit : null, sel: null,", "E.tsAnalyze({ t: prep.t, y: prep.y, unit: okU ? prep.unit : null, sel: null, step: prep.step || 1,")
     c = patch(c, "if (prep.collapse) out.tsPrepared = this.tsCollapseText(prep, setup); /* GM26 ts collapse v1 */",
               "if (prep.collapse) out.tsPrepared = this.tsCollapseText(prep, setup); /* GM26 ts collapse v1 */\n        if (prep.step > 1) out.tsPrepared += ' Time step: every ' + prep.step + ' periods (observed periods ' + prep.step + ' apart are consecutive).';\n        if (prep.filled) out.tsPrepared += ' ' + prep.filled + ' missing period(s) filled with values you entered (assumptions, not data; written into the scripts).';\n        out.tsGapEl = this.tsGapPanel(prep, setup);")
+    # Console keep if / drop if accumulate as in Stata: each new condition is added to the earlier ones (kept in
+    # flt.more), instead of silently replacing them. Editing the filter under Edit data still replaces it.
+    c = patch(c, "if (S.flt && S.flt.on) out.push({ v: S.flt.v, t: 'op', op: S.flt.op, val: S.flt.val, cat: S.flt.cat });",
+              "if (S.flt && S.flt.on) out.push({ v: S.flt.v, t: 'op', op: S.flt.op, val: S.flt.val, cat: S.flt.cat }, ...(S.flt.more || []));")
+    c = patch(c, "this.setState({ flt: { v, op: S.fltOp, val, on: true, cat: isCat }, fltErr: '' });", "this.setState({ flt: { v, op: S.fltOp, val, on: true, cat: isCat, more: S.fltCarry || [] }, fltErr: '', fltCarry: null });")
+    c = patch(c, "if (r.conds.length > 1) return fail(m[1] + ' if takes one condition here — for several, use the Subgroup bar (or  if a & b  after any analysis command).');",
+              "if (r.conds.length > 1) return fail(m[1] + ' if takes one condition at a time — run them one after another (each keep / drop adds to the earlier ones), or use the Subgroup bar.');")
+    c = patch(c, "this.setState({ fltV: c.v, fltOp: op, fltVal: c.val, fltErr: '' }, () => { this.doFilter(); setTimeout(() => { if (this.state.fltErr) fail(this.state.fltErr); else ok(s + '   (rows are filtered, not deleted — clear the filter under Edit data)'); }, 60); }); return true;",
+              "const prior = S.flt && S.flt.on ? [{ v: S.flt.v, t: 'op', op: S.flt.op, val: S.flt.val, cat: S.flt.cat }, ...(S.flt.more || [])] : [];\n      this.setState({ fltV: c.v, fltOp: op, fltVal: c.val, fltErr: '', fltCarry: prior }, () => { this.doFilter(); setTimeout(() => { if (this.state.fltErr) fail(this.state.fltErr); else ok(s + '   (rows are filtered, not deleted' + (prior.length ? '; earlier keep / drop conditions still apply' : '') + ' — clear the filter under Edit data)'); }, 60); }); return true;")
+    c = c.replace("S.flt.v + ' ' + S.flt.op + ' ' + S.flt.val", "this.fltText(S.flt)")
+    c = patch(c, "  clearFilter() {", "  fltText(f) { return [f, ...(f.more || [])].map(x => x.v + ' ' + x.op + ' ' + x.val).join(' & '); }\n  clearFilter() {")
+    # Exported keep if: quotes only for text variables (a 0/1 numeric variable shown as categorical is still stored
+    # as numbers in Stata), and rows with a missing value are excluded explicitly — Stata treats missing as larger
+    # than any number (so "keep if x != 0" or "x > 5" would keep them), while the app and R's subset() drop them.
+    c = patch(c, "if (d.t === 'filter') { const q = d.cat ? '\"' + d.val + '\"' : d.val; return dial === 'stata' ? 'keep if ' + d.v + ' ' + d.op + ' ' + q : 'df <- subset(df, ' + d.v + ' ' + d.op + ' ' + q + ')'; }",
+              "if (d.t === 'filter') { const numStore = (this.effMeta(d.v) || {}).type === 'numeric' && d.val !== '' && isFinite(Number(d.val)), q = d.cat && !numStore ? '\"' + d.val + '\"' : d.val, miss = d.val !== '.' && (d.op === '!=' || (numStore && (d.op === '>' || d.op === '>='))) ? ' & !missing(' + d.v + ')' : ''; return dial === 'stata' ? 'keep if ' + d.v + ' ' + d.op + ' ' + q + miss : 'df <- subset(df, ' + d.v + ' ' + d.op + ' ' + q + ')'; }")
+    # Session .R files read blank text cells as missing, as the app does (read.csv would make "" a category).
+    c = patch(c, "'df <- read.csv(\"' + S.fileName + '\")'), ...this.missingDecodeLines(dial)", "'df <- read.csv(\"' + S.fileName + '\", na.strings = c(\"\", \"NA\"))'), ...this.missingDecodeLines(dial)")
     return c
 
 

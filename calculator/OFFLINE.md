@@ -188,3 +188,27 @@ analysis range": every odd year counted as missing (32 states × 4 years).
 - Filled values are assumptions, not data. The summary counts them, and the exported Stata / R scripts add those
   rows (`set obs` / `replace … in l`; `d[nrow(d)+1, …] <-`), so the scripts reproduce the app's estimates (checked
   in R). Fills are kept per outcome and preparation, so they never carry over to another variable.
+
+## Build .41 — three spot checks (exact McNemar, lasso, Cox)
+
+Fresh data were run through real R and the built-in engine: a debate panel (vote intention before/after),
+turnout with numeric and party predictors with missing values (Gaussian and logit lasso, other seed / folds /
+split), and cabinet survival in whole months (heavy ties, factor predictors, 90% level). Every table, note and
+error message matches R (11 new cases; 495 in total). Fixed:
+- **Exact McNemar results say what they are.** The page showed R's raw `binom.test` labels: "DF 32" (really the
+  number of discordant pairs) and "probability of success". It now shows discordant pairs, changes 0→1 and 1→0,
+  the exact p-value, and the effect size: the share of changes going 0→1 and the conditional odds ratio with exact
+  intervals (as Stata `mcc` reports). This was changed in the R specification as well and re-validated.
+- **Console commands.** Exact McNemar: `mcc after before` / `mcci a b c d` and `binom.test(...)` (it had none).
+  McNemar: `mcc`, with a note that Stata reports chi² without the continuity correction R applies. Cox: `stcox …,
+  efron` (Stata's default Breslow ties differ from R's Efron) with `i.` factor variables, encoding text variables
+  first. Lasso / ridge / elastic net: `lasso logit|linear … , selection(cv, folds(k) serule)` on a training split.
+  The runnable R `cv.glmnet` script reproduces the app exactly, which was checked in R.
+- **Variable names instead of internal aliases.** Factor terms of coded variables showed as `v31` (majority = 1)
+  on result pages, and as `v5left` / `v6minority` in the console. They now read `majority1`, `partyleft`.
+- **Session .R files read blank text cells as missing** (`read.csv(…, na.strings = c("", "NA"))`), as the app
+  does. R had treated them as a category, so models in exported scripts could differ.
+- **Console `keep if` / `drop if` accumulate as in Stata.** A second condition used to replace the first silently.
+  Now all apply, the filter label lists them, and Edit data → Clear removes them. Exported `keep if` lines quote only
+  text values. They add `& !missing(x)` where Stata would otherwise keep missing values, because Stata treats
+  missing as larger than any number.
