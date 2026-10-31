@@ -10,15 +10,18 @@ Run:  python calculator/tools/text_lab.py
 Test: node --test calculator/tests/text-lab.test.mjs calculator/tests/xlsx.test.mjs
 """
 import base64
+import sys
 import json
 import re
 import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import breakdown  # noqa: E402  univariate tab: break down by groups
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-31.48'
+BUILD = '2026-10-31.49'
 LANGS = ['es', 'en', 'pt', 'fr']
 
 
@@ -66,7 +69,7 @@ def integrate_component(c):
     methods = ''.join((ROOT / 'src' / f).read_text() for f in ['text-lab.js', 'text-lab-ui.js', 'text-lab-explore.js', 'text-lab-measure.js', 'text-lab-save.js'])
     c = between(c, '  // GM26 text lab begin', '  // GM26 text lab end', methods.rstrip(), anchor='  descFor() {')
     # 3. sessions keep the text lab settings
-    if '"guideOn","tl"]' not in c:
+    if '"guideOn","tl"' not in c:
         if c.count('"ttY2","guideOn"]') != 2:
             raise RuntimeError('text_lab: session key lists changed')
         c = c.replace('"ttY2","guideOn"]', '"ttY2","guideOn","tl"]')
@@ -124,8 +127,8 @@ def main():
     es = re.search(r'<script type="__bundler/ext_resources">(.*?)</script>', h, re.S)
     manifest, template, ext = json.loads(ms[1]), json.loads(ts[1]), json.loads(es[1])
     m = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', template, re.S)
-    template = template[:m.start(2)] + integrate_component(m[2]) + template[m.end(2):]
-    template = integrate_template(template)
+    template = template[:m.start(2)] + breakdown.integrate_component(integrate_component(m[2])) + template[m.end(2):]
+    template = breakdown.integrate_template(integrate_template(template))
     import gzip
     asset = manifest[ENGINE]
     e = gzip.decompress(base64.b64decode(asset['data'])).decode()

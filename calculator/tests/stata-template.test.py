@@ -19,7 +19,9 @@ ordered(within('hasModel'),'{{ sumCells }}','{{ coefRows }}','{{ iReg.text }}')
 ordered(within('hasModel'),'{{ zHead }}','[95% CI]','{{ lastHead }}')
 ordered(within('ttHasRes'),'{{ stataTtEl }}','{{ ttCells }}','{{ ttChartEl }}')
 main=p.raw(p.at('class="mf-main"','main'));assert main.rindex('{{ keyLine }}')>main.rindex('value="{{ isReg }}"')
-assert t.index('>WORD COUNTS<')<t.index('>WORD CLOUD<')
+# the text tab is the five-step text lab (word counts come before the cloud inside it); the univariate tab has one breakdown
+assert t.count('{{ tlEl }}')==1 and t.count('{{ obEl }}')==1
+assert t.index('value="{{ oxShow }}"')<t.index('{{ obEl }}')
 assert t.count('{{ stataTtEl }}')==1
 assert all(n['end'] for n in p.nodes if n['tag'] in {'sc-if','sc-for','table','tbody','tr'})
 print('Shipped DOM and screen-reader order passed for all result workspaces; table semantics and optional result blocks remain balanced.')

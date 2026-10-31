@@ -1,4 +1,4 @@
-# Text analysis (Design A) and Excel files — build 2026-10-31.48
+# Text analysis (Design A) and Excel files — build 2026-10-31.49
 
 Tests → Text analysis is rebuilt as five steps that follow quanteda's order
 (corpus → tokens → dfm → statistics and models). Everything runs inside
