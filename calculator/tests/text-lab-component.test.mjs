@@ -126,6 +126,13 @@ test('every step and sub-tab renders; dictionary, topics, clusters and saving wo
     assert.ok(find(ot, n => n.tag === 'option' && n.props.value === 'var:d_economia' && text(n) === 'd_economia').length === 1, 'saved variable listed in the dropdown');
     assert.match(otText, /d_economia · mean per text/);
     assert.ok(find(ot, n => n.tag === 'polyline').length >= 2, 'one line per author');
+    // number of texts per period, one line per author; empty periods count as 0
+    c.state.tl = { ...c.state.tl, time: { what: 'ntexts', unit: 'month', lines: 'author' } };
+    const nt = c.tlRender(); assert.match(text(nt), /number of texts/); assert.equal(find(nt, n => n.tag === 'polyline').length >= 2, true);
+    { const T0 = c.tlS(), C0 = c.tlCorpus(T0), F0 = c.tlFT(T0, C0), cx = { T: T0, C: C0, FT: F0, mask: null }, D0 = c.tlDates(T0, C0), first = c.tlFirstDoc(C0);
+      const { G, defs } = c.tlGroupDefs(cx, d => first[d] ? 1 : NaN), agg = c.tlTimeAgg(cx, D0, 'month', defs, 'sum', true);
+      agg.series.forEach((s, i) => { const expect = Array.from(G.g).filter((g, d) => G.labels[g] === s.name && !C0.blank[d]).length; const fin = s.pts.filter(Number.isFinite); assert.equal(fin.reduce((a, b) => a + b, 0), expect, s.name + ' total texts'); const a0 = s.pts.findIndex(Number.isFinite), b0 = s.pts.length - 1 - [...s.pts].reverse().findIndex(Number.isFinite); assert.ok(s.pts.slice(a0, b0 + 1).every(Number.isFinite), 'no gaps inside the active range: empty months are 0'); });
+      const months = agg.xs.map(x => x.slice(0, 7)); assert.deepEqual(months, [...new Set(months)].sort(), 'every month in order'); }
     // by author and by variable/word/category together
     c.state.tl = { ...c.state.tl, time: { what: 'var:d_economia', vmeasure: 'mean', vars: ['d_corrupcion', 'd_seguridad'], lines: 'grid-author' } };
     let svgs = find(c.tlRender(), n => n.tag === 'svg');

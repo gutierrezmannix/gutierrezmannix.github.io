@@ -217,7 +217,8 @@
   // over time
   tlTimeUnit(TM, D) { const span = D.max - D.min; return TM.unit && TM.unit !== 'auto' ? TM.unit : D.yearOnly || span > 365 * 6 ? 'year' : span > 365 * 2 ? 'quarter' : span > 120 ? 'month' : span > 30 ? 'week' : 'day'; }
   // one value per period for each series; defs: [{ name, color, inc(d), x(d) }]
-  tlTimeAgg(ctx, D, unit, defs, measure) {
+  tlPeriodLabel(k, unit) { const p2 = x => String(x).padStart(2, '0'); return unit === 'year' ? String(k) : unit === 'quarter' ? Math.floor(k / 4) + ' Q' + (k % 4 + 1) : unit === 'month' ? Math.floor(k / 12) + '-' + p2(k % 12 + 1) : unit === 'week' ? new Date((k * 7 - 3) * 86400000).toISOString().slice(0, 10) : new Date(k * 86400000).toISOString().slice(0, 10); }
+  tlTimeAgg(ctx, D, unit, defs, measure, fill) {
     const { C, FT } = ctx, E = this._E, nd = C.off.length - 1, mask = ctx.mask, per = new Map();
     for (let d = 0; d < nd; d++) {
       if (C.blank[d] || (mask && !mask[d])) continue;
@@ -226,9 +227,12 @@
       const words = FT.foff[d + 1] - FT.foff[d];
       for (let i = 0; i < defs.length; i++) { const df = defs[i]; if (!df.inc(d)) continue; const x = df.x(d); if (!isFinite(x)) continue; const s = o.s[i]; s.n++; s.sum += x; if (x > 0) s.hit++; s.words += words; }
     }
-    const ps = [...per.values()].sort((p, q) => p.k - q.k);
-    const val = s => !s.n ? NaN : measure === 'pct' ? 100 * s.hit / s.n : measure === 'count' || measure === 'sum' ? s.sum : measure === 'rate' ? (s.words ? 1e4 * s.sum / s.words : NaN) : s.sum / s.n;
-    return { xs: ps.map(p => p.label), series: defs.map((df, i) => ({ name: df.name, color: df.color, pts: ps.map(p => val(p.s[i])) })) };
+    let ps = [...per.values()].sort((p, q) => p.k - q.k);
+    if (fill && ps.length > 1) { const all = []; for (let k = ps[0].k, i = 0; k <= ps[ps.length - 1].k; k++) { if (ps[i] && ps[i].k === k) all.push(ps[i++]); else all.push({ k, label: this.tlPeriodLabel(k, unit), s: defs.map(() => ({ n: 0, hit: 0, sum: 0, words: 0 })) }); } ps = all; }
+    const val = s => !s.n ? (fill ? 0 : NaN) : measure === 'pct' ? 100 * s.hit / s.n : measure === 'count' || measure === 'sum' ? s.sum : measure === 'rate' ? (s.words ? 1e4 * s.sum / s.words : NaN) : s.sum / s.n;
+    // with zero-filling, each line runs from that series' first to its last observed period
+    const series = defs.map((df, i) => { const pts = ps.map(p => val(p.s[i])); if (fill) { const has = ps.map(p => p.s[i].n > 0), a = has.indexOf(true), b = has.lastIndexOf(true); for (let j = 0; j < pts.length; j++) if (a < 0 || j < a || j > b) pts[j] = NaN; } return { name: df.name, color: df.color, pts }; });
+    return { xs: ps.map(p => p.label), series };
   }
   // one line per group (groups too small to chart are left out)
   tlGroupDefs(ctx, x) {
@@ -239,7 +243,7 @@
   }
   // numeric columns for the timeline: variables made in this tab first, then the rest of the data
   tlVarOpts(T) {
-    const tags = this.state.genTags || {}, cols = (this.state.cols || []).filter(c => c.type === 'numeric' && c.name !== T.v);
+    const tags = this.state.genTags || {}, cols = (this.state.cols || []).filter(c => c.name !== T.v && ((this.effMeta(c.name) || c).treatAs || c.type) === 'numeric');
     return { made: cols.filter(c => tags[c.name] === 'text').map(c => c.name), other: cols.filter(c => tags[c.name] !== 'text').map(c => c.name) };
   }
   tlFirstDoc(C) { return this.memo('tlFD|' + C.key, () => { const n = C.off.length - 1, f = new Uint8Array(n); let last = -1; for (let d = 0; d < n; d++) { const r = this.tlRowOf(C, d); if (r !== last) { f[d] = 1; last = r; } } return f; }); }
@@ -254,7 +258,7 @@
     if (!D || !D.ok) return this.tlPanel('Over time', null, null, head, this.tlBanner('warn', '“' + T.date + '” does not look like dates.'));
     const unit = this.tlTimeUnit(TM, D), cats = this.tlCats(T), V = this.tlVarOpts(T), fold = !!T.rec.fold;
     const isVar = /^var:/.test(TM.what), vname = isVar ? TM.what.slice(4) : '';
-    const whatOpts = [['search', 'Search: ' + (T.q || '—')]].concat(cats.length > 1 ? [['catall', 'All dictionary categories']] : []).concat(cats.map((c, j) => ['cat' + j, 'Category: ' + c.name])).concat([['words', 'Words per text']]).concat(isVar ? [[TM.what, 'Saved variable →']] : []);
+    const whatOpts = [['ntexts', 'Number of texts'], ['search', 'Search: ' + (T.q || '—')]].concat(cats.length > 1 ? [['catall', 'All dictionary categories']] : []).concat(cats.map((c, j) => ['cat' + j, 'Category: ' + c.name])).concat([['words', 'Words per text']]).concat(isVar ? [[TM.what, 'Saved variable →']] : []);
     const varOpts = [['', V.made.length ? 'pick a saved variable' : 'none saved yet (Save step)']].concat(V.made.map(n => ['var:' + n, n])).concat(V.other.map(n => ['var:' + n, n + ' · data']));
     // the things to chart: each is a word, a category or a variable with a value per text
     let items = [], measure = TM.measure, ylab, kind = 'count';
@@ -264,7 +268,8 @@
       const names = Array.from(new Set([vname].concat((TM.vars || []).filter(n => n !== vname && (V.made.includes(n) || V.other.includes(n))))));
       items = names.map(n => { const vv = this.valsCore(n); return vv && vv.kind === 'num' ? { name: n, x: d => first[d] ? vv.a[this.tlRowOf(C, d)] : NaN } : null; }).filter(Boolean);
       ylab = measure === 'pct' ? '% of texts above 0' : measure === 'sum' ? 'total' : 'mean per text';
-    } else if (TM.what === 'words') { kind = 'words'; measure = 'mean'; items = [{ name: 'words per text', x: d => FT.foff[d + 1] - FT.foff[d] }]; ylab = 'words per text (after cleaning)'; }
+    } else if (TM.what === 'ntexts') { kind = 'ntexts'; measure = 'sum'; const first = this.tlFirstDoc(C); items = [{ name: 'Number of texts', x: d => first[d] ? 1 : NaN }]; ylab = 'number of texts'; }
+    else if (TM.what === 'words') { kind = 'words'; measure = 'mean'; items = [{ name: 'words per text', x: d => FT.foff[d + 1] - FT.foff[d] }]; ylab = 'words per text (after cleaning)'; }
     else if (TM.what === 'search') {
       const ps = E.tlParsePatterns(T.q || ''), inc = ps.filter(p => !p.neg), neg = ps.filter(p => p.neg).map(p => p.src).join(', ');
       if (inc.length) { const all = qLook(T.q); items = [{ name: T.q, x: d => all[d], combined: true }].concat(inc.length > 1 ? inc.map(p => { const keys = (p.parts.length > 1 ? '"' + p.parts.join(' ') + '"' : p.src) + (neg ? ', ' + neg : ''), cn = qLook(keys); return { name: p.parts.join(' '), x: d => cn[d] }; }) : []); }
@@ -281,11 +286,12 @@
     const lines = lineOpts.some(o => o[0] === TM.lines) ? TM.lines : lineOpts[0][0];
     const sig = 'tlTA|' + FT.sig + '|' + T.date + '|' + T.time.order + '|' + unit + '|' + TM.what + '|' + measure + '|' + lines + '|' + T.by + '|' + T.mergeCase + '|' + this.filterSig() + '|' + (kind === 'var' ? (this._dataRev || 0) + items.map(i => i.name).join(',') : JSON.stringify(this.tlCats(T)) + '|' + (T.q || '') + '|' + (T.qOff || []).join(','));
     const charts = [];   // [{ key, title, data }]
-    const one = (key, title, defs) => charts.push({ key, title, data: this.memo(sig + '|' + key, () => this.tlTimeAgg(ctx, D, unit, defs, measure)) });
+    const one = (key, title, defs) => charts.push({ key, title, data: this.memo(sig + '|' + key, () => this.tlTimeAgg(ctx, D, unit, defs, measure, kind === 'ntexts')) });
     if (items.length) {
       const single = combined || parts[0];
-      if (lines === 'author') one('tltime', single.name + ' · ' + ylab, this.tlGroupDefs(ctx, single.x).defs);
-      else if (lines === 'none') one('tltime', single.name + ' · ' + ylab, [{ name: 'All texts', color: this.tlPal(0), inc: () => true, x: single.x }]);
+      const t1 = kind === 'ntexts' ? 'Number of texts per ' + unit : single.name + ' · ' + ylab;
+      if (lines === 'author') one('tltime', t1, this.tlGroupDefs(ctx, single.x).defs);
+      else if (lines === 'none') one('tltime', t1, [{ name: 'All texts', color: this.tlPal(0), inc: () => true, x: single.x }]);
       else if (lines === 'item') one('tltime', ylab + (kind === 'var' ? '' : ' · each word / category'), parts.map((it, k) => ({ name: it.name, color: this.tlPal(k), inc: () => true, x: it.x })));
       else if (lines === 'grid-author') this.tlGroupDefs(ctx, null).defs.slice(0, 6).forEach((gd, gi) => one('tltime' + gi, gd.name + ' · ' + ylab, parts.map((it, k) => ({ name: it.name, color: this.tlPal(k), inc: gd.inc, x: it.x }))));
       else parts.slice(0, 9).forEach((it, k) => one('tltime' + k, it.name + ' · ' + ylab, this.tlGroupDefs(ctx, it.x).defs));
@@ -294,13 +300,14 @@
         this.tlField('Show', this.tlSelect(TM.what, whatOpts, v => set({ what: v }), 'What to show')),
         this.tlField('Or a saved variable', this.tlSelect(isVar ? TM.what : '', varOpts, v => set({ what: v || 'words' }), 'Saved variable')),
         isVar ? this.tlField('As', this.tlSeg([['mean', 'Mean per text'], ['pct', '% of texts above 0'], ['sum', 'Total']], TM.vmeasure, v => set({ vmeasure: v })))
-          : TM.what !== 'words' ? this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], TM.measure, v => set({ measure: v }))) : null),
+          : TM.what !== 'words' && TM.what !== 'ntexts' ? this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], TM.measure, v => set({ measure: v }))) : null),
       isVar && V.made.length > 1 ? this.tlField('Compare with other saved variables', h('div', { className: 'tl-row' }, ...V.made.filter(n => n !== vname).map(n => { const on = (TM.vars || []).includes(n); return this.tlChip((on ? '✓ ' : '+ ') + n, on, () => set({ vars: on ? (TM.vars || []).filter(x => x !== n) : (TM.vars || []).concat([n]), lines: on ? TM.lines : (TM.lines === 'auto' || TM.lines === 'author' || TM.lines === 'none' ? (G ? 'grid-author' : 'item') : TM.lines) }), { key: n }); }))) : null,
       TM.what === 'search' && parts.length < 2 ? h('span', { className: 'tl-hint' }, 'Tip: search several words separated by commas (e.g. salud, covid, pandemia) to give each word its own line.') : null,
       h('div', { className: 'tl-row wide' }, this.tlField('Lines', this.tlSeg(lineOpts, lines, v => set({ lines: v }))),
         this.tlField('By', this.tlSeg([['auto', 'Auto (' + unit + ')'], ['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']], TM.unit, v => set({ unit: v })))));
     const P = this.tlRPeriod(T, unit), by = G && lines !== 'none' && lines !== 'item' ? ' + `' + T.by + '`' : '';
     const rcode = kind === 'var' ? 'df$period <- ' + P + '\naggregate(cbind(' + items.map(i => '`' + i.name + '`').join(', ') + ') ~ period' + by + ', data = df, FUN = ' + (measure === 'pct' ? 'function(v) 100 * mean(v > 0)' : measure === 'sum' ? 'sum' : 'mean') + ')'
+      : kind === 'ntexts' ? 'df$period <- ' + P + '\ntable(df$period' + (by ? ', df$`' + T.by + '`' : '') + ')        # number of texts per period' + (by ? ' and ' + T.by : '')
       : kind === 'words' ? 'df$words <- ntoken(toks_clean)\ndf$period <- ' + P + '\naggregate(words ~ period' + by + ', data = df, FUN = mean)'
       : 'dict <- dictionary(list(' + parts.map((it, k) => '`' + it.name + '` = ' + this.tlRvec([it.name])).join(', ') + '))   # or your dictionary\nhits <- convert(dfm(tokens_lookup(toks, dict, nested_scope = "key")), to = "data.frame")\ndf$period <- ' + P + '\naggregate(cbind(' + parts.map(it => '`' + it.name + '`').join(', ') + ') ~ period' + by + ', data = cbind(df, hits[-1] > 0), FUN = mean)';
     const need = !items.length;

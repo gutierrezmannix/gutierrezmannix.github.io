@@ -1,4 +1,4 @@
-# Text analysis (Design A) and Excel files — build 2026-10-31.47
+# Text analysis (Design A) and Excel files — build 2026-10-31.48
 
 Tests → Text analysis is rebuilt as five steps that follow quanteda's order
 (corpus → tokens → dfm → statistics and models). Everything runs inside
@@ -12,7 +12,9 @@ Tests → Text analysis is rebuilt as five steps that follow quanteda's order
 | 4 Measure | Dictionary (glob `*` `?`, phrases, `-exclusions`, untick false matches, accents, LIWC/YAML/Lexicoder import, precision check); Sentiment (polarity, valence); Topics (LDA and seeded LDA, choose k by divergence, 3-seed stability, pooling); Classify (Naive Bayes); Scale (Wordfish, Wordscores, CA) | `dictionary`, `tokens_lookup(nested_scope = "key")`, `quanteda.sentiment`, `seededlda::textmodel_lda/seededlda`, `divergence`, `textmodel_nb`, `textmodel_wordfish/wordscores/ca` |
 | 5 Save | per category: count, 1/0, per 100 words, share; word counts; main topic + shares; sentiment; predicted label; clusters; all rows or the subgroup; preview and an automatic totals check; R code that recreates the columns | `convert(dfm(tokens_lookup()), to = "data.frame")` |
 
-Over time compares authors and words/categories together: one line per author, one line per
+Over time opens on the number of texts (e.g. tweets) per day, week, month, quarter or year, one
+line per author; empty periods count as 0 and each line runs from that author's first to last text.
+It also compares authors and words/categories together: one line per author, one line per
 word / category, one chart per author (lines = words, categories or variables) or one chart per
 word / category (lines = authors). Items can be the words of a search (each its own line), all
 dictionary categories, or saved variables (d_economia, d_salud_any, …) from the second dropdown.

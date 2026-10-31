@@ -8,7 +8,7 @@
       cloud: { split: '', view: 'each', gN: 4, gPick: [], same: true, colorBy: 'bands', basis: 'count', bands: null, one: '#2E7D58', max: 80, rotate: 0, shape: 'ellipse', font: 'Hanken Grotesk', seed: 1234 },
       key: { target: '', ref: '__rest', measure: 'chi2', min: 10, n: 12 },
       q: '', qOff: [], win: 6, sort: 'row',
-      time: { what: 'search', unit: 'auto', measure: 'pct', vmeasure: 'mean', order: 'auto', cat: '', lines: 'auto', vars: [] },
+      time: { what: 'ntexts', unit: 'auto', measure: 'pct', vmeasure: 'mean', order: 'auto', cat: '', lines: 'auto', vars: [] },
       dtime: { cat: '0', measure: 'pct', unit: 'auto' },
       dcloud: { show: true, mode: 'names', size: 'mentions', split: false, max: 80, colors: {} },
       coll: { size: 2, min: 0 }, net: { n: 40, context: 'doc', minFreq: 0.5 },
