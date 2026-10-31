@@ -71,12 +71,82 @@
       results = this.tlPanel('Results', this.fmtN(st[0].n) + ' texts' + (mask ? ' in the subgroup' : ''), null, tbl, gainTxt,
         this.tlBanner('ok', h('b', null, 'What this means: '), 'the most common category is ' + L.cats[top[0]].name + ', found in ' + this.tlPct(top[1] / Math.max(1, st[top[0]].n)) + ' of texts (' + this.fmtN(st[top[0]].m) + ' mentions). A dictionary finds only the words you list — check the matched words above and a random sample below.'),
         byG ? h('span', { className: 'tl-lbl' }, '% of texts with each category, by ' + T.by) : null, byG,
+        this.tlDictTimeline(ctx, L),
         corr ? h('span', { className: 'tl-lbl' }, 'Correlations between category counts (Pearson r; orange = p < .05)') : null, corr,
         prec,
-        h('div', { className: 'tl-row' }, this.tlBtn('Chart over time', () => this.tlSet({ step: 'explore', sub: 'time', time: Object.assign({}, T.time, { what: 'cat0' }) })), this.tlBtn('Colour the word cloud by category', () => { this.tlSetIn('cloud', { colorBy: 'category' }); this.tlSet({ step: 'explore', sub: 'words' }); }), this.tlBtn('Add as variables →', () => this.tlSet({ step: 'save' }), 'green')),
+        h('div', { className: 'tl-row' }, this.tlBtn(T.dcloud.show ? 'Hide the category word cloud' : 'Word cloud of the categories', () => this.tlSetIn('dcloud', { show: !T.dcloud.show }), T.dcloud.show ? '' : 'green', { 'aria-expanded': T.dcloud.show ? 'true' : 'false' }), this.tlBtn('Chart over time', () => this.tlSet({ step: 'explore', sub: 'time', time: Object.assign({}, T.time, { what: 'cat0' }) })), this.tlBtn('Colour the word cloud by category', () => { this.tlSetIn('cloud', { colorBy: 'category' }); this.tlSet({ step: 'explore', sub: 'words' }); }), this.tlBtn('Add as variables →', () => this.tlSet({ step: 'save' }), 'green')),
+        T.dcloud.show ? this.tlDictCloud(ctx, L) : null,
         this.tlRcode(this.tlDictR(ctx, L)));
     }
     return h('div', { className: 'tl-grid c-dict' }, this.tlPanel('Dictionary', 'group keywords into categories and count them (tokens_lookup)', null, help, dup.length ? this.tlBanner('warn', 'Two categories are both called “' + dup[0] + '”. Rename one: each category becomes its own variable.') : null, ...rows, io), results || this.tlPanel('Results', null, null, this.tlBanner('info', 'Write keywords in a category to see how often they appear.')));
+  }
+  // word cloud of the dictionary: the words each category matched (coloured by category), or the category names
+  tlDictCloud(ctx, L) {
+    const h = React.createElement, { T, C } = ctx, E = this._E, DC = T.dcloud, set = p => this.tlSetIn('dcloud', p), CL = T.cloud, fold = !!T.rec.fold;
+    const colorOf = k => (DC.colors || {})[L.cats[k].name] || this.tlPal(k);
+    const look = (mask, sig) => this.memo('tlDCL|' + C.key + '|' + JSON.stringify(L.cats) + '|' + fold + '|' + sig, () => E.tlLookup(C, L.comp, { mask }));
+    const wordsFor = (mask, sig) => {
+      const res = look(mask, sig);
+      if (DC.mode === 'names') return L.cats.map((c, k) => ({ text: c.name, value: res[k].mentions, color: colorOf(k) })).filter(w => w.value > 0);
+      const best = new Map();   // one entry per word (accent variants merged); a word in two categories goes to the one that counts it most
+      res.forEach((r, k) => { for (const [w, n] of r.forms) { const key = fold ? E.tlFold(w) : w, o = best.get(key) || { forms: new Map(), cats: new Map(), n: 0 }; o.forms.set(w, (o.forms.get(w) || 0) + n); o.cats.set(k, (o.cats.get(k) || 0) + n); o.n += n; best.set(key, o); } });
+      return [...best.values()].map(o => { let w = '', wn = -1, k = 0, kn = -1; for (const [f, n] of o.forms) if (n > wn) { w = f; wn = n; } for (const [c, n] of o.cats) if (n > kn) { k = c; kn = n; } return { text: w, value: o.n, color: colorOf(k) }; }).sort((a, b) => b.value - a.value).slice(0, DC.max);
+    };
+    const legend = L.cats.map((c, k) => [c.name, colorOf(k)]);
+    const opts = { shape: CL.shape, rotate: CL.rotate, seed: CL.seed, font: CL.font };
+    const figs = [];
+    const G = DC.split && T.by ? this.tlGroupsOf(T, C, T.by) : null;
+    if (!G) { const ws = wordsFor(ctx.mask, 'f' + this.filterSig()); figs.push(ws.length ? this.tlCloudFig('tldcloud', ws, 760, 440, opts, (DC.mode === 'names' ? 'Dictionary categories · size = mentions' : 'Words matched by the dictionary · colour = category') + ' · ' + this.fmtN(ctx.cnt.docs) + ' texts', legend) : this.tlBanner('info', 'No dictionary words appear in these texts.')); }
+    else {
+      const { defs } = this.tlGroupDefs(ctx, null);
+      const nd = C.off.length - 1;
+      defs.slice(0, 6).forEach((gd, gi) => {
+        const m = new Uint8Array(nd); for (let d = 0; d < nd; d++) m[d] = gd.inc(d) && (!ctx.mask || ctx.mask[d]) ? 1 : 0;
+        const ws = wordsFor(m, 'g' + T.by + '|' + T.mergeCase + '|' + gd.name + '|' + this.filterSig()); if (!ws.length) return;
+        figs.push(this.tlCloudFig('tldcloud' + gi, ws, 560, 360, opts, gd.name + (DC.mode === 'names' ? ' · size = mentions' : ' · colour = category'), legend, true));
+      });
+    }
+    const ctl = h('div', { className: 'tl-row wide' },
+      this.tlField('Show', this.tlSeg([['words', 'Matched words'], ['names', 'Category names']], DC.mode, v => set({ mode: v }))),
+      T.by ? this.tlField('Clouds', this.tlSeg([[false, 'All texts'], [true, 'One per ' + T.by]], !!DC.split, v => set({ split: v }))) : null,
+      DC.mode === 'words' ? this.tlField('Words', this.tlNum(DC.max, v => set({ max: v }), { min: 5, max: 300, aria: 'Maximum words in the category cloud' })) : null,
+      this.tlField('Category colours', h('div', { className: 'tl-row' }, ...L.cats.map((c, k) => h('label', { key: k, className: 'tl-form' }, h('input', { type: 'color', value: colorOf(k), 'aria-label': 'Colour of ' + c.name, onChange: e => set({ colors: Object.assign({}, DC.colors, { [c.name]: e.target.value }) }) }), c.name)))));
+    return h('div', { className: 'tl-col tl-dtime' }, h('span', { className: 'tl-lbl' }, 'Word cloud of the categories'), ctl, h('div', { className: figs.length > 1 ? 'tl-cloudgrid' : 'tl-col' }, ...figs),
+      h('span', { className: 'tl-hint' }, 'Shape, rotation and font follow Explore → Words. Words that match two categories take the colour of the one that counts them most.'),
+      this.tlRcode(DC.mode === 'names' ? 'textplot_wordcloud(dfm(tokens_lookup(toks, dict)), min_count = 1)' : 'hits <- tokens_keep(toks, dict)          # only words in the dictionary\ntextplot_wordcloud(dfm(hits), max_words = ' + DC.max + ')'));
+  }
+  // timeline of dictionary categories: one category by group, or every category in each group
+  tlDictTimeline(ctx, L) {
+    const h = React.createElement, { T, C } = ctx, DT = T.dtime, set = p => this.tlSetIn('dtime', p);
+    const dateOpts = [['', 'pick a date column']].concat((this.state.cols || []).map(c => c.name).filter(n => n !== T.v).map(n => [n, n]));
+    const head = this.tlField('Date column', this.tlSelect(T.date, dateOpts, v => { this._tlDateTouched = true; this.tlSet({ date: v }); }, 'Timeline date column'));
+    const title = h('span', { className: 'tl-lbl' }, 'Timeline · each category over time' + (T.by ? ' by ' + T.by : ''));
+    if (!T.date) return h('div', { className: 'tl-col tl-dtime' }, title, h('div', { className: 'tl-row wide' }, head), this.tlBanner('info', 'Pick the column with dates to see each category over time.'));
+    const D = this.tlDates(T, C);
+    if (!D || !D.ok) return h('div', { className: 'tl-col tl-dtime' }, title, h('div', { className: 'tl-row wide' }, head), this.tlBanner('warn', '“' + T.date + '” does not look like dates.'));
+    const unit = this.tlTimeUnit(DT, D), all = DT.cat === 'all', ci = all ? -1 : Math.min(L.cats.length - 1, Math.max(0, Number(DT.cat) || 0));
+    const ylab = this.tlMeasureLab(DT.measure), sig = '|' + C.key + '|' + JSON.stringify(L.cats) + '|' + T.date + '|' + T.time.order + '|' + unit + '|' + DT.measure + '|' + T.by + '|' + T.mergeCase + '|' + this.filterSig();
+    const ctl = h('div', { className: 'tl-row wide' }, head,
+      this.tlField('Category', this.tlSelect(all ? 'all' : String(ci), [['all', 'All categories (one chart per group)']].concat(L.cats.map((c, i) => [String(i), c.name])), v => set({ cat: v }), 'Timeline category')),
+      this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], DT.measure, v => set({ measure: v }))),
+      this.tlField('By', this.tlSeg([['auto', 'Auto (' + unit + ')'], ['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']], DT.unit, v => set({ unit: v }))));
+    const charts = [];
+    if (!all) {
+      const counts = L.res[ci].counts, { defs } = this.tlGroupDefs(ctx, d => counts[d]);
+      const data = this.memo('tlDT' + ci + sig, () => this.tlTimeAgg(ctx, D, unit, defs, DT.measure));
+      charts.push(h('div', { key: 'one', className: 'tl-col' }, this.tlLinesSvg('tldt', data.xs, data.series, { ylab, pct: DT.measure === 'pct', title: L.cats[ci].name + ' · ' + ylab }), this.tlExportRow('tldt', 'timeline-' + this._E.tlVarName(L.cats[ci].name))));
+    } else {
+      const { defs: gdefs } = this.tlGroupDefs(ctx, null);
+      gdefs.slice(0, 6).forEach((gd, gi) => {
+        const defs = L.cats.map((c, k) => ({ name: c.name, color: this.tlPal(k), inc: gd.inc, x: d => L.res[k].counts[d] }));
+        const data = this.memo('tlDTall' + gi + sig, () => this.tlTimeAgg(ctx, D, unit, defs, DT.measure));
+        charts.push(h('div', { key: gi, className: 'tl-col' }, this.tlLinesSvg('tldt' + gi, data.xs, data.series, { ylab, pct: DT.measure === 'pct', title: gd.name + ' · ' + ylab })));
+      });
+      charts.push(h('div', { key: 'exp', className: 'tl-row' }, ...gdefs.slice(0, 6).map((gd, gi) => this.tlBtn('Download ' + String(gd.name).slice(0, 18), () => this.tlExport('tldt' + gi, 'timeline-' + this._E.tlVarName(gd.name), 'png', 300), '', { key: gi, title: 'PNG at 300 dpi' }))));
+    }
+    const by = T.by ? ' + `' + T.by + '`' : '';
+    return h('div', { className: 'tl-col tl-dtime' }, title, ctl, ...charts,
+      this.tlRcode('hits <- convert(dfm(tokens_lookup(toks, dict, nested_scope = "key")), to = "data.frame")\ndf$period <- ' + this.tlRPeriod(T, unit) + '\n' + (all ? L.cats.map(c => 'aggregate(hits[["' + c.name + '"]] > 0 ~ period' + by + ', data = df, FUN = mean)').join('\n') : 'aggregate(hits[["' + L.cats[ci].name + '"]] ' + (DT.measure === 'pct' ? '> 0 ' : '') + '~ period' + by + ', data = df, FUN = ' + (DT.measure === 'pct' ? 'mean' : 'sum') + ')')));
   }
   tlPrecision(ctx, L) {
     const h = React.createElement, { T, C } = ctx, E = this._E, ci = Math.min(L.cats.length - 1, T.precCat || 0), PR = (T.prec || {})[L.cats[ci].name] || {};

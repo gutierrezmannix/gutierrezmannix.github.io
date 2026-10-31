@@ -1,4 +1,4 @@
-# Text analysis (Design A) and Excel files — build 2026-10-31.45
+# Text analysis (Design A) and Excel files — build 2026-10-31.46
 
 Tests → Text analysis is rebuilt as five steps that follow quanteda's order
 (corpus → tokens → dfm → statistics and models). Everything runs inside
@@ -11,6 +11,13 @@ Tests → Text analysis is rebuilt as five steps that follow quanteda's order
 | 3 Explore | Words (table + word cloud with colour rules by frequency bands / group / dictionary category, split by any column, comparison cloud, bar chart); Phrases; Compare groups (keyness); In context (kwic with match lists); Over time; Connections (network); Clusters (dendrogram); Text stats | `textstat_frequency`, `textplot_wordcloud(comparison =)`, `textstat_collocations`, `textstat_keyness` + `textplot_keyness`, `kwic`, `fcm` + `textplot_network`, `textstat_simil/dist` + `hclust`, `textstat_lexdiv`, `textstat_readability` |
 | 4 Measure | Dictionary (glob `*` `?`, phrases, `-exclusions`, untick false matches, accents, LIWC/YAML/Lexicoder import, precision check); Sentiment (polarity, valence); Topics (LDA and seeded LDA, choose k by divergence, 3-seed stability, pooling); Classify (Naive Bayes); Scale (Wordfish, Wordscores, CA) | `dictionary`, `tokens_lookup(nested_scope = "key")`, `quanteda.sentiment`, `seededlda::textmodel_lda/seededlda`, `divergence`, `textmodel_nb`, `textmodel_wordfish/wordscores/ca` |
 | 5 Save | per category: count, 1/0, per 100 words, share; word counts; main topic + shares; sentiment; predicted label; clusters; all rows or the subgroup; preview and an automatic totals check; R code that recreates the columns | `convert(dfm(tokens_lookup()), to = "data.frame")` |
+
+Over time compares authors and words/categories together: one line per author, one line per
+word / category, one chart per author (lines = words, categories or variables) or one chart per
+word / category (lines = authors). Items can be the words of a search (each its own line), all
+dictionary categories, or saved variables (d_economia, d_salud_any, …) from the second dropdown.
+The Dictionary results include the same timeline and a word cloud of the categories (matched
+words coloured by category, or the category names sized by mentions; one cloud per author).
 
 Every chart downloads as SVG (fonts embedded) or PNG at 150/300/600 dpi (with the dpi stored in the file).
 "Recipe · R code" shows the quanteda script for the current cleaning.

@@ -330,7 +330,7 @@ export function tlLookup(C, compiled, opts) {
   const nd = C.off.length - 1, res = compiled.map(() => ({ counts: new Float64Array(nd), forms: new Map(), mentions: 0, docs: 0 }));
   for (let d = 0; d < nd; d++) {
     if (C.blank[d]) { for (const r of res) r.counts[d] = NaN; continue; }
-    const a = C.off[d], b = C.off[d + 1];
+    const a = C.off[d], b = C.off[d + 1], inMask = !opts.mask || !!opts.mask[d];
     compiled.forEach((K, ci) => {
       if (K.empty) return;
       const r = res[ci]; let c = 0;
@@ -339,10 +339,10 @@ export function tlLookup(C, compiled, opts) {
         for (const ph of K.phrases) { const n = ph.masks.length; if (i + n > b) continue; let ok = true; for (let j = 0; j < n; j++) { if (!ph.masks[j][C.tok[i + j]]) { ok = false; break; } } if (ok && n > L) L = n; }
         if (L) { for (const ex of K.exPhrases) { const n = ex.length; if (n !== L) continue; let ok = true; for (let j = 0; j < n; j++) if (!ex[j][C.tok[i + j]]) { ok = false; break; } if (ok) { L = 0; break; } } }
         if (!L && K.singles[C.tok[i]]) L = 1;
-        if (L) { c++; const form = L === 1 ? C.types[C.tok[i]] : Array.from(C.tok.subarray(i, i + L), t => C.types[t]).join(' '); r.forms.set(form, (r.forms.get(form) || 0) + 1); i += L; }
+        if (L) { c++; if (inMask) { const form = L === 1 ? C.types[C.tok[i]] : Array.from(C.tok.subarray(i, i + L), t => C.types[t]).join(' '); r.forms.set(form, (r.forms.get(form) || 0) + 1); } i += L; }
         else i++;
       }
-      r.counts[d] = c; r.mentions += c; if (c > 0) r.docs++;
+      r.counts[d] = c; if (inMask) { r.mentions += c; if (c > 0) r.docs++; }
     });
   }
   return res;

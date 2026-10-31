@@ -120,6 +120,32 @@ test('every step and sub-tab renders; dictionary, topics, clusters and saving wo
     assert.ok(raw.names.includes('d_economia') && raw.names.includes('d_topic'));
     assert.equal(c.state.genTags.d_economia, 'text');
     assert.ok(raw.vlabs.d_topic instanceof Map && raw.vlabs.d_topic.size === 3, 'main topic has value labels');
+    // saved variables appear in Over time; the dictionary has a timeline and a category word cloud
+    c.state.tl = { ...c.state.tl, step: 'explore', sub: 'time', time: { what: 'var:d_economia', vmeasure: 'mean' } };
+    const ot = c.tlRender(), otText = text(ot);
+    assert.ok(find(ot, n => n.tag === 'option' && n.props.value === 'var:d_economia' && text(n) === 'd_economia').length === 1, 'saved variable listed in the dropdown');
+    assert.match(otText, /d_economia · mean per text/);
+    assert.ok(find(ot, n => n.tag === 'polyline').length >= 2, 'one line per author');
+    // by author and by variable/word/category together
+    c.state.tl = { ...c.state.tl, time: { what: 'var:d_economia', vmeasure: 'mean', vars: ['d_corrupcion', 'd_seguridad'], lines: 'grid-author' } };
+    let svgs = find(c.tlRender(), n => n.tag === 'svg');
+    assert.equal(svgs.length, 2, 'one chart per author');
+    assert.equal(find(svgs[0], n => n.tag === 'polyline').length >= 3, true, 'one line per variable');
+    c.state.tl = { ...c.state.tl, time: { what: 'var:d_economia', vmeasure: 'pct', vars: ['d_corrupcion'], lines: 'grid-item' } };
+    assert.equal(find(c.tlRender(), n => n.tag === 'svg').length, 2, 'one chart per variable');
+    c.state.tl = { ...c.state.tl, q: 'econom*, corrup*', time: { what: 'search', measure: 'pct', lines: 'item' } };
+    const st = c.tlRender(); svgs = find(st, n => n.tag === 'svg');
+    assert.equal(svgs.length, 1); assert.ok(['econom*', 'corrup*'].every(w => find(svgs[0], n => n.tag === 'text').map(text).includes(w)), 'one line per search word');
+    c.state.tl = { ...c.state.tl, time: { what: 'catall', measure: 'pct', lines: 'grid-item' } };
+    assert.equal(find(c.tlRender(), n => n.tag === 'svg').length, 3, 'one chart per category, lines per author');
+    c.state.tl = { ...c.state.tl, step: 'measure', msub: 'dict', dtime: { cat: 'all', measure: 'pct' }, dcloud: { show: true, mode: 'words', split: true } };
+    const dtree = c.tlRender(), dtext = text(dtree);
+    assert.match(dtext, /Timeline · each category over time by autor/);
+    assert.match(dtext, /Word cloud of the categories/);
+    assert.ok(find(dtree, n => n.tag === 'svg').length >= 4, 'timeline charts per author and category clouds per author');
+    c.state.tl = { ...c.state.tl, dcloud: { show: true, mode: 'names', split: false } };
+    const names = find(c.tlRender(), n => n.tag === 'text').map(text);
+    assert.ok(['economía', 'corrupción'].every(n => names.includes(n)), 'category names cloud');
     // results survive the data change (no re-tokenising, topic model kept)
     assert.equal(c.tlCorpus(c.tlS()).key, C.key);
     c.tlSaveRun(ctx, c.tlSavePlan(ctx));
