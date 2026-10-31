@@ -141,7 +141,7 @@ test('every step and sub-tab renders; dictionary, topics, clusters and saving wo
     c.state.tl = { ...c.state.tl, step: 'measure', msub: 'dict', dtime: { cat: 'all', measure: 'pct' }, dcloud: { show: true, mode: 'words', split: true } };
     const dtree = c.tlRender(), dtext = text(dtree);
     assert.match(dtext, /Timeline · each category over time by autor/);
-    assert.match(dtext, /Word cloud of the categories/);
+    assert.match(dtext, /Category cloud/);
     assert.ok(find(dtree, n => n.tag === 'svg').length >= 4, 'timeline charts per author and category clouds per author');
     c.state.tl = { ...c.state.tl, dcloud: { show: true, mode: 'names', split: false } };
     const names = find(c.tlRender(), n => n.tag === 'text').map(text);

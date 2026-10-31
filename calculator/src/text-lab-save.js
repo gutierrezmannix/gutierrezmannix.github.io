@@ -291,7 +291,7 @@
     if (!words.length) return out;
     const fam = o.font === 'Georgia' ? 'Georgia, serif' : '"' + o.font + '", sans-serif', wt = o.font === 'Hanken Grotesk' ? 600 : 700;
     const vmax = o.vmax ?? Math.max(...words.map(w => w.value)), vmin = o.vmin ?? Math.min(...words.map(w => w.value));
-    const maxF = Math.min(H * 0.2, W * 0.11), minF = Math.max(9.5, maxF * 0.2);
+    const maxF = o.big ? Math.min(H * 0.28, W * 0.15) : Math.min(H * 0.2, W * 0.11), minF = Math.max(9.5, maxF * (o.big ? 0.12 : 0.2));
     const cell = 2, GW = Math.ceil(W / cell), GH = Math.ceil(H / cell), board = new Uint8Array(GW * GH);
     let cv = null, ctx = null;
     try { cv = this._tlCv || (this._tlCv = document.createElement('canvas')); ctx = cv.getContext && cv.getContext('2d', { willReadFrequently: true }); } catch (e) { ctx = null; }
@@ -302,7 +302,7 @@
     const sectors = o.sectors || 0;
     for (const w of sorted) {
       const t = vmax === vmin ? 1 : Math.max(0, Math.min(1, (w.value - vmin) / (vmax - vmin)));
-      let size = minF + (maxF - minF) * Math.sqrt(t), placed = false;
+      let size = o.prop ? Math.max(minF, maxF * Math.sqrt(Math.max(0, w.value) / (vmax || 1))) : minF + (maxF - minF) * Math.sqrt(t), placed = false;
       for (let attempt = 0; attempt < 4 && !placed; attempt++, size *= 0.82) {
         const rot = o.rotate > 0 && rnd() < o.rotate ? 1 : 0;
         if (ctx) ctx.font = wt + ' ' + size.toFixed(1) + 'px ' + fam;

@@ -70,50 +70,55 @@
       const top = st.map((s, i) => [i, s.d]).sort((a, b) => b[1] - a[1])[0];
       results = this.tlPanel('Results', this.fmtN(st[0].n) + ' texts' + (mask ? ' in the subgroup' : ''), null, tbl, gainTxt,
         this.tlBanner('ok', h('b', null, 'What this means: '), 'the most common category is ' + L.cats[top[0]].name + ', found in ' + this.tlPct(top[1] / Math.max(1, st[top[0]].n)) + ' of texts (' + this.fmtN(st[top[0]].m) + ' mentions). A dictionary finds only the words you list — check the matched words above and a random sample below.'),
+        T.dcloud.show ? this.tlDictCloud(ctx, L) : null,
         byG ? h('span', { className: 'tl-lbl' }, '% of texts with each category, by ' + T.by) : null, byG,
         this.tlDictTimeline(ctx, L),
         corr ? h('span', { className: 'tl-lbl' }, 'Correlations between category counts (Pearson r; orange = p < .05)') : null, corr,
         prec,
-        h('div', { className: 'tl-row' }, this.tlBtn(T.dcloud.show ? 'Hide the category word cloud' : 'Word cloud of the categories', () => this.tlSetIn('dcloud', { show: !T.dcloud.show }), T.dcloud.show ? '' : 'green', { 'aria-expanded': T.dcloud.show ? 'true' : 'false' }), this.tlBtn('Chart over time', () => this.tlSet({ step: 'explore', sub: 'time', time: Object.assign({}, T.time, { what: 'cat0' }) })), this.tlBtn('Colour the word cloud by category', () => { this.tlSetIn('cloud', { colorBy: 'category' }); this.tlSet({ step: 'explore', sub: 'words' }); }), this.tlBtn('Add as variables →', () => this.tlSet({ step: 'save' }), 'green')),
-        T.dcloud.show ? this.tlDictCloud(ctx, L) : null,
+        h('div', { className: 'tl-row' }, this.tlBtn(T.dcloud.show ? 'Hide the category cloud' : 'Category word cloud', () => this.tlSetIn('dcloud', { show: !T.dcloud.show }), T.dcloud.show ? '' : 'green', { 'aria-expanded': T.dcloud.show ? 'true' : 'false' }), this.tlBtn('Chart over time', () => this.tlSet({ step: 'explore', sub: 'time', time: Object.assign({}, T.time, { what: 'cat0' }) })), this.tlBtn('Colour the word cloud by category', () => { this.tlSetIn('cloud', { colorBy: 'category' }); this.tlSet({ step: 'explore', sub: 'words' }); }), this.tlBtn('Add as variables →', () => this.tlSet({ step: 'save' }), 'green')),
         this.tlRcode(this.tlDictR(ctx, L)));
     }
     return h('div', { className: 'tl-grid c-dict' }, this.tlPanel('Dictionary', 'group keywords into categories and count them (tokens_lookup)', null, help, dup.length ? this.tlBanner('warn', 'Two categories are both called “' + dup[0] + '”. Rename one: each category becomes its own variable.') : null, ...rows, io), results || this.tlPanel('Results', null, null, this.tlBanner('info', 'Write keywords in a category to see how often they appear.')));
   }
-  // word cloud of the dictionary: the words each category matched (coloured by category), or the category names
+  // word cloud of the dictionary: the categories sized by how often they appear, or the words inside each category
   tlDictCloud(ctx, L) {
     const h = React.createElement, { T, C } = ctx, E = this._E, DC = T.dcloud, set = p => this.tlSetIn('dcloud', p), CL = T.cloud, fold = !!T.rec.fold;
-    const colorOf = k => (DC.colors || {})[L.cats[k].name] || this.tlPal(k);
+    const colorOf = k => (DC.colors || {})[L.cats[k].name] || this.tlPal(k), names = DC.mode !== 'words';
     const look = (mask, sig) => this.memo('tlDCL|' + C.key + '|' + JSON.stringify(L.cats) + '|' + fold + '|' + sig, () => E.tlLookup(C, L.comp, { mask }));
+    const nTexts = (mask, sig) => this.memo('tlDCN|' + C.key + '|' + sig, () => { let n = 0; for (let d = 0; d < C.off.length - 1; d++) if (!C.blank[d] && (!mask || mask[d])) n++; return n; });
+    const sizeOf = (r, n) => DC.size === 'texts' ? r.docs : DC.size === 'pct' ? 100 * r.docs / Math.max(1, n) : r.mentions;
+    const fmtV = v => DC.size === 'pct' ? v.toFixed(1) + '%' : this.fmtN(v);
+    const sizeLab = DC.size === 'texts' ? 'texts that use the category' : DC.size === 'pct' ? '% of texts that use the category' : 'mentions';
     const wordsFor = (mask, sig) => {
       const res = look(mask, sig);
-      if (DC.mode === 'names') return L.cats.map((c, k) => ({ text: c.name, value: res[k].mentions, color: colorOf(k) })).filter(w => w.value > 0);
+      if (names) { const n = nTexts(mask, sig); return L.cats.map((c, k) => ({ text: c.name, value: sizeOf(res[k], n), color: colorOf(k) })).filter(w => w.value > 0); }
       const best = new Map();   // one entry per word (accent variants merged); a word in two categories goes to the one that counts it most
       res.forEach((r, k) => { for (const [w, n] of r.forms) { const key = fold ? E.tlFold(w) : w, o = best.get(key) || { forms: new Map(), cats: new Map(), n: 0 }; o.forms.set(w, (o.forms.get(w) || 0) + n); o.cats.set(k, (o.cats.get(k) || 0) + n); o.n += n; best.set(key, o); } });
-      return [...best.values()].map(o => { let w = '', wn = -1, k = 0, kn = -1; for (const [f, n] of o.forms) if (n > wn) { w = f; wn = n; } for (const [c, n] of o.cats) if (n > kn) { k = c; kn = n; } return { text: w, value: o.n, color: colorOf(k) }; }).sort((a, b) => b.value - a.value).slice(0, DC.max);
+      return [...best.values()].map(o => { let w = '', wn = -1, k = 0, kn = -1; for (const [f, n] of o.forms) if (n > wn) { w = f; wn = n; } for (const [c, n] of o.cats) if (n > kn) { k = c; kn = n; } return { text: w, value: o.n, color: colorOf(k) }; }).sort((p, q) => q.value - p.value).slice(0, DC.max);
     };
-    const legend = L.cats.map((c, k) => [c.name, colorOf(k)]);
-    const opts = { shape: CL.shape, rotate: CL.rotate, seed: CL.seed, font: CL.font };
+    const opts = { shape: names ? 'square' : CL.shape, rotate: names ? 0 : CL.rotate, seed: CL.seed, font: CL.font, prop: names, big: names };
+    const legendOf = ws => L.cats.map((c, k) => { const w = names ? ws.find(x => x.text === c.name) : null; return [c.name + (names ? ' · ' + fmtV(w ? w.value : 0) : ''), colorOf(k)]; });
     const figs = [];
     const G = DC.split && T.by ? this.tlGroupsOf(T, C, T.by) : null;
-    if (!G) { const ws = wordsFor(ctx.mask, 'f' + this.filterSig()); figs.push(ws.length ? this.tlCloudFig('tldcloud', ws, 760, 440, opts, (DC.mode === 'names' ? 'Dictionary categories · size = mentions' : 'Words matched by the dictionary · colour = category') + ' · ' + this.fmtN(ctx.cnt.docs) + ' texts', legend) : this.tlBanner('info', 'No dictionary words appear in these texts.')); }
-    else {
-      const { defs } = this.tlGroupDefs(ctx, null);
-      const nd = C.off.length - 1;
-      defs.slice(0, 6).forEach((gd, gi) => {
+    if (!G) {
+      const ws = wordsFor(ctx.mask, 'f' + this.filterSig());
+      figs.push(ws.length ? this.tlCloudFig('tldcloud', ws, 760, names ? 360 : 440, opts, (names ? 'Categories sized by ' + sizeLab : 'Words matched by the dictionary · colour = category') + ' · ' + this.fmtN(ctx.cnt.docs) + ' texts', legendOf(ws)) : this.tlBanner('info', 'No dictionary words appear in these texts.'));
+    } else {
+      const nd = C.off.length - 1, per = this.tlGroupDefs(ctx, null).defs.slice(0, 6).map((gd, gi) => {
         const m = new Uint8Array(nd); for (let d = 0; d < nd; d++) m[d] = gd.inc(d) && (!ctx.mask || ctx.mask[d]) ? 1 : 0;
-        const ws = wordsFor(m, 'g' + T.by + '|' + T.mergeCase + '|' + gd.name + '|' + this.filterSig()); if (!ws.length) return;
-        figs.push(this.tlCloudFig('tldcloud' + gi, ws, 560, 360, opts, gd.name + (DC.mode === 'names' ? ' · size = mentions' : ' · colour = category'), legend, true));
+        return { gd, gi, ws: wordsFor(m, 'g' + T.by + '|' + T.mergeCase + '|' + gd.name + '|' + this.filterSig()) };
       });
+      const vmax = Math.max(1e-9, ...per.flatMap(p => p.ws.map(w => w.value)));   // one scale for every author
+      per.forEach(({ gd, gi, ws }) => { if (ws.length) figs.push(this.tlCloudFig('tldcloud' + gi, ws, 560, names ? 300 : 360, Object.assign({}, opts, names ? { vmax } : {}), gd.name + (names ? ' · ' + sizeLab + ' · same scale for every ' + T.by : ' · colour = category'), legendOf(ws), true)); });
     }
     const ctl = h('div', { className: 'tl-row wide' },
-      this.tlField('Show', this.tlSeg([['words', 'Matched words'], ['names', 'Category names']], DC.mode, v => set({ mode: v }))),
+      this.tlField('Show', this.tlSeg([['names', 'Categories by size'], ['words', 'Words inside each category']], names ? 'names' : 'words', v => set({ mode: v }))),
+      names ? this.tlField('Size by', this.tlSeg([['mentions', 'Mentions'], ['texts', 'Texts'], ['pct', '% of texts']], DC.size || 'mentions', v => set({ size: v }))) : this.tlField('Words', this.tlNum(DC.max, v => set({ max: v }), { min: 5, max: 300, aria: 'Maximum words in the category cloud' })),
       T.by ? this.tlField('Clouds', this.tlSeg([[false, 'All texts'], [true, 'One per ' + T.by]], !!DC.split, v => set({ split: v }))) : null,
-      DC.mode === 'words' ? this.tlField('Words', this.tlNum(DC.max, v => set({ max: v }), { min: 5, max: 300, aria: 'Maximum words in the category cloud' })) : null,
       this.tlField('Category colours', h('div', { className: 'tl-row' }, ...L.cats.map((c, k) => h('label', { key: k, className: 'tl-form' }, h('input', { type: 'color', value: colorOf(k), 'aria-label': 'Colour of ' + c.name, onChange: e => set({ colors: Object.assign({}, DC.colors, { [c.name]: e.target.value }) }) }), c.name)))));
-    return h('div', { className: 'tl-col tl-dtime' }, h('span', { className: 'tl-lbl' }, 'Word cloud of the categories'), ctl, h('div', { className: figs.length > 1 ? 'tl-cloudgrid' : 'tl-col' }, ...figs),
-      h('span', { className: 'tl-hint' }, 'Shape, rotation and font follow Explore → Words. Words that match two categories take the colour of the one that counts them most.'),
-      this.tlRcode(DC.mode === 'names' ? 'textplot_wordcloud(dfm(tokens_lookup(toks, dict)), min_count = 1)' : 'hits <- tokens_keep(toks, dict)          # only words in the dictionary\ntextplot_wordcloud(dfm(hits), max_words = ' + DC.max + ')'));
+    return h('div', { className: 'tl-col tl-dtime' }, h('span', { className: 'tl-lbl' }, names ? 'Category cloud · each category sized by how often it appears' : 'Category cloud · the words inside each category'), ctl, h('div', { className: figs.length > 1 ? 'tl-cloudgrid' : 'tl-col' }, ...figs),
+      h('span', { className: 'tl-hint' }, names ? 'Word size is proportional (area ∝ ' + sizeLab + '), so a category used twice as often looks twice as big.' : 'Shape, rotation and font follow Explore → Words. Words that match two categories take the colour of the one that counts them most.'),
+      this.tlRcode(names ? 'dfmat_cat <- dfm(tokens_lookup(toks, dict, nested_scope = "key"))' + (DC.size === 'mentions' ? '' : ' |> dfm_weight(scheme = "boolean")') + '\ntextplot_wordcloud(dfmat_cat, min_count = 1' + (DC.split && T.by ? ', comparison = FALSE)   # run once per ' + T.by + ' with dfm_subset()' : ')') : 'hits <- tokens_keep(toks, dict)          # only words in the dictionary\ntextplot_wordcloud(dfm(hits), max_words = ' + DC.max + ')'));
   }
   // timeline of dictionary categories: one category by group, or every category in each group
   tlDictTimeline(ctx, L) {

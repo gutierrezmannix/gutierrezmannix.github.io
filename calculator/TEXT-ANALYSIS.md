@@ -1,4 +1,4 @@
-# Text analysis (Design A) and Excel files — build 2026-10-31.46
+# Text analysis (Design A) and Excel files — build 2026-10-31.47
 
 Tests → Text analysis is rebuilt as five steps that follow quanteda's order
 (corpus → tokens → dfm → statistics and models). Everything runs inside
@@ -16,8 +16,9 @@ Over time compares authors and words/categories together: one line per author, o
 word / category, one chart per author (lines = words, categories or variables) or one chart per
 word / category (lines = authors). Items can be the words of a search (each its own line), all
 dictionary categories, or saved variables (d_economia, d_salud_any, …) from the second dropdown.
-The Dictionary results include the same timeline and a word cloud of the categories (matched
-words coloured by category, or the category names sized by mentions; one cloud per author).
+The Dictionary results include the same timeline and a category cloud, shown by default: each
+category sized in proportion to its mentions, texts or % of texts (one cloud per author on a common
+scale), or the words inside each category coloured by category.
 
 Every chart downloads as SVG (fonts embedded) or PNG at 150/300/600 dpi (with the dpi stored in the file).
 "Recipe · R code" shows the quanteda script for the current cleaning.

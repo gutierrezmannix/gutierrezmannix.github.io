@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-31.46'
+BUILD = '2026-10-31.47'
 LANGS = ['es', 'en', 'pt', 'fr']
 
 

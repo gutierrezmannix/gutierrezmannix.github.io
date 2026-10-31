@@ -10,7 +10,7 @@
       q: '', qOff: [], win: 6, sort: 'row',
       time: { what: 'search', unit: 'auto', measure: 'pct', vmeasure: 'mean', order: 'auto', cat: '', lines: 'auto', vars: [] },
       dtime: { cat: '0', measure: 'pct', unit: 'auto' },
-      dcloud: { show: false, mode: 'words', split: false, max: 80, colors: {} },
+      dcloud: { show: true, mode: 'names', size: 'mentions', split: false, max: 80, colors: {} },
       coll: { size: 2, min: 0 }, net: { n: 40, context: 'doc', minFreq: 0.5 },
       clu: { what: 'groups', byYear: true, weight: 'prop', dist: 'cosine', link: 'average', k: 4, orient: 'h', nWords: 60, nTexts: 200 },
       dict: [{ name: '', keys: '', off: [] }, { name: '', keys: '', off: [] }], dictOpen: {},
