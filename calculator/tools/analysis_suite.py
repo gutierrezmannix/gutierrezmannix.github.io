@@ -20,5 +20,7 @@ def integrate_template(t):
     if marker in t:t=re.sub(re.escape(marker)+r'<style>.*?</style>',lambda _:marker+css,t,count=1,flags=re.S)
     else:t=marker+css+t
     if '{{ analysisEl }}' not in t:t=t.replace('<sc-if value="{{ isChartSuite }}"', '<sc-if value="{{ isAnalysis }}" hint-placeholder-val="{{ false }}">{{ analysisEl }}</sc-if>\n          <sc-if value="{{ isChartSuite }}"',1)
-    if '{{ analysisStart }}' not in t:t=t.replace('Create your own dataset</a>', 'Create your own dataset</a><p><button onClick="{{ analysisStart }}" style="border:1.5px solid #698477;border-radius:7px;background:#FFFEFA;color:#194F39;padding:12px 18px;cursor:pointer;font:inherit;">Use summary statistics or plan a study</button></p>',1)
+    # build .58: the intro page no longer has the "Use summary statistics or plan a study" button (it opened an empty
+    # workspace). The tools stay in Tests ▾ and out.analysisStart stays available; only the button is removed.
+    t=t.replace('<p><button onClick="{{ analysisStart }}" style="border:1.5px solid #698477;border-radius:7px;background:#FFFEFA;color:#194F39;padding:12px 18px;cursor:pointer;font:inherit;">Use summary statistics or plan a study</button></p>','',1)
     return t
