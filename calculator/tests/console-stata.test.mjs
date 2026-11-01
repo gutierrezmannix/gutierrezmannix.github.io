@@ -92,3 +92,19 @@ test('files: decimal commas in semicolon files, scripts that read them, and miss
   const keep = await parse('v\n0\n0\n0\n0\n66'); assert.deepEqual(E.profileCol(keep, 0, true).autoCodes, []);
   const code = await parse('v\n1\n2\n3\n4\n5\n99\n2\n3'); assert.deepEqual(E.profileCol(code, 0, true).autoCodes, [99]);
 });
+
+test('keep if / drop if write their own line and do not re-log the analysis on screen; the IF bar still does', async () => {
+  const c = await setup(); c.afterUpdateUI = c.autoSchedule = c.noteWatch = () => {};
+  const set = c.setState.bind(c); c.setState = (p, cb) => set(p, () => { c.componentDidUpdate(); cb?.(); });
+  const wait = () => new Promise(r => setTimeout(r, 120)), cmds = () => c.state.conLog.map(d => c.cmdText(d, 'stata'));
+  c.setState({ tab: 'one', exploreVar: 'y' });
+  const n0 = c.state.conLog.length; assert.ok(n0 >= 1, 'the analysis on screen is logged once');
+  c.runCmdLine('keep if g == "A"'); await wait();
+  assert.deepEqual(cmds().slice(n0), ['keep if g == "A"']);
+  c.runCmdLine('drop if x > 9'); await wait();
+  assert.equal(cmds().length, n0 + 2); assert.match(cmds().at(-1), /^keep if x <= 9/);
+  c.clearFilter(); await wait();
+  assert.equal(cmds().length, n0 + 3, 'clearing the filter adds only its own line');
+  c.clearMemo(); c.setState({ subg: { all: [{ v: 'g', t: 'in', vals: ['B'] }] } });
+  assert.equal(cmds().length, n0 + 4, 'changing the IF bar on an analysis page still logs that analysis');
+});

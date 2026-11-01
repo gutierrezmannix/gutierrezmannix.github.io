@@ -123,12 +123,14 @@ class Component extends DCLogic {
     this.afterUpdateUI();
     this.autoSchedule();
     this.noteWatch();
+    // keep / drop if and "Use all rows" write their own console line; the analysis on screen is not re-logged for them
+    const fltQuiet = this._fltQuiet; this._fltQuiet = false;
     if (!this._raw || !this._E) return;
     let d = this.descFor();
     const sig = d ? JSON.stringify(d) + '|a' + this.alpha() + '|if' + this.filterSig() : '';
     if (sig !== this.state.conSig) {
       const upd = { conSig: sig };
-      if (d && this._cxQuiet) d = null; if (d) d = this.cxAdopt(d);
+      if (d && (this._cxQuiet || fltQuiet)) d = null; if (d) d = this.cxAdopt(d);
       if (d) { let res = '', tbl = ''; try { res = this.resFor(d); tbl = this.tableFor(d); } catch (e) {} upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : d.t === 'corr' ? this.corrRText(d) : (d.t === 'ttest' || d.t === 'anova') ? this.meansRText(d) : d.t === 'reg' ? this.regRText(d) : d.tblR })].slice(-60); }
       this.setState(upd);
     }
@@ -6396,7 +6398,7 @@ class Component extends DCLogic {
     const isCat = base.kind === 'cat';
     if (isCat && S.fltOp !== '==' && S.fltOp !== '!=') return this.setState({ fltErr: 'categorical variables only support == and !=' });
     if (!isCat && !isFinite(parseFloat(val))) return this.setState({ fltErr: 'value must be a number for a numeric variable' });
-    this.clearMemo();
+    this.clearMemo(); this._fltQuiet = true;
     this.setState({ flt: { v, op: S.fltOp, val, on: true, cat: isCat, more: S.fltCarry || [] }, fltErr: '', fltCarry: null });
     setTimeout(() => {
       const mk = this.mask(); let kept = 0; for (let i = 0; i < mk.length; i++) kept += mk[i];
@@ -6405,7 +6407,7 @@ class Component extends DCLogic {
   }
   fltText(f) { return [f, ...(f.more || [])].map(x => x.v + ' ' + x.op + ' ' + x.val).join(' & '); }
   clearFilter() {
-    this.clearMemo();
+    this.clearMemo(); this._fltQuiet = true;
     this.setState({ flt: null, fltErr: '' });
     this.pushLog({ t: 'unfilter', res: '' });
   }
