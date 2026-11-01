@@ -1,6 +1,6 @@
-"""Edit data (Design A): one place for each job instead of seven overlapping panels.
+"""Edit data (Design B): three jobs in plain words — fix a variable · make a new variable · choose what to use.
 
-  component  src/data-edit.js (tasks: change a variable · new variable · make a scale · rows · show/hide variables)
+  component  src/data-edit.js (fix a variable · make a new variable from a recipe · choose rows and variables · save as CSV)
   template   src/data-edit.css and the tab block
   fixes      empty undo steps, CSV silently dropping hidden variables, range groups that did not match the
              Stata command shown, renamed variables losing their value labels, typed-but-not-picked variables
@@ -144,18 +144,16 @@ def integrate_component(c):
         ['Recode into groups', go({ tab: 'data' })],
         ['Hide variables (drop / keep)', go({ tab: 'data' })],
         ['Filter rows (keep if)', go({ tab: 'data' })],
-        ["Scale reliability (Cronbach's alpha)", go({ tab: 'data' })]""", """        ['Change a variable (rename · type · labels · recode · delete)', () => { this.setState(closeMenu); this.deGo('var'); }],
-        ['New variable (formula · dummy · fill in rows)', () => { this.setState(closeMenu); this.deGo('new'); }],
-        ["Make a scale (Cronbach's alpha · scale score)", () => { this.setState(closeMenu); this.deGo('scale'); }],
-        ['Rows (use only some rows · add rows)', () => { this.setState(closeMenu); this.deGo('rows'); }],
-        ['Show / hide variables', () => { this.setState(closeMenu); this.deGo('cols'); }]""", 'Data menu')
+        ["Scale reliability (Cronbach's alpha)", go({ tab: 'data' })]""", """        ['Fix a variable (rename · labels · recode · delete)', () => { this.setState(closeMenu); this.deGo('var'); }],
+        ['Make a new variable (0/1 · groups · scale · formula)', () => { this.setState(closeMenu); this.deGo('new'); }],
+        ['Choose what to use (rows · variables)', () => { this.setState(closeMenu); this.deGo('use'); }]""", 'Data menu')
     c = _one(c, """            ['Edit data — all tools', goT({ tab: 'data' })]
           ].concat(navItems('Data').slice(1)), 'See, browse and edit the data: overview, data view, variable labels, new variables, recode, filter']""",
-             """          ].concat(navItems('Data').slice(1)), 'See, browse and edit the data: overview, data view, variable labels, change or create variables, scales, rows']""", 'Data nav')
-    c = _one(c, "['data', 'Edit data — new variable · recode · filter']", "['data', 'Edit data — variables · scales · rows']", 'data links')
+             """          ].concat(navItems('Data').slice(1)), 'See, browse and edit the data: overview, data view, variable labels, fix or make variables, choose rows and variables']""", 'Data nav')
+    c = _one(c, "['data', 'Edit data — new variable · recode · filter']", "['data', 'Edit data — fix · make · choose what to use']", 'data links')
     # Console entries for data steps open the matching task
     c = _one(c, """if (['gen', 'nvgen', 'replace', 'recode', 'rename', 'dropv', 'restorev', 'filter', 'unfilter', 'cralpha'].includes(d.t)) { this.setState(Object.assign({ tab: 'data', nvTab: 'build' }""",
-             """if (['gen', 'nvgen', 'replace', 'recode', 'rename', 'dropv', 'restorev', 'filter', 'unfilter', 'cralpha'].includes(d.t)) { this.setState(Object.assign({ tab: 'data', nvTab: 'build', deTask: '', de: Object.assign({}, this.state.de, { task: { gen: 'new', nvgen: 'new', replace: 'new', recode: 'var', rename: 'var', dropv: 'cols', restorev: 'cols', filter: 'rows', unfilter: 'rows', cralpha: 'scale' }[d.t] }) }""", 'log routing')
+             """if (['gen', 'nvgen', 'replace', 'recode', 'rename', 'dropv', 'restorev', 'filter', 'unfilter', 'cralpha'].includes(d.t)) { this.setState(Object.assign({ tab: 'data', nvTab: 'build', deTask: '', de: Object.assign({}, this.state.de, { task: { gen: 'new', nvgen: 'new', replace: 'new', recode: 'new', rename: 'var', dropv: 'use', restorev: 'use', filter: 'use', unfilter: 'use', cralpha: 'scale' }[d.t] }) }""", 'log routing')
     # one chip for the rows in use (the filter was listed twice: as Filter and inside Subgroup)
     c = _one(c, """      if (S.flt && S.flt.on) chips.push({ label: 'Filter: ' + this.fltText(S.flt), on: true, title: 'Row filter (keep if) — click to edit it under Edit data', click: () => this.setState({ tab: 'data', mfMobile: 'analysis', mfFile: false, mfNav: '' }) });\n""", '', 'filter chip')
     c = _one(c, """title: 'Subgroup applied to every tab — click to edit', click: () => { this.setState({ mfMobile: 'analysis', mfFile: false, mfNav: '' }); this.scrollToLabel('Subgroup (if)'); } });""",
@@ -169,7 +167,7 @@ def integrate_component(c):
     c = _one(c, """  openColPanel(name) { this.setState({ bColMenu: name, bcName: name, bcMap: {}, bcMsg: '', bcErr: '', bcDelArm: false, rnErr: '' }); }""",
              """  openColPanel(name) { this._deRn = null; this.setState(s => ({ bColMenu: name, bcName: name, bcMap: {}, bcMsg: '', bcErr: '', bcDelArm: false, rnErr: '', rpMsg: '', rpErr: '', rcErr: '', rcMsg: '', deTask: '', de: Object.assign({}, s.de, { task: 'var', v: name, armDel: '', vl: null }) })); }""", 'openColPanel')
     c = _one(c, """      data: 'Prepare data before analysis: make a NEW VARIABLE (name it, pick numeric or text, choose a starting value, then fill it with REPLACE \\u2026 IF and check it in PREVIEW), EDIT A VARIABLE (rename, change its type, recode its values, hide or delete it), RECODE numeric ranges into groups, add rows or save the data as CSV, and check scale reliability with Cronbach\\u2019s alpha. To analyse only some rows, use the IF subgroup bar on each tab.',""",
-             """      data: 'Prepare data before analysis, one task at a time: CHANGE A VARIABLE (rename, describe, numbers or text, recode or label its values, group a number into ranges, change values only where a condition is true, hide or delete), NEW VARIABLE (a formula, a 0/1 dummy or text, then fill it in), MAKE A SCALE (Cronbach\\u2019s alpha, then the scale score), ROWS (use only some rows, add rows) and SHOW / HIDE VARIABLES. Every change can be undone, and Save data as CSV keeps your work.',""", 'help text')
+             """      data: 'Prepare data before analysis in three jobs: FIX A VARIABLE (rename it, say what it measures, choose whether it holds groups or numbers, write what each code means and change values in one table, change values only where a condition is true, delete), MAKE A NEW VARIABLE (pick a recipe: yes/no 0/1, groups from a number, a scale from several questions with Cronbach\\u2019s alpha, a calculation, copy and recode, or blank) and CHOOSE WHAT TO USE (which rows go into analyses, which variables show in the lists). Every change can be undone; Save data as CSV can keep only the rows in use.',""", 'help text')
     # Stata/R commands: a number variable read as categories is compared with numbers (democrat == 1, not == "1")
     c = _one(c, """    const m = this.effMeta(c.v), isCat = !m || m.treatAs !== 'numeric';
     const q = x => isCat ? '"' + x + '"' : x;""", """    const m = this.effMeta(c.v), isCat = !m || m.treatAs !== 'numeric', ci = this._raw ? this._raw.names.indexOf(c.v) : -1, numStore = ci >= 0 && this._raw.cols[ci].k === 'n';

@@ -37,7 +37,7 @@ ROOT = TOOLS.parent
 APP = ROOT / 'src' / 'app'
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-11-01.55'
+BUILD = '2026-11-01.56'
 LANGS = ['es', 'en', 'pt', 'fr']
 SCRIPT = r'<script type="__bundler/{}">(.*?)</script>'
 COMPONENT = re.compile(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', re.S)
