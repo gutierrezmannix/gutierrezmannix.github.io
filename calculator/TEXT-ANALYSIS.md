@@ -33,6 +33,13 @@ keywords never matched; links became "https"/"co" words; inclusive spellings (to
 variable names lost accented letters (d_econom_a) and could pass Stata's 32-character limit; two
 categories with the same name overwrote each other; the R code could not reproduce the counts.
 
+## Checked with R
+
+`tests/r/text-lab-dictionary.R` counts a dictionary independently in R. On the tweets CSV (30,932 texts) and the
+Mañaneras Excel file (202 speeches) it gives exactly the calculator’s mentions and texts ≥ 1 for all categories.
+Two rules matter and are shown under the keyword box: a hashtag counts as its word (`covid*` also counts `#covid19`;
+write `#covid19` to count only the hashtag), and hyphenated words stay whole (`vida-salud`), as in quanteda.
+
 ## Excel
 
 `.xlsx`/`.xlsm` load like CSV: shared and inline strings, rich text, numbers, booleans, errors

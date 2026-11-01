@@ -6,6 +6,8 @@ const { chromium } = require('playwright');
   if (!edges || !nodes) { console.log('Set GM26_NET_FILES="edges.csv,nodes.csv"'); process.exit(0); }
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1440, height: 1000 } });
   const errs = []; p.on('console', m => { if (m.type() === 'error' && !/ERR_TUNNEL|net::/.test(m.text())) errs.push(m.text().slice(0, 300)); }); p.on('pageerror', e => errs.push('PAGEERROR ' + String(e.stack || e).slice(0, 500)));
+  // offline: every request that is not the local file itself is blocked and reported
+  const external = []; await p.route('**/*', route => { const u = route.request().url(); if (/^(file|data|blob):/.test(u)) return route.continue(); external.push(u); return route.abort(); });
   await p.goto('file://' + url); await p.waitForTimeout(2500);
   await p.locator('input[type=file]').first().setInputFiles(nodes);
   await p.waitForFunction(() => document.querySelector('.mf-main'), null, { timeout: 120000 }); await p.waitForTimeout(1200);
@@ -24,6 +26,7 @@ const { chromium } = require('playwright');
     if (name === 'Ties & similarity') { await nl.getByRole('button', { name: /Run/ }).first().click(); const t1 = Date.now(); await p.waitForFunction(() => document.querySelector('.nl .nl-badge') || document.querySelector('.nl .tl-banner.warn'), null, { timeout: 240000 }).catch(() => console.log('  model still running')); console.log('  model seconds', ((Date.now() - t1) / 1000).toFixed(1), (await nl.locator('.nl-badge, .tl-banner.warn').first().innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200)); await p.waitForTimeout(800); }
     if (out) await nl.screenshot({ path: `${out}/${tag}-${file}.png` }); console.log(name, ((Date.now() - t0) / 1000).toFixed(1) + 's', (await nl.innerText()).replace(/\s+/g, ' ').slice(0, 160));
   }
+  console.log('EXTERNAL REQUESTS', external.length, external.slice(0, 5).join(' '));
   console.log('ERRORS', errs.length); errs.slice(0, 6).forEach(e => console.log(e));
   await b.close(); if (errs.length) process.exit(1);
 })();

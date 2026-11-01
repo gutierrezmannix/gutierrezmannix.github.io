@@ -1,4 +1,4 @@
-# Networks analysis (Design A) — build 2026-10-31.50
+# Networks analysis (Design A) — build 2026-11-01.51
 
 Tests → Networks analysis is rebuilt as eight guided steps, in the style of Text analysis. Everything runs in
 the page, offline; heavy work (layouts, permutation tests, the network model) runs in a background worker.
@@ -25,22 +25,34 @@ the page, offline; heavy work (layouts, permutation tests, the network model) ru
   convergence = simulated statistics within 0.12–0.2 standard deviations of the observed ones.
 - Safeguards: runaway (almost empty/complete or stuck) simulations step back towards the last good estimate before the
   model is declared degenerate; a time limit (90 s) with a clear “not converged” message and advice.
+- Polishing: once settled, larger well-mixed samples and full Newton steps until every statistic is within Monte Carlo
+  error of the observed value; that sample gives the final standard errors.
 - Goodness of fit: 100 networks simulated from the estimate; degrees, edgewise shared partners and distances.
 
-## Validation (`tests/net-lab.test.mjs`)
+## Validation against R
 
-R and `ergm` could not be installed in the build environment, so the estimator is checked without them:
+`tests/r/net-lab-compare.R` checks the calculator against R 4.3 with **sna 2.7-2, network 1.18.2 and igraph 1.6**
+(`tests/r/net-lab-export.mjs` writes what the calculator computes). Results on the Congress (48 people, 889 ties) and
+cartel (390 groups, 331 ties) NodeXL files:
 
-1. For every term, the statistics tracked by the sampler equal a brute-force recount on every sampled network
-   (directed and undirected).
-2. An edges-only model simulates the binomial number of ties.
-3. Models without dyad dependence: the MCMC estimate equals the exact maximum likelihood (logistic MPLE).
-4. Known parameters (edges, mutual, gwesp, nodematch) are recovered from networks simulated with them.
-5. Triad census against a direct classification of every triad; k-cores, Burt’s constraint and effective size on known
-   graphs; Louvain on two cliques; homophily statistics.
+- The network R builds from the raw files is identical to the calculator’s (same ties, same strengths).
+- Exact agreement (differences below 1e-9): density, reciprocity, clustering, separate pieces, isolates, average
+  distance, diameter, centralization, triad census (16 types), modularity, assortativity, share of ties within groups,
+  maximal cliques; in/out-degree, betweenness, closeness, harmonic closeness, eigenvector, PageRank, Burt’s constraint,
+  k-cores, local clustering, effective size, Fowler’s connectedness and the five Gould–Fernandez broker roles.
+- Louvain: the calculator’s groups reach the best modularity of 20 R runs (0.330 Congress, 0.706 cartel).
+- Network model: observed statistics identical; MPLE identical to `glm()` on the change statistics (to 1e-7); models
+  without dyad dependence equal the exact maximum likelihood; for every model with reciprocity, friends of friends or
+  popularity, an **independent R Markov chain simulation at the calculator’s estimates reproduces the observed
+  statistics** (|t| ≤ 0.17 with Monte Carlo error 0.07–0.2 sd) and gives the same standard errors. This check found that
+  popularity terms needed a final polishing stage, now part of the estimator.
 
-To compare with R on your computer: `Rscript calculator/tests/net-lab-reference.R edges.csv nodes.csv` prints
-`ergm()` estimates for the same models as the calculator’s defaults.
+`ergm` itself could not be installed in the build environment (its source download was blocked), so
+`tests/net-lab-reference.R` lets you compare with `ergm()` on your computer.
+
+Engine tests (`tests/net-lab.test.mjs`): sampler statistics equal brute-force recounts; edges-only simulation is
+binomial; exact MLE for dyad-independent models; known parameters recovered from simulated networks; triad census vs a
+direct classification; k-cores, constraint, Louvain, homophily; NodeXL import.
 
 ## Build and test
 

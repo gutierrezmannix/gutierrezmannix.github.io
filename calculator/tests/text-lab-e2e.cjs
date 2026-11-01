@@ -5,6 +5,8 @@ const { chromium } = require('playwright'), path = require('path'), os = require
 const open = async (pageUrl, file) => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1440, height: 1000 } });
   const errs = []; p.on('console', m => { if (m.type() === 'error' && !/ERR_TUNNEL|ERR_NAME|net::/.test(m.text())) errs.push(m.text().slice(0, 400)); }); p.on('pageerror', e => errs.push('PAGEERROR ' + String(e.stack || e).slice(0, 600)));
+  // offline: anything that is not the local page itself is blocked and reported
+  const external = []; await p.route('**/*', route => { const u = route.request().url(); if (/^(file|data|blob):/.test(u)) return route.continue(); external.push(u); return route.abort(); });
   await p.goto('file://' + pageUrl); await p.waitForTimeout(2500);
   await p.locator('input[type=file]').first().setInputFiles(file);
   await p.waitForFunction(() => document.querySelector('.mf-main'), null, { timeout: 90000 }); await p.waitForTimeout(2000);
@@ -13,14 +15,14 @@ const open = async (pageUrl, file) => {
   let v = await vis(); if (v.length < 2) { await v[0].click(); await p.waitForTimeout(400); v = await vis(); }
   await v[v.length - 1].click();
   await p.waitForSelector('.tl', { timeout: 30000 });
-  return { b, p, errs };
+  return { b, p, errs, external };
 };
 const shot = async (p, path) => { const el = p.locator('.tl'); await el.screenshot({ path }); };
 const waitIdle = async (p, ms) => { await p.waitForFunction(() => !document.querySelector('.tl-pending'), null, { timeout: ms || 60000 }).catch(() => {}); await p.waitForTimeout(600); };
 (async () => {
   for (const file of (process.env.GM26_TEXT_FILES || '').split(',').filter(Boolean)) {
   const url = path.join(__dirname, '..', 'index.html'), out = fs.mkdtempSync(path.join(os.tmpdir(), 'gm26-')), tag = path.extname(file).slice(1);
-  const { b, p, errs } = await open(url, file);
+  const { b, p, errs, external } = await open(url, file);
   const log = (...a) => console.log(tag, ...a);
   const snap = async n => { await waitIdle(p, 120000); await shot(p, out + '/' + tag + '-' + n + '.png'); log('shot', n, 'errors so far', errs.length); };
   const tab = async name => { await p.getByRole('tab', { name, exact: true }).click(); await p.waitForTimeout(300); };
@@ -64,6 +66,7 @@ const waitIdle = async (p, ms) => { await p.waitForFunction(() => !document.quer
   const svgPath = out + '/' + tag + '-cloud.svg'; await dl1.saveAs(svgPath); const svg = fs.readFileSync(svgPath, 'utf8'); log('svg bytes', svg.length, 'font-face embedded:', /@font-face/.test(svg), 'words:', (svg.match(/<text/g) || []).length);
   const [dl2] = await Promise.all([p.waitForEvent('download'), p.locator('.tl-fig').first().getByRole('button', { name: 'PNG 300 dpi' }).click()]);
   const pngPath = out + '/' + tag + '-cloud-300dpi.png'; await dl2.saveAs(pngPath); const png = fs.readFileSync(pngPath); log('png', png.readUInt32BE(16) + '×' + png.readUInt32BE(20), 'pHYs:', png.indexOf('pHYs') > 0, 'ppm', png.readUInt32BE(png.indexOf('pHYs') + 4));
+  log('EXTERNAL REQUESTS', external.length, external.slice(0, 5).join(' '));
   log('ERRORS', errs.length); errs.slice(0, 12).forEach(e => console.log('   ', e));
   await b.close();
   if (errs.length) process.exitCode = 1;

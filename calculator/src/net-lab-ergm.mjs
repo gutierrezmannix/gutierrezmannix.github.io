@@ -213,15 +213,29 @@ export function* nlErgm(net, spec, o = {}) {
     if (Date.now() - t0 > budget) { timedOut = true; if (post) for (let k = 0; k < p; k++) theta[k] = avg[k]; break; }
   }
   if (degenerate) return { error: 'The model is degenerate: with these effects the simulated networks become ' + (degenerate === 'full' ? 'almost complete (everyone tied to everyone)' : degenerate === 'empty' ? 'almost empty' : 'extreme (for example, no shared contacts at all)') + ', instead of looking like yours. This usually means “Friends of friends” or a popularity effect is too strong for this network — remove it or the effect with the largest estimate, then run again.', kind: 'degenerate', mple: mpleOut, hist };
-  // final sample at the estimate: standard errors and convergence check
-  const Gf = yield* sampleAt(theta, 2 * size, 2 * interval, 'Final check and standard errors', 0.82, 0.95);
+  // polishing: larger, well-mixed samples and full Newton steps until the simulated networks match the observed one
+  // within Monte Carlo error (checked against an independent R simulation: popularity terms need this stage)
+  let Gf = null, polish = 0, needFinal = false;
+  for (; polish < (o.polish == null ? 4 : o.polish); polish++) {
+    Gf = yield* sampleAt(theta, 2 * size, 6 * interval, polish ? 'Polishing the estimate (' + (polish + 1) + ')' : 'Final check and standard errors', 0.82 + 0.03 * polish, 0.85 + 0.03 * polish);
+    const P = nlMeanCov(Gf), sdP = Array.from(P.C, (r, k) => Math.sqrt(r[k])), essP = Array.from({ length: p }, (_, k) => nlEss(Gf.map(r => r[k])));
+    const tP = Array.from(P.mu, (m, k) => sdP[k] ? (m - gobs[k]) / sdP[k] : 0), mcP = essP.map(e => 1 / Math.sqrt(Math.max(e, 1)));
+    if (tP.every((t, k) => Math.abs(t) < 0.1 || Math.abs(t) < 2 * mcP[k])) { needFinal = false; break; }
+    if (Date.now() - t0 > budget * 1.3) { timedOut = timedOut || !conv; break; }
+    if (Math.min(...essP) < 150 && interval < maxInterval) interval = Math.min(maxInterval, Math.ceil(interval * Math.min(4, Math.max(1.5, 150 / Math.max(Math.min(...essP), 1)))));
+    const step = nlSolve(P.C.map(r => Array.from(r)), Array.from(gobs, (x, k) => x - P.mu[k])); if (!step) break;
+    for (let half = 0; half < 30; half++) { let sw = 0, sw2 = 0, mxl = -Infinity; const lw = Gf.map(r => { let v = 0; for (let k = 0; k < p; k++) v += step[k] * (r[k] - P.mu[k]); if (v > mxl) mxl = v; return v; }); for (const v of lw) { const w = Math.exp(v - mxl); sw += w; sw2 += w * w; } if (sw * sw / sw2 >= Gf.length / 4) break; for (let k = 0; k < p; k++) step[k] /= 2; }
+    for (let k = 0; k < p; k++) theta[k] += step[k]; needFinal = true;
+    hist.push({ it: 'polish ' + (polish + 1), gamma: 1, tmax: Math.max(...tP.map(Math.abs)), ess: Math.min(...essP), interval, theta: Array.from(theta) });
+  }
+  if (needFinal) Gf = yield* sampleAt(theta, 2 * size, 6 * interval, 'Final check and standard errors', 0.95, 0.97);
   const { mu, C } = nlMeanCov(Gf), Ci = nlInv(C.map(r => Array.from(r)));
   const sd = Array.from(C, (r, k) => Math.sqrt(r[k])), tratio = Array.from(mu, (m, k) => sd[k] ? (m - gobs[k]) / sd[k] : 0);
   // effective sample size (lag-1 autocorrelation) for the MCMC error of the convergence check
   const se = Ci ? Ci.map((r, k) => Math.sqrt(Math.max(0, r[k]))) : theta.map(() => NaN);
   const coefs = Array.from(theta, (b, k) => { const z = b / se[k]; return { term: labels[k], r: nlTermR(terms[k]), b, se: se[k], z, p: isFinite(z) ? nlP2(z) : NaN, or: Math.exp(b), lo: Math.exp(b - 1.96 * se[k]), hi: Math.exp(b + 1.96 * se[k]) }; });
   const worst = tratio.map(Math.abs).indexOf(Math.max(...tratio.map(Math.abs)));
-  const essF = Math.min(...Array.from({ length: p }, (_, k) => nlEss(Gf.map(r => r[k])))), converged = conv && Math.max(...tratio.map(Math.abs)) < Math.max(0.2, 2 / Math.sqrt(Math.max(essF, 1)));
+  const essF = Math.min(...Array.from({ length: p }, (_, k) => nlEss(Gf.map(r => r[k])))), essK = Array.from({ length: p }, (_, k) => nlEss(Gf.map(r => r[k]))), converged = conv && tratio.every((t, k) => Math.abs(t) < Math.max(0.12, 2.5 / Math.sqrt(Math.max(essK[k], 1))));
   const res = { coefs, terms, labels, gobs: Array.from(gobs), simMean: Array.from(mu), tratio, converged, iterations: Math.min(it, maxIter), interval, samplesize: size, hist, mple: mpleOut, dyadIndependent: dyadIndep, n, directed: net.directed, dyads: D, seconds: (Date.now() - t0) / 1000, theta: Array.from(theta), ess: essF, timedOut };
   const unstable = !converged && res.hist.slice(-6).filter(x => x.tmax > 1).length >= 2;
   if (!converged) res.warning = (timedOut ? 'Stopped after ' + Math.round((Date.now() - t0) / 1000) + ' seconds without converging:' : 'Did not converge after ' + res.iterations + ' rounds:') + ' the simulated networks still differ from yours on “' + labels[worst] + '” (t = ' + tratio[worst].toFixed(2) + '). Try removing “' + labels[worst] + '”, or press “Run longer”.' + (unstable ? ' The simulated networks jump between very different shapes — a sign that this combination of effects is close to degenerate for your network (common with “Friends of friends” in dense networks); adding a characteristic that explains ties (such as party) often stabilises it.' : '');

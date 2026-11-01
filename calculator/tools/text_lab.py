@@ -22,7 +22,7 @@ import breakdown  # noqa: E402  univariate tab: break down by groups
 import net_lab  # noqa: E402  networks analysis (Design A)
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-10-31.50'
+BUILD = '2026-11-01.51'
 LANGS = ['es', 'en', 'pt', 'fr']
 
 

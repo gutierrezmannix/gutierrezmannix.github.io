@@ -12,6 +12,10 @@
       return best; });
   }
   nlEffectSentence(c, term) {
+    // numbers in large units (e.g. followers, tweets): say the effect per 10, 100, 1,000 … units so it is readable
+    const at = term.a && this._nlLastNet && this._nlLastNet.attrs[term.a];
+    if (at && at.kind === 'num' && ['nodecov', 'nodeicov', 'nodeocov', 'absdiff'].includes(term.t)) { const xs = Array.from(at.x).filter(isFinite), m = xs.reduce((s2, v) => s2 + v, 0) / xs.length, sdv = Math.sqrt(xs.reduce((s2, v) => s2 + (v - m) ** 2, 0) / Math.max(1, xs.length - 1)); const k = sdv >= 10 ? Math.pow(10, Math.floor(Math.log10(sdv))) : 1;
+      if (k > 1) { const o2 = Math.exp(c.b * k), x2 = o2 >= 10 ? this.fmt(o2, 0) : this.fmt(o2, 2), unit = this.fmtN(k), base = { nodecov: 'Each extra ' + unit + ' of ' + term.a + ' multiplies the odds of a tie by ×' + x2, nodeicov: 'Each extra ' + unit + ' of ' + term.a + ' multiplies the odds of receiving a tie by ×' + x2, nodeocov: 'Each extra ' + unit + ' of ' + term.a + ' multiplies the odds of sending a tie by ×' + x2, absdiff: 'Each ' + unit + ' of difference in ' + term.a + ' multiplies the odds of a tie by ×' + x2 }[term.t]; return base + (c.p < 0.05 ? '.' : ' — not clearly different from chance (p = ' + this.fmt(c.p, 2) + ').'); } }
     const or = c.or, x = isFinite(or) ? (or >= 10 ? this.fmt(or, 0) : this.fmt(or, 2)) : '—', sig = c.p < 0.05, tail = sig ? '' : ' — not clearly different from chance (p = ' + this.fmt(c.p, 2) + ').';
     const s = {
       edges: 'Baseline: the log-odds of a tie when every other effect is zero.',
@@ -59,7 +63,7 @@
     const addRows = usable.map(a => { const at = net.attrs[a], opts = at.kind === 'cat' ? [['nodematch', 'same value → more ties']] : [['absdiff', 'similar values → more ties'], ...(net.directed ? [['nodeicov', 'higher → receives more'], ['nodeocov', 'higher → sends more']] : [['nodecov', 'higher → more ties']]), ['nodematch', 'same value → more ties']];
       return h('tr', { key: a }, h('td', { className: 'w' }, a, h('em', { className: 'tl-hint' }, at.kind === 'num' ? ' number' : ' ' + at.levels.length + ' groups', at.missing ? ' · ' + at.missing + ' missing' : '')), h('td', null, h('div', { className: 'tl-row' }, opts.map(([t, l]) => { const on = model.some(x => x.t === t && x.a === a); return this.tlChip((on ? '✓ ' : '') + l, on, () => setModel(on ? model.filter(x => !(x.t === t && x.a === a)) : model.concat([{ t, a }])), { key: t }); })))); });
     const sig = JSON.stringify(model) + '|' + (to.drop ? 'drop' : '');
-    let mnet = net, dropped = 0;
+    let mnet = net, dropped = 0; this._nlLastNet = net;
     if (to.drop) { const used = model.filter(x => x.a).map(x => x.a), keep = Array.from({ length: net.n }, (_, i) => used.every(a => net.attrs[a].kind === 'cat' && model.every(x => x.a !== a || x.t === 'nodematch') ? net.attrs[a].v[i] != null : isFinite(net.attrs[a].x[i]))); dropped = keep.filter(k => !k).length; if (dropped) { mnet = E.nlSubnet(net, keep); mnet.key = net.key + '|drop' + used.join(','); } }
     const ran = to.ranSig === sig && to.run > 0;
     const jobKey = 'ergm|' + to.run + '|' + sig;
