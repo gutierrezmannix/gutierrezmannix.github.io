@@ -80,6 +80,14 @@ def join_component(template, component):
 
 
 # ---------- lemma tables ----------
+def gz(data, **kw):
+    """gzip with a fixed header: mtime 0 and OS byte 255 ("unknown"). Python versions write different OS bytes
+    (3.11 writes 3, later versions 255), which would make the same sources pack to a different index.html."""
+    out = bytearray(gzip.compress(data, mtime=0, **kw))
+    out[9] = 255
+    return bytes(out)
+
+
 def compact_lemmas(raw_gz):
     """spaCy lemma lookup (JSON word → lemma or [lemmas]) → the map the page uses, in a compact text form.
 
@@ -107,7 +115,7 @@ def compact_lemmas(raw_gz):
             raise RuntimeError('build: lemma rule too long for ' + repr(w))
         lines.append(chr(48 + k) + w[k:] + '\t' + chr(48 + len(w) - p) + lem[p:])
         prev = w
-    return gzip.compress('\n'.join(lines).encode(), compresslevel=9, mtime=0)
+    return gz('\n'.join(lines).encode(), compresslevel=9)
 
 
 # ---------- src/app ----------
@@ -196,7 +204,7 @@ def build():
     for a in assets:
         uid = a['uuid']
         if a['source'] == 'engine':
-            manifest[uid] = {'mime': a['mime'], 'compressed': True, 'data': base64.b64encode(gzip.compress(engine.encode(), mtime=0)).decode()}
+            manifest[uid] = {'mime': a['mime'], 'compressed': True, 'data': base64.b64encode(gz(engine.encode())).decode()}
         elif a['source'] == 'lemma':
             data = compact_lemmas((ROOT / 'src' / 'lemmas' / f"{a['lang']}_lemma_lookup.json.gz").read_bytes())
             manifest[uid] = {'mime': a['mime'], 'compressed': False, 'data': base64.b64encode(data).decode()}
