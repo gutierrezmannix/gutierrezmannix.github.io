@@ -1,8 +1,17 @@
 // ---- GM26 chart builder: models (what to draw) from the data; the statistics are the chart suite's own
 // (csSummary, csWilson, csSurvival, kde, csSegments) and the legacy charts' (descNum bins and quartiles, corr fit).
-const cbU = (rs, k) => [...new Set(rs.map(r => r[k]))];
-const cbNatural = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true });
-const cbCap = (keys, what) => { if (keys.length > 40) throw Error('This chart shows up to 40 ' + (what || 'categories') + ' — filter or recode the data to reduce them.'); };
+// category order: numbers and ranges by their value (−5 before 0, 5–9 before 10–14, 950 before 1,000),
+// text naturally, and “Other (combined)” always last
+export const CB_OTHER = 'Other (combined)';
+const cbLead = s => { const m = /^\s*(-?[\d,]*\d(?:\.\d+)?)/.exec(s); return m ? +m[1].replace(/,/g, '') : NaN; };
+export const cbNatural = (a, b) => {
+  a = String(a); b = String(b); if (a === CB_OTHER || b === CB_OTHER) return (a === CB_OTHER) - (b === CB_OTHER);
+  const x = cbLead(a), y = cbLead(b); if (isFinite(x) && isFinite(y) && x !== y) return x - y;
+  return a.localeCompare(b, undefined, { numeric: true });
+};
+const cbBy = (rs, f) => { const m = new Map(); for (const r of rs) { const k = f(r); let a = m.get(k); if (!a) { a = []; m.set(k, a); } a.push(r); } return m; };
+const cbU = (rs, k) => [...new Set(rs.map(r => r[k]))].sort(cbNatural);
+const cbCap = (keys, what, max) => { max = max || 40; if (keys.length > max) throw Error('This chart shows up to ' + max + ' ' + (what || 'categories') + ' (there are ' + keys.length + '). Group them above — ranges for numbers, or the largest categories plus Other — or use only some rows.'); };
 
 // amounts by category (and by a split variable): count, percent, mean or sum, weighted
 export function cbAggCat(x, s, y, w, mask, o = {}) {
@@ -94,7 +103,7 @@ export function cbModel(kind, data, o = {}) {
     const P = panels.map(([key, rr]) => {
       const counts = new Map(); for (const r of rr) counts.set(r.x, (counts.get(r.x) || 0) + r.w);
       let entries = [...counts]; entries.sort((a, b) => rank.get(a[0]) - rank.get(b[0]));
-      if (o.other > 0) { const total = sum(entries.map(e => e[1])), small = entries.filter(e => 100 * e[1] / total < +o.other); entries = entries.filter(e => 100 * e[1] / total >= +o.other); if (small.length) entries.push(['Other (combined)', sum(small.map(e => e[1]))]); }
+      if (o.other > 0) { const total = sum(entries.map(e => e[1])), small = entries.filter(e => e[0] === CB_OTHER || 100 * e[1] / total < +o.other); entries = entries.filter(e => e[0] !== CB_OTHER && 100 * e[1] / total >= +o.other); if (small.length) entries.push([CB_OTHER, sum(small.map(e => e[1]))]); }
       cbCap(entries.map(e => e[0]), 'slices');
       entries.forEach(e => { if (!keysAll.includes(e[0])) keysAll.push(e[0]); });
       return { key, slices: entries.map(([k, v]) => ({ k, v })), total: sum(entries.map(e => e[1])) };
@@ -113,7 +122,7 @@ export function cbModel(kind, data, o = {}) {
     return Object.assign(base, { type: 'cat', mode: kind === 'groupbar' ? 'group' : kind === 'likert' ? 'diverge' : percent ? 'stack100' : 'stack', cats, series: order, seriesKeys: order, vals, pct: percent, neutral: kind === 'likert' ? (order.indexOf(o.neutral) >= 0 ? order.indexOf(o.neutral) : order.length % 2 ? Math.floor(order.length / 2) : order.length / 2 - 0.5) : 0, table, headers: ['Group', 'Response', 'Count / weighted count', 'Percent'], note: (percent ? 'Percentages use the total within each group. ' : '') + 'Response order: ' + order.join(' → ') + '.' });
   }
   if (kind === 'density' || kind === 'violin') {
-    let parts = groups.map(k => ({ key: k, rows: rows.filter(r => r.g === k) })); if (kind === 'violin') parts = cbU(rows, 'x').map(k => ({ key: k, rows: rows.filter(r => r.x === k) }));
+    const byG = cbBy(rows, r => r.g); let parts = groups.map(k => ({ key: k, rows: byG.get(k) || [] })); if (kind === 'violin') { const byX = cbBy(rows, r => r.x); parts = cbU(rows, 'x').map(k => ({ key: k, rows: byX.get(k) || [] })); }
     cbCap(parts.map(p => p.key), 'groups');
     const range = csRange(rows.map(r => r.y)), grid = Array.from({ length: 100 }, (_, i) => range[0] + i * (range[1] - range[0]) / 99);
     const curves = parts.map(p => ({ ...p, curve: kde(p.rows, grid), d: csSummary(p.rows) }));
@@ -123,13 +132,13 @@ export function cbModel(kind, data, o = {}) {
   }
   if (kind === 'mean' || kind === 'proportion') {
     const cats = cbU(rows, 'x'); cbCap(cats);
-    const est = cats.map(k => { const rr = rows.filter(r => r.x === k), d = csSummary(rr, o.critical); if (rr.length < 2 && kind === 'mean') throw Error('Every group needs at least two complete observations for mean confidence intervals.'); if (kind === 'proportion') { const b = csWilson(sum(rr.map(r => r.y)), rr.length, o.z); d.lo = b[0]; d.hi = b[1]; } return { x: k, ...d }; });
+    const byX = cbBy(rows, r => r.x), est = cats.map(k => { const rr = byX.get(k) || [], d = csSummary(rr, o.critical); if (rr.length < 2 && kind === 'mean') throw Error('Every group needs at least two complete observations for mean confidence intervals.'); if (kind === 'proportion') { const b = csWilson(sum(rr.map(r => r.y)), rr.length, o.z); d.lo = b[0]; d.hi = b[1]; } return { x: k, ...d }; });
     const k = kind === 'proportion' && o.asPercent !== false ? 100 : 1;
     return Object.assign(base, { type: 'cat', mode: 'ci', cats, series: ['All'], seriesKeys: ['All'], colorBy: 'cat', vals: est.map(p => [{ v: k * p.mean, lo: k * p.lo, hi: k * p.hi, n: p.n }]), pct: k === 100, zero: kind === 'proportion', table: est.map(p => [p.x, p.n, p.mean, p.lo, p.hi]), headers: ['Group', 'N', 'Estimate', 'Lower CI', 'Upper CI'], note: kind === 'mean' ? 'Group means with Student t confidence intervals.' : 'Proportions with Wilson score confidence intervals.' });
   }
   if (['dumbbell', 'slope', 'paired'].includes(kind)) {
     const paired = kind === 'paired', cats = cbU(rows, 'x'); if (!paired) cbCap(cats);
-    const pts = paired ? rows.map(r => ({ label: String(r.i + 1), before: r.x, after: r.y })) : cats.map(k => { const rr = rows.filter(r => r.x === k); if (rr.some(r => !(typeof r.lo === 'number' && isFinite(r.lo)))) throw Error('Select the first-value column as well as the second-value column.'); return { label: k, before: csSummary(rr.map(r => ({ ...r, y: r.lo }))).mean, after: csSummary(rr).mean }; });
+    const byXp = paired ? null : cbBy(rows, r => r.x), pts = paired ? rows.map(r => ({ label: String(r.i + 1), before: r.x, after: r.y })) : cats.map(k => { const rr = byXp.get(k) || []; if (rr.some(r => !(typeof r.lo === 'number' && isFinite(r.lo)))) throw Error('Select the first-value column as well as the second-value column.'); return { label: k, before: csSummary(rr.map(r => ({ ...r, y: r.lo }))).mean, after: csSummary(rr).mean }; });
     const names = [o.firstLabel || (paired ? o.x : o.lo) || 'First value', o.secondLabel || o.y || 'Second value'];
     const M = Object.assign(base, { type: 'pair', kind, pts, names, seriesNames: { __first: names[0], __second: names[1] }, seriesKeys: kind === 'slope' ? pts.map(p => p.label) : ['__first', '__second'], table: pts.map(p => [p.label, p.before, p.after, p.after - p.before]), headers: ['Category', names[0], names[1], 'Change'] });
     if (paired) { const n = pts.length, mb = sum(pts.map(p => p.before)) / n, ma = sum(pts.map(p => p.after)) / n, up = pts.filter(p => p.after > p.before).length, dn = pts.filter(p => p.after < p.before).length; M.meanBefore = mb; M.meanAfter = ma; M.note = 'Mean ' + cbFmt(mb) + ' → ' + cbFmt(ma) + ' (change ' + (ma - mb >= 0 ? '+' : '') + cbFmt(ma - mb) + '). ' + up + ' of ' + n + ' pairs increased (blue), ' + dn + ' decreased (rust).'; }
@@ -153,8 +162,8 @@ export function cbModel(kind, data, o = {}) {
     return Object.assign(base, { type: 'xy', series: ss.map(s => ({ key: s.g, pts: s.pts.map(p => ({ x: p.x, y: p.y })), style: 'step', endX: s.end, ticks: s.censors })), seriesKeys: groups, yr: [0, 1], xr: [0], zero: true, xExact: true, yTitle: 'Share surviving', table, headers: ['Group', 'Time', 'At risk', 'Events', 'Survival', 'Lower', 'Upper'], note: 'Kaplan–Meier estimate; ticks mark censoring; the table has pointwise 95% Greenwood intervals. Assumes entry at time zero.' });
   }
   if (kind === 'heatmap' || kind === 'corrmap') {
-    const xx = cbU(rows, 'x'), yy = cbU(rows, 'g'); cbCap(xx); cbCap(yy);
-    const cells = []; for (const x of xx) for (const y of yy) { const rr = rows.filter(r => r.x === x && r.g === y); if (rr.length) cells.push({ x, y, v: kind === 'corrmap' ? rr[0].y : csSummary(rr).mean, n: kind === 'corrmap' ? rr[0].n : rr.length }); }
+    const xx = cbU(rows, 'x'), yy = cbU(rows, 'g'); cbCap(xx, 'columns', kind === 'heatmap' ? 120 : 40); cbCap(yy, 'rows', kind === 'heatmap' ? 60 : 40);
+    const byXG = cbBy(rows, r => r.x + '\u0000' + r.g), cells = []; for (const x of xx) for (const y of yy) { const rr = byXG.get(x + '\u0000' + y) || []; if (rr.length) cells.push({ x, y, v: kind === 'corrmap' ? rr[0].y : csSummary(rr).mean, n: kind === 'corrmap' ? rr[0].n : rr.length }); }
     const range = kind === 'corrmap' ? [-1, 1] : csRange(cells.map(c => c.v));
     return Object.assign(base, { type: 'grid', xs: xx, ys: yy, cells, range, diverging: kind === 'corrmap', seriesKeys: ['All'], table: cells.map(c => [c.x, c.y, c.v]), headers: ['Column', 'Row', kind === 'corrmap' ? 'r' : 'Mean'], note: kind === 'heatmap' ? 'Cells show the mean within each row and column.' : 'Pairwise-complete Pearson correlations.' });
   }

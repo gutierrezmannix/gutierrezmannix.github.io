@@ -1,4 +1,4 @@
-# Chart builder (Design A) — build 2026-11-01.53
+# Chart builder (Design A) — builds 2026-11-01.53 and .54
 
 Before this build, the Charts tab had 37 pages built at different times. Each page had its own options, and nine of
 them were older charts with fewer options. Most charts had no way to rename groups, show values or pick colors. Every
@@ -68,6 +68,23 @@ pages for now; the map tool will be redesigned separately.
      - text size;
      - size: automatic, report, slide or square.
 
+## Variables with many values (build .54)
+
+Charts used to stop at 40 categories with “filter or recode the data”. They now group the values instead, and a
+**“edad has 98 values”** choice appears in the data sentence for any category variable with more than 12 values:
+
+- **Number variables** (age, income, household ID …) go into ranges: automatically about 10–20 groups of a round width
+  (age → 0–4, 5–9 … 95–99), or ranges of any other round width (2, 10, 20, 25 …), or **each value**. Ranges are in order
+  of their value and use thousands separators (2,500–5,000).
+- **Text and labelled variables** keep the 20 largest categories and put the rest in **Other (combined)** — or the 5,
+  8, 10, 15, 25, 30 or 39 largest — or all of them when the chart allows it. Other is always last; no rows are lost.
+- **Heat maps** take up to 120 columns and 60 rows, so each single age (98 columns) works; column labels thin out
+  when the cells are narrow. The heat map now has a real title (*Mean of ss_dir by edad and sexo*), the column and
+  row variables named on the axes, and the color key labelled.
+- The grouping is per chart and per variable; line charts split by a grouped variable offer the ranges as chips.
+- Heat maps, group means, violins and dumbbells sort the rows into groups in one pass (512,860 rows: about half a
+  second for the first draw, under 10 ms to restyle).
+
 ## Names are shared
 
 When you rename a category, the new name is used in every chart and table:
@@ -122,7 +139,9 @@ Colors set for a variable are also shared by every chart of that variable. Names
   - percentages add to 100 and histogram counts add to *n*;
   - number formats and exact axis limits;
   - the breakdown chart: names, colors, values and the link to the same numbers in Charts;
-  - the links under the analysis-tab charts open a chart that draws.
+  - the links under the analysis-tab charts open a chart that draws;
+  - many categories: age in ranges of 5 with the right cell means, each value on the heat map, ranges of 10, the 20
+    largest text categories plus Other (nothing lost), ranges with thousands separators, line groups.
 - `tests/chart-builder-e2e.cjs` runs in a real browser with no network access:
   - builds a line chart from the gallery;
   - renames the groups, adds values and picks a color;

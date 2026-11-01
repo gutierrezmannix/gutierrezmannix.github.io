@@ -225,3 +225,44 @@ test('charts in the analysis tabs link to the same chart in the Charts tab', asy
     c.state.tab = st.tab;
   }
 });
+
+test('many categories: number variables in ranges, text variables as the largest plus Other, each value up to the chart limit', async () => {
+  let s2 = 11; const r2 = () => ((s2 = (1664525 * s2 + 1013904223) >>> 0) / 4294967296);
+  const R = [];
+  for (let i = 0; i < 6000; i++) { const e = Math.floor(r2() * 98); R.push([e, 1 + (i % 2), r2() < 0.1 + e / 200 ? 1 : 0, 'Municipio ' + Math.floor(Math.pow(r2(), 2) * 70), (r2() * 50000).toFixed(2)]); }
+  const b = Buffer.from(['edad,sexo,ss_dir,muni,ingreso'].concat(R.map(r => r.join(','))).join('\n')), raw = await E.parseCSV(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), () => {});
+  const c = new Component(); c._E = E; c._raw = raw; c._svgs = {};
+  c.state = { ...c.state, screen: 'work', tab: 'plots', nRows: raw.n, cols: raw.names.map((_, i) => Object.assign(E.profileCol(raw, i), { idx: i })), autoScreen: false, genTags: {}, treat: {} };
+  // heat map of age (98 values) × sex: automatic ranges of 5, in order, with the right means
+  let r = open(c, 'heatmap', { x: 'edad', group: 'sexo', y: 'ss_dir' });
+  assert.deepEqual(r.alerts, []);
+  const m = c.cbBuild('heatmap').models[0];
+  assert.equal(m.xs.length, 20); assert.equal(m.xs[0], '0–4'); assert.equal(m.xs[19], '95–99');
+  const cell = m.cells.find(q => q.x === '20–24' && q.y === '2'), want = R.filter(q => q[0] >= 20 && q[0] <= 24 && q[1] === 2);
+  assert.ok(Math.abs(cell.v - want.reduce((t, q) => t + q[2], 0) / want.length) < 1e-12, 'mean in the 20–24 cell');
+  assert.match(r.markup, /Mean of ss_dir by edad and sexo/); assert.match(r.markup, />edad</); assert.match(r.markup, />sexo</);
+  const ctl = r.nodes.find(n => n.tag === 'select' && n.props['aria-label'] === 'Group edad');
+  assert.ok(ctl, 'a Group edad choice in the data sentence');
+  const opts = flat(ctl).filter(n => n.tag === 'option').map(n => [n.props.value, text(n)]);
+  assert.ok(opts.some(o => o[0] === 'each' && /Each value \(98\)/.test(o[1])), 'each value is offered on the heat map (up to 120 columns)');
+  ctl.props.onChange({ target: { value: 'each' } });
+  r = open(c, 'heatmap', {}); assert.deepEqual(r.alerts, []); assert.equal(c.cbBuild('heatmap').models[0].xs.length, 98);
+  ctl.props.onChange({ target: { value: '10' } });
+  assert.deepEqual(c.cbBuild('heatmap').models[0].xs.slice(0, 3), ['0–9', '10–19', '20–29']);
+  // bars of age: ranges too (bars allow up to 40)
+  r = open(c, 'bar', { x: 'edad', stat: 'count' }); assert.deepEqual(r.alerts, []);
+  const bar = c.cbBuild('bar').models[0]; assert.equal(bar.cats.length, 20); assert.equal(bar.vals.reduce((t, v) => t + v[0].v, 0), R.length);
+  // a text variable with 70 values: the 20 largest plus Other, Other last, nothing lost
+  r = open(c, 'bar', { x: 'muni', stat: 'count' }); assert.deepEqual(r.alerts, []);
+  const mb = c.cbBuild('bar').models[0];
+  assert.equal(mb.cats.length, 21); assert.equal(mb.cats[20], E.CB_OTHER); assert.equal(mb.vals.reduce((t, v) => t + v[0].v, 0), R.length);
+  const counts = new Map(); R.forEach(q => counts.set(q[3], (counts.get(q[3]) || 0) + 1));
+  const top = [...counts].sort((a, b) => b[1] - a[1]).slice(0, 20).map(e => e[0]);
+  assert.ok(top.every(k => mb.cats.includes(k)), 'the 20 largest are kept');
+  // decimals: ranges with thousands separators, ordered by value
+  open(c, 'bar', { x: 'ingreso', stat: 'count' });
+  const ib = c.cbBuild('bar').models[0].cats; assert.equal(ib[0], '0–2,500'); assert.equal(ib[3], '7,500–10,000');
+  // line groups follow the grouping
+  open(c, 'line', { x: 'edad', y: 'ss_dir', stat: 'mean', group: 'muni' });
+  assert.equal(c.cbLevels('muni').length, 21);
+});

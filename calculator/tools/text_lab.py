@@ -24,7 +24,7 @@ import data_edit  # noqa: E402  edit data (Design A)
 import chart_builder  # noqa: E402  chart builder (Design A)
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-11-01.53'
+BUILD = '2026-11-01.54'
 LANGS = ['es', 'en', 'pt', 'fr']
 
 

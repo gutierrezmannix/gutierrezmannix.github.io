@@ -17,7 +17,81 @@
   cbSeg(key, options, def, aria) { const c = this.cbC(); return this.tlSeg(options, c[key] != null ? c[key] : def, val => this.cbSet({ [key]: val }), { 'aria-label': aria }); }
   cbCheck(key, label, def) { const h = React.createElement, c = this.cbC(); return h('label', { className: 'cb-check' }, h('input', { type: 'checkbox', checked: c[key] != null ? !!c[key] : !!def, onChange: e => this.cbSet({ [key]: e.target.checked }) }), label); }
   cbText(key, label, placeholder, width) { const c = this.cbC(); return this.tlField(label, this.tlText(c[key] || '', val => this.cbSet({ [key]: val }), { k: key + '|' + this.state.plotKind, placeholder, aria: label, width })); }
-  cbLevels(v, cap) { if (!v || !this.effMeta(v)) return []; return this.memo('cbLv|' + v, () => this._E.freqOf(this.groupLab(v) || [], null).rows.map(r => String(r.label))).slice(0, cap || 400); }
+  cbLevels(v, cap) {
+    if (!v || !this.effMeta(v)) return []; const c = this.cbC(), id = this.state.plotKind, mx = this.cbCatCap(id, v, c), mode = this.cbCatMode(v, c), info = this.cbCatInfo(v);
+    const grouped = mode && mode !== 'each' || !mode && info.distinct > 40;
+    return this.memo('cbLv|' + v + '|' + mode + '|' + mx + '|' + (this.state.dver || 0), () => { const r = this._E.freqOf(this.cbCatLab(v, c, mx), null).rows.map(q => String(q.label)); return grouped ? r.sort(this._E.cbNatural) : r; }).slice(0, cap || 400);
+  }
+  // ---- many categories: number variables go into ranges (15–19, 20–24 …), text into the largest ones plus “Other”
+  cbCatMode(v, c) { return String(((c || {}).grp || {})[v] || ''); }
+  cbCatCap(id, v, c) { return id === 'heatmap' && v === c.x ? 120 : id === 'heatmap' && v === c.group ? 60 : 40; }
+  cbCatInfo(v) {
+    return this.memo('cbci|' + v + '|' + (this.state.dver || 0), () => {
+      const raw = this._raw, idx = this.colIdx(v), col = idx >= 0 ? raw.cols[idx] : null, vl = raw && raw.vlabs && raw.vlabs[v], m = this.effMeta(v) || {};
+      const labelled = vl instanceof Map ? vl.size > 0 : !!(vl && Object.keys(vl).length);
+      const cv = this.vals(v);
+      if (cv && cv.kind === 'num' && !labelled && col && col.k === 'n') {
+        const a = cv.a, seen = new Set(); let lo = Infinity, hi = -Infinity, allInt = true;
+        for (let i = 0; i < a.length; i++) { const x = a[i]; if (!isFinite(x)) continue; if (x < lo) lo = x; if (x > hi) hi = x; if (allInt && !Number.isInteger(x)) allInt = false; if (seen.size <= 5000) seen.add(x); }
+        return { num: true, lo, hi, allInt, distinct: seen.size > 5000 ? Math.max(m.distinct || 0, 5001) : seen.size };
+      }
+      const L = this.groupLab(v) || [], counts = new Map(); for (let i = 0; i < L.length; i++) { const x = L[i]; if (x == null || x === '') continue; const k = String(x); counts.set(k, (counts.get(k) || 0) + 1); }
+      return { num: false, counts, distinct: counts.size };
+    });
+  }
+  cbBins(info, w) { const start = Math.floor(info.lo / w + 1e-9) * w; return { start, n: Math.floor((info.hi - start) / w + 1e-9) + 1 }; }
+  cbWidths(info) {
+    if (!(info.hi > info.lo)) return [];
+    const out = []; for (let e = -4; e <= 9; e++) for (const k of [1, 2, 2.5, 5]) { const w = Number((k * Math.pow(10, e)).toPrecision(6)); if (info.allInt && !Number.isInteger(w)) continue; const n = this.cbBins(info, w).n; if (n >= 3 && n <= 60) out.push({ w, n }); }
+    return out;
+  }
+  cbAutoWidth(info) { const ws = this.cbWidths(info); const ok = ws.filter(x => x.n <= 20); return ok.length ? ok[0].w : ws.length ? ws[ws.length - 1].w : 1; }
+  cbRangeLab(a, w, allInt) {
+    const r = x => { const v = Number(x.toPrecision(10)); return Math.abs(v) >= 1000 ? v.toLocaleString('en-US', { maximumFractionDigits: 6 }) : String(v); };
+    return allInt ? (w === 1 ? r(a) : r(a) + '–' + r(a + w - 1)) : r(a) + '–' + r(a + w);
+  }
+  cbCatLab(v, c, cap) {
+    const base = this.groupLab(v) || [], mode = this.cbCatMode(v, c), info = this.cbCatInfo(v), mx = cap || 40;
+    if (mode === 'each' || (!mode && info.distinct <= 40)) return base;  // automatic: group above 40 values; “each value” allowed up to the chart’s limit
+    const dv = this.state.dver || 0;
+    if (info.num) {
+      const w = mode && isFinite(+mode) && +mode > 0 ? +mode : this.cbAutoWidth(info);
+      return this.memo('cbbin|' + v + '|' + w + '|' + dv, () => { const a = this.vals(v).a, { start } = this.cbBins(info, w), out = new Array(a.length), seen = new Map();
+        for (let i = 0; i < a.length; i++) { const x = a[i]; if (!isFinite(x)) { out[i] = null; continue; } const lo = start + Math.floor((x - start) / w + 1e-9) * w; let l = seen.get(lo); if (l === undefined) { l = this.cbRangeLab(lo, w, info.allInt); seen.set(lo, l); } out[i] = l; }
+        return out; });
+    }
+    const top = mode && isFinite(+mode) && +mode > 0 ? +mode : 20;
+    return this.memo('cbtop|' + v + '|' + top + '|' + dv, () => { const keep = new Set([...info.counts].sort((p, q) => q[1] - p[1]).slice(0, top).map(e => e[0]));
+      return Array.from(base, x => x == null || x === '' ? null : keep.has(String(x)) ? x : this._E.CB_OTHER); });
+  }
+  // the control in the data sentence: shown for a category variable with more than 12 values
+  cbCatKeys(id, c) {
+    if (['coefficient', 'modelcompare', 'prediction', 'marginal', 'interaction', 'event', 'conjoint', 'hist', 'box', 'scatter', 'matrix', 'corrmap', 'paired', 'hexbin'].includes(id)) return ['facet'];
+    return { pie: ['x', 'facet'], donut: ['x', 'facet'], bar: ['x'], dot: ['x'], groupbar: ['x', 'y'], stackcount: ['x', 'y'], stack: ['x', 'y'], likert: ['x'], gbox: ['x'], violin: ['x', 'facet'], line: ['group'], area: ['group'], panel: ['group'], multiline: ['group'], mean: ['x', 'facet'], proportion: ['x', 'facet'], dumbbell: ['x', 'facet'], slope: ['x', 'facet'], heatmap: ['x', 'group', 'facet'], density: ['group', 'facet'], scatterplain: ['group', 'facet'], smooth: ['group', 'facet'], survival: ['group', 'facet'] }[id] || [];
+  }
+  cbCatControl(id, k) {
+    const c = this.cbC(), v = c[k]; if (!v || !this.effMeta(v)) return null;
+    const info = this.cbCatInfo(v), mode = this.cbCatMode(v, c), mx = this.cbCatCap(id, v, c);
+    if (info.distinct <= 12 && !mode) return null;
+    const set = val => this.cbSet(cc => ({ grp: Object.assign({}, cc.grp, { [v]: val }), sel: k === 'group' ? [] : cc.sel }));
+    const many = info.distinct > 40, nTxt = info.distinct > 5000 ? 'more than 5,000' : info.distinct.toLocaleString('en-US');
+    let opts;
+    if (info.num) {
+      const aw = this.cbAutoWidth(info), ws = this.cbWidths(info), nb = w => this.cbBins(info, w).n;
+      opts = many ? [['', 'Ranges of ' + this.cbRangeW(aw) + ' (' + nb(aw) + ' groups) — automatic']] : [['', 'Each value (' + nTxt + ')']];
+      opts = opts.concat(ws.filter(x => !(many && x.w === aw)).map(x => [String(x.w), 'Ranges of ' + this.cbRangeW(x.w) + ' (' + x.n + ' groups)']));
+      if (many && info.distinct <= mx) opts.push(['each', 'Each value (' + nTxt + ')']);
+    } else {
+      const autoTop = 20;
+      opts = many ? [['', 'The ' + autoTop + ' largest, the rest as Other — automatic']] : [['', 'All ' + nTxt + ' categories']];
+      opts = opts.concat([5, 8, 10, 15, 20, 25, 30, 39].filter(n => n < info.distinct && n < mx && !(many && n === autoTop)).map(n => [String(n), 'The ' + n + ' largest, the rest as Other']));
+      if (many && info.distinct <= mx) opts.push(['each', 'All ' + nTxt + ' categories']);
+    }
+    const seen = new Set(); opts = opts.filter(o => { if (seen.has(o[0]) && o[0] !== '') return false; seen.add(o[0]); return true; });
+    const cur = opts.some(o => o[0] === mode) ? mode : '';
+    return this.tlField(v + ' has ' + nTxt + ' values', this.tlSelect(cur, opts.filter((o, i) => !(o[0] === '' && i > 0)), set, 'Group ' + v));
+  }
+  cbRangeW(w) { return Math.abs(w) >= 1000 ? w.toLocaleString('en-US') : String(w); }
 
   // the data sentence for each chart
   cbFields(id) {
@@ -36,8 +110,8 @@
       f.push(this.cbChoice('stat', 'Show', [['mean', 'the mean of'], ['sum', 'the sum of'], ['pct', 'the % equal to 1 of'], ['count', 'the number of rows']], 'mean'));
       if (st !== 'count') f.push(this.cbVarSel('y', 'Outcome', 'num'));
       f.push(this.cbVarSel('x', 'Over (time)', 'num'), this.cbVarSel('group', id === 'panel' ? 'One panel per' : 'Split by', 'any', id !== 'panel', { sel: [] }));
-      if (c.group) { const lv = this.cbLevels(c.group, 60), auto = lv.slice(0, id === 'panel' ? 24 : 10), sel = c.sel && c.sel.length ? c.sel : auto, max = id === 'panel' ? 24 : 12;
-        f.push(this.tlField('Which ' + c.group + ' (' + sel.length + ' of ' + lv.length + ')', h('div', { className: 'tl-row cb-sel' }, lv.map(k => this.tlChip(this.cbDisplay(this.cbKeySetsLite(c.group), 'series', k), sel.includes(k), () => { const cur = c.sel && c.sel.length ? c.sel : auto; this.cbSet({ sel: cur.includes(k) ? cur.filter(x => x !== k) : cur.length >= max ? cur : [...cur, k] }); }, { key: k }))))); }
+      if (c.group) { const lv = this.cbLevels(c.group, 60), auto = lv.slice(0, id === 'panel' ? 24 : 10), sel0 = (c.sel || []).filter(k => lv.includes(k)), sel = sel0.length ? sel0 : auto, max = id === 'panel' ? 24 : 12;
+        f.push(this.tlField('Which ' + c.group + ' (' + sel.length + ' of ' + lv.length + ')', h('div', { className: 'tl-row cb-sel' }, lv.map(k => this.tlChip(this.cbDisplay(this.cbKeySetsLite(c.group), 'series', k), sel.includes(k), () => { const cur = sel; this.cbSet({ sel: cur.includes(k) ? cur.filter(x => x !== k) : cur.length >= max ? cur : [...cur, k] }); }, { key: k }))))); }
       f.push(this.cbText('t0', 'From', 'first', 80), this.cbText('t1', 'To', 'last', 80));
       if (st === 'mean' || st === 'pct') f.push(this.cbCheck('ci', 'Shade the 95% interval'));
       if (st !== 'count') { const ys = c.ys || []; f.push(this.tlField('More outcomes (optional)', this.tlSelect('', [['', '+ add an outcome']].concat(this.cbNumeric().filter(v => v.name !== c.y && !ys.includes(v.name)).map(v => [v.name, v.name])), val => { if (val) this.cbSet({ ys: [...ys, val] }); }, 'Add an outcome'), ys.length ? h('div', { className: 'tl-row' }, ys.map(v => this.tlChip(v + ' ×', true, () => this.cbSet({ ys: ys.filter(x => x !== v) }), { key: v }))) : null)); }
@@ -56,19 +130,20 @@
     }
     const canFacet = !['corrmap', 'matrix', 'paired', 'panel', 'hist', 'box', 'bar', 'dot', 'stack', 'gbox', 'line', 'area', 'multiline', 'scatter', 'pie', 'donut'].includes(id) && !(est && c.source && c.source !== 'columns');
     if (canFacet) f.push(this.cbVarSel('facet', 'One chart per (optional)', 'any', true));
+    for (const k of this.cbCatKeys(id, c)) { const el = this.cbCatControl(id, k); if (el) f.push(el); }
     return f;
   }
 
   // compute the chart model(s) — memoized on everything that changes the numbers, so restyling is instant
   cbBuild(id) {
     const S = this.state, E = this._E, c = this.cbC(), w = this.wArr(), mask = this.mask();
-    const dataKey = JSON.stringify([id, ['x', 'y', 'group', 'facet', 'lo', 'hi', 'vars', 'stat', 'sel', 'ys', 't0', 't1', 'ci', 'order', 'neutral', 'sort', 'other', 'missing', 'bins', 'points', 'source', 'attr', 'refLine', 'labVar', 'labels'].map(k => c[k]), S.weightVar, this.filterSig(), S.dver || 0, this.alpha()]);
+    const dataKey = JSON.stringify([id, ['x', 'y', 'group', 'facet', 'lo', 'hi', 'vars', 'stat', 'sel', 'ys', 't0', 't1', 'ci', 'order', 'neutral', 'sort', 'other', 'missing', 'bins', 'points', 'source', 'attr', 'refLine', 'labVar', 'labels', 'grp'].map(k => c[k]), S.weightVar, this.filterSig(), S.dver || 0, this.alpha()]);
     return this.memo('cb|' + dataKey, () => this.cbCompute(id, c, w, mask));
   }
   cbCompute(id, c, w, mask) {
     const E = this._E, need = (...ks) => { for (const k of ks) if (!c[k] || !this.effMeta(c[k])) throw Error('Choose the variables above to draw the chart.'); };
     const num = v => { const nv = v ? this.numVals(v) : null; if (!nv) throw Error('“' + v + '” is not a number variable.'); return nv.a; };
-    const lab = v => this.groupLab(v) || [];
+    const lab = v => this.cbCatLab(v, c, this.cbCatCap(id, v, c));
     const roles = { series: null, cats: null, panels: null };
     const crit = df => E.ttCritical(this.alpha(), df);
     const prep = (kind, o) => E.csPrepare(kind, Object.assign({ mask, w }, o));
@@ -82,12 +157,12 @@
       if (id === 'box') return { models: [{ type: 'box', groups: [E.cbBoxStats(c.x, d)], seriesKeys: [c.x], xTitle: c.x, n: d.n, excluded: d.missing, table: [[c.x, d.n, d.mn, d.q1, d.med, d.q3, d.mx, d.mean]], headers: ['Variable', 'n', 'Min', 'Q1', 'Median', 'Q3', 'Max', 'Mean'], note: 'Box = middle half of the values (Q1 to Q3); line = median; diamond = mean; whiskers reach 1.5 × the box length.' }], data: d, roles };
       const bins = E.cbHistBins(d, +c.bins || 0), pct = c.stat === 'percent', tot = bins.reduce((t, b) => t + b.c, 0); if (pct) bins.forEach(b => { b.c = 100 * b.c / tot; });
       return { models: [{ type: 'xy', bins, series: [], seriesKeys: ['All'], zero: true, pct, xTitle: c.x, yTitle: pct ? 'Percent' : (w ? 'Weighted count' : 'Count'), n: d.n, excluded: d.missing, table: bins.map(b => [b.a, b.b, b.c]), headers: ['From', 'To', pct ? 'Percent' : 'Count'], note: bins.length + ' bars of equal width' + (+c.bins ? '' : ' (Freedman–Diaconis rule)') + '.' }], data: d, roles }; }
-    if (id === 'gbox') { need('x', 'y'); const G = E.groupsOf(lab(c.x), this.nvA(c.y), w, 40), L = G.levels.filter(g => g.n >= 2 && isFinite(g.sd)).sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { numeric: true })); if (L.length < 1) throw Error('Need at least one group with 2 or more values.'); roles.series = c.x;
+    if (id === 'gbox') { need('x', 'y'); const G = E.groupsOf(lab(c.x), this.nvA(c.y), w, 40), L = G.levels.filter(g => g.n >= 2 && isFinite(g.sd)).sort((a, b) => E.cbNatural(a.label, b.label)); if (L.length < 1) throw Error('Need at least one group with 2 or more values.'); roles.series = c.x;
       return { models: [{ type: 'box', groups: L.map(g => E.cbBoxStats(String(g.label), g)), seriesKeys: L.map(g => String(g.label)), showN: true, yTitle: c.y, xTitle: c.x, n: L.reduce((t, g) => t + g.n, 0), excluded: 0, table: L.map(g => [g.label, g.n, g.q1, g.med, g.q3, g.mean]), headers: ['Group', 'n', 'Q1', 'Median', 'Q3', 'Mean'], note: G.capped ? 'Showing the 40 largest of ' + G.totalLevels + ' groups.' : '' }], data: G, roles }; }
     if (['line', 'area', 'panel', 'multiline'].includes(id)) {
       const st = c.stat || 'mean'; need('x'); if (st !== 'count') need('y');
       const t = num(c.x), g = c.group ? lab(c.group) : null, lvAll = c.group ? this.cbLevels(c.group, 400) : [];
-      const sel = c.group ? ((c.sel && c.sel.length) ? c.sel.filter(v => lvAll.includes(v)) : lvAll.slice(0, id === 'panel' ? 24 : 10)) : null;
+      const sel0 = c.group ? (c.sel || []).filter(v => lvAll.includes(v)) : [], sel = c.group ? (sel0.length ? sel0 : lvAll.slice(0, id === 'panel' ? 24 : 10)) : null;
       const outcomes = st === 'count' ? [null] : [c.y, ...(c.ys || [])].filter(Boolean);
       const series = []; let n = 0, excl = 0, times = [];
       outcomes.forEach(yv => { const r = E.cbTimeAgg(t, yv ? num(yv) : new Float64Array(t.length), g, w, mask, { stat: st, sel, t0: c.t0, t1: c.t1, ci: !!c.ci, alpha: this.alpha() }); n += r.n; excl += r.excluded; times = times.concat(r.times); r.series.forEach(s => series.push(Object.assign({}, s, { key: outcomes.length > 1 ? (yv + (g ? ' · ' + s.key : '')) : s.key, group: s.key, outcome: yv }))); });
@@ -102,7 +177,7 @@
     if (id === 'scatter') {
       need('x', 'y'); const cr = this.bgMemo('pcorr|' + c.x + '|' + c.y, 'corr', () => [this.nvA(c.x), this.nvA(c.y), w], 'Computing the scatterplot');
       if (cr.pending) return { pending: true }; if (cr.error) throw Error(cr.error);
-      const stride = Math.max(1, Math.ceil(cr.xs.length / 4000)), pts = [], labs = c.labels && c.labVar ? lab(c.labVar) : null;
+      const stride = Math.max(1, Math.ceil(cr.xs.length / 4000)), pts = [], labs = c.labels && c.labVar ? (this.groupLab(c.labVar) || []) : null;
       for (let i = 0; i < cr.xs.length; i += stride) pts.push({ x: cr.xs[i], y: cr.ys[i], k: 'All' });
       const xr = [Math.min(...cr.xs), Math.max(...cr.xs)];
       const M = { type: 'xy', points: pts, series: [{ key: 'Fitted line', pts: xr.map(x => ({ x, y: cr.fit.icept + cr.fit.slope * x })), style: 'fit' }], seriesKeys: ['All'], xTitle: c.x, yTitle: c.y, subtitle: 'r = ' + cr.pearson.r.toFixed(2) + ' · n = ' + cr.n.toLocaleString('en-US') + ' · fitted line: ' + c.y + ' = ' + E.cbFmt(cr.fit.icept) + (cr.fit.slope >= 0 ? ' + ' : ' − ') + E.cbFmt(Math.abs(cr.fit.slope)) + ' × ' + c.x, n: cr.n, excluded: 0, weighted: !!w, table: [['Pearson r', cr.pearson.r], ['Spearman rho', cr.spearman.r], ['Slope', cr.fit.slope], ['Intercept', cr.fit.icept], ['n', cr.n]], headers: ['Statistic', 'Value'], note: stride > 1 ? 'Showing ' + pts.length.toLocaleString('en-US') + ' of ' + cr.n.toLocaleString('en-US') + ' points; r and the line use all of them.' : '' };
@@ -122,7 +197,7 @@
     }
     if (['coefficient', 'modelcompare', 'prediction', 'marginal', 'interaction', 'event', 'conjoint'].includes(id)) {
       const d = this.cbEstimates(id, c); roles.series = c.group || null; roles.cats = ['coefficient', 'modelcompare', 'marginal'].includes(id) ? (c.source && c.source !== 'columns' ? null : c.x) : null;
-      if (id === 'conjoint') { if (c.attr) { const al = lab(c.attr); d.rows.forEach(r => { r.a = al[r.i] == null ? '' : String(al[r.i]); }); } return { models: [E.cbConjoint(d, { refLine: +(c.refLine || 0), xmin: c.xmin, xmax: c.xmax, ylabel: c.ylabel, font: { s: 11, m: 12, l: 14 }[c.text] || 12 })], data: d, roles }; }
+      if (id === 'conjoint') { if (c.attr) { const al = this.groupLab(c.attr) || []; d.rows.forEach(r => { r.a = al[r.i] == null ? '' : String(al[r.i]); }); } return { models: [E.cbConjoint(d, { refLine: +(c.refLine || 0), xmin: c.xmin, xmax: c.xmax, ylabel: c.ylabel, font: { s: 11, m: 12, l: 14 }[c.text] || 12 })], data: d, roles }; }
       return { models: [E.cbModel(d.kind || id, d, {})], data: d, roles };
     }
     // the remaining chart-suite pages: same preparation as before (weights, subgroup, facets)
@@ -133,9 +208,11 @@
     const d = prep(id, { x: catX ? lab(c.x) : getN('x'), y: getN('y'), lo: getN('lo'), g: c.group ? lab(c.group) : [], facet: c.facet ? lab(c.facet) : [], groupRequired: !!c.group, facetRequired: !!c.facet, w: ['proportion', 'survival', 'paired', 'mean'].includes(id) ? null : w });
     roles.panels = c.facet || null;
     if (['density', 'scatterplain', 'smooth', 'survival'].includes(id)) roles.series = c.group || null;
-    if (id === 'violin') roles.series = c.x; if (id === 'slope') roles.series = c.x; if (id === 'heatmap') { roles.cats = c.x; roles.series = c.group; }
+    if (id === 'violin') roles.series = c.x; if (id === 'slope') roles.series = c.x; if (id === 'heatmap') { roles.cats = c.x; roles.series = c.group; roles.rows = c.group; }
     if (['mean', 'proportion', 'dumbbell'].includes(id)) roles.cats = c.x;
-    return { models: this.cbPanels(d, rr => E.cbModel(id, rr, { critical: crit, points: !!c.points, lo: c.lo, y: c.y, x: c.x, firstLabel: c.lo, secondLabel: c.y })), data: d, roles };
+    const models = this.cbPanels(d, rr => E.cbModel(id, rr, { critical: crit, points: !!c.points, lo: c.lo, y: c.y, x: c.x, firstLabel: c.lo, secondLabel: c.y }));
+    if (id === 'heatmap') models.forEach(m => { m.xTitle = c.x; m.yTitle = c.group; m.valueTitle = 'Mean of ' + c.y; });
+    return { models, data: d, roles };
   }
   cbPanels(d, fn) {
     if (!d.panels || d.panels.size <= 1) return [fn(d)];
@@ -223,6 +300,7 @@
     if (['scatter', 'scatterplain', 'smooth', 'hexbin'].includes(id)) return (c.y || '…') + ' and ' + (c.x || '…');
     if (id === 'density') return 'Distribution of ' + (c.x || '…') + (c.group ? ' by ' + c.group : '');
     if (id === 'dumbbell' || id === 'slope') return (c.lo || '…') + ' and ' + (c.y || '…') + ' by ' + (c.x || '…');
+    if (id === 'heatmap') return 'Mean of ' + (c.y || '…') + ' by ' + (c.x || '…') + ' and ' + (c.group || '…');
     return this._E.cbTitleOf(id);
   }
 

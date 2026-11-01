@@ -51,6 +51,19 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   const [dl1] = await Promise.all([p.waitForEvent('download', { timeout: 15000 }).catch(() => null), cb.getByRole('button', { name: 'PNG 300 dpi' }).first().click()]);
   check(!!dl1 && /300dpi\.png$/.test(dl1.suggestedFilename()), 'PNG 300 dpi download (' + (dl1 ? dl1.suggestedFilename() : 'none') + ')');
 
+  // 3b · heat map of a variable with many values (edad: 60 ages) — grouped into ranges instead of refusing
+  await cb.getByRole('button', { name: '← All charts' }).click(); await p.waitForTimeout(300);
+  await cb.getByRole('button', { name: 'Heat map', exact: true }).click(); await p.waitForTimeout(300);
+  await cb.getByLabel('Columns', { exact: true }).selectOption('edad'); await cb.getByLabel('Rows', { exact: true }).selectOption('sexo'); await cb.getByLabel('Mean of', { exact: true }).selectOption('ingreso'); await p.waitForTimeout(600);
+  m = await svgHtml(cb.locator('.cb-figs'));
+  check(await cb.getByRole('alert').count() === 0 && /15–19|20–24/.test(m), 'heat map of 60 ages draws in ranges of 5');
+  check(/Mean of ingreso by edad and sexo/.test(m) && /Hombres/.test(m), 'heat map title and named rows');
+  check(await cb.getByText('edad has 60 values').count() === 1, 'the grouping choice is in the data sentence');
+  await cb.getByLabel('Group edad').selectOption('each'); await p.waitForTimeout(600);
+  m = await svgHtml(cb.locator('.cb-figs'));
+  check(await cb.getByRole('alert').count() === 0 && (m.match(/<rect [^>]*><title>/g) || []).length === 120, 'each age as its own column (60 × 2 cells)');
+  await shot('3b-heatmap');
+
   // 4 · Univariate → ss_dir → Break down by year and sexo: the chart has the same options under it
   await p.locator('button.mf-nav[data-nav="tests"]').click(); await p.waitForTimeout(300);
   await p.evaluate(() => [...document.querySelectorAll('button')].find(e => e.offsetParent && e.textContent.trim() === 'Descriptive statistics').click()); await p.waitForTimeout(800);

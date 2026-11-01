@@ -431,16 +431,21 @@ function cbDrawGrid(C, M) {
   const o = C.o, W = C.SZ ? C.SZ[0] : 820, xs = M.xs, ys = M.ys, head = cbHead(C, M, W, null), foot = cbFoot(C, M, W, 0);
   const labW = Math.min(240, Math.max(...ys.map(k => cbTextW(C.nm(k), C.F.lab)), 20)) + 14, L = 24 + labW, R = 24;
   const cw = (W - L - R) / xs.length, rot = xs.some(k => cbTextW(C.nmc(k), C.F.lab) > cw - 6), labH = rot ? Math.min(140, Math.max(...xs.map(k => cbTextW(C.nmc(k), C.F.lab))) * 0.72 + 16) : C.F.lab + 14;
-  const ch = Math.max(22, Math.min(64, cw * 0.75)), T = head.h + 10, PH = ch * ys.length;
-  const H = C.SZ ? C.SZ[1] : Math.round(T + PH + labH + 40 + foot.h), parts = [head.markup];
+  const xTitle = o.xTitle != null ? o.xTitle : M.xTitle || '', yTitle = o.yTitle != null ? o.yTitle : M.yTitle || '', xtH = xTitle ? C.F.lab + 12 : 0;
+  const ch = Math.max(22, Math.min(64, cw * 0.75)), T = head.h + 10 + (yTitle ? C.F.lab + 8 : 0), PH = ch * ys.length;
+  const H = C.SZ ? C.SZ[1] : Math.round(T + PH + labH + xtH + 40 + foot.h), parts = [head.markup];
+  if (yTitle) parts.push(C.T(L - 8, T - 8, yTitle, `text-anchor="end" fill="${CBC.mut}"`, C.F.lab, false, 700));
+  if (xTitle) parts.push(C.T(L + (W - L - R) / 2, T + PH + labH + C.F.lab, xTitle, `text-anchor="middle" fill="${CBC.mut}"`, C.F.lab));
   const base = C.col(M.seriesKeys ? M.seriesKeys[0] : 'All', 0), [lo, hi] = M.range;
   const colOf = v => M.diverging ? cbDiv((v - lo) / (hi - lo), o.palette) : cbMix('#F4F7F5', base, (v - lo) / (hi - lo || 1));
-  M.cells.forEach(c => { const xi = xs.indexOf(c.x), yi = ys.indexOf(c.y), x = L + xi * cw, y = T + yi * ch, fc = colOf(c.v); parts.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" fill="${fc}" stroke="#FFFFFF" stroke-width="1.5"><title>${cbEsc(C.nm(c.y) + ' · ' + C.nmc(c.x) + ': ' + cbFmt(c.v, { decimals: o.decimals ?? (M.diverging ? 2 : null) }) + (c.n != null ? ' (n = ' + c.n + ')' : ''))}</title></rect>`); if (C.values !== 'none' || M.labels !== false) if (cw > 26) parts.push(C.T(x + cw / 2, y + ch / 2 + C.F.val * 0.35, cbFmt(c.v, { decimals: o.decimals ?? (M.diverging ? 2 : null), fmt: o.fmt }), `text-anchor="middle" fill="${cbInk(fc)}"`, Math.min(C.F.val, cw * 0.3), false, 700)); });
+  M.cells.forEach(c => { const xi = xs.indexOf(c.x), yi = ys.indexOf(c.y), x = L + xi * cw, y = T + yi * ch, fc = colOf(c.v); parts.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" fill="${fc}" stroke="#FFFFFF" stroke-width="${cw < 12 ? 0.4 : 1.5}"><title>${cbEsc(C.nm(c.y) + ' · ' + C.nmc(c.x) + ': ' + cbFmt(c.v, { decimals: o.decimals ?? (M.diverging ? 2 : null) }) + (c.n != null ? ' (n = ' + c.n + ')' : ''))}</title></rect>`); if (C.values !== 'none' || M.labels !== false) if (cw > 26) parts.push(C.T(x + cw / 2, y + ch / 2 + C.F.val * 0.35, cbFmt(c.v, { decimals: o.decimals ?? (M.diverging ? 2 : null), fmt: o.fmt }), `text-anchor="middle" fill="${cbInk(fc)}"`, Math.min(C.F.val, cw * 0.3), false, 700)); });
   ys.forEach((k, i) => parts.push(C.T(L - 8, T + (i + 0.5) * ch + C.F.lab * 0.35, C.nm(k), `text-anchor="end" fill="${CBC.ink}"`, C.F.lab)));
-  xs.forEach((k, i) => { const x = L + (i + 0.5) * cw; parts.push(rot ? C.T(x, T + PH + 14, C.nmc(k), `text-anchor="end" transform="rotate(-35 ${x.toFixed(1)} ${(T + PH + 14).toFixed(1)})" fill="${CBC.ink}"`, C.F.lab) : C.T(x, T + PH + 18, C.nmc(k), `text-anchor="middle" fill="${CBC.ink}"`, C.F.lab)); });
+  const every = Math.max(1, Math.ceil((C.F.lab + 4) / cw));
+  xs.forEach((k, i) => { if (rot && i % every) return; const x = L + (i + 0.5) * cw; parts.push(rot ? C.T(x, T + PH + 14, C.nmc(k), `text-anchor="end" transform="rotate(-35 ${x.toFixed(1)} ${(T + PH + 14).toFixed(1)})" fill="${CBC.ink}"`, C.F.lab) : C.T(x, T + PH + 18, C.nmc(k), `text-anchor="middle" fill="${CBC.ink}"`, C.F.lab)); });
   // color key
-  const ky = T + PH + labH + 10; for (let i = 0; i < 40; i++) parts.push(`<rect x="${(L + i * 5).toFixed(1)}" y="${ky}" width="5.4" height="10" fill="${colOf(lo + (hi - lo) * i / 39)}"/>`);
+  const ky = T + PH + labH + xtH + 10; for (let i = 0; i < 40; i++) parts.push(`<rect x="${(L + i * 5).toFixed(1)}" y="${ky}" width="5.4" height="10" fill="${colOf(lo + (hi - lo) * i / 39)}"/>`);
   parts.push(C.T(L, ky + 24, cbFmt(lo), `fill="${CBC.mut}"`, C.F.tick, true), C.T(L + 200, ky + 24, cbFmt(hi), `text-anchor="end" fill="${CBC.mut}"`, C.F.tick, true));
+  if (M.valueTitle) parts.push(C.T(L + 212, ky + 9, M.valueTitle, `fill="${CBC.mut}"`, C.F.tick));
   parts.push(cbFoot(C, M, W, H).markup);
   return cbSvg(C, W, H, parts, M);
 }
