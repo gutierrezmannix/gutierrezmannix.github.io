@@ -41,11 +41,19 @@ cartel (390 groups, 331 ties) NodeXL files:
   maximal cliques; in/out-degree, betweenness, closeness, harmonic closeness, eigenvector, PageRank, Burt’s constraint,
   k-cores, local clustering, effective size, Fowler’s connectedness and the five Gould–Fernandez broker roles.
 - Louvain: the calculator’s groups reach the best modularity of 20 R runs (0.330 Congress, 0.706 cartel).
-- Network model: observed statistics identical; MPLE identical to `glm()` on the change statistics (to 1e-7); models
-  without dyad dependence equal the exact maximum likelihood; for every model with reciprocity, friends of friends or
-  popularity, an **independent R Markov chain simulation at the calculator’s estimates reproduces the observed
-  statistics** (|t| ≤ 0.17 with Monte Carlo error 0.07–0.2 sd) and gives the same standard errors. This check found that
-  popularity terms needed a final polishing stage, now part of the estimator.
+- Network model: observed statistics identical; MPLE identical to `glm()` on the change statistics (to 1e-7).
+  Models without dyad dependence equal the exact maximum likelihood (within 0.02). Models with returned ties plus
+  same-group terms are still pair-by-pair, so `tests/r/net-lab-exact-mutual.R` computes their exact maximum likelihood:
+  the calculator’s MCMC estimates agree within 0.04 standard errors (Congress and cartel), standard errors within 6%.
+  For models with friends of friends or popularity, an **independent R Markov chain simulation at the calculator’s
+  estimates reproduces the observed statistics** (Congress: |t| ≤ 0.17, within Monte Carlo error). This check found
+  that popularity terms needed a final polishing stage, now part of the estimator.
+- Friends-of-friends and popularity terms mix slowly, so short R chains are noisy: a first R run on the undirected
+  cartel model (gwesp) gave t = −0.6, and on Congress gwideg a standard error of 1.78 vs 1.22. Repeating R’s chain
+  settings 30 times shows that spread is chance (t from −0.9 to +0.8). Three longer independent R chains, pooled, give
+  t = −0.015 to 0.012 and a gwesp standard error of 0.0857 (calculator 0.0863); a 40-million-step chain gives the
+  gwideg standard error as 1.16 (calculator 1.22). The R script now says so when it flags a term, and takes a seed
+  (argument 10) so runs can be pooled.
 
 `ergm` itself could not be installed in the build environment (its source download was blocked), so
 `tests/net-lab-reference.R` lets you compare with `ergm()` on your computer.

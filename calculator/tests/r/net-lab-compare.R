@@ -1,5 +1,5 @@
 # Independent check of the calculator's Networks results with R (sna, network, igraph) and an R simulation of the ERGM.
-# Usage: Rscript net-lab-compare.R <dir from net-lab-export.mjs> <tag> <raw edges> <raw nodes> <encoding UTF-8|CP1252> <directed 1|0> <attr> <sims per model> [steps between sims]
+# Usage: Rscript net-lab-compare.R <dir from net-lab-export.mjs> <tag> <raw edges> <raw nodes> <encoding UTF-8|CP1252> <directed 1|0> <attr> <sims per model> [steps between sims] [seed]
 suppressPackageStartupMessages({ library(sna); library(network); library(igraph) })
 a <- commandArgs(trailingOnly = TRUE)
 dir <- a[1]; tag <- a[2]; ef <- a[3]; nf <- a[4]; enc <- a[5]; directed <- a[6] == "1"; attr <- a[7]; nsim <- as.integer(a[8])
@@ -116,13 +116,16 @@ for (mod in unique(M$model)) {
       if (log(runif(1)) < lr) { g <<- g - d; pp <- pos[lin]; last <- ed[ne]; ed[pp] <<- last; pos[last] <<- pp; pos[lin] <<- 0L; ed <<- ed[-ne]; ne <<- ne - 1 } else { y[i, j] <<- 1; if (!directed) y[j, i] <<- 1 } }
     else { d <- change(y, i, j, T); lr <- sum(th * d) + log((0.5 / (ne + 1) + 0.5 / D) / (0.5 / D))
       if (log(runif(1)) < lr) { y[i, j] <<- 1; if (!directed) y[j, i] <<- 1; g <<- g + d; ne <<- ne + 1; ed[ne] <<- lin; pos[lin] <<- ne } } }
+  if (length(a) >= 10) set.seed(as.integer(a[10]) + match(mod, unique(M$model)))
   t0 <- Sys.time(); for (s in seq_len(burn)) step()
   for (k in seq_len(nsim)) { for (s in seq_len(interval)) step(); out_s[k, ] <- g }
   if (!isTRUE(all.equal(as.numeric(g), as.numeric(stats_full(y, terms))))) say("   R sampler bookkeeping check FAILED")
+  write.csv(out_s, file.path(dir, sprintf("%s-%s-Rsim-%s.csv", tag, mod, if (length(a) >= 10) a[10] else "26")), row.names = FALSE)
   mu <- colMeans(out_s); sdv <- apply(out_s, 2, sd); tr <- (mu - gobs) / sdv
   bm2 <- sapply(seq_len(p), function(c) { b <- split(out_s[, c], ceiling(seq_len(nsim) / (nsim / 20))); sd(sapply(b, mean)) / sqrt(20) })
   se_r <- tryCatch(sqrt(diag(solve(cov(out_s)))), error = function(e) rep(NA, p))
   say(sprintf("   R simulation at the calculator's estimate: %d networks, %d steps apart (%.0f s)", nsim, interval, as.numeric(difftime(Sys.time(), t0, units = "secs"))))
   for (c in seq_len(p)) say(sprintf("   %-40s observed %10.3f  R mean %10.3f  t = %6.3f  (MC error %.3f sd)  SE calc %.4f  R %.4f %s", terms[c], gobs[c], mu[c], tr[c], bm2[c] / sdv[c], mm$mcmc_se[c], se_r[c], if (abs(tr[c]) <= max(0.15, 2.5 * bm2[c] / sdv[c])) "OK" else "CHECK"))
+  if (any(abs(tr) > pmax(0.15, 2.5 * bm2 / sdv))) say("   CHECK: with friends-of-friends terms the R chain mixes slowly and its MC error is underestimated; rerun with more steps\n   between networks and other seeds (args 9 and 10) and pool the runs before concluding.")
 }
 writeLines(out, file.path(dir, paste0(tag, "-R-report.txt")))
