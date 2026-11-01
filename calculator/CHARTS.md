@@ -1,5 +1,8 @@
 # Chart directory and dedicated workspaces
 
+> Since build 2026-11-01.53 every chart page is drawn by the chart builder: one look, a gallery by question and a
+> Customize panel (names, values, colors, axes) under each chart. See [CHART-BUILDER.md](CHART-BUILDER.md).
+
 Build 2026-10-24.24 adds eight chart families and 37 individual chart pages.
 The Charts button opens the directory; its caret opens category disclosures. Each
 leaf opens a page without the previous chart-type switching strip. Native buttons,

@@ -50,13 +50,12 @@ let out=report.renderVals();assert.ok(out.showReport&&!out.showWork);assert.matc
 report.state.reportMode=true;report.state.dialect='r';assert.match(report.renderVals().repRows[0].cmd,/^> /);
 console.log('Lab report content, dialect prompt, Print and Back callbacks passed.');
 
-const plots=await make({tab:'plots',plotKind:'matrix',mxItems:[]});
+const plots=await make({tab:'plots',plotKind:'matrix',csPages:{matrix:{vars:[]}}});
 plots._plots=[{id:'old',name:'old',title:'Old plot',xml:'<svg/>',w:100,h:100,at:0}];
-out=plots.renderVals();assert.ok(out.plotEmpty);assert.match(out.plotEmptyText,/ADD 3/);assert.equal(out.plotHistoryEmpty,false);assert.equal(out.plotReady,false);
-plots.state.plotKind='scatter';plots.state.pX='x';plots.state.pY='y';plots.state.chartColor='#B22222';plots.clearMemo();
-out=plots.renderVals();assert.ok(out.plotReady);assert.equal(out.plotEmpty,false);
-const encoded=JSON.stringify(out.plotChartEl);assert.ok(encoded.includes('#B22222'));assert.ok(!encoded.includes('NaN'));
-for(const kind of ['gbox','stack']){plots.state={...plots.state,plotKind:kind,pX:'group',pY:kind==='gbox'?'y':'group'};plots.clearMemo();out=plots.renderVals();assert.ok(out.plotChartEl);assert.ok(JSON.stringify(out.plotChartEl).includes('#B22222'));}
+out=plots.renderVals();assert.equal(out.isChartSuite,true);assert.match(JSON.stringify(out.chartSuiteEl),/Add at least two/);assert.equal(out.plotHistoryEmpty,false);
+plots.state.plotKind='scatter';plots.state.csPages={scatter:{x:'x',y:'y'}};plots.state.chartColor='#B22222';plots.clearMemo();
+out=plots.renderVals();let encoded=JSON.stringify(out.chartSuiteEl);assert.ok(encoded.includes('#B22222'));assert.ok(!encoded.includes('NaN'));
+for(const kind of ['gbox','stack']){plots.state={...plots.state,plotKind:kind,csPages:{[kind]:{x:'group',y:kind==='gbox'?'y':'group'}}};plots.clearMemo();out=plots.renderVals();encoded=JSON.stringify(out.chartSuiteEl);assert.ok(encoded.includes('<svg')||encoded.includes('dangerouslySetInnerHTML'));assert.ok(encoded.includes('#B22222'));}
 assert.ok(template.includes('value="{{ plotReady }}"'));assert.ok(template.includes('value="{{ plotHistoryEmpty }}"'));
 console.log('Current-chart validation/history separation, export availability and scatter/grouped/stacked colors passed.');
 

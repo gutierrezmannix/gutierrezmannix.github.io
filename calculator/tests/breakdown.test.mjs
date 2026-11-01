@@ -62,10 +62,16 @@ test('percent, counts and totals by year and sex match a direct count', async ()
   assert.match(t, /Break down by groups/);
   assert.match(t, /5 values of year in the range have no observations/);
   assert.match(t, /table year sexo, statistic\(mean _is\) statistic\(count _is\)/, 'Stata code');
-  assert.ok(find(tree, n => n.tag === 'polyline').length >= 3, 'one line per sex plus the total');
-  assert.equal(find(tree, n => n.tag === 'polyline').every(n => !/NaN/.test(n.props.points)), true);
+  // the chart is drawn by the chart builder (same look and Customize panel as the Charts tab)
+  const svg = find(tree, n => n.tag === 'svg' && n.props.dangerouslySetInnerHTML)[0], mk = svg.props.dangerouslySetInnerHTML.__html;
+  const lines = mk.match(/<path d="M[^"]*" fill="none" stroke="[^"]*" stroke-width="[^"]*" stroke-linejoin/g) || [];
+  assert.equal(lines.length, 3, 'one line per sex plus the total');
+  assert.ok(!/NaN|undefined/.test(mk), 'no NaN in the chart');
   // the line runs through the empty years instead of breaking into dots
-  assert.ok(find(tree, n => n.tag === 'polyline').some(n => n.props.points.split(' ').length === 6), 'six even years joined in one line');
+  assert.ok(lines.every(l => (l.match(/[ML]/g) || []).length === 6 + 0 || l.split('L').length === 6), 'six even years joined in one line');
+  assert.match(mk, />Total</, 'the total line is named at its end');
+  const tabs = find(tree, n => n.props && n.props.role === 'tab').map(text);
+  assert.deepEqual(tabs, ['Labels', 'Values', 'Colors'], 'Customize this chart sits under it');
 
   // click a cell: tab ss_dir if year == 2006 & sexo == 2
   const ri = res.rows.findIndex(r => r.label === '2006'), e2006 = expect((y, x) => y === 2006 && x === 2);

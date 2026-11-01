@@ -21,7 +21,7 @@ assert.deepEqual(E.observedRange(raw.cols[0].a),[1895,2030]);
 assert.deepEqual(E.observedRange(raw.cols[1].a),[1.23456,50.1234567]);
 assert.equal(E.observedRange([NaN,Infinity,-Infinity]),null);
 assert.deepEqual(E.observedRange([-50,-5,-20]),[-50,-5]);
-for(const [tab,slot,setup] of [['two','scatter',{xVar:'year',yVar:'budget',twoMode:'corr'}],['plots','plot',{pX:'year',pY:'budget',plotKind:'scatter'}]]){
+for(const [tab,slot,setup] of [['two','scatter',{xVar:'year',yVar:'budget',twoMode:'corr'}]]){
   let out=render({tab,ax:{},flt:null,...setup});
   const controls=out['ax'+slot[0].toUpperCase()+slot.slice(1)];
   assert.ok(controls.show&&controls.hasX&&controls.hasY&&controls.hasDataRange);
@@ -59,4 +59,6 @@ assert.ok(fit.props.y1>348&&fit.props.y2<18);
 assert.ok(leaves(line.node).some(n=>n.tag==='g'&&n.props.clipPath==='url(#clip-zoom)'));
 assert.ok(!JSON.stringify(line.node).includes('NaN'));
 assert.ok(template.includes('axScatter.rangeHint')&&template.includes('axPlot.rangeHint'));
+// Charts tab (chart builder): typed axis limits are used exactly, and a scatterplot never draws NaN
+{const m={type:'xy',points:[{x:1900,y:1.2,k:'All'},{x:2025,y:42,k:'All'}],series:[{key:'Fitted line',pts:[{x:1900,y:2},{x:2025,y:40}],style:'fit'}],seriesKeys:['All']};const sc=E.cbScene(m,{xmin:'1910',xmax:'2020',ymin:'10',ymax:'20'});assert.deepEqual(sc.xr,[1910,2020]);assert.deepEqual(sc.yr,[10,20]);assert.ok(!/NaN/.test(sc.markup));assert.ok(sc.markup.includes('clip-path'));}
 console.log('Observed ranges, exact endpoint ticks, active filters, manual limits, include-zero, Reset and true fit-line clipping passed in Charts and Correlation.');

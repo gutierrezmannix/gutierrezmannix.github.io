@@ -21,9 +21,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import breakdown  # noqa: E402  univariate tab: break down by groups
 import net_lab  # noqa: E402  networks analysis (Design A)
 import data_edit  # noqa: E402  edit data (Design A)
+import chart_builder  # noqa: E402  chart builder (Design A)
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-11-01.52'
+BUILD = '2026-11-01.53'
 LANGS = ['es', 'en', 'pt', 'fr']
 
 
@@ -129,12 +130,12 @@ def main():
     es = re.search(r'<script type="__bundler/ext_resources">(.*?)</script>', h, re.S)
     manifest, template, ext = json.loads(ms[1]), json.loads(ts[1]), json.loads(es[1])
     m = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', template, re.S)
-    template = template[:m.start(2)] + data_edit.integrate_component(net_lab.integrate_component(breakdown.integrate_component(integrate_component(m[2])))) + template[m.end(2):]
-    template = data_edit.integrate_template(net_lab.integrate_template(breakdown.integrate_template(integrate_template(template))))
+    template = template[:m.start(2)] + chart_builder.integrate_component(data_edit.integrate_component(net_lab.integrate_component(breakdown.integrate_component(integrate_component(m[2]))))) + template[m.end(2):]
+    template = chart_builder.integrate_template(data_edit.integrate_template(net_lab.integrate_template(breakdown.integrate_template(integrate_template(template)))))
     import gzip
     asset = manifest[ENGINE]
     e = gzip.decompress(base64.b64decode(asset['data'])).decode()
-    asset['data'] = base64.b64encode(gzip.compress(net_lab.integrate_engine(integrate_engine(e)).encode(), mtime=0)).decode()
+    asset['data'] = base64.b64encode(gzip.compress(chart_builder.integrate_engine(net_lab.integrate_engine(integrate_engine(e))).encode(), mtime=0)).decode()
     # lemma tables: stored as gzip bytes, decompressed in the page only when used
     for lang in LANGS:
         uid = str(uuid.uuid5(uuid.NAMESPACE_URL, 'gm26/lemma/' + lang))

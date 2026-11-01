@@ -108,15 +108,17 @@
         h('tbody', null, rows.map((r, ri) => ri).concat(O.totals ? [Rn] : []).map(ri => h('tr', { key: ri, className: ri === Rn ? 'ob-tot' : rows[ri].empty ? 'ob-empty' : '' }, h('td', { className: 'w' }, ri === Rn ? 'Total' : rows[ri].label),
           ...colKeys.map(ci => { const c = grid[ri][ci], val = this.obValue(c, stat), on = O.cell && O.cell[0] === ri && O.cell[1] === ci; return h('td', { key: ci, className: 'n' }, c.n ? h('button', { type: 'button', className: 'ob-cell' + (on ? ' on' : ''), title: 'Show the full tabulation for this cell', onClick: () => pick(ri, ci) }, h('span', null, fmtV(val)), O.showN ? h('small', null, 'N ' + this.fmtN(c.n)) : null) : h('span', { className: 'ob-none' }, '—')); }))))));
     }
-    // chart: over the rows (lines per column group) when the rows are ordered numbers
+    // chart: over the rows (lines per column group) when the rows are ordered numbers; drawn by the chart builder
+    // so it gets the same Customize panel as the Charts tab (names, values at each year, colors)
     let chart = null;
     const numericRows = rows.length > 1 && rows.every(r => isFinite(r.code));
     if (stat !== 'tab' && rows.length > 1) {
-      const series = (colsV ? cols.map((c, ci) => ({ name: c.label, color: this.tlPal(ci), pts: rows.map((r, ri) => this.obValue(grid[ri][ci], stat)) })) : []).concat(!colsV || O.totals ? [{ name: colsV ? 'Total' : v, color: colsV ? '#6B6455' : this.tlPal(0), pts: rows.map((r, ri) => this.obValue(grid[ri][Cn], stat)) }] : []);
       const ylab = pct ? '% where ' + v + ' = ' + level : stat === 'count' ? 'count where ' + v + ' = ' + level + wN : (stats.find(s => s[0] === stat) || [])[1] + ' of ' + v + (stat === 'n' || stat === 'wn' ? '' : wN);
-      chart = numericRows ? this.tlLinesSvg('obline', rows.map(r => r.label), series, { ylab, pct, connect: true, title: ylab + ' by ' + O.rows + (colsV ? ' and ' + colsV : '') })
-        : this.tlBarsSvg('obline', rows.map((r, ri) => ({ label: r.label, value: this.obValue(grid[ri][Cn], stat), color: this.tlPal(0) })).filter(x => isFinite(x.value)), { title: ylab + ' by ' + O.rows, xlab: ylab, pct });
-      chart = h('div', { className: 'tl-col' }, chart, this.tlExportRow('obline', 'breakdown-' + v + '-by-' + O.rows + (colsV ? '-' + colsV : '')));
+      const autoTitle = ylab + ' by ' + O.rows + (colsV ? ' and ' + colsV : '');
+      const fileName = 'breakdown-' + v + '-by-' + O.rows + (colsV ? '-' + colsV : '');
+      if (this._E.cbScene && this.cbMini) chart = this.obChart({ v, O, set, rows, cols, grid, Cn, colsV, stat, pct, ylab, autoTitle, numericRows, level, fileName });
+      else chart = h('div', { className: 'tl-col' }, numericRows ? this.tlLinesSvg('obline', rows.map(r => r.label), (colsV ? cols.map((c, ci) => ({ name: c.label, color: this.tlPal(ci), pts: rows.map((r, ri) => this.obValue(grid[ri][ci], stat)) })) : []).concat(!colsV || O.totals ? [{ name: colsV ? 'Total' : v, color: colsV ? '#6B6455' : this.tlPal(0), pts: rows.map((r, ri) => this.obValue(grid[ri][Cn], stat)) }] : []), { ylab, pct, connect: true, title: autoTitle })
+        : this.tlBarsSvg('obline', rows.map((r, ri) => ({ label: r.label, value: this.obValue(grid[ri][Cn], stat), color: this.tlPal(0) })).filter(x => isFinite(x.value)), { title: ylab + ' by ' + O.rows, xlab: ylab, pct }), this.tlExportRow('obline', fileName));
     }
     // one cell in full: tab v if rows == r & cols == c
     let detail = null;
@@ -151,5 +153,63 @@
       h('div', { className: 'tl-row' }, this.tlBtn(S.copied === 'ob' ? 'Copied ✓' : 'Copy table (for Excel)', () => this.copyTSV('ob', tsv())), stat !== 'tab' ? h('span', { className: 'tl-hint' }, 'Click a cell for its full tabulation (tab ' + v + ' if …).') : null),
       detail, chart,
       h('details', { className: 'tl-details code' }, h('summary', null, (S.dialect === 'r' ? 'R' : 'Stata') + ' code'), h('pre', { className: 'tl-code' }, code), this.tlBtn(S.copied === 'obc' ? 'Copied ✓' : 'Copy', () => this.copyTSV('obc', code)))]);
+  }
+  obChart(o) {
+    const h = React.createElement, S = this.state, E = this._E, { v, O, rows, cols, grid, Cn, colsV, stat, pct } = o;
+    const cfg = O.chart || {}, setC = p => this.obSet({ chart: Object.assign({}, (this.obS().chart) || {}, p) });
+    const pal = E.CB_PALETTES[cfg.palette || 'sendero'] || E.CB_PALETTES.sendero;
+    const base = cfg.palette ? pal : [S.chartColor || pal[0], ...pal.filter(x => x.toLowerCase() !== String(S.chartColor || pal[0]).toLowerCase())];
+    const totKey = colsV ? 'Total' : v;
+    const ser = (colsV ? cols.map((c, ci) => ({ key: c.label, ci })) : []).concat(!colsV || O.totals ? [{ key: totKey, ci: Cn }] : []);
+    const sNames = Object.assign({}, colsV ? this.cbNameMap(colsV) : {}, cfg.names || {}), rNames = Object.assign({}, this.cbNameMap(O.rows), cfg.names || {});
+    const sColors = Object.assign({}, colsV ? this.cbColorMap(colsV) : {}, cfg.colors || {});
+    const colorOf = (k, i) => sColors[k] || (colsV && k === 'Total' ? '#6B6455' : base[i % base.length]);
+    const colors = {}; ser.forEach((s, i) => { colors[s.key] = colorOf(s.key, i); });
+    const rowLab = r => (rNames[r.label] != null && String(rNames[r.label]).trim() !== '' ? String(rNames[r.label]) : r.label);
+    let M;
+    if (o.numericRows) {
+      const xLabels = {}; let labelled = false; rows.forEach(r => { xLabels[r.code] = rowLab(r); if (xLabels[r.code] !== String(r.code)) labelled = true; });
+      const series = ser.map(s => { const pts = rows.map((r, ri) => ({ x: r.code, y: this.obValue(grid[ri][s.ci], stat), n: grid[ri][s.ci].n })).filter(p => isFinite(p.y)); return { key: s.key, pts, segments: [pts], style: 'line' }; }).filter(s => s.pts.length);
+      M = { type: 'xy', xTime: true, xLabels: labelled ? xLabels : null, series, seriesKeys: series.map(s => s.key), pct, zero: cfg.zero === '1' ? true : cfg.zero === '0' ? false : ['pct', 'count', 'n', 'wn', 'sum'].includes(stat) };
+    } else {
+      const sk = colsV ? cols.map(c => c.label) : ['All'], ci = colsV ? cols.map((c, i) => i) : [Cn];
+      M = { type: 'cat', mode: colsV ? 'group' : 'single', colorBy: colsV ? 'series' : 'cat', cats: rows.map(r => r.label), series: sk, seriesKeys: sk, vals: rows.map((r, ri) => ci.map(c => { const x = this.obValue(grid[ri][c], stat); return isFinite(x) ? { v: x, n: grid[ri][c].n } : null; })), pct, zero: cfg.zero === '0' ? false : true };
+      if (!colsV) colors.All = colorOf(v, 0);
+    }
+    const src = [S.fileName ? String(S.fileName).replace(/\.[^.]+$/, '') : null, S.weightVar ? 'weighted by ' + S.weightVar : null, this.conds().length ? 'rows: ' + this.conds().map(q => this.condLabel(q)).join(' & ') : null].filter(Boolean).join(' · ');
+    const opt = { title: cfg.title || o.autoTitle, subtitle: cfg.subtitle || undefined, source: cfg.source || src, yTitle: o.numericRows ? o.ylab : undefined, xTitle: o.numericRows ? O.rows : undefined,
+      names: Object.assign({}, sNames, colsV ? {} : { [v]: v }), catNames: rNames, colors, catColors: colsV ? {} : { All: colorOf(v, 0) }, palette: base,
+      values: cfg.values || 'none', fmt: cfg.fmt || 'auto', decimals: cfg.decimals === '' || cfg.decimals == null ? null : +cfg.decimals, legend: cfg.legend || 'auto', everyX: cfg.everyX === '1' ? true : undefined, text: 'm', clipId: 'obline', markers: true };
+    let sc; try { sc = E.cbScene(M, opt); } catch (e) { return this.tlBanner('warn', 'This chart could not be drawn: ' + e.message); }
+    (this._plotName || (this._plotName = {})).obline = opt.title;
+    const sets = [];
+    if (colsV) sets.push({ role: 'series', title: o.numericRows ? 'Lines' : 'Bars', v: colsV, keys: cols.map(c => c.label), map: sNames, colorable: true, colors });
+    if (colsV && O.totals) sets.push({ role: 'total', title: 'Total line', v: null, keys: ['Total'], map: cfg.names || {}, colorable: true, colors });
+    if (!colsV) sets.push({ role: 'single', title: '', v: null, keys: [v], map: {}, colorable: true, colors: { [v]: colorOf(v, 0) } });
+    const rowsNamable = rows.length <= 40 && rows.some(r => !isFinite(r.code) || String(r.code) !== r.label || this.colIdx(O.rows) >= 0 && this._raw.cols[this.colIdx(O.rows)].k !== 'n');
+    if (rowsNamable) sets.push({ role: 'rows', title: o.numericRows ? 'Points on the axis' : 'Bars', v: O.rows, keys: rows.map(r => r.label), map: rNames, colorable: false });
+    return h('div', { className: 'tl-col' },
+      h('figure', { className: 'cb-fig ob-fig', style: { margin: 0 } }, h('svg', { viewBox: '0 0 ' + sc.width + ' ' + sc.height, role: 'img', 'aria-label': opt.title, ref: this.svgRef('obline'), style: { display: 'block', width: '100%', height: 'auto' }, dangerouslySetInnerHTML: { __html: sc.markup } })),
+      this.tlExportRow('obline', o.fileName),
+      this.cbMini({ id: 'ob', cfg, set: setC, sets, lineish: o.numericRows, autoTitle: o.autoTitle, colorOf: (k, i) => colors[k] || colorOf(k, i),
+        open: this.obBuilderPage(o) ? () => this.obToBuilder(o) : null }));
+  }
+  // open the same breakdown as a page in the Charts tab (only when the Charts page computes exactly the same numbers)
+  obBuilderPage(o) {
+    const { v, O, colsV, stat, level } = o, time = o.numericRows, w = !!this.state.weightVar;
+    if (time) {
+      const st = stat === 'mean' ? 'mean' : stat === 'sum' ? 'sum' : stat === 'n' && !w ? 'count' : stat === 'wn' && w ? 'count' : stat === 'pct' && String(level) === '1' && this.obIsBinary(v) ? 'pct' : null;
+      if (!st) return null;
+      return { id: 'multiline', page: { stat: st, y: st === 'count' ? '' : v, x: O.rows, group: colsV || '', sel: colsV ? o.cols.map(c => c.label).slice(0, 12) : [] } };
+    }
+    if (colsV) return stat === 'n' && !w || stat === 'wn' && w ? { id: 'groupbar', page: { x: O.rows, y: colsV, stat: 'count' } } : null;
+    const st = stat === 'mean' ? 'mean' : stat === 'sum' ? 'sum' : stat === 'n' && !w || stat === 'wn' && w ? 'count' : null;
+    return st ? { id: 'bar', page: { x: O.rows, stat: st, y: st === 'count' ? '' : v } } : null;
+  }
+  obIsBinary(v) { const d = this.numCore(v); if (!d) return false; for (let i = 0; i < d.length; i++) { const x = d[i]; if (x != null && isFinite(x) && x !== 0 && x !== 1) return false; } return true; }
+  obToBuilder(o) {
+    const t = this.obBuilderPage(o); if (!t) return;
+    const cfg = o.O.chart || {}, keep = {}; ['title', 'subtitle', 'values', 'fmt', 'decimals', 'legend', 'everyX', 'palette', 'colors', 'names'].forEach(k => { if (cfg[k] != null && cfg[k] !== '') keep[k] = cfg[k]; });
+    this.cbOpenWith(t.id, Object.assign({}, t.page, keep));
   }
   // GM26 breakdown end
