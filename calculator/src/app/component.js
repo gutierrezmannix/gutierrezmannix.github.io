@@ -6656,6 +6656,34 @@ class Component extends DCLogic {
     return h('section', { className: 'tl-panel cb-custom' }, h('div', { className: 'cb-ctitle' }, h('h3', null, 'Customize')), tabs, body);
   }
   // GM26 map lab end
+  // GM26 intro page begin
+  // ---- GM26 intro page (Design B): start from a task. A task card opens the file picker and remembers where to go
+  // once the file has loaded (Charts, Map, Text analysis, Networks); unsaved work is listed under "Continue".
+  introVals(out) {
+    const S = this.state;
+    const open = goal => () => { this._introGoal = goal ? Object.assign({ at: Date.now() }, goal) : null; if (this._file) this._file.click(); };
+    out.introPick = () => { this._introGoal = null; if (this._file) this._file.click(); };
+    out.introDrop = e => { this._introGoal = null; out.onDrop(e); };
+    out.introOpenExplore = open(null);
+    out.introOpenCharts = open({ tab: 'plots', plotKind: '__gallery' });
+    out.introOpenMap = open({ tab: 'plots', plotKind: 'map' });
+    out.introOpenText = open({ tab: 'text' });
+    out.introOpenNet = open({ tab: 'ergm' });
+    const list = !out.showWork && !S.parsing && S.screen !== 'work' ? (S.asList || []).slice(0, 4) : [];
+    out.introRecent = list.map(r => {
+      const sm = this.asSummary(r.sum);
+      return { name: r.fileName, sub: [sm, this.asWhen(r.at)].filter(Boolean).join(' · ') + (r.hasFull ? '' : ' · open the file again to restore it'), canRestore: !!r.hasFull, restore: () => this.autoRestore(r.sig), discard: () => this.autoDiscard(r.sig) };
+    });
+    out.hasIntroRecent = out.introRecent.length > 0;
+  }
+  // after the file has loaded, go to the task's tab (only for a goal set in the last 15 minutes)
+  introApply() {
+    const g = this._introGoal; this._introGoal = null; if (!g || Date.now() - g.at > 15 * 60 * 1000) return;
+    if (g.tab === 'plots' && g.plotKind) this.csOpen(g.plotKind); else this.setState({ tab: g.tab, mfNav: '', mfFile: false, mfMobile: 'analysis' });
+    // Networks: the file just opened is the list of ties
+    if (g.tab === 'ergm' && typeof this.nlUseCurrent === 'function') setTimeout(() => { try { this.nlUseCurrent('e'); } catch (e) {} }, 0);
+  }
+  // GM26 intro page end
   descFor() {
     const S = this.state;
     if (S.screen !== 'work' || !S.cols.length) return null;
@@ -9035,7 +9063,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-01.58') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-01.59') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -9049,6 +9077,7 @@ class Component extends DCLogic {
   }
   renderVals() {
     const S = this.state, E = this._E;
+    if (this._introGoal && S.screen === 'work' && !S.parsing && this._raw) setTimeout(() => this.introApply(), 0);
     if (E && E.setStamp) { let st = ''; try { st = this.stampText(); } catch (e) {} E.setStamp(st); }
     const dataOk = !!(E && this._raw && Array.isArray(this._raw.cols) && S.screen === 'work');
     const out = {
@@ -9086,7 +9115,7 @@ class Component extends DCLogic {
         BAN.push({ text: 'You have autosaved work on ' + o.fileName + ' from ' + this.asWhen(o.at) + (sm ? ' (' + sm + ')' : '') + '. Restore it? Until you choose, new work is not autosaved.', style: 'border-left: 4px solid var(--c194F39, #194F39);',
           acts: [btn('Restore my work', () => this.autoRestore(o.sig), true), btn('Start fresh', () => this.autoDiscard(o.sig))] });
       }
-      if (!out.showWork && !S.parsing && S.screen !== 'work') (S.asList || []).slice(0, 3).forEach(r => {
+      if (!out.showWork && !S.parsing && S.screen !== 'work' && !this.introVals) (S.asList || []).slice(0, 3).forEach(r => {
         const sm = this.asSummary(r.sum);
         BAN.push({ text: 'Unsaved work from ' + this.asWhen(r.at) + ': ' + r.fileName + (sm ? ' · ' + sm : '') + (r.hasFull ? '' : ' — open ' + r.fileName + ' again to restore it'), style: 'border-left: 4px solid var(--c194F39, #194F39);',
           acts: (r.hasFull ? [btn('Restore', () => this.autoRestore(r.sig), true)] : []).concat([btn('Discard', () => this.autoDiscard(r.sig))]) });
@@ -9120,6 +9149,7 @@ class Component extends DCLogic {
       out.repPrint = () => window.print();
     }
     out.analysisStart = () => this.asStart();
+    this.introVals(out);
     if (!out.showWork) return out;
     this._axOut = out; ['Hist', 'Box', 'Scatter', 'Gbox', 'Plot', 'Ts', 'Mg', 'Coef', 'Tt', 'Rvf', 'Resid'].forEach(n => { out['ax' + n] = { show: false }; });
     const R = React, w = this.wArr(), a = this.alpha();

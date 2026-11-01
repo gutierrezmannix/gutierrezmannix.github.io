@@ -105,7 +105,43 @@
 .cb.ml .ml-country{max-width:min(100%,300px)}
 .cb.ml .ml-paste summary{cursor:pointer;font-size:12.5px;color:var(--c194F39,#194F39);font-weight:600;padding:4px 0}
 .cb.ml .ml-paste textarea{width:100%;max-width:520px;font-family:var(--fMono,'Space Mono',monospace);font-size:12.5px;margin:6px 0}
-</style><!-- GM26 map lab end --><!-- GM26 chart directory --><style>.cs-workspace,.cs-directory { color:var(--c2B271E,#20362F); padding:8px; min-width:0; }
+</style><!-- GM26 map lab end --><!-- GM26 intro css begin --><style>/* GM26 intro page (Design B): start from a task — built by tools/intro_page.py */
+.gi{flex:1;display:flex;justify-content:center;padding:44px 24px 72px;box-sizing:border-box}
+.gi-wrap{width:100%;max-width:1180px;display:flex;flex-direction:column;gap:30px}
+.gi-hero{display:flex;flex-wrap:wrap;gap:28px;align-items:stretch}
+.gi-copy{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:14px}
+.gi-kicker{font-family:var(--fMono,'Space Mono',monospace);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--c194F39,#194F39)}
+.gi-h1{margin:0;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:50px;line-height:1.05;letter-spacing:-.02em;color:var(--c1A1711,#1A1711)}
+.gi-lead{margin:0;max-width:560px;font-size:18px;line-height:1.55;color:var(--c3D3629,#3D3629)}
+.gi-drop{position:relative;flex:1 1 360px;min-width:0;box-sizing:border-box;background:var(--cFFFEFA,#FFFEFA);border:2px dashed var(--cAB9F8A,#AB9F8A);border-radius:12px;padding:26px 22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;box-shadow:0 10px 30px rgba(43,49,58,.12)}
+.gi-drop:hover{border-color:var(--c194F39,#194F39)}
+.gi-dropicon{width:50px;height:50px;border-radius:999px;background:var(--cEDF5F0,#EDF5F0);border:1px solid var(--cCBE0D4,#CBE0D4);display:flex;align-items:center;justify-content:center}
+.gi-droptitle{font-weight:700;font-size:19px;color:var(--c1A1711,#1A1711);text-align:center}
+.gi-drop .tl-formats{text-align:center;font-family:var(--fUI,'Hanken Grotesk',sans-serif);font-size:14px;letter-spacing:0;color:var(--c3D3629,#3D3629);margin-top:0}
+.gi-browse{font-family:var(--fUI,'Hanken Grotesk',sans-serif);font-weight:700;font-size:16px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;color:#FFFFFF;background:var(--cC4681E,#C4681E);border:1px solid var(--cA3540F,#A3540F);border-bottom-color:var(--c8F4A0E,#8F4A0E);border-radius:12px;padding:14px 34px;cursor:pointer}
+.gi-browse:active{transform:translateY(2px)}
+.gi-release{position:absolute;inset:0;border-radius:10px;background:rgba(250,247,241,.95);border:2px solid var(--c194F39,#194F39);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;letter-spacing:.14em;color:var(--c194F39,#194F39);pointer-events:none;animation:lcdBlink .9s steps(2) infinite}
+.gi-sec{display:flex;flex-direction:column;gap:14px}
+.gi-h2{margin:0;font-family:var(--fMono,'Space Mono',monospace);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--c194F39,#194F39)}
+.gi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:16px}
+.gi-card{background:#FFFFFF;border:1px solid var(--cE3DCCE,#E3DCCE);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.gi-art{display:block;width:100%;height:70px;background:var(--cF7F4EC,#F7F4EC);border-radius:8px}
+.gi-h3{margin:0;font-size:19px;font-weight:800;color:var(--c1A1711,#1A1711)}
+.gi-p{margin:0;font-size:14.5px;line-height:1.5;color:var(--c3D3629,#3D3629)}
+.gi-bring{margin:0;font-size:13.5px;line-height:1.45;color:var(--c5D5648,#5D5648)}
+.gi-bring b{color:var(--c1A1711,#1A1711)}
+.gi-open{margin-top:auto;align-self:flex-start;font-family:inherit;font-weight:700;font-size:15px;color:var(--c194F39,#194F39);border:1px solid var(--cAFD2BF,#AFD2BF);background:var(--cEDF5F0,#EDF5F0);border-radius:9px;padding:10px 16px;cursor:pointer;min-height:44px}
+.gi-open:hover{background:#DDEDE4}
+.gi-recent{display:flex;flex-wrap:wrap;gap:12px}
+.gi-rcard{flex:1 1 380px;min-width:0;background:#FFFFFF;border:1px solid var(--cD9D2C4,#D9D2C4);border-radius:10px;padding:12px 16px;display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px}
+.gi-rtext{flex:1 1 200px;min-width:0}
+.gi-rname{font-weight:700;font-size:15.5px;color:var(--c1A1711,#1A1711);overflow-wrap:anywhere}
+.gi-rsub{font-size:13.5px;color:var(--c5D5648,#5D5648)}
+.gi-cont{font-family:inherit;font-weight:700;font-size:14px;color:#FFFFFF;background:var(--c194F39,#194F39);border:0;border-radius:8px;padding:10px 16px;cursor:pointer;min-height:44px}
+.gi-remove{font-family:inherit;font-size:14px;color:var(--c5D5648,#5D5648);background:none;border:0;padding:10px 6px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;min-height:44px}
+.gi button:focus-visible,.gi-drop:focus-visible{outline:2px solid var(--c194F39,#194F39);outline-offset:2px}
+@media (max-width:640px){.gi{padding:24px 16px 48px}.gi-h1{font-size:34px}.gi-lead{font-size:16px}.gi-browse{width:100%}.gi-wrap{gap:22px}}
+</style><!-- GM26 intro css end --><!-- GM26 chart directory --><style>.cs-workspace,.cs-directory { color:var(--c2B271E,#20362F); padding:8px; min-width:0; }
 .cs-heading h2,.cs-directory h2 {font-family:var(--fUI,sans-serif);font-size:22px;margin:12px 0;}
 .cs-heading nav {font-size:12px;line-height:1.7;}
 .cs-card {background:var(--cFFFFFF,#FFFEFA);border:1px solid var(--c7E7563,#7E7563);border-radius:10px;padding:15px;margin-bottom:12px;min-width:0;}
@@ -987,77 +1023,23 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <sc-if value="{{ showUpload }}" hint-placeholder-val="{{ true }}">
-    <section data-screen-label="Load bay" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px 90px;">
-      <div style="width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 20px;">
-        <div style="display: flex; flex-direction: column; gap: 10px; text-align: center; align-items: center;">
-          <svg width="540" height="137" sc-camel-view-box="0 0 300 76" style="max-width: 100%; height: auto;" fill="none" aria-hidden="true" shape-rendering="geometricPrecision">
-            <g>
-              <text x="188.8" y="25.1" font-family="Hanken Grotesk, sans-serif" font-size="15" font-weight="800" fill="#2E7D58" text-anchor="middle" stroke="#FAF7F1" stroke-width="2.2" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">democracy</text>
-              <text x="208.1" y="49.3" font-family="Hanken Grotesk, sans-serif" font-size="12.5" font-weight="800" fill="#C4681E" text-anchor="middle" stroke="#FAF7F1" stroke-width="2.2" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">voters</text>
-              <text x="253.1" y="40.8" font-family="Hanken Grotesk, sans-serif" font-size="12" font-weight="800" fill="#1A5061" text-anchor="middle" stroke="#FAF7F1" stroke-width="2.2" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">trust</text>
-              <text x="164.4" y="35.4" font-family="Hanken Grotesk, sans-serif" font-size="10.5" font-weight="800" fill="#934425" text-anchor="middle" stroke="#FAF7F1" stroke-width="2.2" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">elections</text>
-              <text x="208.0" y="58.4" font-family="Hanken Grotesk, sans-serif" font-size="9.5" font-weight="800" fill="#194F39" text-anchor="middle" stroke="#FAF7F1" stroke-width="2.2" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">inequality</text>
-              <text x="143.6" y="45.1" font-family="Hanken Grotesk, sans-serif" font-size="10" font-weight="800" fill="#357F93" text-anchor="middle" stroke="#FAF7F1" stroke-width="2.2" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">policy</text>
-              <text x="209.4" y="12.8" font-family="Hanken Grotesk, sans-serif" font-size="8.5" font-weight="700" fill="#C4681E" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">polarization</text>
-              <text x="251.1" y="49.7" font-family="Hanken Grotesk, sans-serif" font-size="9" font-weight="800" fill="#2E7D58" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">rights</text>
-              <text x="261.9" y="28.5" font-family="Hanken Grotesk, sans-serif" font-size="8.5" font-weight="800" fill="#1A5061" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">parties</text>
-              <text x="127.3" y="25.4" font-family="Hanken Grotesk, sans-serif" font-size="8" font-weight="700" fill="#934425" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">ideology</text>
-              <text x="161.0" y="56.1" font-family="Hanken Grotesk, sans-serif" font-size="8" font-weight="700" fill="#2E7D58" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">protest</text>
-              <text x="164.3" y="12.8" font-family="Hanken Grotesk, sans-serif" font-size="7.5" font-weight="700" fill="#C4681E" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">turnout</text>
-              <text x="254.5" y="57.0" font-family="Hanken Grotesk, sans-serif" font-size="7.5" font-weight="700" fill="#357F93" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">welfare</text>
-              <text x="120.9" y="35.0" font-family="Hanken Grotesk, sans-serif" font-size="8" font-weight="800" fill="#194F39" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">power</text>
-              <text x="131.3" y="16.5" font-family="Hanken Grotesk, sans-serif" font-size="7.5" font-weight="700" fill="#934425" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">justice</text>
-              <text x="221.9" y="38.2" font-family="Hanken Grotesk, sans-serif" font-size="7.5" font-weight="700" fill="#1A5061" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">media</text>
-              <text x="201.6" y="65.3" font-family="Hanken Grotesk, sans-serif" font-size="7" font-weight="700" fill="#2E7D58" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">citizens</text>
-              <text x="284.9" y="36.2" font-family="Hanken Grotesk, sans-serif" font-size="7" font-weight="700" fill="#C4681E" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">gender</text>
-              <text x="163.4" y="65.9" font-family="Hanken Grotesk, sans-serif" font-size="7" font-weight="700" fill="#194F39" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">migration</text>
-              <text x="284.8" y="47.2" font-family="Hanken Grotesk, sans-serif" font-size="7" font-weight="700" fill="#357F93" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">survey</text>
-              <text x="248.7" y="17.8" font-family="Hanken Grotesk, sans-serif" font-size="7" font-weight="800" fill="#1A5061" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">hola</text>
-              <text x="239.8" y="65.7" font-family="Hanken Grotesk, sans-serif" font-size="6.8" font-weight="700" fill="#934425" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">opinion</text>
-              <text x="119.9" y="54.2" font-family="Hanken Grotesk, sans-serif" font-size="6.8" font-weight="700" fill="#1A5061" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">class</text>
-              <text x="253.0" y="6.3" font-family="Hanken Grotesk, sans-serif" font-size="6.6" font-weight="700" fill="#2E7D58" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">regimes</text>
-              <text x="280.9" y="19.4" font-family="Hanken Grotesk, sans-serif" font-size="6.8" font-weight="800" fill="#C4681E" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">vote</text>
-              <text x="142.8" y="5.9" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#C4681E" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">congress</text>
-              <text x="272.3" y="63.8" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#357F93" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">identity</text>
-              <text x="284.5" y="53.8" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#2E7D58" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">civic</text>
-              <text x="127.6" y="65.3" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#934425" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">conflict</text>
-              <text x="282.6" y="10.8" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#357F93" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">state</text>
-              <text x="101.7" y="12.5" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#934425" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">reform</text>
-              <text x="114.0" y="42.4" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#1A5061" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">laws</text>
-              <text x="115.4" y="6.1" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#2E7D58" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">wealth</text>
-              <text x="76.3" y="11.7" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#194F39" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">borders</text>
-              <text x="74.5" y="5.5" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#194F39" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">networks</text>
-              <text x="51.1" y="12.5" font-family="Hanken Grotesk, sans-serif" font-size="6.5" font-weight="700" fill="#357F93" text-anchor="middle" stroke="#FAF7F1" stroke-width="1.5" paint-order="stroke" stroke-linejoin="round" text-rendering="geometricPrecision">nation</text>
-            </g>
-            <rect x="12" y="44" width="18" height="26" rx="2" fill="#2E7D58"></rect>
-            <rect x="36" y="30" width="18" height="40" rx="2" fill="#357F93"></rect>
-            <rect x="60" y="52" width="18" height="18" rx="2" fill="#E5912A"></rect>
-            <rect x="84" y="18" width="18" height="52" rx="2" fill="#B0572F"></rect>
-            <circle cx="138" cy="54" r="4.5" fill="#357F93" stroke="#FAF7F1" stroke-width="1.5"></circle>
-            <circle cx="170" cy="44" r="4.5" fill="#2E7D58" stroke="#FAF7F1" stroke-width="1.5"></circle>
-            <circle cx="204" cy="34" r="4.5" fill="#E5912A" stroke="#FAF7F1" stroke-width="1.5"></circle>
-            <circle cx="236" cy="26" r="4.5" fill="#B0572F" stroke="#FAF7F1" stroke-width="1.5"></circle>
-            <circle cx="266" cy="14" r="4.5" fill="#357F93" stroke="#FAF7F1" stroke-width="1.5"></circle>
-            <path d="M126 62 L282 6" stroke="#194F39" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1 7"></path>
-            <line x1="12" y1="70" x2="290" y2="70" stroke="#1A1711" stroke-width="2"></line>
-          </svg>
-          <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 50px; letter-spacing: -0.02em; color: var(--c1A1711, #1A1711);">GM<span style="color: var(--c2E7D58, #2E7D58);">26.1</span></h1>
-          <p style="margin: 0 auto; max-width: 500px; font-size: 16.5px; line-height: 1.55; color: var(--c6B6455, #6B6455); text-wrap: pretty;">Welcome to your public calculator! Everything runs on this machine, and your data never leaves it.</p>
-        </div>
-
-        <div sc-camel-on-click="{{ pickFile }}" sc-camel-on-drag-over="{{ onDragOver }}" sc-camel-on-drag-leave="{{ onDragLeave }}" sc-camel-on-drop="{{ onDrop }}" style="position: relative; background: var(--cFFFFFF, #FFFFFF); border: 2px dashed var(--cAB9F8A, #AB9F8A); border-radius: 9px; padding: 34px 24px 30px; display: flex; flex-direction: column; align-items: center; gap: 16px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 10px 30px rgba(43,49,58,0.16);" style-hover="border-color: var(--c80B79B, #80B79B); box-shadow: 0 4px 12px rgba(43,39,30,0.10);">
-          <div style="width: 58px; height: 58px; border-radius: 999px; background: var(--cEDF5F0, #EDF5F0); border: 1px solid var(--cCBE0D4, #CBE0D4); display: flex; align-items: center; justify-content: center;">
-            <svg width="26" height="26" sc-camel-view-box="0 0 24 24" fill="none" stroke="#2E7D58" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m8 11 4 4 4-4"></path><path d="M4 21h16"></path></svg>
+    <!-- GM26 intro begin -->
+<section data-screen-label="Load bay" class="gi">
+      <div class="gi-wrap">
+        <div class="gi-hero">
+          <div class="gi-copy">
+            <div class="gi-kicker">Statistics calculator · works offline</div>
+            <h1 class="gi-h1">What would you like to do today?</h1>
+            <p class="gi-lead">Pick a task below, or just open your file. Everything runs on this computer, and your data never leaves it.</p>
           </div>
-          <div style="font-weight: 600; font-size: 19px; color: var(--c1A1711, #1A1711); white-space: nowrap;">Drag a data file here</div><div class="tl-formats">CSV · TSV · Excel (.xlsx) · Stata (.dta) · saved session</div>
-          <button style="font-family: var(--fUI, 'Hanken Grotesk', sans-serif); font-weight: 700; font-size: 17px; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; color: var(--cFFFFFF, #FFFFFF); background: var(--cC4681E, #C4681E); border: 1px solid var(--cA3540F, #A3540F); border-bottom: 1px solid var(--c8F4A0E, #8F4A0E); border-radius: 12px; padding: 15px 38px; cursor: pointer; " style-active="transform: translateY(2px); border-bottom-width: 2px;">Browse files</button>
-          <a href="#" sc-camel-on-click="{{ newDatasetLink }}" style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; color: var(--c194F39, #194F39); text-decoration: none; background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD9D2C4, #D9D2C4); border-radius: 999px; padding: 12px 26px; box-shadow: 0 1px 3px rgba(43,39,30,0.06);">
-            <svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#2E7D58" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10 H21 M9 4 V20"></path></svg>
-            Create your own dataset</a>
-
-          <sc-if value="{{ dragging }}" hint-placeholder-val="{{ false }}">
-            <div style="position: absolute; inset: 0; border-radius: 9px; background: rgba(250,247,241,0.94); border: 2px solid var(--c194F39, #194F39); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 22px; letter-spacing: 0.14em; color: var(--c194F39, #194F39); pointer-events: none; animation: lcdBlink 0.9s steps(2) infinite;">RELEASE TO LOAD</div>
-          </sc-if>
+          <div class="gi-drop" sc-camel-on-click="{{ introPick }}" sc-camel-on-drag-over="{{ onDragOver }}" sc-camel-on-drag-leave="{{ onDragLeave }}" sc-camel-on-drop="{{ introDrop }}">
+            <div class="gi-dropicon"><svg width="24" height="24" sc-camel-view-box="0 0 24 24" fill="none" stroke="#2E7D58" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m8 11 4 4 4-4"></path><path d="M4 21h16"></path></svg></div>
+            <div class="gi-droptitle">Drop any data file here</div><div class="tl-formats">CSV · TSV · Excel (.xlsx) · Stata (.dta) · saved session</div>
+            <button type="button" class="gi-browse">Browse files</button>
+            <sc-if value="{{ dragging }}" hint-placeholder-val="{{ false }}">
+              <div class="gi-release">RELEASE TO LOAD</div>
+            </sc-if>
+          </div>
         </div>
         <input type="file" sc-camel-on-change="{{ onFileChange }}" ref="{{ fileRef }}" style="display: none;">
 
@@ -1075,8 +1057,72 @@ code, kbd, samp { font-family: var(--font-mono); }
         <sc-if value="{{ hasError }}" hint-placeholder-val="{{ false }}">
           <div style="background: var(--cFDF3E2, #FDF3E2); border: 1px solid var(--cF5C778, #F5C778); border-radius: 9px; padding: 9px 14px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 13px; color: var(--c9C4A08, #9C4A08);">ERR // {{ error }}</div>
         </sc-if>
+
+        <sc-if value="{{ hasIntroRecent }}" hint-placeholder-val="{{ false }}">
+          <section class="gi-sec" aria-label="Continue where you left off">
+            <h2 class="gi-h2">Continue where you left off</h2>
+            <div class="gi-recent">
+              <sc-for list="{{ introRecent }}" as="r" hint-placeholder-count="2">
+                <div class="gi-rcard">
+                  <div class="gi-rtext"><div class="gi-rname">{{ r.name }}</div><div class="gi-rsub">{{ r.sub }}</div></div>
+                  <sc-if value="{{ r.canRestore }}" hint-placeholder-val="{{ true }}"><button type="button" class="gi-cont" sc-camel-on-click="{{ r.restore }}">Continue</button></sc-if>
+                  <button type="button" class="gi-remove" sc-camel-on-click="{{ r.discard }}" title="Remove this unsaved work from this computer">Remove</button>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-if>
+
+        <section class="gi-sec" aria-label="Start from a task">
+          <h2 class="gi-h2">Start from a task</h2>
+          <div class="gi-grid">
+            <div class="gi-card">
+              <svg class="gi-art" sc-camel-view-box="0 0 160 64" aria-hidden="true"><rect x="22" y="30" width="16" height="24" rx="2" fill="#2E7D58"></rect><rect x="46" y="18" width="16" height="36" rx="2" fill="#357F93"></rect><rect x="70" y="38" width="16" height="16" rx="2" fill="#E5912A"></rect><rect x="94" y="12" width="16" height="42" rx="2" fill="#B0572F"></rect><line x1="16" y1="54" x2="144" y2="54" stroke="#1A1711" stroke-width="1.5"></line><text x="118" y="24" font-family="Space Mono, monospace" font-size="9" fill="#194F39">p &lt; .05</text></svg>
+              <h3 class="gi-h3">Explore and test a dataset</h3>
+              <p class="gi-p">Summaries, cross-tabs, t-tests, regressions and more, each with its Stata and R code.</p>
+              <p class="gi-bring"><b>Bring:</b> a survey or spreadsheet (CSV, Excel or Stata)</p>
+              <button type="button" class="gi-open" sc-camel-on-click="{{ introOpenExplore }}">Open a file →</button>
+            </div>
+            <div class="gi-card">
+              <svg class="gi-art" sc-camel-view-box="0 0 160 64" aria-hidden="true"><path d="M16 50 L44 36 L72 42 L100 22 L132 14" fill="none" stroke="#2E7D58" stroke-width="3" stroke-linecap="round"></path><path d="M16 54 L44 46 L72 50 L100 38 L132 34" fill="none" stroke="#E5912A" stroke-width="3" stroke-linecap="round"></path><circle cx="132" cy="14" r="3.5" fill="#2E7D58"></circle><text x="118" y="10" font-family="Space Mono, monospace" font-size="8" fill="#194F39">48%</text><circle cx="132" cy="34" r="3.5" fill="#E5912A"></circle></svg>
+              <h3 class="gi-h3">Make charts</h3>
+              <p class="gi-p">Bars, lines, pies and more than 30 other kinds, with your own names, values and colors.</p>
+              <p class="gi-bring"><b>Bring:</b> any dataset</p>
+              <button type="button" class="gi-open" sc-camel-on-click="{{ introOpenCharts }}">Open a file →</button>
+            </div>
+            <div class="gi-card">
+              <svg class="gi-art" sc-camel-view-box="0 0 160 64" aria-hidden="true"><path d="M30 12 L62 8 L74 18 L96 16 L112 26 L104 34 L118 46 L100 56 L80 50 L64 54 L50 42 L34 40 L26 28 Z" fill="#9BC4AE" stroke="#FFFFFF" stroke-width="1.5"></path><path d="M66 30 L104 34 L118 46 L100 56 L80 50 Z" fill="#2E7D58"></path><path d="M30 12 L62 8 L66 30 L50 42 L34 40 L26 28 Z" fill="#194F39" opacity=".85"></path><path d="M62 8 L66 30 L50 42 M66 30 L96 16 M66 30 L80 50 M96 16 L104 34 M66 30 L104 34" fill="none" stroke="#FFFFFF" stroke-width="1.5"></path></svg>
+              <h3 class="gi-h3">Make a map</h3>
+              <p class="gi-p">Countries, every country’s states or provinces, and Mexico’s municipalities. Built in, no internet needed.</p>
+              <p class="gi-bring"><b>Bring:</b> a column with the place, by name or code</p>
+              <button type="button" class="gi-open" sc-camel-on-click="{{ introOpenMap }}">Open a file →</button>
+            </div>
+            <div class="gi-card">
+              <svg class="gi-art" sc-camel-view-box="0 0 160 64" aria-hidden="true"><text x="18" y="30" font-family="Hanken Grotesk, sans-serif" font-weight="800" font-size="18" fill="#2E7D58">salud</text><text x="76" y="26" font-family="Hanken Grotesk, sans-serif" font-weight="800" font-size="13" fill="#A94426">seguridad</text><text x="22" y="50" font-family="Hanken Grotesk, sans-serif" font-weight="800" font-size="12" fill="#357F93">economía</text><text x="92" y="48" font-family="Hanken Grotesk, sans-serif" font-weight="800" font-size="15" fill="#194F39">pueblo</text><text x="120" y="60" font-family="Hanken Grotesk, sans-serif" font-weight="800" font-size="9" fill="#C4681E">México</text></svg>
+              <h3 class="gi-h3">Analyze texts</h3>
+              <p class="gi-p">Most-used words, topics, sentiment and your own dictionaries.</p>
+              <p class="gi-bring"><b>Bring:</b> a column of texts: tweets, speeches or open answers</p>
+              <button type="button" class="gi-open" sc-camel-on-click="{{ introOpenText }}">Open a file →</button>
+            </div>
+            <div class="gi-card">
+              <svg class="gi-art" sc-camel-view-box="0 0 160 64" aria-hidden="true"><path d="M30 18 L74 30 L52 50 Z M74 30 L118 14 L132 44 L96 52 Z M74 30 L96 52" fill="none" stroke="#9C9384" stroke-width="1.5"></path><circle cx="30" cy="18" r="6" fill="#2E7D58"></circle><circle cx="52" cy="50" r="5" fill="#2E7D58"></circle><circle cx="74" cy="30" r="9" fill="#194F39"></circle><circle cx="118" cy="14" r="6" fill="#E5912A"></circle><circle cx="132" cy="44" r="5" fill="#E5912A"></circle><circle cx="96" cy="52" r="6" fill="#E5912A"></circle></svg>
+              <h3 class="gi-h3">Analyze a network</h3>
+              <p class="gi-p">Who is connected to whom, groups, central actors and network models.</p>
+              <p class="gi-bring"><b>Bring:</b> a list of ties (from, to), and a list of people if you have one</p>
+              <button type="button" class="gi-open" sc-camel-on-click="{{ introOpenNet }}">Open a file →</button>
+            </div>
+            <div class="gi-card">
+              <svg class="gi-art" sc-camel-view-box="0 0 160 64" aria-hidden="true"><rect x="24" y="10" width="112" height="44" rx="4" fill="#FFFFFF" stroke="#B9AF9C"></rect><path d="M24 24 H136 M24 38 H136 M60 10 V54 M98 10 V54" stroke="#D9D2C4"></path><rect x="25" y="11" width="110" height="13" rx="3" fill="#EDF5F0"></rect><rect x="64" y="28" width="30" height="7" rx="1.5" fill="#2E7D58" opacity=".35"></rect><line x1="96" y1="27" x2="96" y2="36" stroke="#194F39" stroke-width="1.5"></line></svg>
+              <h3 class="gi-h3">Type in your own data</h3>
+              <p class="gi-p">An empty table to type or paste into, then every tool above.</p>
+              <p class="gi-bring"><b>Bring:</b> nothing</p>
+              <button type="button" class="gi-open" sc-camel-on-click="{{ newDatasetLink }}">Create a dataset →</button>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
+    <!-- GM26 intro end -->
   </sc-if>
 
   <sc-if value="{{ showReport }}" hint-placeholder-val="{{ false }}">
@@ -4050,7 +4096,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM26.1 Mainframe</span><span>·</span><span>BUILD 2026-11-01.58</span><span>·</span><span>ALL COMPUTATION LOCAL</span><span>·</span><span>CSV / TSV / EXCEL XLSX / STATA DTA / SAVED SESSIONS</span>
+    <span>GM26.1 Mainframe</span><span>·</span><span>BUILD 2026-11-01.59</span><span>·</span><span>ALL COMPUTATION LOCAL</span><span>·</span><span>CSV / TSV / EXCEL XLSX / STATA DTA / SAVED SESSIONS</span>
   </footer>
 </div>
 </x-dc>
