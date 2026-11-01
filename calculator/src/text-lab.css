@@ -142,3 +142,4 @@
 .tl-navrow{display:flex;justify-content:space-between;gap:8px}
 .tl-formats{font-family:var(--fMono,'Space Mono',monospace);font-size:10.5px;letter-spacing:.06em;color:var(--c6B6455,#6B6455);margin-top:4px}
 .tl-dtime{border-top:1px dashed var(--cD2C5AF,#D2C5AF);padding-top:10px}
+.tl-tbl.tl-wraph th{white-space:normal;vertical-align:bottom;min-width:56px}

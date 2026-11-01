@@ -119,14 +119,14 @@
   nlGofView(G, directed) {
     const h = React.createElement, names = { idegree: 'Ties received', odegree: 'Ties sent', degree: 'Ties per node', espartners: 'Shared contacts per tie', distance: 'Steps between pairs' };
     const charts = Object.keys(names).filter(k => G[k]).map(k => {
-      const rows = G[k], W = 300, H = 150, L = 34, Bm = 22, n = rows.length, mx = Math.max(1, ...rows.map(r => Math.max(r.obs, r.hi, r.max))), x = i => L + (W - L - 8) * (n > 1 ? i / (n - 1) : 0.5), y = v => H - Bm - (H - Bm - 10) * v / mx;
+      const rows = G[k], W = 300, H = 150, Bm = 22, n = rows.length, mx = Math.max(1, ...rows.map(r => Math.max(r.obs, r.hi, r.max))), mxL = mx >= 1e4 ? this.fmt(mx / 1000, 0) + 'k' : this.fmtN(Math.round(mx)), L = Math.max(34, 8 + mxL.length * 6), x = i => L + (W - L - 8) * (n > 1 ? i / (n - 1) : 0.5), y = v => H - Bm - (H - Bm - 10) * v / mx;
       const band = rows.map((r, i) => x(i) + ',' + y(r.hi)).join(' ') + ' ' + rows.slice().reverse().map((r, i) => x(n - 1 - i) + ',' + y(r.lo)).join(' ');
       const bad = rows.filter(r => r.p < 0.05).length;
       return h('div', { key: k, className: 'nl-gof' }, h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': names[k] + ': observed vs simulated' },
         h('rect', { width: W, height: H, fill: '#fff' }), h('polygon', { points: band, fill: '#D5E8DD' }), h('polyline', { points: rows.map((r, i) => x(i) + ',' + y(r.med)).join(' '), fill: 'none', stroke: '#8FBFA3', strokeWidth: 1, strokeDasharray: '3 2' }),
         h('polyline', { points: rows.map((r, i) => x(i) + ',' + y(r.obs)).join(' '), fill: 'none', stroke: '#1A1711', strokeWidth: 1.6 }), rows.map((r, i) => r.p < 0.05 ? h('circle', { key: i, cx: x(i), cy: y(r.obs), r: 2.6, fill: '#B0572F' }) : null),
         h('line', { x1: L, x2: W - 8, y1: H - Bm, y2: H - Bm, stroke: '#D2C5AF' }), rows.map((r, i) => (i % Math.ceil(n / 8) === 0 && (i === n - 1 || n - 1 - i >= Math.ceil(n / 8) / 2)) || i === n - 1 ? h('text', { key: 't' + i, x: x(i), y: H - 8, fontSize: 9, textAnchor: 'middle', fill: '#6B6455', fontFamily: "'Space Mono', monospace" }, r.label) : null),
-        h('text', { x: L - 4, y: 14, fontSize: 9, textAnchor: 'end', fill: '#6B6455', fontFamily: "'Space Mono', monospace" }, this.fmtN(Math.round(mx)))),
+        h('text', { x: L - 4, y: 14, fontSize: 9, textAnchor: 'end', fill: '#6B6455', fontFamily: "'Space Mono', monospace" }, mxL)),
         h('span', { className: 'tl-hint' }, h('b', null, names[k]), ' — ' + (bad <= Math.max(1, Math.round(0.1 * n)) ? 'fits well' : bad + ' of ' + n + ' values outside the simulated range')));
     });
     return h('div', null, h('span', { className: 'tl-lbl' }, 'Does the model reproduce your network? (goodness of fit, ' + G.nsim + ' simulated networks)'), h('div', { className: 'nl-gofs' }, charts), h('span', { className: 'tl-hint' }, 'Black line = your network; green band = 95% of networks simulated from the model; red dots = values the model does not reproduce. Like plot(gof(fit)) in R.'));
@@ -153,7 +153,7 @@
       const ca = o.time.cmp && net.attrs[o.time.cmp] ? o.time.cmp : attr || cats[0], A = net.attrs[ca];
       const res = this.memo('nlcmp|' + net.key + '|' + ca, () => A.levels.slice(0, 6).map(l => { const sub = E.nlSubnet(net, Array.from({ length: net.n }, (_, i) => A.v[i] === l)); const s = E.nlSummary(sub, { triads: false }); return { l, n: sub.n, m: s.m, density: s.density, recip: s.reciprocity, trans: s.transitivity, deg: s.meanDeg, comps: s.components, iso: s.isolates }; }));
       cmpP = this.tlPanel('Compare sub-networks', 'the network inside each group', this.tlSelect(ca, cats.map(a => [a, a]), v => this.nlSetIn('time', { cmp: v }), 'Compare by'),
-        h('div', { className: 'tl-tblwrap' }, h('table', { className: 'tl-tbl' }, h('thead', null, h('tr', null, h('th', null, ca), ['people', 'ties', 'density', 'reciprocity', 'clustering', 'ties per person', 'without ties'].map(l => h('th', { key: l, className: 'n' }, l)))),
+        h('div', { className: 'tl-tblwrap' }, h('table', { className: 'tl-tbl tl-wraph' }, h('thead', null, h('tr', null, h('th', null, ca), ['people', 'ties', 'density', 'reciprocity', 'clustering', 'ties per person', 'without ties'].map(l => h('th', { key: l, className: 'n' }, l)))),
           h('tbody', null, res.map(r => h('tr', { key: r.l }, h('td', { className: 'w' }, r.l), h('td', { className: 'n' }, this.fmtN(r.n)), h('td', { className: 'n' }, this.fmtN(r.m)), h('td', { className: 'n' }, this.fmt(r.density, 3)), h('td', { className: 'n' }, r.recip == null ? '—' : this.fmt(r.recip, 2)), h('td', { className: 'n' }, this.fmt(r.trans, 2)), h('td', { className: 'n' }, this.fmt(r.deg, 1)), h('td', { className: 'n' }, this.fmtN(r.iso))))))),
         h('span', { className: 'tl-hint' }, 'Each row is the network among the members of one group only (e.g. House vs Senate, Democrats vs Republicans) — Fowler compares chambers this way.'));
     }

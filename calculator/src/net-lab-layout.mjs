@@ -109,16 +109,19 @@ export function nlLayout(net, o) {
   if (isoMode === 'strip' && iso.length) { const y0 = H - pad - stripH + 14; iso.forEach((v, t) => { x[v] = pad + 4 + (t % per) * 10; y[v] = y0 + 8 + Math.floor(t / per) * 10; shown[v] = 2; }); strip = { x: pad, y: y0 - 2, count: iso.length }; }
   return { x, y, shown, side, strip, components: multi.length, isolates: iso.length, W, H };
 }
-// Labels that never overlap: most important first; tries 12 positions around each node.
+// Labels that never overlap: most important first; tries 12 positions around each node. The most important labels
+// (must) are always shown: if no free spot is near, they move further out and may cover a dot, but never another label.
 export function nlPlaceLabels(items, obstacles, o = {}) {
-  const fs = o.fs || 11, cw = o.cw || 0.6, B = o.bounds, must = o.must == null ? 6 : o.must, taken = obstacles.slice(), out = [];
-  const hit = b => { if (B && (b[0] < B[0] || b[1] < B[1] || b[2] > B[2] || b[3] > B[3])) return 99; let h = 0; for (const t of taken) if (b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]) h++; return h; };
+  const fs = o.fs || 11, cw = o.cw || 0.6, B = o.bounds, must = o.must == null ? 6 : o.must, obs = obstacles.slice(), labs = [], out = [];
+  const over = (b, list) => { let h = 0; for (const t of list) if (b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]) h++; return h; };
+  const inB = b => !B || (b[0] >= B[0] && b[1] >= B[1] && b[2] <= B[2] && b[3] <= B[3]);
+  const score = b => inB(b) ? 100 * over(b, labs) + over(b, obs) : 1e6;
+  const around = (x, y, r, w, h, gaps) => { const c = []; for (const g of gaps) c.push([x + r + g, y + fs * .35, 'start', [x + r + g - 1, y - h / 2, x + r + g + w, y + h / 2]], [x - r - g, y + fs * .35, 'end', [x - r - g - w, y - h / 2, x - r - g + 1, y + h / 2]], [x, y - r - g - 1, 'middle', [x - w / 2, y - r - g - h, x + w / 2, y - r - g + 1]], [x, y + r + g + fs - 2, 'middle', [x - w / 2, y + r + g - 1, x + w / 2, y + r + g + h]]); return c; };
   items.forEach((it, rank) => {
-    const { x, y, r, text } = it, w = String(text).length * fs * cw + 3, h = fs * 1.15, cands = [];
-    for (const g of [3, 9, 15]) cands.push([x + r + g, y + fs * .35, 'start', [x + r + g - 1, y - h / 2, x + r + g + w, y + h / 2]], [x - r - g, y + fs * .35, 'end', [x - r - g - w, y - h / 2, x - r - g + 1, y + h / 2]], [x, y - r - g - 1, 'middle', [x - w / 2, y - r - g - h, x + w / 2, y - r - g + 1]], [x, y + r + g + fs - 2, 'middle', [x - w / 2, y + r + g - 1, x + w / 2, y + r + g + h]]);
-    let pick = cands.find(c => hit(c[3]) === 0);
-    if (!pick && (rank < must || it.must)) pick = cands.slice().sort((a, b) => hit(a[3]) - hit(b[3]))[0];
-    if (pick) { out.push({ i: it.i, x: pick[0], y: pick[1], anchor: pick[2], text }); taken.push(pick[3]); }
+    const { x, y, r, text } = it, w = String(text).length * fs * cw + 3, h = fs * 1.15;
+    let pick = around(x, y, r, w, h, [3, 9, 15]).find(c => score(c[3]) === 0);
+    if (!pick && (rank < must || it.must)) { const c2 = around(x, y, r, w, h, [3, 9, 15, 24, 36, 50, 68]).map(c => [c, score(c[3])]).sort((a, b) => a[1] - b[1]); if (c2.length && c2[0][1] < 100) pick = c2[0][0]; }
+    if (pick) { out.push({ i: it.i, x: pick[0], y: pick[1], anchor: pick[2], text }); labs.push(pick[3]); }
   });
   return out;
 }

@@ -3100,6 +3100,7 @@ code, kbd, samp { font-family: var(--font-mono); }
 .tl-navrow{display:flex;justify-content:space-between;gap:8px}
 .tl-formats{font-family:var(--fMono,'Space Mono',monospace);font-size:10.5px;letter-spacing:.06em;color:var(--c6B6455,#6B6455);margin-top:4px}
 .tl-dtime{border-top:1px dashed var(--cD2C5AF,#D2C5AF);padding-top:10px}
+.tl-tbl.tl-wraph th{white-space:normal;vertical-align:bottom;min-width:56px}
 </style><sc-if value="{{ isText }}" hint-placeholder-val="{{ false }}"><div data-screen-label="Text analysis">{{ tlEl }}</div></sc-if><!-- GM26 text lab end -->
 
           <sc-if value="{{ isSem }}" hint-placeholder-val="{{ false }}">
@@ -3278,7 +3279,7 @@ code, kbd, samp { font-family: var(--font-mono); }
 .nl .nl-hist div{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0}
 .nl .nl-hist i{display:block;width:100%;background:var(--c357F93,#357F93);border-radius:3px 3px 0 0;min-height:1px}
 .nl .nl-hist span{font-family:var(--fMono,'Space Mono',monospace);font-size:9px;color:var(--c6B6455,#6B6455)}
-.nl .nl-trow{display:grid;grid-template-columns:44px minmax(60px,1fr) 52px 52px minmax(0,190px);gap:6px;align-items:center;font-size:11.5px;padding:1px 0}
+.nl .nl-trow{display:grid;grid-template-columns:44px minmax(60px,1fr) var(--nw,52px) var(--nw,52px) minmax(0,190px);gap:6px;align-items:center;font-size:11.5px;padding:1px 0}
 .nl .nl-trow .tc{font-family:var(--fMono,'Space Mono',monospace);font-weight:700}
 .nl .nl-trow .tb{position:relative;height:10px;background:var(--cF2ECE1,#F2ECE1);border-radius:2px}
 .nl .nl-trow .tb i{position:absolute;left:0;top:0;bottom:0;background:var(--c2E7D58,#2E7D58);border-radius:2px}
@@ -3328,8 +3329,8 @@ code, kbd, samp { font-family: var(--font-mono); }
 .nl .nl-gofs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
 .nl .nl-gof{display:flex;flex-direction:column;gap:2px;border:1px solid var(--cF1EBDF,#F1EBDF);border-radius:8px;padding:6px}
 .nl .tl-panel,.nl .tl-col{min-width:0}
-.nl .nl-trow{grid-template-columns:40px minmax(50px,1fr) 46px 46px minmax(0,150px)}
-@container (max-width:560px){.nl .nl-trow .td{display:none}.nl .nl-trow{grid-template-columns:40px minmax(50px,1fr) 46px 46px}}
+.nl .nl-trow{grid-template-columns:40px minmax(50px,1fr) var(--nw,46px) var(--nw,46px) minmax(0,150px)}
+@container (max-width:560px){.nl .nl-trow .td{display:none}.nl .nl-trow{grid-template-columns:40px minmax(50px,1fr) var(--nw,46px) var(--nw,46px)}}
 .nl .tl-tblwrap{max-width:100%}
 .nl .nl-why{border:1px solid #E8B98C;border-left:4px solid #C26A1E;background:#FDF5EC;border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;line-height:1.45;color:#3D3629}
 .nl .nl-why-t{font-size:13px;color:#7A3F0E}
@@ -3337,6 +3338,9 @@ code, kbd, samp { font-family: var(--font-mono); }
 .nl .nl-why p{margin:0}
 .nl .nl-why-also{font-size:12px;color:#6B6455}
 .nl .nl-why .tl-btn{font-size:12px;padding:4px 10px}
+.nl .nl-dyk{display:flex;flex-wrap:wrap;gap:4px 14px;font-family:var(--fMono,'Space Mono',monospace);font-size:10.5px;color:#433D31;margin:-2px 0 8px}
+.nl .nl-dyk span{display:inline-flex;align-items:center;gap:5px}
+.nl .nl-dyk i{width:10px;height:10px;border-radius:2px;display:inline-block}
 </style><sc-if value="{{ isErgm }}" hint-placeholder-val="{{ false }}"><div data-screen-label="Networks analysis">{{ nlEl }}</div></sc-if><!-- GM26 net lab end -->
 
           <sc-if value="{{ isReg }}" hint-placeholder-val="{{ false }}">

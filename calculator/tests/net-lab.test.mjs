@@ -162,3 +162,13 @@ test('why a model did not converge: the effect or characteristic to blame, in pl
   W = E.nlErgmDiagnose(net, [{ t: 'edges' }, { t: 'gwesp', decay: 0.5 }], Object.assign({}, base, { tratio: [0.1, 0.3], essK: [80, 70], timedOut: true }));
   assert.equal(W[0].kind, 'time'); assert.equal(W[0].fix, 'longer'); assert.match(W[0].title, /ran out of time/);
 });
+
+test('map labels: the most important ones are always shown and never cover another label', () => {
+  // three big nodes almost on top of each other, with long names (as Cártel de Sinaloa / Cárteles Unidos / La Nueva Familia Michoacana)
+  const items = [[300, 200, 'La Nueva Familia Michoacana'], [312, 204, 'Cárteles Unidos'], [306, 214, 'Cártel de Sinaloa'], [296, 190, 'Los Viagras']].map(([x, y, text], i) => ({ i, x, y, r: 8, text }));
+  const obst = items.map(it => [it.x - it.r, it.y - it.r, it.x + it.r, it.y + it.r]);
+  const P = E.nlPlaceLabels(items, obst, { fs: 11, bounds: [2, 2, 640, 460], must: 6 });
+  assert.equal(P.length, 4, 'all four are labelled');
+  const box = p => { const w = p.text.length * 11 * 0.6 + 3, h = 11 * 1.15, x0 = p.anchor === 'start' ? p.x - 1 : p.anchor === 'end' ? p.x - w : p.x - w / 2, y0 = p.anchor === 'middle' ? p.y - h + 2 : p.y - 11 * 0.35 - h / 2; return [x0, y0, x0 + w, y0 + h]; };
+  for (let a = 0; a < P.length; a++) for (let b = a + 1; b < P.length; b++) { const A = box(P[a]), B = box(P[b]); assert.ok(!(A[0] < B[2] - 1 && A[2] > B[0] + 1 && A[1] < B[3] - 1 && A[3] > B[1] + 1), P[a].text + ' overlaps ' + P[b].text); }
+});
