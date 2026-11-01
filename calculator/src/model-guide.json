@@ -456,7 +456,8 @@
     "caution": "A high alpha does not prove one factor, validity or absence of redundant items. Reverse-code negatively worded items before calculating it.",
     "example": "Check consistency among items in a proposed satisfaction scale.",
     "route": {
-      "tab": "data"
+      "tab": "data",
+      "deTask": "scale"
     },
     "sources": [
       {

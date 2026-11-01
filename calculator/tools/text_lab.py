@@ -20,9 +20,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import breakdown  # noqa: E402  univariate tab: break down by groups
 import net_lab  # noqa: E402  networks analysis (Design A)
+import data_edit  # noqa: E402  edit data (Design A)
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-11-01.51'
+BUILD = '2026-11-01.52'
 LANGS = ['es', 'en', 'pt', 'fr']
 
 
@@ -128,8 +129,8 @@ def main():
     es = re.search(r'<script type="__bundler/ext_resources">(.*?)</script>', h, re.S)
     manifest, template, ext = json.loads(ms[1]), json.loads(ts[1]), json.loads(es[1])
     m = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', template, re.S)
-    template = template[:m.start(2)] + net_lab.integrate_component(breakdown.integrate_component(integrate_component(m[2]))) + template[m.end(2):]
-    template = net_lab.integrate_template(breakdown.integrate_template(integrate_template(template)))
+    template = template[:m.start(2)] + data_edit.integrate_component(net_lab.integrate_component(breakdown.integrate_component(integrate_component(m[2])))) + template[m.end(2):]
+    template = data_edit.integrate_template(net_lab.integrate_template(breakdown.integrate_template(integrate_template(template))))
     import gzip
     asset = manifest[ENGINE]
     e = gzip.decompress(base64.b64decode(asset['data'])).decode()
