@@ -430,7 +430,7 @@ class Component extends DCLogic {
   }
   stataTtestSummary(out, options, result) {
     const S=this.state,E=this._E,paired=options.mode==='paired',groups=options.mode==='groups';
-    const key='stataTT|'+[S.ttMode,S.exploreVar,S.ttY2,S.ttG,S.ttA,S.ttB,S.ttMu,result.alpha,S.dver||0].join('|');
+    const key='stataTT|'+[S.ttMode,S.exploreVar,S.ttY2,S.ttG,S.ttA,S.ttB,S.ttSwap?1:0,S.ttMu,result.alpha,S.dver||0].join('|');
     const data=this.memo(key,()=>{
       let x=options.x,y=options.y;
       if(paired){const xx=[],yy=[];for(let i=0;i<x.length;i++)if(Number.isFinite(x[i])&&Number.isFinite(y[i])){xx.push(x[i]);yy.push(y[i]);}x=Float64Array.from(xx);y=Float64Array.from(yy);}

@@ -56,7 +56,9 @@ test('the page subtracts in Stata’s order (lower code first), can swap, and of
   assert.deepEqual(out.stataTtRows.map(r => r.label), ['0', '1', 'Combined', 'diff (first − second)']);
   assert.match(out.ttApa, /^t\(38\.7\) = -9\.18/); assert.match(c._ttLast.tblStata, /diff = mean\(0\) - mean\(1\)\s+t =\s+-9\.1812/); assert.match(c._ttLast.tblStata, /Combined \|\s+60/);
   assert.equal(out.ttSwapLabel, '⇄ Order: 0 minus 1');
-  out.ttSwap(); out = render(c, {});
+  out.ttSwap(); out = c.renderVals(); // as the button does: no cache clearing between renders
+  assert.deepEqual(out.stataTtRows.slice(0, 2).map(r => r.label + ' ' + r.n), ['1 40', '0 20'], 'swapped rows carry their own numbers');
+  assert.match(c._ttLast.tblStata, /\n       0 \|      20/, 'the console keeps each group with its own numbers');
   assert.match(out.ttApa, /^t\(38\.7\) = 9\.18/); assert.equal(c.ttGroups().flip, true); assert.match(c._ttLast.tblStata, /t =\s+-9\.1812/, 'the console keeps Stata’s order');
   out = render(c, { ttSwap: false, ttEqual: true });
   assert.match(out.ttApa, /^t\(58\) = /); assert.equal(c._ttLast.stata, 'ttest score, by(treat)'); assert.match(c._ttLast.r, /var\.equal = TRUE/);
