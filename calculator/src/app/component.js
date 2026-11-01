@@ -6657,31 +6657,18 @@ class Component extends DCLogic {
   }
   // GM26 map lab end
   // GM26 intro page begin
-  // ---- GM26 intro page (Design B): start from a task. A task card opens the file picker and remembers where to go
-  // once the file has loaded (Charts, Map, Text analysis, Networks); unsaved work is listed under "Continue".
+  // ---- GM26 intro page: the data box (Browse files, drag and drop, Create your own dataset) and the unsaved work
+  // as "Continue where you left off" cards, which replace the old banners (same autoRestore / autoDiscard actions).
   introVals(out) {
     const S = this.state;
-    const open = goal => () => { this._introGoal = goal ? Object.assign({ at: Date.now() }, goal) : null; if (this._file) this._file.click(); };
-    out.introPick = () => { this._introGoal = null; if (this._file) this._file.click(); };
-    out.introDrop = e => { this._introGoal = null; out.onDrop(e); };
-    out.introOpenExplore = open(null);
-    out.introOpenCharts = open({ tab: 'plots', plotKind: '__gallery' });
-    out.introOpenMap = open({ tab: 'plots', plotKind: 'map' });
-    out.introOpenText = open({ tab: 'text' });
-    out.introOpenNet = open({ tab: 'ergm' });
+    out.introPick = () => { if (this._file) this._file.click(); };
+    out.introDrop = e => out.onDrop(e);
     const list = !out.showWork && !S.parsing && S.screen !== 'work' ? (S.asList || []).slice(0, 4) : [];
     out.introRecent = list.map(r => {
       const sm = this.asSummary(r.sum);
       return { name: r.fileName, sub: [sm, this.asWhen(r.at)].filter(Boolean).join(' · ') + (r.hasFull ? '' : ' · open the file again to restore it'), canRestore: !!r.hasFull, restore: () => this.autoRestore(r.sig), discard: () => this.autoDiscard(r.sig) };
     });
     out.hasIntroRecent = out.introRecent.length > 0;
-  }
-  // after the file has loaded, go to the task's tab (only for a goal set in the last 15 minutes)
-  introApply() {
-    const g = this._introGoal; this._introGoal = null; if (!g || Date.now() - g.at > 15 * 60 * 1000) return;
-    if (g.tab === 'plots' && g.plotKind) this.csOpen(g.plotKind); else this.setState({ tab: g.tab, mfNav: '', mfFile: false, mfMobile: 'analysis' });
-    // Networks: the file just opened is the list of ties
-    if (g.tab === 'ergm' && typeof this.nlUseCurrent === 'function') setTimeout(() => { try { this.nlUseCurrent('e'); } catch (e) {} }, 0);
   }
   // GM26 intro page end
   descFor() {
@@ -8257,7 +8244,7 @@ class Component extends DCLogic {
   dlDoFile() {
     const S = this.state, dial = S.dialect, base = String(S.fileName || 'gm26').replace(/\.[^.]+$/, ''), c = dial === 'stata' ? '* ' : '# ';
     const isDta = /\.dta$/i.test(S.fileName || '');
-    const head = [c + 'GM26.1 session — ' + S.fileName + ' — ' + new Date().toLocaleString(), c + 'Every command run in this session, in order.' + (dial === 'stata' ? '' : '  df = your data frame'), dial === 'stata' ? (isDta ? 'use "' + S.fileName + '", clear' : this.cxImportCmd('stata')) : (isDta ? 'library(haven); df <- read_dta("' + S.fileName + '")' : this.cxImportCmd('r')), ...this.missingDecodeLines(dial), ''];
+    const head = [c + 'GM 26.11 session — ' + S.fileName + ' — ' + new Date().toLocaleString(), c + 'Every command run in this session, in order.' + (dial === 'stata' ? '' : '  df = your data frame'), dial === 'stata' ? (isDta ? 'use "' + S.fileName + '", clear' : this.cxImportCmd('stata')) : (isDta ? 'library(haven); df <- read_dta("' + S.fileName + '")' : this.cxImportCmd('r')), ...this.missingDecodeLines(dial), ''];
     const body = S.conLog.map(d => { let s = ''; try { s = d.t === 'ts' ? (dial === 'stata' ? d.stata : d.r) : this.cmdText(d, dial); } catch (e) {} if (!s) return ''; let ex = ''; try { ex = this.explFor(d); } catch (e) {} return (ex ? c + ex + '\n' : '') + s + '\n'; }).filter(Boolean);
     if (!body.length) { this.flash('Nothing has been run yet'); return; }
     this.dlBlob(new Blob([head.concat(body).join('\n') + '\n'], { type: 'text/plain' }), base + (dial === 'stata' ? '.do' : '.R'));
@@ -9063,7 +9050,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-01.59') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-01.60') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -9077,7 +9064,6 @@ class Component extends DCLogic {
   }
   renderVals() {
     const S = this.state, E = this._E;
-    if (this._introGoal && S.screen === 'work' && !S.parsing && this._raw) setTimeout(() => this.introApply(), 0);
     if (E && E.setStamp) { let st = ''; try { st = this.stampText(); } catch (e) {} E.setStamp(st); }
     const dataOk = !!(E && this._raw && Array.isArray(this._raw.cols) && S.screen === 'work');
     const out = {
@@ -9105,9 +9091,9 @@ class Component extends DCLogic {
       const BAN = [], btn = (label, click, primary) => ({ label, click, style: primary ? 'background: var(--c194F39, #194F39); color: var(--cFFFFFF, #FFFFFF); border-color: var(--c194F39, #194F39);' : '' });
       if (S.newVer) {
         const nv = S.newVer, later = btn('Later', () => { this._verDismiss = nv.build; this.setState({ newVer: null }); });
-        if (nv.site) BAN.push({ text: 'A newer version of GM26.1 is available (build ' + nv.build + ').' + (nv.note ? ' ' + nv.note : '') + (this._raw ? ' Your work is autosaved and will be offered back after the reload.' : ''), style: 'border-left: 4px solid var(--cC4681E, #C4681E);',
+        if (nv.site) BAN.push({ text: 'A newer version of GM 26.11 is available (build ' + nv.build + ').' + (nv.note ? ' ' + nv.note : '') + (this._raw ? ' Your work is autosaved and will be offered back after the reload.' : ''), style: 'border-left: 4px solid var(--cC4681E, #C4681E);',
           acts: [btn('Reload now', () => { this._skipUnload = true; Promise.resolve(this.autoSave()).then(() => { location.replace(location.pathname + '?v=' + encodeURIComponent(nv.build)); }); }, true), later] });
-        else BAN.push({ text: 'A newer version of GM26.1 is available (build ' + nv.build + '). This is a downloaded copy — get the new one from the website.' + (nv.note ? ' ' + nv.note : ''), style: 'border-left: 4px solid var(--cC4681E, #C4681E);',
+        else BAN.push({ text: 'A newer version of GM 26.11 is available (build ' + nv.build + '). This is a downloaded copy — get the new one from the website.' + (nv.note ? ' ' + nv.note : ''), style: 'border-left: 4px solid var(--cC4681E, #C4681E);',
           acts: [btn('Open the website', () => { window.open('https://gutierrezmannix.github.io/calculator/', '_blank'); }, true), later] });
       }
       if (out.showWork && S.asOffer) {

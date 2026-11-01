@@ -38,7 +38,7 @@ ROOT = TOOLS.parent
 APP = ROOT / 'src' / 'app'
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-11-01.59'
+BUILD = '2026-11-01.60'
 LANGS = ['es', 'en', 'pt', 'fr']
 SCRIPT = r'<script type="__bundler/{}">(.*?)</script>'
 COMPONENT = re.compile(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', re.S)
@@ -254,7 +254,7 @@ def main(argv=None):
         if not p.exists() or p.read_text() != text:
             p.write_text(text)
     h = out[PAGE]
-    print('Built GM26.1', BUILD, f'({len(h.encode()) / 1048576:.1f} MB)')
+    print('Built GM 26.11', BUILD, f'({len(h.encode()) / 1048576:.1f} MB)')
     return 0
 
 

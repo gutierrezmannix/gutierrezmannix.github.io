@@ -1,9 +1,9 @@
-"""Intro page (Design B, build .59): "What would you like to do today?" — task cards that open the file picker and go
-to the chosen tool once the file has loaded, one drop zone for any file, and the unsaved work as "Continue" cards.
+"""Intro page (build .60): the data box only — Browse files, drag and drop, Create your own dataset — and the unsaved
+work as "Continue where you left off" cards. People then use the tabs. (Build .59's task cards were removed in .60.)
 
   template   src/intro.html replaces the "Load bay" section (between GM26 intro markers); src/intro.css
-  component  src/intro.js (introVals, introApply); the old "Unsaved work" banners on the intro page are replaced by
-             the Continue cards (the same autoRestore / autoDiscard actions)
+  component  src/intro.js (introVals); the old "Unsaved work" banners on the intro page are replaced by the Continue
+             cards (the same autoRestore / autoDiscard actions)
 
 Called by tools/build.py after the other integrators. Idempotent.
 """
@@ -52,7 +52,8 @@ def integrate_component(c):
         i = c.index('  descFor() {')
         c = c[:i] + methods + '\n' + c[i:]
     c = _once(c, '    if (!out.showWork) return out;', '    this.introVals(out);\n    if (!out.showWork) return out;', 'intro values')
-    c = _once(c, '  renderVals() {\n    const S = this.state, E = this._E;', "  renderVals() {\n    const S = this.state, E = this._E;\n    if (this._introGoal && S.screen === 'work' && !S.parsing && this._raw) setTimeout(() => this.introApply(), 0);", 'go to the task after loading')
+    # build .60 dropped the task cards: the line that went to a task after loading is taken out again
+    c = c.replace("\n    if (this._introGoal && S.screen === 'work' && !S.parsing && this._raw) setTimeout(() => this.introApply(), 0);", '')
     c = _once(c, "if (!out.showWork && !S.parsing && S.screen !== 'work') (S.asList || []).slice(0, 3).forEach(r => {",
               "if (!out.showWork && !S.parsing && S.screen !== 'work' && !this.introVals) (S.asList || []).slice(0, 3).forEach(r => {", 'recent work banners')
     return c
