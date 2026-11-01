@@ -152,8 +152,8 @@ class Component extends DCLogic {
     }
     const estimateName=options.mode==='value'?'Mean':'Mean difference (first minus second)';
     const table='Statistic\tValue\n'+[[estimateName,r.estimate],['Standard error',r.se],['t',r.t],['df',r.df],['p (two-sided)',r.p],['CI lower',r.lo],['CI upper',r.hi],['Confidence level',1-r.alpha],['N (first sample / complete pairs)',r.nA],...(options.mode==='groups'?[['N (second sample)',r.nB]]:[])].map(row=>row.join('\t')).join('\n');
-    const setup={};['exploreVar','ttMode','ttMu','ttG','ttA','ttB','ttY2','subg','flt','missingCodes','autoScreen','alphaSel'].forEach(k=>{setup[k]=S[k];});
-    this._ttLast={t:'ttestx',r:scripts.r,stata:scripts.stata,setup,tbl:table,res:(options.mode==='value'?'One-sample':options.mode==='groups'?'Welch independent-samples':'Paired-samples')+' t-test: t('+(Number.isInteger(r.df)?String(r.df):this.fmt(r.df,2))+') = '+this.fmt(r.t,3)+', '+this.apaP(r.p)};
+    const setup={};['exploreVar','ttMode','ttMu','ttG','ttA','ttB','ttY2','ttEqual','ttSwap','subg','flt','missingCodes','autoScreen','alphaSel'].forEach(k=>{setup[k]=S[k];});
+    this._ttLast={t:'ttestx',r:scripts.r,stata:scripts.stata,setup,tbl:table,res:(options.mode==='value'?'One-sample':options.mode==='groups'?(options.equal?'Student (equal-variance) independent-samples':'Welch independent-samples'):'Paired-samples')+' t-test: t('+(Number.isInteger(r.df)?String(r.df):this.fmt(r.df,2))+') = '+this.fmt(r.t,3)+', '+this.apaP(r.p)};
     out.ttCmd=S.dialect==='r'?scripts.r:scripts.stata;
     out.ttCopyLabel=this.cpLabel('ttestx');out.ttCopy=()=>this.copyTSV('ttestx',table);
     const report=this._ttLast;out.ttLog=()=>this.pushLog({...report});
@@ -167,14 +167,15 @@ class Component extends DCLogic {
     if(options.mode==='paired'){const y2=S.ttY2;return {stata:'ttest '+xn+' == '+y2+lev,r:'t.test(df$'+xn+', df$'+y2+', paired = TRUE'+conf+')'};}
     const gv=S.ttG,g=this.ttGroups(),num=this.effMeta(gv)?.type==='numeric',q=v=>num?v:'"'+String(v).replace(/"/g,'\\"')+'"';
     const sel=g.levels>2?' if inlist('+gv+', '+q(g.lo)+', '+q(g.hi)+')':'',rsel=g.levels>2?'subset(df, '+gv+' %in% c('+q(g.lo)+', '+q(g.hi)+'))':'df';
-    return {stata:'ttest '+xn+sel+', by('+gv+') unequal'+(lev?' '+lev.slice(2):''),r:'t.test('+xn+' ~ '+gv+', data = '+rsel+', var.equal = FALSE'+conf+')'};
+    const eq=!!S.ttEqual,ol=[eq?'':'unequal',lev?lev.slice(2):''].filter(Boolean).join(' ');
+    return {stata:'ttest '+xn+sel+', by('+gv+')'+(ol?' '+ol:''),r:'t.test('+xn+' ~ '+gv+', data = '+rsel+', var.equal = '+(eq?'TRUE':'FALSE')+conf+')'};
   }
   // The two compared groups in the order Stata and R report them (sorted codes), and whether that reverses
   // the order chosen on the page (first minus second).
   ttGroups(){
-    const S=this.state,gv=S.ttG,f=gv?this.nvLevels(gv):null,labs=f?f.rows.map(r=>String(r.label)):[];
-    const A=labs.length===2?labs[0]:S.ttA,B=labs.length===2?labs[1]:S.ttB,num=this.effMeta(gv)?.type==='numeric';
-    const before=num?Number(A)>Number(B):String(A)>String(B);
+    const S=this.state,gv=S.ttG,f=gv?this.nvLevels(gv):null,labs=f?this.descOrder(gv,f.rows).map(r=>String(r.label)):[];
+    const A=labs.length===2?labs[S.ttSwap?1:0]:S.ttA,B=labs.length===2?labs[S.ttSwap?0:1]:S.ttB;
+    const before=labs.indexOf(A)>labs.indexOf(B);
     return {levels:labs.length,first:A,second:B,lo:before?B:A,hi:before?A:B,flip:before};
   }
   // GM26 t-test methods end
@@ -436,15 +437,17 @@ class Component extends DCLogic {
       const a=E.descNum(x,null),b=y?E.descNum(y,null):null;
       return {a,b};
     });
+    const G=v=>Number.isFinite(v)?String(Number(v.toPrecision(7))):'.';
     const row=(label,d)=>{
       const se=d.sd/Math.sqrt(d.n),critical=E.ttCritical(result.alpha,d.n-1);
-      return {label,n:this.fmtN(d.n),mean:this.fmt(d.mean,4),se:this.fmt(se,4),sd:this.fmt(d.sd,4),ci:'['+this.fmt(d.mean-critical*se,4)+', '+this.fmt(d.mean+critical*se,4)+']'};
+      return {label,n:this.fmtN(d.n),mean:G(d.mean),se:G(se),sd:G(d.sd),ci:'['+G(d.mean-critical*se)+', '+G(d.mean+critical*se)+']'};
     };
-    out.stataTtTitle=groups?'Two-sample t test with unequal variances (Welch)':paired?'Paired t test':'One-sample t test';
+    out.stataTtTitle=groups?(options.equal?'Two-sample t test with equal variances (Student)':'Two-sample t test with unequal variances (Welch)'):paired?'Paired t test':'One-sample t test';
     out.stataTtCI=Number((100*(1-result.alpha)).toFixed(4))+'% conf. interval';
     out.stataTtRows=[row(groups?(options.labels?.[0]||S.ttA||'First group'):S.exploreVar,data.a)];
     if(data.b)out.stataTtRows.push(row(groups?(options.labels?.[1]||S.ttB||'Second group'):S.ttY2,data.b));
-    if(groups||paired)out.stataTtRows.push({label:'diff (first − second)',n:paired?this.fmtN(result.nA):'—',mean:this.fmt(result.estimate,4),se:this.fmt(result.se,4),sd:paired?this.fmt(result.sd,4):'—',ci:'['+this.fmt(result.lo,4)+', '+this.fmt(result.hi,4)+']'});
+    if(groups&&data.b){const a=data.a,b=data.b,nC=a.n+b.n,mC=(a.n*a.mean+b.n*b.mean)/nC;out.stataTtRows.push(row('Combined',{n:nC,mean:mC,sd:Math.sqrt(((a.n-1)*a.sd**2+(b.n-1)*b.sd**2+a.n*(a.mean-mC)**2+b.n*(b.mean-mC)**2)/(nC-1))}));}
+    if(groups||paired)out.stataTtRows.push({label:'diff (first − second)',n:paired?this.fmtN(result.nA):'—',mean:G(result.estimate),se:G(result.se),sd:paired?G(result.sd):'—',ci:'['+G(result.lo)+', '+G(result.hi)+']'});
     out.stataTtEl=this.stataTable(['Variable / group','Obs','Mean','Std. err.','Std. dev.',out.stataTtCI],out.stataTtRows.map(r=>[r.label,r.n,r.mean,r.se,r.sd,r.ci]),'T-test sample summary');
     out.ttCells=out.ttCells.filter(c=>/^T \(DF\)$|^P$|COHEN|TEST VALUE/.test(c.k));
     const lines=[['Variable / group','Obs','Mean','Std. err.','Std. dev.',out.stataTtCI],...out.stataTtRows.map(r=>[r.label,r.n,r.mean,r.se,r.sd,r.ci])];
@@ -460,13 +463,14 @@ class Component extends DCLogic {
     const p4=v=>Number.isFinite(v)?v.toFixed(4):'.',dash='-'.repeat(78),mid='---------+'+'-'.repeat(68);
     const row=(label,d,ci)=>{const se=d.sd/Math.sqrt(d.n),cr=this._E.ttCritical(result.alpha,d.n-1);return R(ab(label),8)+' |'+R(n(d.n),8)+R(g(d.mean),12)+R(g(se),12)+R(g(d.sd),12)+R(g(d.mean-cr*se),12)+R(g(d.mean+cr*se),12);};
     const head=R(groups?'Group':'Variable',8)+' |     Obs        Mean    Std. err.   Std. dev.   ['+lv+'% conf. interval]';
-    const tails=(t,p,h)=>{const lo=t<0?p/2:1-p/2,hi=1-lo;return [h[0].padEnd(29)+h[1].padEnd(30)+h[2],' Pr(T < t) = '+p4(lo)+'         Pr(|T| > |t|) = '+p4(p)+'          Pr(T > t) = '+p4(hi)];};
+    const tails=(t,p,h,w0=29)=>{const lo=t<0?p/2:1-p/2,hi=1-lo;return [h[0].padEnd(w0)+h[1].padEnd(30)+h[2],' Pr(T < t) = '+p4(lo)+'         Pr(|T| > |t|) = '+p4(p)+'          Pr(T > t) = '+p4(hi)];};
     const L=[];
     if(groups){
       const gg=this.ttGroups(),flip=gg.flip,s=flip?-1:1,a=flip?data.b:data.a,b=flip?data.a:data.b,la=this.vlabel(S.ttG,gg.lo),lb=this.vlabel(S.ttG,gg.hi);
       const t=s*result.t,est=s*result.estimate,clo=flip?-result.hi:result.lo,chi=flip?-result.lo:result.hi;
-      L.push('Two-sample t test with unequal variances',dash,head,mid,row(la,a),row(lb,b),mid,R('diff',8)+' |'+R('',8)+R(g(est),12)+R(g(result.se),12)+R('',12)+R(g(clo),12)+R(g(chi),12),dash);
-      L.push(('    diff = mean('+ab(la)+') - mean('+ab(lb)+')').padEnd(66)+'t = '+R(p4(t),8),'H0: diff = 0'.padEnd(33)+"Satterthwaite's degrees of freedom = "+R(g(result.df),8),'',...tails(t,result.p,['    Ha: diff < 0','Ha: diff != 0','Ha: diff > 0']));
+      const nC=a.n+b.n,mC=(a.n*a.mean+b.n*b.mean)/nC,sdC=Math.sqrt(((a.n-1)*a.sd**2+(b.n-1)*b.sd**2+a.n*(a.mean-mC)**2+b.n*(b.mean-mC)**2)/(nC-1));
+      L.push('Two-sample t test with '+(options.equal?'equal':'unequal')+' variances',dash,head,mid,row(la,a),row(lb,b),mid,row('Combined',{n:nC,mean:mC,sd:sdC}),mid,R('diff',8)+' |'+R('',8)+R(g(est),12)+R(g(result.se),12)+R('',12)+R(g(clo),12)+R(g(chi),12),dash);
+      L.push(('    diff = mean('+ab(la)+') - mean('+ab(lb)+')').padEnd(66)+'t = '+R(p4(t),8),options.equal?'H0: diff = 0'.padEnd(49)+'Degrees of freedom = '+R(result.df,8):'H0: diff = 0'.padEnd(33)+"Satterthwaite's degrees of freedom = "+R(g(result.df),8),'',...tails(t,result.p,['    Ha: diff < 0','Ha: diff != 0','Ha: diff > 0'],33));
     }else if(paired){
       L.push('Paired t test',dash,head,mid,row(S.exploreVar,data.a),row(S.ttY2,data.b),mid,R('diff',8)+' |'+R(n(result.nA),8)+R(g(result.estimate),12)+R(g(result.se),12)+R(g(result.sd),12)+R(g(result.lo),12)+R(g(result.hi),12),dash);
       L.push(('     mean(diff) = mean('+ab(S.exploreVar)+' - '+ab(S.ttY2)+')').padEnd(66)+'t = '+R(p4(result.t),8),' H0: mean(diff) = 0'.padEnd(47)+'Degrees of freedom = '+R(result.df,8),'',...tails(result.t,result.p,[' Ha: mean(diff) < 0','Ha: mean(diff) != 0','Ha: mean(diff) > 0']));
@@ -491,7 +495,7 @@ class Component extends DCLogic {
     if(groups){
       const gg=this.ttGroups(),flip=gg.flip,s=flip?-1:1,a=flip?data.b:data.a,b=flip?data.a:data.b,la=this.vlabel(S.ttG,gg.lo),lb=this.vlabel(S.ttG,gg.hi);
       const lo=flip?-result.hi:result.lo,hi=flip?-result.lo:result.hi,e1='mean in group '+la,e2='mean in group '+lb,w=Math.max(e1.length,e2.length);
-      L.push('\tWelch Two Sample t-test','','data:  '+S.exploreVar+' by '+S.ttG,'t = '+sig(s*result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(result.p),'alternative hypothesis: true difference in means between group '+la+' and group '+lb+' is not equal to 0',conf+' percent confidence interval:',ci(lo,hi),'sample estimates:',...est([e1,e2],[a.mean,b.mean]));void w;
+      L.push(options.equal?'\t Two Sample t-test':'\tWelch Two Sample t-test','','data:  '+S.exploreVar+' by '+S.ttG,'t = '+sig(s*result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(result.p),'alternative hypothesis: true difference in means between group '+la+' and group '+lb+' is not equal to 0',conf+' percent confidence interval:',ci(lo,hi),'sample estimates:',...est([e1,e2],[a.mean,b.mean]));void w;
     }else if(paired){
       L.push('\tPaired t-test','','data:  df$'+S.exploreVar+' and df$'+S.ttY2,'t = '+sig(result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(result.p),'alternative hypothesis: true mean difference is not equal to 0',conf+' percent confidence interval:',ci(result.lo,result.hi),'sample estimates:',...est(['mean difference'],[result.estimate]));
     }else{
@@ -6004,13 +6008,15 @@ class Component extends DCLogic {
   //   pooled-variance t-test, are computed here and printed in Stata's layout (console entries of type "cx").
   // - tabulate with two variables opens the crosstab page and prints Stata's table with the options typed
   //   (frequencies by default; row, column, cell, chi2, V).
+  // level(#) / conf.level on a t-test applies to that command only too: the next command puts back the confidence
+  // level the user had (Settings, or  set level). Neither is restored when the user changed it in between.
   cxScopeIf(text) {
-    const k = this._cxIf; this._cxIf = null; this._cxPending = null;
-    if (!k) return false;
-    const cur = JSON.stringify((this.state.subg && this.state.subg.all) || []);
-    if (cur !== k.sig) return false;
+    const k = this._cxIf, lv = this._cxLevel, patch = {}; this._cxIf = null; this._cxLevel = null; this._cxPending = null;
+    if (k && JSON.stringify((this.state.subg && this.state.subg.all) || []) === k.sig) patch.subg = k.prev;
+    if (lv && String(this.state.alphaSel) === lv.val) patch.alphaSel = lv.prev;
+    if (!Object.keys(patch).length) return false;
     this.clearMemo(); this._cxQuiet = true;
-    this.setState({ subg: k.prev }, () => { this._cxQuiet = false; this.runCmdLine(text); });
+    this.setState(patch, () => { this._cxQuiet = false; this.runCmdLine(text); });
     return true;
   }
   cxBareNumeric(name) { const raw = this._raw, i = raw ? raw.names.indexOf(name) : -1; return i >= 0 && raw.cols[i].k === 'n'; }
@@ -6121,10 +6127,10 @@ class Component extends DCLogic {
         const y = this._raw.names.find(n => n.toLowerCase() === String(ctx.y).toLowerCase()), g = this._raw.names.find(n => n.toLowerCase() === String(ctx.g).toLowerCase());
         if (!y) return fail('"' + ctx.y + '" is not a variable in this dataset'); if (!g) return fail('"' + ctx.g + '" is not a variable in this dataset');
         const lev = O.level ? Number(O.level) : NaN;
-        out = this.cxTtestPooled(y, g, mk, ctx.alpha || (Number.isFinite(lev) && lev > 10 && lev < 100 ? 1 - lev / 100 : this.alpha()));
-        out.expl = 'Two-sample t-test with equal variances (pooled standard deviation): does mean ' + y + ' differ between the 2 groups of ' + g + '?';
-        out.stata = 'ttest ' + y + '@IF@, by(' + g + ')' + (O.level ? ' level(' + O.level + ')' : '');
-        out.r = 't.test(' + y + ' ~ ' + g + ', data = df, var.equal = TRUE' + (ctx.alpha ? ', conf.level = ' + (1 - ctx.alpha) : O.level ? ', conf.level = ' + Number(O.level) / 100 : '') + ')';
+        out = this.cxTtestPooled(y, g, mk, ctx.alpha || (Number.isFinite(lev) && lev > 10 && lev < 100 ? 1 - lev / 100 : this.alpha()), !!ctx.welch);
+        out.expl = ctx.welch ? 'Two-sample t-test with unequal variances and Welch’s (1947) degrees of freedom: does mean ' + y + ' differ between the 2 groups of ' + g + '?' : 'Two-sample t-test with equal variances (pooled standard deviation): does mean ' + y + ' differ between the 2 groups of ' + g + '?';
+        out.stata = 'ttest ' + y + '@IF@, by(' + g + ')' + (ctx.welch ? ' welch' : '') + (O.level ? ' level(' + O.level + ')' : '');
+        out.r = (ctx.welch ? '# R reports Satterthwaite’s degrees of freedom; Stata’s welch option uses Welch’s (1947) formula\n' : '') + 't.test(' + y + ' ~ ' + g + ', data = df, var.equal = ' + (ctx.welch ? 'FALSE' : 'TRUE') + (ctx.alpha ? ', conf.level = ' + (1 - ctx.alpha) : O.level ? ', conf.level = ' + Number(O.level) / 100 : '') + ')';
         if (ctx.dial === 'r') out.stata = 'ttest ' + y + '@IF@, by(' + g + ')' + (ctx.alpha ? ' level(' + Math.round(100 * (1 - ctx.alpha)) + ')' : '');
       } else return fail('Unknown command');
     } catch (e) { return fail(e.message || String(e)); }
@@ -6285,7 +6291,8 @@ class Component extends DCLogic {
     const p = this._cxPending; if (!d || !p || Date.now() - p.at > 15000 || d.t !== p.t || d.x !== p.x || d.y !== p.y) return d;
     this._cxPending = null; return Object.assign({}, d, { cxStata: p.stata, cxR: p.r, cxo: p.opts });
   }
-  cxTtestPooled(y, g, mk, alpha) {
+  // Student's pooled test (Stata's default), or with welch: unequal variances and Welch's (1947) degrees of freedom.
+  cxTtestPooled(y, g, mk, alpha, welch) {
     const E = this._E, R = (v, n) => String(v).padStart(n), G = v => this.stataG(v), p4 = v => Number.isFinite(v) ? v.toFixed(4) : '.', ab = v => { v = String(v); return v.length > 8 ? v.slice(0, 6) + '~' + v.slice(-1) : v; };
     const ya = this.cxNum(y, mk); if (!ya) return { error: y + ' is text — the t-test needs a numeric outcome' };
     const ga = this.cxLab(g, mk), lv = this.cxOrder(g, [...new Set(ga.filter((v, i) => v != null && Number.isFinite(ya[i])))]);
@@ -6293,15 +6300,16 @@ class Component extends DCLogic {
     const grp = lv.map(l => { const xs = []; for (let i = 0; i < ya.length; i++) if (ga[i] === l && Number.isFinite(ya[i])) xs.push(ya[i]); const n = xs.length, m = xs.reduce((a, b) => a + b, 0) / n, sd = Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1)); return { label: l, n, mean: m, sd, xs }; });
     if (grp.some(x => x.n < 2)) return { error: 'each group needs at least 2 observations' };
     const [a, b] = grp, all = a.xs.concat(b.xs), N = all.length, M = all.reduce((s, v) => s + v, 0) / N, SD = Math.sqrt(all.reduce((s, v) => s + (v - M) ** 2, 0) / (N - 1));
-    const df = a.n + b.n - 2, sp = Math.sqrt(((a.n - 1) * a.sd ** 2 + (b.n - 1) * b.sd ** 2) / df), se = sp * Math.sqrt(1 / a.n + 1 / b.n), diff = a.mean - b.mean, t = diff / se, p = E.pT(t, df);
+    const va = a.sd ** 2 / a.n, vb = b.sd ** 2 / b.n, df = welch ? -2 + (va + vb) ** 2 / (va ** 2 / (a.n + 1) + vb ** 2 / (b.n + 1)) : a.n + b.n - 2, sp = Math.sqrt(((a.n - 1) * a.sd ** 2 + (b.n - 1) * b.sd ** 2) / (a.n + b.n - 2)), se = welch ? Math.sqrt(va + vb) : sp * Math.sqrt(1 / a.n + 1 / b.n), diff = a.mean - b.mean, t = diff / se, p = E.pT(t, df);
+    if (!(se > 0)) return { error: 'no variation inside the groups' };
     const pct = Math.round((1 - alpha) * 100), cr = E.critInv(alpha, df), lo = t < 0 ? p / 2 : 1 - p / 2;
     const row = (lab, n, m, sd) => { const s2 = sd / Math.sqrt(n), c = E.critInv(alpha, n - 1); return R(lab, 8) + ' |' + R(this.fmtN(n), 8) + R(G(m), 12) + R(G(s2), 12) + R(G(sd), 12) + R(G(m - c * s2), 12) + R(G(m + c * s2), 12); };
     const dash = '-'.repeat(78), mid = '---------+' + '-'.repeat(68);
-    const tbl = ['Two-sample t test with equal variances', dash, '   Group |     Obs        Mean    Std. err.   Std. dev.   [' + pct + '% conf. interval]', mid, row(ab(a.label), a.n, a.mean, a.sd), row(ab(b.label), b.n, b.mean, b.sd), mid, row('Combined', N, M, SD), mid,
+    const tbl = ['Two-sample t test with ' + (welch ? 'unequal' : 'equal') + ' variances', dash, '   Group |     Obs        Mean    Std. err.   Std. dev.   [' + pct + '% conf. interval]', mid, row(ab(a.label), a.n, a.mean, a.sd), row(ab(b.label), b.n, b.mean, b.sd), mid, row('Combined', N, M, SD), mid,
       R('diff', 8) + ' |' + R('', 8) + R(G(diff), 12) + R(G(se), 12) + R('', 12) + R(G(diff - cr * se), 12) + R(G(diff + cr * se), 12), dash,
-      ('    diff = mean(' + ab(a.label) + ') - mean(' + ab(b.label) + ')').padEnd(66) + 't = ' + R(p4(t), 8), 'H0: diff = 0'.padEnd(49) + 'Degrees of freedom = ' + R(df, 8), '',
+      ('    diff = mean(' + ab(a.label) + ') - mean(' + ab(b.label) + ')').padEnd(66) + 't = ' + R(p4(t), 8), (welch ? 'H0: diff = 0'.padEnd(39) + "Welch's degrees of freedom = " + R(G(df), 8) : 'H0: diff = 0'.padEnd(49) + 'Degrees of freedom = ' + R(df, 8)), '',
       '    Ha: diff < 0'.padEnd(33) + 'Ha: diff != 0'.padEnd(30) + 'Ha: diff > 0', ' Pr(T < t) = ' + p4(lo) + '         Pr(|T| > |t|) = ' + p4(p) + '          Pr(T > t) = ' + p4(1 - lo)].join('\n');
-    return { tbl, res: 't(' + df + ') = ' + this.fmt(t, 3) + ' · p = ' + this.fmtP(p) + ' · equal variances' };
+    return { tbl, res: 't(' + (welch ? this.fmt(df, 2) : df) + ') = ' + this.fmt(t, 3) + ' · p = ' + this.fmtP(p) + (welch ? ' · unequal variances (Welch df)' : ' · equal variances') };
   }
   // destring with Stata's rules: refuses to turn text into missing values unless force is given; dpcomma reads
   // decimal commas; ignore("chars") removes characters such as thousands separators first.
@@ -7701,7 +7709,7 @@ class Component extends DCLogic {
   saveSession() {
     const raw = this._raw; if (!raw) return;
     const S = this.state, st = {};
-    ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
+    ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
     const vl = {}; if (raw.vlabs) Object.keys(raw.vlabs).forEach(k => { const m = raw.vlabs[k]; vl[k] = m instanceof Map ? [...m.entries()] : m; });
     const cols = raw.cols.map(c => c.k === 'n' ? { k: 'n', a: Array.from(c.a, v => isFinite(v) ? v : null) } : { k: 's', a: Array.from(c.a) });
     const obj = { magic: 'digimi-session', version: 1, app: 'GM26.1', plots: (this._plots || []).map(p => { const q = Object.assign({}, p); delete q.thumb; return q; }), saved: new Date().toISOString(), fileName: S.fileName, data: { n: raw.n, names: raw.names, labels: raw.labels, vlabs: vl, cols }, state: st };
@@ -8570,7 +8578,7 @@ class Component extends DCLogic {
       else if (vb === 'tabulate') { if (!toks.length) return fail('tab1 needs a variable'); if (toks.length > 1) return this.cxRun('tab1', s, { done, fail }); verb = 'tabulate'; vars = [toks[0]]; }
       else if (vb === 'crosstab') { if (toks.length < 2) return fail('tab2 needs two variables'); if (toks.length > 2) return this.cxRun('tab2', s, { done, fail }); verb = 'crosstab'; vars = [toks[0], toks[1]]; this.cxPend('ct', toks, s); }
       else if (vb === 'correlate') return this.cxRun(v0 === 'pwcorr' ? 'pwcorr' : 'correlate', s, { done, fail });
-      else if (vb === 'ttest') { const em = body.match(/^\S+\s+([A-Za-z_]\w*)\s*==?\s*(\S+)/); if (opts.by) { if (!toks.length) return fail('ttest needs a variable'); if (!O.unequal && !O.une && !O.uneq && !O.welch) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by }); verb = 'ttest'; vars = [toks[0], opts.by]; } else if (em && V(em[2])) { verb = 'ttestp'; vars = [em[1], em[2]]; } else if (em) { verb = 'ttest1'; vars = [em[1]]; opts.mu = em[2]; } else return fail(toks.length >= 2 ? 'In Stata the group goes inside by():   ttest ' + toks[0] + ', by(' + toks[1] + ')' : 'ttest: use  ttest y, by(group)   or   ttest y == 50'); }
+      else if (vb === 'ttest') { const em = body.match(/^\S+\s+([A-Za-z_]\w*)\s*==?\s*(\S+)/); if (O.level !== undefined) { const lv = Number(O.level); if (!(lv >= 10 && lv <= 99.99)) return fail('level() takes a confidence level between 10 and 99.99, e.g. level(90)'); opts.ttAlpha = +(1 - lv / 100).toFixed(8); } if (opts.by) { if (!toks.length) return fail('ttest needs a variable'); if (O.welch) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by, welch: true }); if (!O.unequal && !O.une && !O.uneq) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by }); verb = 'ttest'; vars = [toks[0], opts.by]; } else if (em && V(em[2])) { verb = 'ttestp'; vars = [em[1], em[2]]; } else if (em) { verb = 'ttest1'; vars = [em[1]]; opts.mu = em[2]; } else return fail(toks.length >= 2 ? 'In Stata the group goes inside by():   ttest ' + toks[0] + ', by(' + toks[1] + ')' : 'ttest: use  ttest y, by(group)   or   ttest y == 50'); }
       else if (vb === 'oneway') { if (toks.length < 2) return fail('oneway needs  oneway y group'); verb = 'oneway'; vars = [toks[0], toks[1]]; }
       else if (['regress', 'logit', 'ologit', 'poisson'].includes(vb)) { if (toks.length < 2) return fail(vb + ' needs an outcome and at least one predictor'); verb = vb; vars = [toks[0]]; opts.terms = toks.slice(1); }
       else if (vb === 'hist' || vb === 'box') { if (!toks.length) return fail(v0 + ' needs a variable'); verb = 'plot'; const grouped = vb === 'box' && opts.over; opts.kind = grouped ? 'gbox' : vb; vars = grouped ? [opts.over, toks[0]] : [toks[0]]; }
@@ -8605,7 +8613,7 @@ class Component extends DCLogic {
       }
       patch.subg = Object.assign({}, S.subg, { all }); this._cxIf = { prev: S.subg, sig: JSON.stringify(all) };
     }
-    if (opts.ttAlpha !== undefined) patch.alphaSel = String(opts.ttAlpha);
+    if (opts.ttAlpha !== undefined) { patch.alphaSel = String(+opts.ttAlpha.toFixed(8)); this._cxLevel = { prev: S.alphaSel, val: patch.alphaSel }; }
     if (opts.w) { patch.weightVar = opts.w; patch.weightAuto = false; }
     if (opts.w || patch.subg || JSON.stringify(treat) !== JSON.stringify(S.treat || {})) this.clearMemo();
     const label = (s.length > 70 ? s.slice(0, 68) + '…' : s) + (opts.if ? '   · the if applies to this command only' : '');
@@ -9014,7 +9022,7 @@ class Component extends DCLogic {
     if (this._asBusy) { this._asAgain = true; return; }
     this._asBusy = true;
     try {
-      const st = {}; ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
+      const st = {}; ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
       const origN = new Set(this._asOrigNames || []);
       const sum = { nNew: raw.names.filter(n => !origN.has(n)).length, nLog: (S.conLog || []).length, nPins: (S.pins || []).length, nPlots: (this._plots || []).length };
       if (!sum.nNew && !sum.nPins && !sum.nLog && !this._dataRev) return;
@@ -9050,7 +9058,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-01.60') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-01.61') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -9766,8 +9774,8 @@ class Component extends DCLogic {
       const xn = S.exploreVar, xm = xn ? this.effMeta(xn) : null;
       this._ttLast = null;
       const mode = S.ttMode || 'groups';
-      out.ttModeBtns = [['groups','TWO INDEPENDENT GROUPS','Different people or cases in each group; Welch test without equal-variance assumptions.'],['paired','PAIRED MEASUREMENTS','Two measurements of the same cases, aligned on each row.'],['value','ONE SAMPLE VS A VALUE','Compare one outcome mean with a specified reference value.']].map(([k,label,tip])=>({label,tip,style:chipS(mode===k),click:()=>this.setState({ttMode:k})}));
-      out.ttDesignHint = mode === 'groups' ? 'Different cases in two groups. Uses Welch’s independent-samples t-test.' : mode === 'paired' ? 'Two measurements on the same cases, such as before and after. Rows missing either value are excluded as pairs.' : 'One sample compared with a reference value, such as a target or scale midpoint.';
+      out.ttModeBtns = [['groups','TWO INDEPENDENT GROUPS','Different people or cases in each group; Welch’s or Student’s test.'],['paired','PAIRED MEASUREMENTS','Two measurements of the same cases, aligned on each row.'],['value','ONE SAMPLE VS A VALUE','Compare one outcome mean with a specified reference value.']].map(([k,label,tip])=>({label,tip,style:chipS(mode===k),click:()=>this.setState({ttMode:k})}));
+      out.ttDesignHint = mode === 'groups' ? 'Different cases in two groups. Welch’s test (unequal variances) by default, or Student’s test (equal variances).' : mode === 'paired' ? 'Two measurements on the same cases, such as before and after. Rows missing either value are excluded as pairs.' : 'One sample compared with a reference value, such as a target or scale midpoint.';
       out.ttOutcomePk = mkPicker('ttoutcome',xn,n=>this.setState({exploreVar:n}),col=>col.type==='numeric');
       const validOutcome=!!(xm && xm.type==='numeric' && this.numVals(xn));
       out.ttNeedOutcome = out.isTtest && !validOutcome;
@@ -9798,9 +9806,13 @@ class Component extends DCLogic {
         } else if (mode === 'groups') {
           const gv = S.ttG && this.effMeta(S.ttG) ? S.ttG : '';
           out.ttGPk = mkPicker('ttg', gv, n => this.setState({ ttG: n, ttA: '', ttB: '' }), c => c.name !== xn);
-          const f2 = gv ? this.nvLevels(gv) : null, labs = f2 ? f2.rows.map(r3 => String(r3.label)) : [];
+          const f2 = gv ? this.nvLevels(gv) : null, labs = f2 ? this.descOrder(gv, f2.rows).map(r3 => String(r3.label)) : [];
           out.ttHasLevels = labs.length > 2;
-          const A = labs.length === 2 ? labs[0] : (labs.includes(S.ttA) ? S.ttA : ''), B = labs.length === 2 ? labs[1] : (labs.includes(S.ttB) && S.ttB !== A ? S.ttB : '');
+          const A = labs.length === 2 ? labs[S.ttSwap ? 1 : 0] : (labs.includes(S.ttA) ? S.ttA : ''), B = labs.length === 2 ? labs[S.ttSwap ? 0 : 1] : (labs.includes(S.ttB) && S.ttB !== A ? S.ttB : '');
+          const eq = !!S.ttEqual;
+          out.ttVarBtns = [['', 'Unequal variances (Welch)', 'Welch’s test: does not assume the two groups have the same spread (Stata: ttest …, by() unequal; R’s default).'], ['eq', 'Equal variances (Student)', 'Student’s test: pools the two standard deviations (Stata’s default ttest …, by(); R: var.equal = TRUE).']].map(([k, label, tip]) => ({ label, tip, style: chipS(eq === !!k), click: () => this.setState({ ttEqual: !!k }) }));
+          out.ttHasOrder = !!(A && B); out.ttSwapLabel = A && B ? '⇄ Order: ' + this.vlabel(gv, A) + ' minus ' + this.vlabel(gv, B) : '';
+          out.ttSwap = () => labs.length === 2 ? this.setState({ ttSwap: !S.ttSwap }) : this.setState({ ttA: B, ttB: A });
           if (out.ttHasLevels) { const lv2 = labs.slice(0, 40); out.ttABtns = lv2.map(l => ({ label: this.vlabel(gv, l), style: chipS(A === l), click: () => this.setState({ ttA: l, ttB: S.ttB === l ? '' : S.ttB }) })); out.ttBBtns = lv2.filter(l => l !== A).map(l => ({ label: this.vlabel(gv, l), style: chipS(B === l), click: () => this.setState({ ttB: l }) })); }
           if (!gv) { out.ttHasErr = true; out.ttErr = 'Pick the variable that splits the data into groups — or make a new 0/1 variable below.'; }
           else if (labs.length < 2) { out.ttHasErr = true; out.ttErr = gv + ' has only one value — it cannot form two groups.'; }
@@ -9812,16 +9824,16 @@ class Component extends DCLogic {
             const dA = E.descNum(xa, w), dB = E.descNum(xb, w);
             if (!(dA.n >= 2 && dB.n >= 2)) { out.ttHasErr = true; out.ttErr = 'Each group needs at least 2 valid values.'; }
             else {
-              const T = E.welch(dA, dB), se = Math.sqrt(dA.sd * dA.sd / dA.n + dB.sd * dB.sd / dB.n), cr = E.ttCritical(a, T.df), df2 = dA.mean - dB.mean, sig = T.p < a;
+              const TW = E.welch(dA, dB), dfP = dA.n + dB.n - 2, spP = Math.sqrt(((dA.n - 1) * dA.sd * dA.sd + (dB.n - 1) * dB.sd * dB.sd) / dfP), se = eq ? spP * Math.sqrt(1 / dA.n + 1 / dB.n) : Math.sqrt(dA.sd * dA.sd / dA.n + dB.sd * dB.sd / dB.n), T = eq ? Object.assign({}, TW, { t: (dA.mean - dB.mean) / se, df: dfP, p: E.pT((dA.mean - dB.mean) / se, dfP) }) : TW, cr = E.ttCritical(a, T.df), df2 = dA.mean - dB.mean, sig = T.p < a, dfTxt = Number.isInteger(T.df) ? String(T.df) : this.fmt(T.df, 1);
               const nA = this.vlabel(gv, A), nB = this.vlabel(gv, B);
               out.ttHasRes = true;
-              out.ttCells = [cell('MEAN · ' + String(nA).slice(0, 14).toUpperCase(), this.fmt(dA.mean) + ' (' + this.fmtN(dA.n) + ')'), cell('MEAN · ' + String(nB).slice(0, 14).toUpperCase(), this.fmt(dB.mean) + ' (' + this.fmtN(dB.n) + ')'), cell('DIFFERENCE', (df2 >= 0 ? '+' : '') + this.fmt(df2)), cell('T (DF)', this.fmt(T.t, 2) + ' (' + this.fmt(T.df, 1) + ')'), cell('P', this.fmtP(T.p), sig), cell(pct + '% CI OF DIFF.', '[' + this.fmt(df2 - cr * se) + ', ' + this.fmt(df2 + cr * se) + ']'), cell("COHEN'S D", this.fmt(T.d, 2))];
+              out.ttCells = [cell('MEAN · ' + String(nA).slice(0, 14).toUpperCase(), this.fmt(dA.mean) + ' (' + this.fmtN(dA.n) + ')'), cell('MEAN · ' + String(nB).slice(0, 14).toUpperCase(), this.fmt(dB.mean) + ' (' + this.fmtN(dB.n) + ')'), cell('DIFFERENCE', (df2 >= 0 ? '+' : '') + this.fmt(df2)), cell('T (DF)', this.fmt(T.t, 2) + ' (' + dfTxt + ')'), cell('P', this.fmtP(T.p), sig), cell(pct + '% CI OF DIFF.', '[' + this.fmt(df2 - cr * se) + ', ' + this.fmt(df2 + cr * se) + ']'), cell("COHEN'S D", this.fmt(T.d, 2))];
               out.ttChartEl = E.marginsChart(R, { grid: [nA, nB], xCat: true, series: [{ label: '', pts: [ciPts(nA, dA), ciPts(nB, dB)] }] }, { key: 'ttc|' + xn + '|' + gv + '|' + A + '|' + B + '|' + dA.n + '|' + (S.chartColor || ''), xlab: gv, ylab: 'mean of ' + xn + ' (' + pct + '% CI)', color: S.chartColor || '#2E7D58' , refCb: this.svgRef('tt'), ax: this.axUI('tt', [xn, gv], { y: true, zero: 'y', zeroDefault: true, yName: 'Mean of ' + xn }) });
-              out.ttApa = 't(' + this.fmt(T.df, 1) + ') = ' + this.fmt(T.t, 2) + ', ' + this.apaP(T.p) + ', d = ' + this.fmt(T.d, 2);
-              out.iTt = this.mkInterp('"' + nA + '" averages ' + this.fmt(dA.mean) + ' on ' + xn + ' and "' + nB + '" averages ' + this.fmt(dB.mean) + ' — a difference of ' + this.fmt(Math.abs(df2)) + ' (a ' + eff(T.d) + ' effect, d = ' + this.fmt(T.d, 2) + '). ' + (sig ? 'This difference is statistically significant (' + this.apaP(T.p) + ').' : 'This difference is not statistically significant (' + this.apaP(T.p) + ') — it could be chance.'), { p: T.p, tip: 'Uses Welch\u2019s t-test (does not assume equal variances). Each row must be independent: in country-year data, keep one year with the IF bar, or use Regression with clustered errors.' });
+              out.ttApa = 't(' + dfTxt + ') = ' + this.fmt(T.t, 2) + ', ' + this.apaP(T.p) + ', d = ' + this.fmt(T.d, 2);
+              out.iTt = this.mkInterp('"' + nA + '" averages ' + this.fmt(dA.mean) + ' on ' + xn + ' and "' + nB + '" averages ' + this.fmt(dB.mean) + ' — a difference of ' + this.fmt(Math.abs(df2)) + ' (a ' + eff(T.d) + ' effect, d = ' + this.fmt(T.d, 2) + '). ' + (sig ? 'This difference is statistically significant (' + this.apaP(T.p) + ').' : 'This difference is not statistically significant (' + this.apaP(T.p) + ') — it could be chance.'), { p: T.p, tip: (eq ? 'Uses Student\u2019s t-test (assumes both groups have the same spread; switch to unequal variances if their standard deviations differ a lot). ' : 'Uses Welch\u2019s t-test (does not assume equal variances). ') + 'Each row must be independent: in country-year data, keep one year with the IF bar, or use Regression with clustered errors.' });
               const q = v => g2.kind === 'num' ? v : '"' + v + '"';
               out.ttCmd = S.dialect === 'r' ? 't.test(' + xn + ' ~ ' + gv + ', data = subset(df, ' + gv + ' %in% c(' + q(A) + ', ' + q(B) + ')))' : 'ttest ' + xn + (labs.length > 2 ? ' if inlist(' + gv + ', ' + q(A) + ', ' + q(B) + ')' : '') + ', by(' + gv + ') unequal';
-              this.ttRecord(out,{mode:'groups',x:xa,y:xb,labels:[nA,nB]});
+              this.ttRecord(out,{mode:'groups',x:xa,y:xb,labels:[nA,nB],equal:eq});
             }
           }
           const tn = S.ttNew || {};
@@ -9863,8 +9875,8 @@ class Component extends DCLogic {
           else { const r2 = E.pairedT(X, this.numVals(y2).a, w); if (r2.error) { out.ttHasErr = true; out.ttErr = r2.error; } else {
             const se = r2.sd / Math.sqrt(r2.n), cr = E.ttCritical(a, r2.df), dd = r2.mean / r2.sd, sig = r2.p < a;
             out.ttHasRes = true;
-            out.ttCells = [cell('MEAN · ' + xn.slice(0, 12).toUpperCase(), this.fmt(r2.meanA)), cell('MEAN · ' + y2.slice(0, 12).toUpperCase(), this.fmt(r2.meanB)), cell('PAIRS', this.fmtN(r2.n)), cell('MEAN DIFFERENCE', (r2.mean >= 0 ? '+' : '') + this.fmt(r2.mean)), cell('T (DF)', this.fmt(r2.t, 2) + ' (' + r2.df + ')'), cell('P', this.fmtP(r2.p), sig), cell(pct + '% CI OF DIFF.', '[' + this.fmt(r2.mean - cr * se) + ', ' + this.fmt(r2.mean + cr * se) + ']'), cell("COHEN'S D", this.fmt(dd, 2))];
-            out.ttApa = 't(' + r2.df + ') = ' + this.fmt(r2.t, 2) + ', ' + this.apaP(r2.p) + ', d = ' + this.fmt(dd, 2);
+            out.ttCells = [cell('MEAN · ' + xn.slice(0, 12).toUpperCase(), this.fmt(r2.meanA)), cell('MEAN · ' + y2.slice(0, 12).toUpperCase(), this.fmt(r2.meanB)), cell('PAIRS', this.fmtN(r2.n)), cell('MEAN DIFFERENCE', (r2.mean >= 0 ? '+' : '') + this.fmt(r2.mean)), cell('T (DF)', this.fmt(r2.t, 2) + ' (' + r2.df + ')'), cell('P', this.fmtP(r2.p), sig), cell(pct + '% CI OF DIFF.', '[' + this.fmt(r2.mean - cr * se) + ', ' + this.fmt(r2.mean + cr * se) + ']'), cell("COHEN'S D_Z", this.fmt(dd, 2))];
+            out.ttApa = 't(' + r2.df + ') = ' + this.fmt(r2.t, 2) + ', ' + this.apaP(r2.p) + ', d_z = ' + this.fmt(dd, 2);
             out.iTt = this.mkInterp('On the same ' + this.fmtN(r2.n) + ' rows, ' + xn + ' averages ' + this.fmt(r2.meanA) + ' and ' + y2 + ' averages ' + this.fmt(r2.meanB) + '. ' + (sig ? 'The difference is statistically significant (' + this.apaP(r2.p) + ').' : 'The difference is not statistically significant (' + this.apaP(r2.p) + ').'), { p: r2.p, tip: 'A paired test compares two measurements of the same cases (e.g. before and after). Rows missing either value are left out.' });
             out.ttCmd = S.dialect === 'r' ? 't.test(df$' + xn + ', df$' + y2 + ', paired = TRUE)' : 'ttest ' + xn + ' == ' + y2;
             this.ttRecord(out,{mode:'paired',x:X,y:this.numVals(y2).a});

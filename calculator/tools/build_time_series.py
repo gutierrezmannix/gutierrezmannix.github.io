@@ -13,7 +13,6 @@ from pathlib import Path
 from commandbar import integrate_component as integrate_commandbar_component, integrate_template as integrate_commandbar_template
 from network import integrate_engine as integrate_network_engine, integrate_component as integrate_network_component, integrate_template as integrate_network_template
 from tests_menu import integrate_component as integrate_tests_menu
-from ttests import integrate_component as integrate_ttests_component, integrate_template as integrate_ttests_template, integrate_engine as integrate_ttests_engine
 from jade_shell import integrate_template as integrate_jade_shell
 from audit_fixes import integrate_component as repair_component, integrate_template as repair_template, integrate_engine as repair_engine
 from scatter_ranges import integrate_component as range_component, integrate_template as range_template, integrate_engine as range_engine

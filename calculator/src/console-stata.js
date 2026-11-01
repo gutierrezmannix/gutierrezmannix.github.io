@@ -7,13 +7,15 @@
   //   pooled-variance t-test, are computed here and printed in Stata's layout (console entries of type "cx").
   // - tabulate with two variables opens the crosstab page and prints Stata's table with the options typed
   //   (frequencies by default; row, column, cell, chi2, V).
+  // level(#) / conf.level on a t-test applies to that command only too: the next command puts back the confidence
+  // level the user had (Settings, or  set level). Neither is restored when the user changed it in between.
   cxScopeIf(text) {
-    const k = this._cxIf; this._cxIf = null; this._cxPending = null;
-    if (!k) return false;
-    const cur = JSON.stringify((this.state.subg && this.state.subg.all) || []);
-    if (cur !== k.sig) return false;
+    const k = this._cxIf, lv = this._cxLevel, patch = {}; this._cxIf = null; this._cxLevel = null; this._cxPending = null;
+    if (k && JSON.stringify((this.state.subg && this.state.subg.all) || []) === k.sig) patch.subg = k.prev;
+    if (lv && String(this.state.alphaSel) === lv.val) patch.alphaSel = lv.prev;
+    if (!Object.keys(patch).length) return false;
     this.clearMemo(); this._cxQuiet = true;
-    this.setState({ subg: k.prev }, () => { this._cxQuiet = false; this.runCmdLine(text); });
+    this.setState(patch, () => { this._cxQuiet = false; this.runCmdLine(text); });
     return true;
   }
   cxBareNumeric(name) { const raw = this._raw, i = raw ? raw.names.indexOf(name) : -1; return i >= 0 && raw.cols[i].k === 'n'; }
@@ -124,10 +126,10 @@
         const y = this._raw.names.find(n => n.toLowerCase() === String(ctx.y).toLowerCase()), g = this._raw.names.find(n => n.toLowerCase() === String(ctx.g).toLowerCase());
         if (!y) return fail('"' + ctx.y + '" is not a variable in this dataset'); if (!g) return fail('"' + ctx.g + '" is not a variable in this dataset');
         const lev = O.level ? Number(O.level) : NaN;
-        out = this.cxTtestPooled(y, g, mk, ctx.alpha || (Number.isFinite(lev) && lev > 10 && lev < 100 ? 1 - lev / 100 : this.alpha()));
-        out.expl = 'Two-sample t-test with equal variances (pooled standard deviation): does mean ' + y + ' differ between the 2 groups of ' + g + '?';
-        out.stata = 'ttest ' + y + '@IF@, by(' + g + ')' + (O.level ? ' level(' + O.level + ')' : '');
-        out.r = 't.test(' + y + ' ~ ' + g + ', data = df, var.equal = TRUE' + (ctx.alpha ? ', conf.level = ' + (1 - ctx.alpha) : O.level ? ', conf.level = ' + Number(O.level) / 100 : '') + ')';
+        out = this.cxTtestPooled(y, g, mk, ctx.alpha || (Number.isFinite(lev) && lev > 10 && lev < 100 ? 1 - lev / 100 : this.alpha()), !!ctx.welch);
+        out.expl = ctx.welch ? 'Two-sample t-test with unequal variances and Welch’s (1947) degrees of freedom: does mean ' + y + ' differ between the 2 groups of ' + g + '?' : 'Two-sample t-test with equal variances (pooled standard deviation): does mean ' + y + ' differ between the 2 groups of ' + g + '?';
+        out.stata = 'ttest ' + y + '@IF@, by(' + g + ')' + (ctx.welch ? ' welch' : '') + (O.level ? ' level(' + O.level + ')' : '');
+        out.r = (ctx.welch ? '# R reports Satterthwaite’s degrees of freedom; Stata’s welch option uses Welch’s (1947) formula\n' : '') + 't.test(' + y + ' ~ ' + g + ', data = df, var.equal = ' + (ctx.welch ? 'FALSE' : 'TRUE') + (ctx.alpha ? ', conf.level = ' + (1 - ctx.alpha) : O.level ? ', conf.level = ' + Number(O.level) / 100 : '') + ')';
         if (ctx.dial === 'r') out.stata = 'ttest ' + y + '@IF@, by(' + g + ')' + (ctx.alpha ? ' level(' + Math.round(100 * (1 - ctx.alpha)) + ')' : '');
       } else return fail('Unknown command');
     } catch (e) { return fail(e.message || String(e)); }
@@ -288,7 +290,8 @@
     const p = this._cxPending; if (!d || !p || Date.now() - p.at > 15000 || d.t !== p.t || d.x !== p.x || d.y !== p.y) return d;
     this._cxPending = null; return Object.assign({}, d, { cxStata: p.stata, cxR: p.r, cxo: p.opts });
   }
-  cxTtestPooled(y, g, mk, alpha) {
+  // Student's pooled test (Stata's default), or with welch: unequal variances and Welch's (1947) degrees of freedom.
+  cxTtestPooled(y, g, mk, alpha, welch) {
     const E = this._E, R = (v, n) => String(v).padStart(n), G = v => this.stataG(v), p4 = v => Number.isFinite(v) ? v.toFixed(4) : '.', ab = v => { v = String(v); return v.length > 8 ? v.slice(0, 6) + '~' + v.slice(-1) : v; };
     const ya = this.cxNum(y, mk); if (!ya) return { error: y + ' is text — the t-test needs a numeric outcome' };
     const ga = this.cxLab(g, mk), lv = this.cxOrder(g, [...new Set(ga.filter((v, i) => v != null && Number.isFinite(ya[i])))]);
@@ -296,15 +299,16 @@
     const grp = lv.map(l => { const xs = []; for (let i = 0; i < ya.length; i++) if (ga[i] === l && Number.isFinite(ya[i])) xs.push(ya[i]); const n = xs.length, m = xs.reduce((a, b) => a + b, 0) / n, sd = Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1)); return { label: l, n, mean: m, sd, xs }; });
     if (grp.some(x => x.n < 2)) return { error: 'each group needs at least 2 observations' };
     const [a, b] = grp, all = a.xs.concat(b.xs), N = all.length, M = all.reduce((s, v) => s + v, 0) / N, SD = Math.sqrt(all.reduce((s, v) => s + (v - M) ** 2, 0) / (N - 1));
-    const df = a.n + b.n - 2, sp = Math.sqrt(((a.n - 1) * a.sd ** 2 + (b.n - 1) * b.sd ** 2) / df), se = sp * Math.sqrt(1 / a.n + 1 / b.n), diff = a.mean - b.mean, t = diff / se, p = E.pT(t, df);
+    const va = a.sd ** 2 / a.n, vb = b.sd ** 2 / b.n, df = welch ? -2 + (va + vb) ** 2 / (va ** 2 / (a.n + 1) + vb ** 2 / (b.n + 1)) : a.n + b.n - 2, sp = Math.sqrt(((a.n - 1) * a.sd ** 2 + (b.n - 1) * b.sd ** 2) / (a.n + b.n - 2)), se = welch ? Math.sqrt(va + vb) : sp * Math.sqrt(1 / a.n + 1 / b.n), diff = a.mean - b.mean, t = diff / se, p = E.pT(t, df);
+    if (!(se > 0)) return { error: 'no variation inside the groups' };
     const pct = Math.round((1 - alpha) * 100), cr = E.critInv(alpha, df), lo = t < 0 ? p / 2 : 1 - p / 2;
     const row = (lab, n, m, sd) => { const s2 = sd / Math.sqrt(n), c = E.critInv(alpha, n - 1); return R(lab, 8) + ' |' + R(this.fmtN(n), 8) + R(G(m), 12) + R(G(s2), 12) + R(G(sd), 12) + R(G(m - c * s2), 12) + R(G(m + c * s2), 12); };
     const dash = '-'.repeat(78), mid = '---------+' + '-'.repeat(68);
-    const tbl = ['Two-sample t test with equal variances', dash, '   Group |     Obs        Mean    Std. err.   Std. dev.   [' + pct + '% conf. interval]', mid, row(ab(a.label), a.n, a.mean, a.sd), row(ab(b.label), b.n, b.mean, b.sd), mid, row('Combined', N, M, SD), mid,
+    const tbl = ['Two-sample t test with ' + (welch ? 'unequal' : 'equal') + ' variances', dash, '   Group |     Obs        Mean    Std. err.   Std. dev.   [' + pct + '% conf. interval]', mid, row(ab(a.label), a.n, a.mean, a.sd), row(ab(b.label), b.n, b.mean, b.sd), mid, row('Combined', N, M, SD), mid,
       R('diff', 8) + ' |' + R('', 8) + R(G(diff), 12) + R(G(se), 12) + R('', 12) + R(G(diff - cr * se), 12) + R(G(diff + cr * se), 12), dash,
-      ('    diff = mean(' + ab(a.label) + ') - mean(' + ab(b.label) + ')').padEnd(66) + 't = ' + R(p4(t), 8), 'H0: diff = 0'.padEnd(49) + 'Degrees of freedom = ' + R(df, 8), '',
+      ('    diff = mean(' + ab(a.label) + ') - mean(' + ab(b.label) + ')').padEnd(66) + 't = ' + R(p4(t), 8), (welch ? 'H0: diff = 0'.padEnd(39) + "Welch's degrees of freedom = " + R(G(df), 8) : 'H0: diff = 0'.padEnd(49) + 'Degrees of freedom = ' + R(df, 8)), '',
       '    Ha: diff < 0'.padEnd(33) + 'Ha: diff != 0'.padEnd(30) + 'Ha: diff > 0', ' Pr(T < t) = ' + p4(lo) + '         Pr(|T| > |t|) = ' + p4(p) + '          Pr(T > t) = ' + p4(1 - lo)].join('\n');
-    return { tbl, res: 't(' + df + ') = ' + this.fmt(t, 3) + ' · p = ' + this.fmtP(p) + ' · equal variances' };
+    return { tbl, res: 't(' + (welch ? this.fmt(df, 2) : df) + ') = ' + this.fmt(t, 3) + ' · p = ' + this.fmtP(p) + (welch ? ' · unequal variances (Welch df)' : ' · equal variances') };
   }
   // destring with Stata's rules: refuses to turn text into missing values unless force is given; dpcomma reads
   // decimal commas; ignore("chars") removes characters such as thousands separators first.

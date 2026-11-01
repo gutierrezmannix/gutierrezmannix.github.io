@@ -24,7 +24,7 @@ c.state={...c.state,tab:'one',exploreVar:'y'};out=c.renderVals();assert.deepEqua
 // All three t-test designs retain the prepared sample and full-precision exports.
 c.state={...c.state,tab:'ttest',exploreVar:'y',ttMode:'value',ttMu:'5'};out=c.renderVals();assert.ok(out.ttHasRes);assert.equal(out.stataTtRows.length,1);assert.equal(out.stataTtRows[0].n,'80');assert.ok(out.stataTtRows[0].sd);out.ttCopy();assert.ok(copied.indexOf('Obs\tMean\tStd. err.\tStd. dev.')>0);
 c.state={...c.state,ttMode:'paired',ttY2:'after'};out=c.renderVals();const pairs=Array.from(raw.cols[3].a).filter(Number.isFinite).length;assert.ok(out.stataTtRows.every(r=>r.n===String(pairs)));assert.ok(out.stataTtRows.at(-1).label.startsWith('diff'));
-c.state={...c.state,ttMode:'groups',ttG:'group'};out=c.renderVals();assert.deepEqual(out.stataTtRows.slice(0,2).map(r=>r.label),['B','A']);assert.equal(out.stataTtRows.length,3);assert.ok(out.ttCells.every(r=>!r.k.startsWith('MEAN')));
+c.state={...c.state,ttMode:'groups',ttG:'group'};out=c.renderVals();assert.deepEqual(out.stataTtRows.map(r=>r.label.replace(/ \(.*/,'')),['A','B','Combined','diff']);/* build .61: Stata's order (first name first) and its Combined row */assert.ok(out.ttCells.every(r=>!r.k.startsWith('MEAN')));
 const rows=[{raw:'(constant)',term:'intercept'},{raw:'x',term:'x'},{raw:'/cut1',term:'threshold'}],saved=JSON.stringify(rows);assert.deepEqual(c.stataTerms(rows).map(r=>r.raw),['x','(constant)','/cut1']);assert.equal(JSON.stringify(rows),saved);
 clearTimeout(c._ghostT);clearTimeout(c._mfOkT);
 console.log('Stata summary and coefficient order, non-mutating engine parameters, OLS source table, robust presentation, logit LR summary, all three t-test sample tables and copied result order passed.');
