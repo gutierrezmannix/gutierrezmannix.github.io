@@ -15,7 +15,7 @@ export const CB_FAMILIES = [
   { id: 'xy', q: 'Two numbers together', icon: 'scatter', kinds: [['scatterplain', 'Scatterplot'], ['scatter', 'With fitted line'], ['smooth', 'With smoother'], ['hexbin', 'Hexbin (many points)'], ['matrix', 'Scatterplot matrix'], ['corrmap', 'Correlation matrix'], ['heatmap', 'Heat map']] },
   { id: 'ci', q: 'Compare groups with uncertainty', icon: 'ci', kinds: [['mean', 'Means with intervals'], ['proportion', 'Proportions with intervals'], ['dumbbell', 'Dumbbell'], ['slope', 'Slope'], ['paired', 'Before and after']] },
   { id: 'model', q: 'Model results', icon: 'coef', kinds: [['coefficient', 'Coefficients'], ['modelcompare', 'Model comparison'], ['prediction', 'Predictions'], ['marginal', 'Marginal effects'], ['interaction', 'Interaction'], ['event', 'Event study'], ['conjoint', 'Conjoint / AMCE'], ['survival', 'Survival curves']] },
-  { id: 'maps', q: 'Maps', icon: 'map', kinds: [['map', 'World and regions'], ['geomap', 'Country divisions (your file)']] }
+  { id: 'maps', q: 'Maps', icon: 'map', kinds: [['map', 'Map: countries, states, municipalities']] }
 ];
 export const cbFamilyOf = id => { const k = id === 'multiline' ? 'line' : id; return CB_FAMILIES.find(f => f.kinds.some(x => x[0] === k)) || null; };
 export const cbTitleOf = id => { const k = id === 'multiline' ? 'line' : id; for (const f of CB_FAMILIES) for (const x of f.kinds) if (x[0] === k) return x[1]; return id; };
@@ -123,6 +123,7 @@ export function cbScene(model, o = {}) {
     case 'grid': return cbDrawGrid(C, model);
     case 'pair': return cbDrawPair(C, model);
     case 'matrix': return cbDrawMatrix(C, model);
+    case 'map': return mlDraw(C, model);
     case 'raw': return { markup: model.markup, width: model.width, height: model.height };
     default: throw Error('Unsupported chart type.');
   }

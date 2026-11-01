@@ -30,5 +30,13 @@
  {
   "id": "lemma_fr",
   "uuid": "280bd807-5a92-5941-898c-d51aec23689d"
+ },
+ {
+  "id": "maps1",
+  "uuid": "d8f7ffa5-616e-5d00-aac7-0fd86deb2710"
+ },
+ {
+  "id": "mapsmx",
+  "uuid": "f7af2241-58b0-58d3-8331-518a2292e642"
  }
 ]

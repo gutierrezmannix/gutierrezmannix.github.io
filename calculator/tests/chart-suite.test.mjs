@@ -22,7 +22,7 @@ globalThis.React={createElement:(tag,props,...children)=>({tag,props,children})}
 const C=new Function('DCLogic',template.match(/<script type="text\/x-dc"[^>]*>([\s\S]*?)<\/script>/)[1]+';return Component')(Base);
 const csv='category,value,binary,time,first,lower,upper,model\nA,1,0,1,0,0,2,M1\nA,2,1,2,1,1,3,M1\nB,3,0,3,2,2,4,M2\nB,4,1,4,3,3,5,M2';const buf=Buffer.from(csv),raw=await E.parseCSV(buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.byteLength),()=>{});
 const c=new C();c._E=E;c._raw=raw;c.state={...c.state,screen:'work',tab:'plots',nRows:4,cols:raw.names.map((_,i)=>E.profileCol(raw,i)),autoScreen:false,plotKind:'pie',csPages:{pie:{x:'category',drawn:true}}};const out=c.renderVals();assert.equal(out.isPlotsLegacy,false);assert.equal(out.isChartSuite,true);assert.equal(out.plotEmpty,false);assert.ok(out.chartSuiteEl);assert.ok(out.mfNavGroups.flatMap(g=>g.items).find(t=>t.key==='plots').content);assert.equal(c.descFor(),null);
-c.csOpen('hist');assert.equal(c.state.plotKind,'hist');assert.equal(c.state.csPages.pie.x,'category');assert.ok(c.renderVals().isChartSuite);c.csOpen('map');assert.ok(c.renderVals().isPlotsLegacy);c.csOpen('hist');assert.ok(!template.includes('list="{{ plotKindBtns }}"'));
+c.csOpen('hist');assert.equal(c.state.plotKind,'hist');assert.equal(c.state.csPages.pie.x,'category');assert.ok(c.renderVals().isChartSuite);c.csOpen('map');{const o2=c.renderVals();assert.ok(o2.isChartSuite&&!o2.isPlotsLegacy,'the Map page replaces the legacy world map');}c.csOpen('hist');assert.ok(!template.includes('list="{{ plotKindBtns }}"'));
 // Timelines: round tick values, year labels without separators, lines broken at unobserved periods, legend swatches unclipped.
 assert.deepEqual(E.csPretty(2000,2009,5,true),[2000,2002,2004,2006,2008]);assert.deepEqual(E.csPretty(2000,2001,5,true),[2000,2001]);assert.deepEqual(E.csPretty(10,39),[10,15,20,25,30,35]);
 {const yrs=[2000,2001,2002,2003,2006,2007,2000,2001,2002,2004,2005];const tl=E.csScene('multiline',E.csPrepare('multiline',{x:yrs,y:yrs.map((v,i)=>v-1990+i),g:yrs.map((_,i)=>i<6?'B':'C')}));
@@ -41,7 +41,7 @@ for(const [category,items]of E.CS_CATALOG)for(const [id,,legacy]of items){
  if(id==='likert')p.order='M1|M2';if(id==='geomap')p.x='category';
  c.state={...c.state,tab:'plots',plotKind:id,csPages:{...c.state.csPages,[id]:p}};
  const v=c.renderVals(),nodes=flatten(v.chartSuiteEl),alerts=nodes.filter(n=>n.props?.role==='alert');assert.equal(alerts.length,0,id+': '+JSON.stringify(alerts));assert.ok(nodes.some(n=>n.tag==='svg'),id+' has SVG output');
- if(id==='geomap'){const draw=nodes.find(n=>n.tag==='button'&&n.children[0]==='Draw chart');assert.ok(draw);draw.props.onClick();assert.equal(c.state.csPages[id].drawn,true);}
+ if(id==='geomap'){const t2=JSON.stringify(v.chartSuiteEl);assert.match(t2,/My own boundary file/,'the older boundary-file page opens as the Map page with its saved file');}
 }
 const pattern=E.csScene('pie',E.csPrepare('pie',{x:['A','B']}),{patterns:true});assert.match(pattern.markup,/<pattern/);assert.match(pattern.markup,/<rect width="12" height="12" fill="#2E7D58"/);
 console.log('Every new chart page renders through the bundled UI, including correlations and uploaded geographic boundaries; draw controls and pattern exports passed.');

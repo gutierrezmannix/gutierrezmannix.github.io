@@ -1,6 +1,7 @@
 """Chart builder (Design A): one look and one Customize panel for every chart in the Charts tab.
 
-  engine     src/chart-builder.mjs (drawing), src/chart-builder-data.mjs (models; reuses the chart suite's statistics)
+  engine     src/chart-builder.mjs (drawing), src/chart-builder-data.mjs (models; reuses the chart suite's statistics),
+             src/map-lab.mjs (maps: geometry, projections, color classes, matching)
   component  src/chart-builder.js (data sentence, live chart, Customize: Labels · Values · Colors · Axes & size; gallery)
   template   src/chart-builder.css
 Maps keep their current pages for now. Called from tools/text_lab.py.
@@ -33,7 +34,7 @@ def _one(text, old, new, what, count=1):
 
 def integrate_engine(e):
     begin, end = '// GM26 chart builder begin', '// GM26 chart builder end'
-    src = (ROOT / 'src' / 'chart-builder.mjs').read_text() + '\n' + (ROOT / 'src' / 'chart-builder-data.mjs').read_text()
+    src = (ROOT / 'src' / 'chart-builder.mjs').read_text() + '\n' + (ROOT / 'src' / 'chart-builder-data.mjs').read_text() + '\n' + (ROOT / 'src' / 'map-lab.mjs').read_text()
     return _between(e, begin, end, begin + '\n' + src.rstrip() + '\n' + end, '// GM26 chart engine end', after=True)
 
 
@@ -42,7 +43,12 @@ def integrate_component(c):
     c = _between(c, '  // GM26 chart builder begin', '  // GM26 chart builder end', '  // GM26 chart builder begin\n' + methods.rstrip() + '\n  // GM26 chart builder end', '  descFor() {')
     c = _one(c, '    this.chartSuiteVals(out);', '    this.chartSuiteVals(out);\n    this.cbVals(out);', 'render hook')
     c = _one(c, 't.content=this.csMenu(R)', 't.content=this.cbMenu(R)', 'Charts menu')
-    c = _one(c, '    if (out.isPlots && this._E.csInfo(S.plotKind)?.legacy) {', '    if (out.isPlots && this._E.csInfo(S.plotKind)?.legacy && !this.cbHandles(S.plotKind)) {', 'legacy charts')
+    # charts drawn by the builder, and the Map page (tools/map_lab.py), skip the legacy chart renderers
+    leg_old = '    if (out.isPlots && this._E.csInfo(S.plotKind)?.legacy) {'
+    leg_cb = '    if (out.isPlots && this._E.csInfo(S.plotKind)?.legacy && !this.cbHandles(S.plotKind)) {'
+    leg_new = '    if (out.isPlots && this._E.csInfo(S.plotKind)?.legacy && !this.cbHandles(S.plotKind) && !(this.mlHandles && this.mlHandles(S.plotKind))) {'
+    if leg_new not in c:
+        c = c.replace(leg_cb, leg_new) if leg_cb in c else _one(c, leg_old, leg_new, 'legacy charts')
     # live redraw: one Plots-pane entry per chart page, updated in place
     c = _one(c, 'if (prev && prev.key === key && prev.name === name && now - prev.at < 2500)', 'if (prev && prev.key === key && (/^cb-/.test(key) || (prev.name === name && now - prev.at < 2500)))', 'plot history')
     c = _one(c, '"plotKind","csPages"', '"plotKind","csPages","cbNames","cbColors"', 'session keys', 2)

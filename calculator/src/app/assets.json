@@ -132,5 +132,17 @@
   "source": "lemma",
   "lang": "fr",
   "mime": "application/gzip"
+ },
+ {
+  "uuid": "d8f7ffa5-616e-5d00-aac7-0fd86deb2710",
+  "source": "json-module",
+  "file": "src/maps/adm1.json.gz",
+  "mime": "application/javascript"
+ },
+ {
+  "uuid": "f7af2241-58b0-58d3-8331-518a2292e642",
+  "source": "json-module",
+  "file": "src/maps/mex.json.gz",
+  "mime": "application/javascript"
  }
 ]

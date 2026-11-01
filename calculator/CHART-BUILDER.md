@@ -2,8 +2,8 @@
 
 Before this build, the Charts tab had 37 pages built at different times. Each page had its own options, and nine of
 them were older charts with fewer options. Most charts had no way to rename groups, show values or pick colors. Every
-chart in the Charts tab now goes through one builder with one look and one set of options. Maps keep their current
-pages for now; the map tool will be redesigned separately.
+chart in the Charts tab now goes through one builder with one look and one set of options. Maps have their own
+page (one Map page since build .57, see [MAPS.md](MAPS.md)).
 
 ## How a chart page works
 

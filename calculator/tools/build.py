@@ -19,6 +19,7 @@ Everything in it comes from files in this repository:
   src/*.js, *.mjs, *.css   feature modules; the tools/*.py integrators copy them into the blocks marked
                            "GM26 … begin" / "GM26 … end" in component.js, template.html and engine.mjs
   src/lemmas/*.json.gz     lemma tables, embedded in a compact form (see compact_lemmas)
+  src/maps/*.json.gz       built-in maps (tools/maps/), embedded as modules the page loads with import() when needed
 
 The build runs every integrator, writes the result back to src/app/ (so src/app always shows exactly what the
 page runs) and packs index.html. Edit code outside the marked blocks in src/app/*; edit code inside a block in
@@ -37,7 +38,7 @@ ROOT = TOOLS.parent
 APP = ROOT / 'src' / 'app'
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-11-01.56'
+BUILD = '2026-11-01.57'
 LANGS = ['es', 'en', 'pt', 'fr']
 SCRIPT = r'<script type="__bundler/{}">(.*?)</script>'
 COMPONENT = re.compile(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', re.S)
@@ -161,7 +162,7 @@ def load_app():
 # ---------- the build ----------
 def integrate(template, component, engine):
     """Every integrator, in order. Each one is idempotent: re-running it on its own output changes nothing."""
-    import text_lab, breakdown, net_lab, data_edit, chart_builder, analysis_suite, console_stata
+    import text_lab, breakdown, net_lab, data_edit, chart_builder, analysis_suite, console_stata, map_lab
     text_lab.BUILD = BUILD
     full = join_component(template, component)
     m = COMPONENT.search(full)
@@ -171,6 +172,7 @@ def integrate(template, component, engine):
     c = net_lab.integrate_component(c)
     c = data_edit.integrate_component(c)
     c = chart_builder.integrate_component(c)
+    c = map_lab.integrate_component(c)
     c = analysis_suite.integrate_component(c)
     c = console_stata.integrate_component(c)
     full = full[:m.start(2)] + c + full[m.end(2):]
@@ -179,6 +181,7 @@ def integrate(template, component, engine):
     t = net_lab.integrate_template(t)
     t = data_edit.integrate_template(t)
     t = chart_builder.integrate_template(t)
+    t = map_lab.integrate_template(t)
     t = analysis_suite.integrate_template(t)
     t = re.sub(r'2026-1[0-2]-\d{2}\.\d+', BUILD, t)
     e = text_lab.integrate_engine(engine)
@@ -205,6 +208,10 @@ def build():
         uid = a['uuid']
         if a['source'] == 'engine':
             manifest[uid] = {'mime': a['mime'], 'compressed': True, 'data': base64.b64encode(gz(engine.encode())).decode()}
+        elif a['source'] == 'json-module':
+            # a gzipped JSON file in the repository (e.g. src/maps/*.json.gz), loaded by the page with import()
+            js = b'export default ' + gzip.decompress((ROOT / a['file']).read_bytes()) + b';'
+            manifest[uid] = {'mime': 'application/javascript', 'compressed': True, 'data': base64.b64encode(gz(js, compresslevel=9)).decode()}
         elif a['source'] == 'lemma':
             data = compact_lemmas((ROOT / 'src' / 'lemmas' / f"{a['lang']}_lemma_lookup.json.gz").read_bytes())
             manifest[uid] = {'mime': a['mime'], 'compressed': False, 'data': base64.b64encode(data).decode()}

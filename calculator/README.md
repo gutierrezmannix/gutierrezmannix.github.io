@@ -9,7 +9,7 @@ and from a downloaded copy. It is a **build output** — edit the sources below,
 python3 calculator/tools/build.py            # writes index.html, version.json and src/app/*
 python3 calculator/tools/build.py --check    # exit 1 if index.html is not what the sources produce
 node --test calculator/tests/*.test.mjs      # unit and component tests (includes the --check above)
-NODE_PATH=$(npm root -g) node calculator/tests/chart-builder-e2e.cjs   # browser tests (Playwright), also *-e2e.cjs
+NODE_PATH=$(npm root -g) node calculator/tests/chart-builder-e2e.cjs   # browser tests (Playwright), also *-e2e.cjs (map-lab-e2e.cjs: maps)
 ```
 
 ## Where the code lives
@@ -22,6 +22,7 @@ NODE_PATH=$(npm root -g) node calculator/tests/chart-builder-e2e.cjs   # browser
 | `src/app/page.html`, `assets.json`, `embedded/`, `ext_resources.json` | The outer page and its loader, and the embedded fonts, React and world map. |
 | `src/*.js`, `src/*.mjs`, `src/*.css` | Feature modules. `tools/*.py` copy each one into its block marked `GM26 … begin` / `GM26 … end` in `src/app/`. |
 | `src/engine/**/*.mjs` | The Tests ▾ analysis engine, validated against R (`tools/engine/`, `tests/engine/`). |
+| `src/maps/*.json.gz` | Built-in maps (every country's first level; Mexico's states and municipalities), made by `tools/maps/` and embedded by `tools/build.py`. See `MAPS.md`. |
 | `tools/build.py` | Runs every integrator, writes the result back to `src/app/` and packs `index.html`. |
 
 Change code outside the marked blocks directly in `src/app/`. Change code inside a block in the module it

@@ -1,0 +1,11 @@
+/* GM26 Map page — builds on the chart builder (.cb) and the shared .tl styles */
+.cb.ml .ml-sec{display:flex;flex-direction:column;gap:10px}
+.cb.ml .ml-h{margin:0;font-family:var(--fMono,'Space Mono',monospace);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--c194F39,#194F39)}
+.cb.ml .ml-found{margin:0;font-size:13.5px;padding:8px 12px;border-radius:8px;background:var(--cEDF5F0,#EDF5F0);border:1px solid var(--cAFD2BF,#AFD2BF);color:var(--c1A1711,#1A1711)}
+.cb.ml .ml-found.part{background:#FBF4E6;border-color:#E8CF9F}
+.cb.ml .ml-match{display:flex;flex-direction:column;gap:8px}
+.cb.ml .ml-mtbl td{vertical-align:middle}
+.cb.ml .ml-pick{max-width:min(100%,340px)}
+.cb.ml .ml-country{max-width:min(100%,300px)}
+.cb.ml .ml-paste summary{cursor:pointer;font-size:12.5px;color:var(--c194F39,#194F39);font-weight:600;padding:4px 0}
+.cb.ml .ml-paste textarea{width:100%;max-width:520px;font-family:var(--fMono,'Space Mono',monospace);font-size:12.5px;margin:6px 0}
