@@ -167,7 +167,8 @@
   meansGroups(d){const M=this.memoView(),G=M['grp|'+d.g+'|'+d.y];if(!G)return null;const L=this.sortGroups(G.levels.filter(g=>g.n>=2&&isFinite(g.sd)),'name');return L.length>=2?L:null;}
   meansStataText(d){const L=this.meansGroups(d);if(!L)return '';const E=this._E,R=(v,w)=>String(v).padStart(w),g=v=>this.stataG(v),n=v=>Number(v).toLocaleString('en-US'),p4=v=>Number.isFinite(v)?v.toFixed(4):'.',ab=v=>{v=String(v);return v.length>8?v.slice(0,6)+'~'+v.slice(-1):v;},dash='-'.repeat(78),mid='---------+'+'-'.repeat(68);
     if(L.length===2){const [a,b]=L,se=Math.sqrt(a.sd**2/a.n+b.sd**2/b.n),T=E.welch(a,b),t=(a.mean-b.mean)/se,cr=E.ttCritical(.05,T.df),row=x=>{const s=x.sd/Math.sqrt(x.n),c=E.ttCritical(.05,x.n-1);return R(ab(x.label),8)+' |'+R(n(x.n),8)+R(g(x.mean),12)+R(g(s),12)+R(g(x.sd),12)+R(g(x.mean-c*s),12)+R(g(x.mean+c*s),12);},lo=T.p/2,tl=t<0?lo:1-lo;
-      return ['Two-sample t test with unequal variances',dash,'   Group |     Obs        Mean    Std. err.   Std. dev.   [95% conf. interval]',mid,row(a),row(b),mid,R('diff',8)+' |'+R('',8)+R(g(a.mean-b.mean),12)+R(g(se),12)+R('',12)+R(g(a.mean-b.mean-cr*se),12)+R(g(a.mean-b.mean+cr*se),12),dash,
+      const nC=a.n+b.n,mC=(a.n*a.mean+b.n*b.mean)/nC,sdC=Math.sqrt(((a.n-1)*a.sd**2+(b.n-1)*b.sd**2+a.n*(a.mean-mC)**2+b.n*(b.mean-mC)**2)/(nC-1));
+      return ['Two-sample t test with unequal variances',dash,'   Group |     Obs        Mean    Std. err.   Std. dev.   [95% conf. interval]',mid,row(a),row(b),mid,row({label:'Combined',n:nC,mean:mC,sd:sdC}),mid,R('diff',8)+' |'+R('',8)+R(g(a.mean-b.mean),12)+R(g(se),12)+R('',12)+R(g(a.mean-b.mean-cr*se),12)+R(g(a.mean-b.mean+cr*se),12),dash,
         ('    diff = mean('+ab(a.label)+') - mean('+ab(b.label)+')').padEnd(66)+'t = '+R(p4(t),8),'H0: diff = 0'.padEnd(33)+"Satterthwaite's degrees of freedom = "+R(g(T.df),8),'','    Ha: diff < 0'.padEnd(29)+'Ha: diff != 0'.padEnd(30)+'Ha: diff > 0',' Pr(T < t) = '+p4(tl)+'         Pr(|T| > |t|) = '+p4(T.p)+'          Pr(T > t) = '+p4(1-tl)].join('\n');}
     const N=L.reduce((t,x)=>t+x.n,0),k=L.length,gm=L.reduce((t,x)=>t+x.n*x.mean,0)/N,ssb=L.reduce((t,x)=>t+x.n*(x.mean-gm)**2,0),ssw=L.reduce((t,x)=>t+(x.n-1)*x.sd**2,0),F=(ssb/(k-1))/(ssw/(N-k)),pF=E.pF(F,k-1,N-k);
     const sp=ssw/(N-k),bart=((N-k)*Math.log(sp)-L.reduce((t,x)=>t+(x.n-1)*Math.log(x.sd**2),0))/(1+(L.reduce((t,x)=>t+1/(x.n-1),0)-1/(N-k))/(3*(k-1))),pb=1-E.pChi2(bart,k-1);void pb;
@@ -191,9 +192,9 @@
   // variables as blocks with their levels, %9.0g numbers. R: coeftest() tables (printCoefmat rules) and
   // summary(polr) for ordered logit. Numbers are the page's estimates.
   regModelFor(d){const M=this.memoView(),key=d.m==='ols'?'reg|ols|':d.m==='logistic'?'reg|logit|':d.m==='ologit'?'reg|olog|':'reg|pois|';const Mo=M[key+d.y+'|'+d.xs.map(x=>x.n).join(',')+'|'+(d.ix||[]).map(p=>p.a+'*'+p.b).join(',')+'|'+(d.vce?d.vce.type+':'+(d.vce.type==='cluster'?d.vce.cl:(d.vce.psu||'')+'/'+(d.vce.st||'')):'c')];return Mo&&!Mo.error?Mo:null;}
-  regRows(d,Mo){const lvOrder=v=>{const nums=v.every(x=>x!==''&&isFinite(Number(x)));return v.slice().sort((a,b)=>nums?Number(a)-Number(b):(a<b?-1:a>b?1:0));};const out=[],used=new Set();
+  regRows(d,Mo){const lvOrder=(v,nm)=>this.descOrder(nm,v.map(l=>({label:l}))).map(r=>r.label);const out=[],used=new Set();
     for(const x of d.xs){if(!x.c){const c=Mo.coefs.find(q=>q.term===x.n);if(c){out.push({kind:'x',v:x.n,c});used.add(c);}continue;}
-      const pre=x.n+' = ',cs=Mo.coefs.filter(q=>q.term.startsWith(pre)),lv=lvOrder(cs.map(q=>q.term.slice(pre.length)));if(cs.length)out.push({kind:'f',v:x.n,levels:lv.map(l=>({l,c:cs.find(q=>q.term===pre+l)}))});cs.forEach(q=>used.add(q));}
+      const pre=x.n+' = ',cs=Mo.coefs.filter(q=>q.term.startsWith(pre)),lv=lvOrder(cs.map(q=>q.term.slice(pre.length)),x.n);if(cs.length)out.push({kind:'f',v:x.n,levels:lv.map(l=>({l,c:cs.find(q=>q.term===pre+l)}))});cs.forEach(q=>used.add(q));}
     for(const c of Mo.coefs)if(!used.has(c)&&c.term!=='(constant)')out.push({kind:'x',v:c.term,c});const cons=Mo.coefs.find(q=>q.term==='(constant)');return {out,cons};}
   regStataText(d){const Mo=this.regModelFor(d);if(!Mo)return '';const E=this._E,R=(v,w)=>String(v).padStart(w),G=v=>this.stataG(v),ols=d.m==='ols',rob=d.vce&&(d.vce.type==='robust'||d.vce.type==='cluster'),cl=d.vce&&d.vce.type==='cluster';
     if(d.vce&&!rob)return '';

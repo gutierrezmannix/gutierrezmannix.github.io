@@ -69,6 +69,19 @@ export function tlParsePatterns(str) {
 }
 
 // stopword sets: folded so "mas"/"más" both match when accents are ignored
+// Lemma tables are embedded in a compact form (tools/build.py, compact_lemmas): one word per line, sorted;
+// chr(48 + k) = characters shared with the previous word, then the rest of the word, a tab, chr(48 + n) =
+// characters to drop from the end of the word, then the text to add. Gives word (lower case) → lemma.
+export function tlLemmaTable(text) {
+  const map = new Map(); let prev = '';
+  for (const line of text.split('\n')) {
+    const tab = line.indexOf('\t'); if (tab < 1) continue;
+    const w = prev.slice(0, line.charCodeAt(0) - 48) + line.slice(1, tab);
+    const cut = line.charCodeAt(tab + 1) - 48;
+    map.set(w, w.slice(0, w.length - cut) + line.slice(tab + 2)); prev = w;
+  }
+  return map;
+}
 export function tlStopSet(langs, source, extra, fold) {
   const set = new Set(), globs = [];
   const tables = source === 'iso' ? TL_STOP_ISO : TL_STOP_SNOWBALL;

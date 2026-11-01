@@ -24,7 +24,7 @@ if(process.env.GM26_TTEST_R_DIR){const dir=process.env.GM26_TTEST_R_DIR,ref=awai
 console.log('Unified menu, three designs, filters, group order, pairwise missingness, two observations, validation, weight guard and R export passed.');
 c.jumpArm=()=>{};c.runStataExtra=()=>false;
 for(const [command,mode]of [['t.test(df$before)','value'],['t.test(before ~ group, data = df)','groups'],['t.test(df$before, df$after, paired = TRUE)','paired'],['ttest before == 15','value'],['ttest before == after','paired'],['ttest before, by(group) unequal','groups']]){c.runCmdLine(command);assert.equal(c.state.mfCmdErr,'',command+': '+c.state.mfCmdErr);assert.equal(c.state.tab,'ttest',command);assert.equal(c.state.ttMode,mode,command);clearTimeout(c._mfOkT);}
-c.runCmdLine('t.test(df$before, df$after)');assert.match(c.state.mfCmdErr,/independent samples/);c.runCmdLine('t.test(before ~ group, var.equal = TRUE)');assert.match(c.state.mfCmdErr,/Welch/);c.runCmdLine('t.test(df$before, alternative = "greater")');assert.match(c.state.mfCmdErr,/two-sided/);clearTimeout(c._mfOkT);
+c.runCmdLine('t.test(df$before, df$after)');assert.match(c.state.mfCmdErr,/independent samples/);c.runCmdLine('t.test(before ~ group, var.equal = TRUE)');assert.match(c.state.mfCmdErr,/needs exactly 2/);/* build .55: var.equal = TRUE runs the pooled test in the console (here group has 3 levels) */c.runCmdLine('t.test(df$before, alternative = "greater")');assert.match(c.state.mfCmdErr,/two-sided/);clearTimeout(c._mfOkT);
 console.log('All three R/Stata command routes open the unified workspace; ambiguous or unsupported R designs are rejected.');
 
 c.runCmdLine('t.test(df$before, mu = 15, conf.level = 0.99)');assert.ok(Math.abs(c.alpha()-.01)<1e-12);clearTimeout(c._mfOkT);

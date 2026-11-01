@@ -91,6 +91,7 @@ export async function parseCSV(buf, prog) {
     await yieldIf(75 + Math.round(9 * r1 / N));
   }
   // convert numeric-looking columns to typed arrays so 200k-row analyses stay fast
+  let decComma = false;
   const isMiss = v => v === '' || v === '.' || v === 'NA' || v === 'N/A' || v === 'na' || v === 'n/a' || v === 'NULL' || v === 'null';
   for (let c = 0; c < K; c++) {
     const a = cols[c].a;
@@ -102,9 +103,14 @@ export async function parseCSV(buf, prog) {
       for (let r = 0; r < N; r++) { const v = a[r]; fa[r] = isMiss(v) ? NaN : Number(v); }
       cols[c] = { k: 'n', a: fa };
     }
+    else if (delim === ';' && seen > 0) { // GM26 decimal commas
+      const DC = /^[-+]?(\d{1,3}(\.\d{3})+|\d+)(,\d+)?$/; let dc = 0, comma = 0;
+      for (let r = 0; r < N; r += sStep) { const v = a[r]; if (isMiss(v)) continue; if (DC.test(v)) { dc++; if (v.indexOf(',') >= 0) comma++; } }
+      if (comma > 0 && dc / seen >= 0.98) { const fa = new Float64Array(N); for (let r = 0; r < N; r++) { const v = a[r]; fa[r] = isMiss(v) || !DC.test(v) ? NaN : Number(v.replace(/\./g, '').replace(',', '.')); } cols[c] = { k: 'n', a: fa }; decComma = true; }
+    }
     if ((c & 7) === 7) await yieldIf(84 + Math.round(9 * c / K));
   }
-  return { names, labels: names.map(() => ''), cols, vlabs: Object.create(null), n: N };
+  return { names, labels: names.map(() => ''), cols, vlabs: Object.create(null), n: N, csv: { delim, decComma } };
 }
 
 // ---------- Stata .dta parser (releases 113-115, 117-119) ----------
@@ -271,6 +277,7 @@ export function profileCol(raw, idx, screen) {
     for (const k of lv.keys()) { const v = Number(k); if (!isFinite(v)) continue; if (CODE_SET.has(v)) candKeys.push([k, v]); else if (v > restMax) restMax = v; }
     if (candKeys.length && isFinite(restMax)) {
       const passSet = new Set(candKeys.map(e => e[1]).filter(v => v > restMax * 1.5 && v > restMax + 10));
+      if (passSet.size && !overflow && [...lv.keys()].filter(k => !passSet.has(Number(k))).length < 2) passSet.clear(); // GM26 auto-screen keeps two values
       autoCodes = [...passSet].sort((a, b) => a - b);
       for (const [k, v] of candKeys) {
         if (!passSet.has(v)) continue;
@@ -10228,6 +10235,19 @@ export function tlParsePatterns(str) {
 }
 
 // stopword sets: folded so "mas"/"más" both match when accents are ignored
+// Lemma tables are embedded in a compact form (tools/build.py, compact_lemmas): one word per line, sorted;
+// chr(48 + k) = characters shared with the previous word, then the rest of the word, a tab, chr(48 + n) =
+// characters to drop from the end of the word, then the text to add. Gives word (lower case) → lemma.
+export function tlLemmaTable(text) {
+  const map = new Map(); let prev = '';
+  for (const line of text.split('\n')) {
+    const tab = line.indexOf('\t'); if (tab < 1) continue;
+    const w = prev.slice(0, line.charCodeAt(0) - 48) + line.slice(1, tab);
+    const cut = line.charCodeAt(tab + 1) - 48;
+    map.set(w, w.slice(0, w.length - cut) + line.slice(tab + 2)); prev = w;
+  }
+  return map;
+}
 export function tlStopSet(langs, source, extra, fold) {
   const set = new Set(), globs = [];
   const tables = source === 'iso' ? TL_STOP_ISO : TL_STOP_SNOWBALL;

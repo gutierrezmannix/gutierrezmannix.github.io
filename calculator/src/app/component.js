@@ -124,10 +124,11 @@ class Component extends DCLogic {
     this.autoSchedule();
     this.noteWatch();
     if (!this._raw || !this._E) return;
-    const d = this.descFor();
+    let d = this.descFor();
     const sig = d ? JSON.stringify(d) + '|a' + this.alpha() + '|if' + this.filterSig() : '';
     if (sig !== this.state.conSig) {
       const upd = { conSig: sig };
+      if (d && this._cxQuiet) d = null; if (d) d = this.cxAdopt(d);
       if (d) { let res = '', tbl = ''; try { res = this.resFor(d); tbl = this.tableFor(d); } catch (e) {} upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : d.t === 'corr' ? this.corrRText(d) : (d.t === 'ttest' || d.t === 'anova') ? this.meansRText(d) : d.t === 'reg' ? this.regRText(d) : d.tblR })].slice(-60); }
       this.setState(upd);
     }
@@ -2019,7 +2020,8 @@ class Component extends DCLogic {
   meansGroups(d){const M=this.memoView(),G=M['grp|'+d.g+'|'+d.y];if(!G)return null;const L=this.sortGroups(G.levels.filter(g=>g.n>=2&&isFinite(g.sd)),'name');return L.length>=2?L:null;}
   meansStataText(d){const L=this.meansGroups(d);if(!L)return '';const E=this._E,R=(v,w)=>String(v).padStart(w),g=v=>this.stataG(v),n=v=>Number(v).toLocaleString('en-US'),p4=v=>Number.isFinite(v)?v.toFixed(4):'.',ab=v=>{v=String(v);return v.length>8?v.slice(0,6)+'~'+v.slice(-1):v;},dash='-'.repeat(78),mid='---------+'+'-'.repeat(68);
     if(L.length===2){const [a,b]=L,se=Math.sqrt(a.sd**2/a.n+b.sd**2/b.n),T=E.welch(a,b),t=(a.mean-b.mean)/se,cr=E.ttCritical(.05,T.df),row=x=>{const s=x.sd/Math.sqrt(x.n),c=E.ttCritical(.05,x.n-1);return R(ab(x.label),8)+' |'+R(n(x.n),8)+R(g(x.mean),12)+R(g(s),12)+R(g(x.sd),12)+R(g(x.mean-c*s),12)+R(g(x.mean+c*s),12);},lo=T.p/2,tl=t<0?lo:1-lo;
-      return ['Two-sample t test with unequal variances',dash,'   Group |     Obs        Mean    Std. err.   Std. dev.   [95% conf. interval]',mid,row(a),row(b),mid,R('diff',8)+' |'+R('',8)+R(g(a.mean-b.mean),12)+R(g(se),12)+R('',12)+R(g(a.mean-b.mean-cr*se),12)+R(g(a.mean-b.mean+cr*se),12),dash,
+      const nC=a.n+b.n,mC=(a.n*a.mean+b.n*b.mean)/nC,sdC=Math.sqrt(((a.n-1)*a.sd**2+(b.n-1)*b.sd**2+a.n*(a.mean-mC)**2+b.n*(b.mean-mC)**2)/(nC-1));
+      return ['Two-sample t test with unequal variances',dash,'   Group |     Obs        Mean    Std. err.   Std. dev.   [95% conf. interval]',mid,row(a),row(b),mid,row({label:'Combined',n:nC,mean:mC,sd:sdC}),mid,R('diff',8)+' |'+R('',8)+R(g(a.mean-b.mean),12)+R(g(se),12)+R('',12)+R(g(a.mean-b.mean-cr*se),12)+R(g(a.mean-b.mean+cr*se),12),dash,
         ('    diff = mean('+ab(a.label)+') - mean('+ab(b.label)+')').padEnd(66)+'t = '+R(p4(t),8),'H0: diff = 0'.padEnd(33)+"Satterthwaite's degrees of freedom = "+R(g(T.df),8),'','    Ha: diff < 0'.padEnd(29)+'Ha: diff != 0'.padEnd(30)+'Ha: diff > 0',' Pr(T < t) = '+p4(tl)+'         Pr(|T| > |t|) = '+p4(T.p)+'          Pr(T > t) = '+p4(1-tl)].join('\n');}
     const N=L.reduce((t,x)=>t+x.n,0),k=L.length,gm=L.reduce((t,x)=>t+x.n*x.mean,0)/N,ssb=L.reduce((t,x)=>t+x.n*(x.mean-gm)**2,0),ssw=L.reduce((t,x)=>t+(x.n-1)*x.sd**2,0),F=(ssb/(k-1))/(ssw/(N-k)),pF=E.pF(F,k-1,N-k);
     const sp=ssw/(N-k),bart=((N-k)*Math.log(sp)-L.reduce((t,x)=>t+(x.n-1)*Math.log(x.sd**2),0))/(1+(L.reduce((t,x)=>t+1/(x.n-1),0)-1/(N-k))/(3*(k-1))),pb=1-E.pChi2(bart,k-1);void pb;
@@ -2043,9 +2045,9 @@ class Component extends DCLogic {
   // variables as blocks with their levels, %9.0g numbers. R: coeftest() tables (printCoefmat rules) and
   // summary(polr) for ordered logit. Numbers are the page's estimates.
   regModelFor(d){const M=this.memoView(),key=d.m==='ols'?'reg|ols|':d.m==='logistic'?'reg|logit|':d.m==='ologit'?'reg|olog|':'reg|pois|';const Mo=M[key+d.y+'|'+d.xs.map(x=>x.n).join(',')+'|'+(d.ix||[]).map(p=>p.a+'*'+p.b).join(',')+'|'+(d.vce?d.vce.type+':'+(d.vce.type==='cluster'?d.vce.cl:(d.vce.psu||'')+'/'+(d.vce.st||'')):'c')];return Mo&&!Mo.error?Mo:null;}
-  regRows(d,Mo){const lvOrder=v=>{const nums=v.every(x=>x!==''&&isFinite(Number(x)));return v.slice().sort((a,b)=>nums?Number(a)-Number(b):(a<b?-1:a>b?1:0));};const out=[],used=new Set();
+  regRows(d,Mo){const lvOrder=(v,nm)=>this.descOrder(nm,v.map(l=>({label:l}))).map(r=>r.label);const out=[],used=new Set();
     for(const x of d.xs){if(!x.c){const c=Mo.coefs.find(q=>q.term===x.n);if(c){out.push({kind:'x',v:x.n,c});used.add(c);}continue;}
-      const pre=x.n+' = ',cs=Mo.coefs.filter(q=>q.term.startsWith(pre)),lv=lvOrder(cs.map(q=>q.term.slice(pre.length)));if(cs.length)out.push({kind:'f',v:x.n,levels:lv.map(l=>({l,c:cs.find(q=>q.term===pre+l)}))});cs.forEach(q=>used.add(q));}
+      const pre=x.n+' = ',cs=Mo.coefs.filter(q=>q.term.startsWith(pre)),lv=lvOrder(cs.map(q=>q.term.slice(pre.length)),x.n);if(cs.length)out.push({kind:'f',v:x.n,levels:lv.map(l=>({l,c:cs.find(q=>q.term===pre+l)}))});cs.forEach(q=>used.add(q));}
     for(const c of Mo.coefs)if(!used.has(c)&&c.term!=='(constant)')out.push({kind:'x',v:c.term,c});const cons=Mo.coefs.find(q=>q.term==='(constant)');return {out,cons};}
   regStataText(d){const Mo=this.regModelFor(d);if(!Mo)return '';const E=this._E,R=(v,w)=>String(v).padStart(w),G=v=>this.stataG(v),ols=d.m==='ols',rob=d.vce&&(d.vce.type==='robust'||d.vce.type==='cluster'),cl=d.vce&&d.vce.type==='cluster';
     if(d.vce&&!rob)return '';
@@ -2614,9 +2616,7 @@ class Component extends DCLogic {
       try {
         const blob = (window.__resourceBlobs && window.__resourceBlobs[url]) || await (await fetch(url)).blob();
         const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
-        const obj = JSON.parse(await new Response(stream).text()), map = new Map();
-        for (const k in obj) { const v = obj[k]; map.set(k.toLowerCase(), Array.isArray(v) ? v[0] : v); }
-        this._tlLem[lang] = { status: 'done', map };
+        this._tlLem[lang] = { status: 'done', map: this._E.tlLemmaTable(await new Response(stream).text()) };
       } catch (e) { this._tlLem[lang] = { status: 'done', map: null, err: String(e && e.message || e) }; }
       this._memo = {}; this.forceUpdate();
     })();
@@ -5752,6 +5752,366 @@ class Component extends DCLogic {
     if (S.tab === 'ts' && S.tsT && isNum(S.tsT) && (S.tsY || S.tsAggregate === 'count')) wrap('tsChartEl', 'line', { x: S.tsT, y: S.tsY || '', stat: S.tsAggregate === 'sum' ? 'sum' : S.tsAggregate === 'count' ? 'count' : 'mean' }, 'the series');
   }
   // GM26 chart builder end
+  // GM26 console commands begin
+  // Console commands that print what Stata (or R) prints for the same command line (build .55).
+  // - An `if` typed after a command applies to that command only. Commands that open a page set the Subgroup bar
+  //   while they run; the next typed command puts back the Subgroup the user had (cxScopeIf). The Subgroup bar set
+  //   with the mouse still applies to every command, as everywhere else on the page.
+  // - summarize / mean / tabstat / correlate / pwcorr / tab1 / tab2 with several variables or options, and the
+  //   pooled-variance t-test, are computed here and printed in Stata's layout (console entries of type "cx").
+  // - tabulate with two variables opens the crosstab page and prints Stata's table with the options typed
+  //   (frequencies by default; row, column, cell, chi2, V).
+  cxScopeIf(text) {
+    const k = this._cxIf; this._cxIf = null; this._cxPending = null;
+    if (!k) return false;
+    const cur = JSON.stringify((this.state.subg && this.state.subg.all) || []);
+    if (cur !== k.sig) return false;
+    this.clearMemo(); this._cxQuiet = true;
+    this.setState({ subg: k.prev }, () => { this._cxQuiet = false; this.runCmdLine(text); });
+    return true;
+  }
+  cxBareNumeric(name) { const raw = this._raw, i = raw ? raw.names.indexOf(name) : -1; return i >= 0 && raw.cols[i].k === 'n'; }
+  // Stata varlists: names (any case), x*, x?, a-b (a range in dataset order) and _all.
+  cxVarlist(str) {
+    const raw = this._raw, out = [], bad = [];
+    const V = n => raw.names.find(x => x.toLowerCase() === String(n || '').toLowerCase()) || null;
+    for (const tk of String(str || '').trim().split(/\s+/).filter(Boolean)) {
+      if (tk === '_all' || tk === '*') { out.push(...raw.names); continue; }
+      if (/[*?]/.test(tk)) { const re = new RegExp('^' + tk.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i'); const hit = raw.names.filter(n => re.test(n)); if (hit.length) out.push(...hit); else bad.push(tk); continue; }
+      if (/^\w+-\w+$/.test(tk) && !V(tk)) { const [a, b] = tk.split('-').map(V), ia = raw.names.indexOf(a), ib = raw.names.indexOf(b); if (ia >= 0 && ib >= 0) { out.push(...raw.names.slice(Math.min(ia, ib), Math.max(ia, ib) + 1)); continue; } bad.push(tk); continue; }
+      const v = V(tk); if (v) out.push(v); else bad.push(tk);
+    }
+    return { vars: [...new Set(out)], bad };
+  }
+  // Rows used by a console command: the page filter and Subgroup bar, and the command's own if.
+  cxMaskFor(conds) {
+    const base = this.mask(); let mk = base ? Uint8Array.from(base) : null;
+    for (const c of conds || []) {
+      const cm = this.condMask(c); if (!cm) throw new Error('"' + c.v + '" is not a variable in this dataset');
+      if (!mk) mk = Uint8Array.from(cm); else for (let i = 0; i < mk.length; i++) mk[i] &= cm[i];
+    }
+    return mk;
+  }
+  cxNum(name, mk) { const core = this.numCore(name); if (!core) return null; const a = new Float64Array(core.a.length); for (let i = 0; i < a.length; i++) a[i] = (!mk || mk[i]) ? core.a[i] : NaN; return a; }
+  cxLab(name, mk) {
+    const core = this.valsCore(name); if (!core) return null; const E = this._E;
+    const a = core.kind === 'num' ? Array.from(core.a, v => Number.isFinite(v) ? String(this.vlabel(name, E.numLab(v))) : null) : Array.from(core.a, v => v == null || v === '' ? null : String(v));
+    if (mk) for (let i = 0; i < a.length; i++) if (!mk[i]) a[i] = null;
+    return a;
+  }
+  cxWeights(wv, kind, mk) {
+    if (!wv) return null; const m = this.state.cols.find(c => c.name === wv); if (!m) return null;
+    const w = this._E.weightArr(this._raw, m); if (!w) return null;
+    const out = new Float64Array(w.length); for (let i = 0; i < w.length; i++) out[i] = (!mk || mk[i]) && w[i] > 0 ? w[i] : NaN; return out;
+  }
+  // Text values that are numbers written with a decimal comma or thousands separators: the destring that reads them.
+  cxTextNumberHint(name) {
+    const raw = this._raw, i = raw ? raw.names.indexOf(name) : -1; if (i < 0 || raw.cols[i].k !== 's') return '';
+    const a = raw.cols[i].a; let seen = 0, dec = 0, thou = 0, ex = '';
+    for (let r = 0; r < a.length && seen < 400; r++) { const v = String(a[r] == null ? '' : a[r]).trim(); if (!v || v === '.' || /^(NA|N\/A|na|n\/a|NULL|null)$/.test(v)) continue; seen++; if (/^[-+]?\d+,\d+$/.test(v) && !/^[-+]?\d{1,3},\d{3}$/.test(v)) { dec++; ex = ex || v; } else if (/^[-+]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(v)) { thou++; ex = ex || v; } }
+    if (!seen || (dec + thou) / seen < 0.5) return '';
+    return dec >= thou
+      ? name + ' is stored as text: values such as "' + ex + '" use a decimal comma. Convert it with  destring ' + name + ', replace dpcomma'
+      : name + ' is stored as text: values such as "' + ex + '" use commas between thousands. Convert it with  destring ' + name + ', replace ignore(",")';
+  }
+  // Stata command text with the conditions in place of @IF@ (the typed if plus the Subgroup bar).
+  cxCmd(d, dial) {
+    const conds = [...(d.sg || []), ...(d.ifc || [])];
+    if (dial !== 'stata') return this.withIf(d.r, conds, 'r');
+    const ex = conds.map(c => this.condExpr(c, 'stata')).filter(Boolean).join(' & ');
+    return String(d.stata).replace('@IF@', ex ? ' if ' + ex : '');
+  }
+  cxSplit(s) {
+    // "verb varlist [if exp] [weight] [, options]" → parts (Stata's order)
+    let body = s, opt = '', wt = '';
+    const ci = body.indexOf(','); if (ci >= 0) { opt = body.slice(ci + 1).trim(); body = body.slice(0, ci); }
+    const wm = body.match(/\[\s*(pw|aw|fw|iw|pweight|aweight|fweight|iweight)\s*=\s*([^\]]+)\]/i); if (wm) { wt = wm[1].slice(0, 1).toLowerCase() + 'w'; body = body.replace(wm[0], ' '); }
+    const im = body.match(/\s+if\s+(.+)$/); const ifs = im ? im[1].trim() : ''; if (im) body = body.slice(0, im.index);
+    const toks = body.trim().split(/\s+/).filter(Boolean);
+    return { verb: toks.shift() || '', toks, ifs, wt, wv: wm ? wm[2].trim() : '', opt };
+  }
+  cxOpts(optStr) { const O = {}; String(optStr || '').replace(/(\w+)\s*\(([^)]*)\)|(\w+)/g, (all, k, v, flag) => { if (k) O[k.toLowerCase()] = v.trim(); else if (flag) O[flag.toLowerCase()] = true; return ''; }); return O; }
+  cxRows(rows, every) { const out = []; rows.forEach((r, i) => { if (i && every && i % every === 0) out.push(null); out.push(r); }); return out; }
+  // ---- the commands ----
+  cxRun(kind, s, ctx) {
+    const P = this.cxSplit(s), O = this.cxOpts(P.opt), S = this.state, E = this._E, fail = ctx.fail;
+    let conds = [];
+    if (P.ifs) { const r = this.stataConds(P.ifs); if (r.err) return fail(r.err); conds = r.conds; }
+    const L = kind === 'ttestpool' ? { vars: [], bad: [] } : this.cxVarlist(P.toks.join(' ')); if (L.bad.length) return fail((L.bad.length > 1 ? 'Not variables: ' : 'Not a variable: ') + L.bad.join(' '));
+    let wv = '', wt = P.wt;
+    if (P.wv) { wv = this._raw.names.find(n => n.toLowerCase() === P.wv.toLowerCase()); if (!wv) return fail('"' + P.wv + '" is not a variable in this dataset'); }
+    else if (S.weightVar) { wv = S.weightVar; wt = kind === 'mean' ? 'pw' : 'aw'; }
+    if (kind === 'mean' && wv && wt !== 'pw' && wt !== 'fw') return fail('mean takes sampling weights [pw=' + wv + '] or frequency weights [fw=' + wv + ']');
+    let mk; try { mk = this.cxMaskFor(conds); } catch (e) { return fail(e.message); }
+    const w = wv ? this.cxWeights(wv, wt, mk) : null;
+    const wtxt = wv ? ' [' + wt + '=' + wv + ']' : '', otxt = P.opt ? ', ' + P.opt : '';
+    const verb = P.verb.toLowerCase(), q = v => '"' + v + '"', rvec = vs => 'df[, c(' + vs.map(q).join(', ') + ')]';
+    let vars = L.vars, out;
+    try {
+      if (kind === 'summarize' || kind === 'mean' || kind === 'tabstat') {
+        if (!vars.length) vars = this._raw.names.filter((n, i) => this._raw.cols[i].k === 'n');
+        if (kind === 'summarize' && wt === 'pw') return fail('pweights may not be used with summarize — use  mean ' + vars.join(' ') + ' [pw=' + wv + ']');
+        if (kind === 'summarize') out = O.detail || O.d ? this.cxSumDetail(vars, mk, w, wt) : this.cxSum(vars, mk, w, wt);
+        else if (kind === 'mean') out = this.cxMean(vars, mk, w, wt);
+        else out = this.cxTabstat(vars, mk, w, O);
+        const what = kind === 'mean' ? 'Means with standard errors and ' + Math.round((1 - this.alpha()) * 100) + '% confidence intervals' : kind === 'tabstat' ? 'Table of statistics' : (O.detail || O.d) ? 'Detailed summary statistics (percentiles, smallest and largest values, skewness, kurtosis)' : 'Summary statistics (observations, mean, SD, min, max)';
+        out.expl = what + ' for ' + (vars.length > 4 ? vars.length + ' variables' : vars.join(', ')) + (wv ? ', weighted by ' + wv : '');
+        out.stata = verb + (P.toks.length ? ' ' + P.toks.join(' ') : '') + '@IF@' + wtxt + otxt;
+        out.r = kind === 'mean' ? (vars.length > 1 ? 'd <- na.omit(' + rvec(vars) + ')\nsapply(d, function(v) t.test(v)$conf.int)' : 't.test(df$' + vars[0] + ')') : (O.detail || O.d) && kind === 'summarize' ? vars.map(v => 'summary(df$' + v + ', quantile.type = 2)\nquantile(df$' + v + ', c(0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99), type = 2, na.rm = TRUE)').join('\n') : 'summary(' + rvec(vars) + ')';
+      } else if (kind === 'correlate' || kind === 'pwcorr') {
+        if (vars.length < 2) return fail(verb + ' needs at least two variables, e.g.  ' + verb + ' x y z');
+        out = kind === 'correlate' ? this.cxCorrelate(vars, mk, w) : this.cxPwcorr(vars, mk, w, O);
+        out.expl = kind === 'correlate' ? 'Correlation matrix of ' + vars.join(', ') + ' using only rows complete on every variable' : 'Pairwise correlations of ' + vars.join(', ') + ': each pair uses all rows complete for that pair' + (O.sig ? ', with p-values' : '');
+        out.stata = verb + ' ' + P.toks.join(' ') + '@IF@' + wtxt + otxt;
+        out.r = kind === 'correlate' ? 'cor(' + rvec(vars) + ', use = "complete.obs")' : (O.sig ? 'psych::corr.test(' + rvec(vars) + ', adjust = "none")' : 'cor(' + rvec(vars) + ', use = "pairwise.complete.obs")');
+      } else if (kind === 'tab1') {
+        if (!vars.length) return fail('tab1 needs a variable');
+        out = { tbl: vars.map(v => (vars.length > 1 ? '-> tabulation of ' + v + '\n\n' : '') + this.cxTab1(v, mk, w)).join('\n\n'), res: vars.length + ' frequency table' + (vars.length === 1 ? '' : 's') };
+        out.expl = 'Frequency table of ' + vars.join(', '); out.stata = 'tab1 ' + P.toks.join(' ') + '@IF@' + wtxt + otxt; out.r = vars.map(v => 'table(df$' + v + ', useNA = "no")').join('\n');
+      } else if (kind === 'tab2') {
+        if (vars.length < 2) return fail('tab2 needs at least two variables');
+        const tabs = []; for (let i = 0; i < vars.length; i++) for (let j = i + 1; j < vars.length; j++) tabs.push('-> tabulation of ' + vars[i] + ' by ' + vars[j] + '\n\n' + this.cxTab2(vars[i], vars[j], mk, w, O).tbl);
+        out = { tbl: tabs.join('\n\n'), res: tabs.length + ' two-way tables' };
+        out.expl = 'Two-way tables of every pair of ' + vars.join(', '); out.stata = 'tab2 ' + P.toks.join(' ') + '@IF@' + wtxt + otxt; out.r = 'table(df$' + vars[0] + ', df$' + vars[1] + ')';
+      } else if (kind === 'ttestpool') {
+        if (wv) return fail('ttest does not take weights — clear the weight (Settings) or use  regress ' + ctx.y + ' i.' + ctx.g + ' [pw=' + wv + ']');
+        const y = this._raw.names.find(n => n.toLowerCase() === String(ctx.y).toLowerCase()), g = this._raw.names.find(n => n.toLowerCase() === String(ctx.g).toLowerCase());
+        if (!y) return fail('"' + ctx.y + '" is not a variable in this dataset'); if (!g) return fail('"' + ctx.g + '" is not a variable in this dataset');
+        const lev = O.level ? Number(O.level) : NaN;
+        out = this.cxTtestPooled(y, g, mk, ctx.alpha || (Number.isFinite(lev) && lev > 10 && lev < 100 ? 1 - lev / 100 : this.alpha()));
+        out.expl = 'Two-sample t-test with equal variances (pooled standard deviation): does mean ' + y + ' differ between the 2 groups of ' + g + '?';
+        out.stata = 'ttest ' + y + '@IF@, by(' + g + ')' + (O.level ? ' level(' + O.level + ')' : '');
+        out.r = 't.test(' + y + ' ~ ' + g + ', data = df, var.equal = TRUE' + (ctx.alpha ? ', conf.level = ' + (1 - ctx.alpha) : O.level ? ', conf.level = ' + Number(O.level) / 100 : '') + ')';
+        if (ctx.dial === 'r') out.stata = 'ttest ' + y + '@IF@, by(' + g + ')' + (ctx.alpha ? ' level(' + Math.round(100 * (1 - ctx.alpha)) + ')' : '');
+      } else return fail('Unknown command');
+    } catch (e) { return fail(e.message || String(e)); }
+    if (out.error) return fail(out.error);
+    this.pushLog({ t: 'cx', stata: out.stata, r: out.r, ifc: conds, tbl: out.tbl, res: out.res || '', expl: out.expl });
+    const lab = (s.length > 70 ? s.slice(0, 68) + '…' : s) + (conds.length ? '   · the if applies to this command only' : '');
+    return ctx.done(lab, { mfPane: 'output', mfDock: true, mfMobile: 'dock' });
+  }
+  cxSum(vars, mk, w, wt) {
+    const R = (v, n) => String(v).padStart(n), G = v => this.stataG(v), E = this._E, fw = wt === 'fw', notes = [];
+    const head = w && !fw ? ['    Variable |     Obs      Weight        Mean   Std. dev.       Min        Max', '-------------+-----------------------------------------------------------------'] : ['    Variable |        Obs        Mean    Std. dev.       Min        Max', '-------------+---------------------------------------------------------'];
+    let shown = 0;
+    const rows = vars.map(v => {
+      const nm = R(this.abbr(v, 12), 12), a = this.cxNum(v, mk);
+      if (!a) { const h = this.cxTextNumberHint(v); if (h) notes.push('note: ' + h); return nm + ' |' + R(0, w && !fw ? 8 : 11); }
+      const s = E.descNum(a, w); if (!s.n) return nm + ' |' + R(0, w && !fw ? 8 : 11); shown++;
+      if (fw) { const N = s.sw, sd = N > 1 ? Math.sqrt(this.cxSS(s) / (N - 1)) : NaN; return nm + ' |' + R(this.fmtN(N), 11) + R(G(s.mean), 12) + R(G(sd), 12) + R(G(s.mn), 11) + R(G(s.mx), 11); }
+      return w ? nm + ' |' + R(this.fmtN(s.n), 8) + R(G(s.sw), 12) + R(G(s.mean), 12) + R(G(s.sd), 12) + R(G(s.mn), 10) + R(G(s.mx), 11) : nm + ' |' + R(this.fmtN(s.n), 11) + R(G(s.mean), 12) + R(G(s.sd), 12) + R(G(s.mn), 11) + R(G(s.mx), 11);
+    });
+    const tbl = [...head, ...this.cxRows(rows, 5).map(r => r === null ? head[1] : r), ...notes].join('\n');
+    return { tbl, res: shown + ' of ' + vars.length + ' variable' + (vars.length === 1 ? '' : 's') + ' summarized' };
+  }
+  cxSS(s) { let ss = 0; for (let i = 0; i < s.n; i++) ss += s.ws[i] * (s.xs[i] - s.mean) ** 2; return ss; }
+  cxPct(s, p) { const target = p * s.sw; let cum = 0; for (let i = 0; i < s.n; i++) { cum += s.ws[i]; if (cum >= target - 1e-9 * Math.max(1, s.sw)) { if (Math.abs(cum - target) < 1e-9 * Math.max(1, s.sw) && i + 1 < s.n) return (s.xs[i] + s.xs[i + 1]) / 2; return s.xs[i]; } } return s.xs[s.n - 1]; }
+  cxSumDetail(vars, mk, w, wt) {
+    const R = (v, n) => String(v).padStart(n), G = v => this.stataG(v), E = this._E, blocks = [];
+    for (const v of vars) {
+      const a = this.cxNum(v, mk), lab = (this.effMeta(v) || {}).label || v;
+      const title = ' '.repeat(Math.max(0, Math.floor((61 - Math.min(61, lab.length)) / 2))) + lab.slice(0, 61);
+      if (!a) { const h = this.cxTextNumberHint(v); blocks.push(title + '\n' + '-'.repeat(61) + '\n' + (h ? 'note: ' + h : 'no observations (' + v + ' is text)')); continue; }
+      const s = E.descNum(a, w); if (!s.n) { blocks.push(title + '\n' + '-'.repeat(61) + '\nno observations'); continue; }
+      const sw = s.sw, m = s.mean; let m2 = 0, m3 = 0, m4 = 0;
+      for (let i = 0; i < s.n; i++) { const d = s.xs[i] - m, wi = s.ws[i]; m2 += wi * d * d; m3 += wi * d * d * d; m4 += wi * d * d * d * d; }
+      m2 /= sw; m3 /= sw; m4 /= sw;
+      const sd = wt === 'fw' ? (sw > 1 ? Math.sqrt(m2 * sw / (sw - 1)) : NaN) : s.sd, obs = wt === 'fw' ? sw : s.n;
+      const P = [0.01, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99].map(p => this.cxPct(s, p)), lbl = [' 1%', ' 5%', '10%', '25%', '50%', '75%', '90%', '95%', '99%'];
+      const sm = i => i < s.n ? R(G(s.xs[i]), 15) : R('', 15), lg = i => s.n - 4 + i >= 0 && s.n - 4 + i < s.n ? R(G(s.xs[s.n - 4 + i]), 15) : R('', 15), side = (k, val) => '       ' + k.padEnd(12) + R(val, 11);
+      const L = [title, '-'.repeat(61), '      Percentiles      Smallest',
+        lbl[0] + R(G(P[0]), 13) + sm(0), lbl[1] + R(G(P[1]), 13) + sm(1), lbl[2] + R(G(P[2]), 13) + sm(2) + side('Obs', this.fmtN(obs)), lbl[3] + R(G(P[3]), 13) + sm(3) + side('Sum of wgt.', G(sw)), '',
+        lbl[4] + R(G(P[4]), 13) + R('', 15) + side('Mean', G(m)), ' '.repeat(24) + 'Largest' + side('Std. dev.', G(sd)),
+        lbl[5] + R(G(P[5]), 13) + lg(0), lbl[6] + R(G(P[6]), 13) + lg(1) + side('Variance', G(sd * sd)), lbl[7] + R(G(P[7]), 13) + lg(2) + side('Skewness', G(m3 / Math.pow(m2, 1.5))), lbl[8] + R(G(P[8]), 13) + lg(3) + side('Kurtosis', G(m4 / (m2 * m2)))];
+      blocks.push(L.map(x => x.replace(/\s+$/, '')).join('\n'));
+    }
+    return { tbl: blocks.join('\n\n'), res: 'detailed summary of ' + vars.length + ' variable' + (vars.length === 1 ? '' : 's') };
+  }
+  cxMean(vars, mk, w, wt) {
+    const R = (v, n) => String(v).padStart(n), G = v => this.stataG(v), E = this._E, alpha = this.alpha();
+    const arrs = vars.map(v => { const a = this.cxNum(v, mk); if (!a) throw new Error(v + ' is text — mean needs numeric variables' + (this.cxTextNumberHint(v) ? '. ' + this.cxTextNumberHint(v) : '')); return a; });
+    const N = arrs[0].length, ok = []; for (let i = 0; i < N; i++) if (arrs.every(a => Number.isFinite(a[i])) && (!w || Number.isFinite(w[i]))) ok.push(i);
+    const n = ok.length; if (n < 2) return { error: 'mean: fewer than 2 complete observations' };
+    const nObs = w && wt === 'fw' ? ok.reduce((t, i) => t + w[i], 0) : n, crit = E.critInv(alpha, nObs - 1), pct = Math.round((1 - alpha) * 100);
+    const rows = arrs.map((a, k) => {
+      let mean, se;
+      if (w && wt === 'fw') { let sw = 0, sx = 0; for (const i of ok) { sw += w[i]; sx += w[i] * a[i]; } mean = sx / sw; let ss = 0; for (const i of ok) ss += w[i] * (a[i] - mean) ** 2; se = Math.sqrt(ss / (sw - 1) / sw); }
+      else if (w) { let sw = 0, sx = 0; for (const i of ok) { sw += w[i]; sx += w[i] * a[i]; } mean = sx / sw; let ss = 0; for (const i of ok) ss += (w[i] * (a[i] - mean)) ** 2; se = Math.sqrt(n / (n - 1) * ss) / sw; }
+      else { let sx = 0; for (const i of ok) sx += a[i]; mean = sx / n; let ss = 0; for (const i of ok) ss += (a[i] - mean) ** 2; se = Math.sqrt(ss / (n - 1) / n); }
+      return R(this.abbr(vars[k], 12), 12) + ' |' + R(G(mean), 11) + R(G(se), 11) + R(G(mean - crit * se), 14) + R(G(mean + crit * se), 12);
+    });
+    const dash = '-'.repeat(62);
+    const tbl = ['Mean estimation'.padEnd(41) + 'Number of obs = ' + R(this.fmtN(nObs), 5), '', dash, '             |       Mean   Std. err.     [' + pct + '% conf. interval]', '-------------+------------------------------------------------', ...rows, dash].join('\n');
+    return { tbl, res: 'n = ' + this.fmtN(nObs) };
+  }
+  cxTabstat(vars, mk, w, O) {
+    const R = (v, n) => String(v).padStart(n), G = v => this.stataG(v), E = this._E;
+    if (O.by) throw new Error('tabstat …, by() is under Univariate → Break down by groups (the same table, with any statistic)');
+    const want = String(O.statistics || O.stats || O.s || 'mean').toLowerCase().split(/\s+/).filter(Boolean).flatMap(x => x === 'q' ? ['p25', 'p50', 'p75'] : [x]);
+    const NAMES = { mean: 'Mean', sd: 'SD', n: 'N', count: 'N', sum: 'Sum', min: 'Min', max: 'Max', range: 'Range', var: 'Variance', variance: 'Variance', cv: 'CV', semean: 'SE(mean)', median: 'p50', p50: 'p50', p1: 'p1', p5: 'p5', p10: 'p10', p25: 'p25', p75: 'p75', p90: 'p90', p95: 'p95', p99: 'p99', iqr: 'IQR', skewness: 'Skewness', kurtosis: 'Kurtosis' };
+    const bad = want.filter(x => !NAMES[x]); if (bad.length) throw new Error('tabstat: unknown statistic ' + bad.join(', ') + ' — use mean sd n sum min max range var cv semean median p1 p5 p10 p25 p50 p75 p90 p95 p99 iqr skewness kurtosis');
+    const st = vars.map(v => { const a = this.cxNum(v, mk); if (!a) throw new Error(v + ' is text — tabstat needs numeric variables'); return E.descNum(a, w); });
+    const val = (s, k) => { if (!s.n) return NaN; const m = s.mean; let m2 = 0, m3 = 0, m4 = 0; for (let i = 0; i < s.n; i++) { const d = s.xs[i] - m; m2 += s.ws[i] * d * d; m3 += s.ws[i] * d ** 3; m4 += s.ws[i] * d ** 4; } m2 /= s.sw; m3 /= s.sw; m4 /= s.sw;
+      return k === 'mean' ? m : k === 'sd' ? s.sd : k === 'n' || k === 'count' ? s.n : k === 'sum' ? m * s.sw : k === 'min' ? s.mn : k === 'max' ? s.mx : k === 'range' ? s.mx - s.mn : k === 'var' || k === 'variance' ? s.sd * s.sd : k === 'cv' ? s.sd / m : k === 'semean' ? s.sd / Math.sqrt(s.n) : k === 'iqr' ? this.cxPct(s, .75) - this.cxPct(s, .25) : k === 'skewness' ? m3 / Math.pow(m2, 1.5) : k === 'kurtosis' ? m4 / (m2 * m2) : this.cxPct(s, (k === 'median' ? 50 : Number(k.slice(1))) / 100); };
+    const line = '-'.repeat(10 + 10 * vars.length);
+    const tbl = ['   Stats |' + vars.map(v => R(this.abbr(v, 8), 10)).join(''), '---------+' + '-'.repeat(10 * vars.length), ...want.map(k => R(NAMES[k], 8) + ' |' + st.map(s => R(k === 'n' || k === 'count' ? String(s.n) : G(val(s, k)), 10)).join('')), line].join('\n');
+    return { tbl, res: want.length + ' statistic' + (want.length === 1 ? '' : 's') + ' for ' + vars.length + ' variable' + (vars.length === 1 ? '' : 's') };
+  }
+  cxCorrHead(vars) { const R = (v, n) => String(v).padStart(n); return [R('', 13) + '|' + vars.map(v => R(this.abbr(v, 8), 9)).join(''), '-------------+' + '-'.repeat(9 * vars.length)]; }
+  cxCorrelate(vars, mk, w) {
+    const R = (v, n) => String(v).padStart(n), E = this._E;
+    const arrs = vars.map(v => { const a = this.cxNum(v, mk); if (!a) throw new Error(v + ' is text — correlate needs numeric variables'); return a; });
+    const N = arrs[0].length; let n = 0; const cc = arrs.map(() => new Float64Array(N));
+    for (let i = 0; i < N; i++) { const ok = arrs.every(a => Number.isFinite(a[i])) && (!w || Number.isFinite(w[i])); if (ok) n++; arrs.forEach((a, k) => { cc[k][i] = ok ? a[i] : NaN; }); }
+    if (n < 3) return { error: 'correlate: fewer than 3 rows are complete on every variable' };
+    const cm = E.corrMatrix(cc, w), f4 = v => Number.isFinite(v) ? v.toFixed(4) : '.';
+    const rows = vars.map((v, i) => R(this.abbr(v, 12), 12) + ' |' + vars.slice(0, i + 1).map((_, j) => R(j === i ? '1.0000' : f4(cm[i][j].r), 9)).join(''));
+    return { tbl: ['(obs=' + this.fmtN(n) + ')', '', ...this.cxCorrHead(vars), ...rows].join('\n'), res: vars.length + ' × ' + vars.length + ' correlations · n ' + this.fmtN(n) };
+  }
+  cxPwcorr(vars, mk, w, O) {
+    const R = (v, n) => String(v).padStart(n), E = this._E, star = O.star ? Number(O.star) : NaN, sig = !!O.sig, obs = !!O.obs;
+    const arrs = vars.map(v => { const a = this.cxNum(v, mk); if (!a) throw new Error(v + ' is text — pwcorr needs numeric variables'); return a; });
+    const cm = E.corrMatrix(arrs, w), f4 = v => Number.isFinite(v) ? v.toFixed(4) : '.';
+    const nOf = a => { let k = 0; for (let i = 0; i < a.length; i++) if (Number.isFinite(a[i]) && (!w || Number.isFinite(w[i]))) k++; return k; };
+    const out = [...this.cxCorrHead(vars)], blank = '             |';
+    vars.forEach((v, i) => {
+      out.push(R(this.abbr(v, 12), 12) + ' |' + vars.slice(0, i + 1).map((_, j) => { if (j === i) return R('1.0000', 9); const c = cm[i][j]; return R(f4(c.r) + (Number.isFinite(star) && c.p <= star ? '*' : ''), 9); }).join('') + ' ');
+      if (sig) out.push(blank + vars.slice(0, i + 1).map((_, j) => j === i ? R('', 9) : R(f4(cm[i][j].p), 9)).join('').replace(/\s+$/, ''));
+      if (obs) out.push(blank + vars.slice(0, i + 1).map((_, j) => R(j === i ? nOf(arrs[i]) : cm[i][j].n, 9)).join(''));
+      if (sig || obs) out.push(blank);
+    });
+    return { tbl: out.map(x => x.replace(/\s+$/, '')).join('\n'), res: vars.length + ' variables, pairwise' };
+  }
+  cxOrder(name, labels) { return this.descOrder(name, labels.map(l => ({ label: l }))).map(r => r.label); }
+  cxTab1(v, mk, w) {
+    const R = (x, n) => String(x).padStart(n), G = x => this.stataG(x), a = this.cxLab(v, mk), E = this._E;
+    const fr = E.freqOf(a, w), rows = this.descOrder(v, fr.rows), tot = fr.totalW;
+    if (!rows.length) return v + ': no observations';
+    const lw = Math.min(24, Math.max(11, v.length, ...rows.map(r => String(r.label).length))), cnt = x => w ? G(x) : this.fmtN(x); let cum = 0;
+    const out = [R(this.abbr(v, lw), lw) + ' |      Freq.     Percent        Cum.', '-'.repeat(lw + 1) + '+-----------------------------------'];
+    for (const r of rows) { cum += r.c; out.push(R(String(r.label).slice(0, lw), lw) + ' |' + R(cnt(r.c), 11) + R((100 * r.c / tot).toFixed(2), 12) + R((100 * cum / tot).toFixed(2), 12)); }
+    out.push('-'.repeat(lw + 1) + '+-----------------------------------', R('Total', lw) + ' |' + R(cnt(tot), 11) + R('100.00', 12));
+    return out.join('\n');
+  }
+  // Two-way table in Stata's layout: frequencies by default; row / column / cell percentages; chi2; Cramér's V.
+  cxTab2(yv, xv, mk, w, O) {
+    const E = this._E, R = (x, n) => String(x).padStart(n), G = x => this.stataG(x);
+    const ya = this.cxLab(yv, mk), xa = this.cxLab(xv, mk); if (!ya || !xa) return { error: 'not a variable' };
+    const yL = this.cxOrder(yv, [...new Set(ya.filter(v => v != null))]), xL = this.cxOrder(xv, [...new Set(xa.filter(v => v != null))]);
+    if (yL.length > 400 || xL.length > 60) return { error: 'too many values to tabulate (' + yL.length + ' × ' + xL.length + ') — Stata stops at 12,000 rows and 1,200 columns; group the values first (Data → Recode)' };
+    const yi = new Map(yL.map((l, i) => [l, i])), xi = new Map(xL.map((l, i) => [l, i])), C = yL.map(() => xL.map(() => 0));
+    let n = 0; for (let i = 0; i < ya.length; i++) { if (ya[i] == null || xa[i] == null) continue; const wi = w ? w[i] : 1; if (!Number.isFinite(wi)) continue; C[yi.get(ya[i])][xi.get(xa[i])] += wi; n += wi; }
+    const rT = C.map(r => r.reduce((a, b) => a + b, 0)), cT = xL.map((_, j) => C.reduce((a, r) => a + r[j], 0));
+    const showF = !O.nofreq, stats = [showF ? 'frequency' : null, O.row ? 'row percentage' : null, O.column || O.col ? 'column percentage' : null, O.cell ? 'cell percentage' : null].filter(Boolean);
+    const cntf = x => w ? G(x) : this.fmtN(x), pc = (a, b) => b > 0 ? (100 * a / b).toFixed(2) : '.';
+    const cellLines = (cells, rowTot, colTots, tot) => { const L2 = []; if (showF) L2.push([cells.map(cntf), cntf(rowTot)]); if (O.row) L2.push([cells.map(c => pc(c, rowTot)), pc(rowTot, rowTot)]); if (O.column || O.col) L2.push([cells.map((c, j) => pc(c, colTots[j])), pc(rowTot, tot)]); if (O.cell) L2.push([cells.map(c => pc(c, tot)), pc(rowTot, tot)]); return L2; };
+    const lw = Math.max(10, Math.min(16, Math.max(this.abbr(yv, 16).length, ...yL.map(l => String(l).length)))), cw = 11;
+    const lab = l => String(l).length > lw ? String(l).slice(0, lw) : String(l), clab = l => String(l).length > 10 ? String(l).slice(0, 10) : String(l);
+    const xTitle = (this.effMeta(xv) || {}).label || xv, block = cw * xL.length;
+    const sep = '-'.repeat(lw + 1) + '+' + '-'.repeat(block) + '+' + '-'.repeat(cw - 1);
+    const out = [];
+    if (stats.length > 1) { const kw = Math.max(...stats.map(s2 => s2.length), 3) + 2; out.push('+' + '-'.repeat(kw) + '+', '| Key' + ' '.repeat(kw - 4) + '|', '|' + '-'.repeat(kw) + '|', ...stats.map(s2 => { const pad = kw - s2.length, l2 = Math.floor(pad / 2); return '|' + ' '.repeat(l2) + s2 + ' '.repeat(pad - l2) + '|'; }), '+' + '-'.repeat(kw) + '+', ''); }
+    const title = xTitle.slice(0, block); out.push(' '.repeat(lw + 1) + '|' + ' '.repeat(Math.max(0, Math.floor((block - title.length) / 2))) + title);
+    out.push(R(this.abbr(yv, lw), lw) + ' |' + xL.map(l => R(clab(l), cw)).join('') + ' |' + R('Total', cw - 1), sep);
+    yL.forEach((l, r) => { cellLines(C[r], rT[r], cT, n).forEach((pair, k) => out.push(R(k ? '' : lab(l), lw) + ' |' + pair[0].map(v => R(v, cw)).join('') + ' |' + R(pair[1], cw - 1) + ' ')); if (stats.length > 1) out.push(sep); });
+    if (stats.length === 1) out.push(sep);
+    cellLines(cT, n, cT, n).forEach((pair, k) => out.push(R(k ? '' : 'Total', lw) + ' |' + pair[0].map(v => R(v, cw)).join('') + ' |' + R(pair[1], cw - 1) + ' '));
+    const ct = { counts: C, colW: cT }, ch = yL.length >= 2 && xL.length >= 2 ? E.chi2Of(ct) : { error: 'need a 2×2 table' };
+    if ((O.chi2 || O.v) && !ch.error) {
+      out.push('');
+      if (O.chi2) out.push(('Pearson chi2(' + ch.df + ') = ').padStart(28) + R(ch.stat.toFixed(4), 8) + '   Pr = ' + ch.p.toFixed(3));
+      if (O.v) out.push("Cramér's V = ".padStart(28) + R(ch.V.toFixed(4), 8));
+      if (O.chi2 && ch.smallShare > 0) out.push('', 'note: ' + Math.round(100 * ch.smallShare) + '% of cells have an expected count below 5 — the chi-square p-value may be inaccurate; use Fisher\'s exact test instead (Tests ▾ → Proportions & categorical tests).');
+    }
+    return { tbl: out.map(x => x.replace(/\s+$/, '')).join('\n'), res: yL.length + ' × ' + xL.length + ' table · n ' + cntf(n) + (ch.error ? '' : ' · chi2(' + ch.df + ') = ' + ch.stat.toFixed(2) + ' · p = ' + this.fmtP(ch.p)) };
+  }
+  // The crosstab entry logged by the page (tabulate y x): Stata's table with the options typed in the console,
+  // or column percentages with chi2 when the table was made with the mouse.
+  cxCtTable(d) {
+    const O = d.cxo || { column: true, chi2: true }, mk = this.mask(), w = this.wArr();
+    const r = this.cxTab2(d.y, d.x, mk, w ? Float64Array.from(w, v => v > 0 ? v : NaN) : null, O);
+    return r.error ? '' : r.tbl;
+  }
+  cxPend(kind, toks, s) {
+    const P = this.cxSplit(s), stata = P.verb.toLowerCase() + ' ' + P.toks.join(' ') + '@IF@' + (P.wv ? ' [' + P.wt + '=' + P.wv + ']' : '') + (P.opt ? ', ' + P.opt : '');
+    const O = this.cxOpts(P.opt), V = n => this._raw.names.find(x => x.toLowerCase() === String(n).toLowerCase()) || n;
+    this.setState({ conSig: '' }); // log the table again even when the same crosstab is already on screen
+    this._cxPending = { t: kind, y: V(toks[0]), x: V(toks[1]), opts: O, stata, r: 'table(df$' + V(toks[0]) + ', df$' + V(toks[1]) + ')' + (O.chi2 ? '\nchisq.test(table(df$' + V(toks[0]) + ', df$' + V(toks[1]) + '), correct = FALSE)' : ''), at: Date.now() };
+  }
+  cxAdopt(d) {
+    const p = this._cxPending; if (!d || !p || Date.now() - p.at > 15000 || d.t !== p.t || d.x !== p.x || d.y !== p.y) return d;
+    this._cxPending = null; return Object.assign({}, d, { cxStata: p.stata, cxR: p.r, cxo: p.opts });
+  }
+  cxTtestPooled(y, g, mk, alpha) {
+    const E = this._E, R = (v, n) => String(v).padStart(n), G = v => this.stataG(v), p4 = v => Number.isFinite(v) ? v.toFixed(4) : '.', ab = v => { v = String(v); return v.length > 8 ? v.slice(0, 6) + '~' + v.slice(-1) : v; };
+    const ya = this.cxNum(y, mk); if (!ya) return { error: y + ' is text — the t-test needs a numeric outcome' };
+    const ga = this.cxLab(g, mk), lv = this.cxOrder(g, [...new Set(ga.filter((v, i) => v != null && Number.isFinite(ya[i])))]);
+    if (lv.length !== 2) return { error: g + ' has ' + lv.length + ' groups with data here — ttest …, by() needs exactly 2 (use  oneway ' + y + ' ' + g + '  for more)' };
+    const grp = lv.map(l => { const xs = []; for (let i = 0; i < ya.length; i++) if (ga[i] === l && Number.isFinite(ya[i])) xs.push(ya[i]); const n = xs.length, m = xs.reduce((a, b) => a + b, 0) / n, sd = Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1)); return { label: l, n, mean: m, sd, xs }; });
+    if (grp.some(x => x.n < 2)) return { error: 'each group needs at least 2 observations' };
+    const [a, b] = grp, all = a.xs.concat(b.xs), N = all.length, M = all.reduce((s, v) => s + v, 0) / N, SD = Math.sqrt(all.reduce((s, v) => s + (v - M) ** 2, 0) / (N - 1));
+    const df = a.n + b.n - 2, sp = Math.sqrt(((a.n - 1) * a.sd ** 2 + (b.n - 1) * b.sd ** 2) / df), se = sp * Math.sqrt(1 / a.n + 1 / b.n), diff = a.mean - b.mean, t = diff / se, p = E.pT(t, df);
+    const pct = Math.round((1 - alpha) * 100), cr = E.critInv(alpha, df), lo = t < 0 ? p / 2 : 1 - p / 2;
+    const row = (lab, n, m, sd) => { const s2 = sd / Math.sqrt(n), c = E.critInv(alpha, n - 1); return R(lab, 8) + ' |' + R(this.fmtN(n), 8) + R(G(m), 12) + R(G(s2), 12) + R(G(sd), 12) + R(G(m - c * s2), 12) + R(G(m + c * s2), 12); };
+    const dash = '-'.repeat(78), mid = '---------+' + '-'.repeat(68);
+    const tbl = ['Two-sample t test with equal variances', dash, '   Group |     Obs        Mean    Std. err.   Std. dev.   [' + pct + '% conf. interval]', mid, row(ab(a.label), a.n, a.mean, a.sd), row(ab(b.label), b.n, b.mean, b.sd), mid, row('Combined', N, M, SD), mid,
+      R('diff', 8) + ' |' + R('', 8) + R(G(diff), 12) + R(G(se), 12) + R('', 12) + R(G(diff - cr * se), 12) + R(G(diff + cr * se), 12), dash,
+      ('    diff = mean(' + ab(a.label) + ') - mean(' + ab(b.label) + ')').padEnd(66) + 't = ' + R(p4(t), 8), 'H0: diff = 0'.padEnd(49) + 'Degrees of freedom = ' + R(df, 8), '',
+      '    Ha: diff < 0'.padEnd(33) + 'Ha: diff != 0'.padEnd(30) + 'Ha: diff > 0', ' Pr(T < t) = ' + p4(lo) + '         Pr(|T| > |t|) = ' + p4(p) + '          Pr(T > t) = ' + p4(1 - lo)].join('\n');
+    return { tbl, res: 't(' + df + ') = ' + this.fmt(t, 3) + ' · p = ' + this.fmtP(p) + ' · equal variances' };
+  }
+  // destring with Stata's rules: refuses to turn text into missing values unless force is given; dpcomma reads
+  // decimal commas; ignore("chars") removes characters such as thousands separators first.
+  cxDestring(s, list, optStr, varlist, fail, ok) {
+    const O = this.cxOpts(optStr), L = varlist(list); if (L.bad.length) return fail('Not variables: ' + L.bad.join(' '));
+    const raw = this._raw, gen = O.generate || O.gen || O.g ? String(O.generate || O.gen || O.g).split(/\s+/).filter(Boolean) : null;
+    if (!O.replace && !gen) return fail('destring needs  , replace  or  , generate(newname) — e.g.  destring ' + (L.vars[0] || 'x') + ', replace');
+    if (gen && gen.length !== L.vars.length) return fail('generate() needs one new name for each variable (' + L.vars.length + ')');
+    if (gen) for (const g of gen) { const e = this.validName(g); if (e) return fail('generate(' + g + '): ' + e); }
+    const ign = O.ignore != null ? String(O.ignore).replace(/^"(.*)"$/, '$1') : '';
+    const parse = v => { let t = v == null ? '' : String(v).trim(); for (const ch of ign) t = t.split(ch).join(''); t = t.trim(); if (t === '' || t === '.' || /^\.[a-z]$/.test(t)) return { miss: true }; if (O.dpcomma) { if (t.includes('.')) return { bad: true }; t = t.replace(',', '.'); } const x = Number(t); return Number.isFinite(x) && /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(t) ? { x } : { bad: true }; };
+    const plan = [], msgs = [];
+    for (const [k, v] of L.vars.entries()) {
+      const i = raw.names.indexOf(v), col = raw.cols[i];
+      if (col.k === 'n') { msgs.push(v + ': already numeric; no ' + (gen ? 'generate' : 'replace')); continue; }
+      const a = new Float64Array(raw.n); let bad = 0, ex = '';
+      for (let r = 0; r < raw.n; r++) { const p = parse(col.a[r]); if (p.miss) a[r] = NaN; else if (p.bad) { a[r] = NaN; bad++; if (!ex) ex = String(col.a[r]).trim(); } else a[r] = p.x; }
+      if (bad && !O.force) {
+        const h = this.cxTextNumberHint(v);
+        return fail(v + ': contains nonnumeric characters (' + this.fmtN(bad) + ' values, e.g. "' + ex + '"); no ' + (gen ? 'generate' : 'replace') + '. ' + (h && !O.dpcomma && !ign ? h.replace(/^.*?Convert it with\s+/, 'Try  ') + '. ' : '') + 'Add  force  to turn those values into missing (.).');
+      }
+      plan.push({ v, i, a, bad, g: gen ? gen[k] : null });
+    }
+    if (!plan.length) return fail(msgs.join(' · '));
+    const rx = v => 'df$' + v, rconv = v => { let e = rx(v); if (ign) e = 'gsub("[' + ign.replace(/[\]\\^-]/g, '\\$&') + ']", "", ' + e + ')'; if (O.dpcomma) e = 'sub(",", ".", ' + e + ', fixed = TRUE)'; return 'as.numeric(' + e + ')'; };
+    for (const p of plan) {
+      const res = (p.g ? p.g + ' created from ' + p.v : p.v + ' is now NUMERIC') + (p.bad ? ' · ' + this.fmtN(p.bad) + ' value' + (p.bad === 1 ? '' : 's') + ' could not be read as numbers and became missing (.) because of force' : '');
+      const cmd = { stata: 'destring ' + p.v + ', ' + (p.g ? 'generate(' + p.g + ')' : 'replace') + (ign ? ' ignore("' + ign + '")' : '') + (O.dpcomma ? ' dpcomma' : '') + (O.force ? ' force' : ''), r: (p.g ? rx(p.g) : rx(p.v)) + ' <- ' + rconv(p.v) };
+      if (p.g) { this.addDerivedCol(p.g, { k: 'n', a: p.a }, raw.labels[p.i] || '', 'gen'); this.pushLog({ t: 'retype', name: p.g, str: false, res, cmd }); }
+      else {
+        this.snap('change type of ' + p.v); raw.cols[p.i] = { k: 'n', a: p.a };
+        this.setState(st => { const tr = { ...st.treat }; delete tr[p.v]; return { treat: tr }; });
+        this.reprofile([p.i]); this.pushLog({ t: 'retype', name: p.v, str: false, res, cmd });
+      }
+    }
+    this.clearMemo();
+    return ok(s + (msgs.length ? '   (' + msgs.join(' · ') + ')' : ''));
+  }
+  cxImportCmd(dial) {
+    const S = this.state, f = S.fileName || 'data.csv', c = (this._raw && this._raw.csv) || {}, xl = /\.(xlsx|xlsm|xltx|xltm|xls)$/i.test(f), sheet = this._xlsx && this._xlsx.name === f ? this._xlsx.sheet : '';
+    if (dial === 'stata') {
+      if (xl) return 'import excel "' + f + '",' + (sheet ? ' sheet("' + sheet + '")' : '') + ' firstrow clear';
+      return 'import delimited "' + f + '",' + (c.delim === ';' ? ' delimiters(";")' : c.delim === '|' ? ' delimiters("|")' : '') + (c.decComma ? ' decimalseparator(,) groupseparator(.)' : '') + ' clear';
+    }
+    if (xl) return 'df <- as.data.frame(readxl::read_excel("' + f + '"' + (sheet ? ', sheet = "' + sheet + '"' : '') + '))';
+    if (c.delim === ';') return c.decComma ? 'df <- read.csv2("' + f + '", na.strings = c("", "NA"))' : 'df <- read.csv("' + f + '", sep = ";", na.strings = c("", "NA"))';
+    if (c.delim === '\t') return 'df <- read.delim("' + f + '", na.strings = c("", "NA"))';
+    if (c.delim === '|') return 'df <- read.csv("' + f + '", sep = "|", na.strings = c("", "NA"))';
+    return 'df <- read.csv("' + f + '", na.strings = c("", "NA"))';
+  }
+  // Small coefficients keep two significant digits instead of rounding to 0.00.
+  cxNum2(v, d) { if (!Number.isFinite(v)) return ''; if (Math.abs(v) >= 1e5) return v.toExponential(2); if (v !== 0 && Math.abs(v) < 0.5 * Math.pow(10, -d)) return Number(v.toPrecision(2)).toString().replace(/^(-?)0\./, '$10.'); return v.toFixed(d); }
+  // GM26 console commands end
   descFor() {
     const S = this.state;
     if (S.screen !== 'work' || !S.cols.length) return null;
@@ -5778,7 +6138,7 @@ class Component extends DCLogic {
     }
     return null;
   }
-  cmdText(d, dial) { /* GM26 console output v3 */ if (d.t === 'ttestx') return this.withIf(dial === 'r' ? d.r : d.stata, d.sg, dial); if (d.t === 'asx') return /^survey_/.test(d.id) ? (dial === 'stata' ? d.stata : d.r) : (dial === 'stata' && d.stataIfDone ? d.stata : this.withIf(dial === 'stata' ? d.stata : d.r, d.sg, dial)); if (d.t === 'ts') return (d.short && (dial === 'stata' ? d.short.stata : d.short.r)) || (dial === 'stata' ? d.stata : d.r); const s = this.withIf(this.cmdCore(d, dial), d.sg, dial); return this.regFix(d.t === 'reg' && d.vce ? this.vceCmd(s, d, dial) : s, d, dial); }
+  cmdText(d, dial) { /* GM26 console output v3 */ if (d.t === 'cx') return this.cxCmd(d, dial); if (d.cxStata) return this.cxCmd({ stata: d.cxStata, r: d.cxR, sg: d.sg }, dial); if (d.t === 'ttestx') return this.withIf(dial === 'r' ? d.r : d.stata, d.sg, dial); if (d.t === 'asx') return /^survey_/.test(d.id) ? (dial === 'stata' ? d.stata : d.r) : (dial === 'stata' && d.stataIfDone ? d.stata : this.withIf(dial === 'stata' ? d.stata : d.r, d.sg, dial)); if (d.t === 'ts') return (d.short && (dial === 'stata' ? d.short.stata : d.short.r)) || (dial === 'stata' ? d.stata : d.r); const s = this.withIf(this.cmdCore(d, dial), d.sg, dial); return this.regFix(d.t === 'reg' && d.vce ? this.vceCmd(s, d, dial) : s, d, dial); }
   vceCmd(s, d, dial) {
     const v = d.vce;
     if (dial === 'stata') {
@@ -5803,6 +6163,7 @@ class Component extends DCLogic {
     if (d.t === 'txdict') return dial === 'stata' ? '* Stata has no built-in text analysis — this matches R (quanteda):\n' + d.r : d.r;
     if (d.t === 'sem') return dial === 'stata' ? d.stata : d.r;
     if (d.t === 'ergm') return dial === 'stata' ? '* Stata has no built-in ERGM — this matches R:\n' + d.r : d.r;
+    if (d.t === 'retype' && d.cmd) return dial === 'stata' ? d.cmd.stata : d.cmd.r;
     if (d.t === 'retype') return dial === 'stata' ? (d.str ? 'tostring ' + d.name + ', replace' : 'destring ' + d.name + ', replace force') : 'df$' + d.name + ' <- as.' + (d.str ? 'character' : 'numeric') + '(df$' + d.name + ')';
     if (d.t === 'dropcol') return dial === 'stata' ? 'drop ' + d.name : 'df$' + d.name + ' <- NULL';
     if (d.t === 'vrecode') {
@@ -5858,7 +6219,7 @@ class Component extends DCLogic {
       const aw = d.w ? ' [aw=' + d.w + ']' : '';
       if (d.t === 'sum') return 'summarize ' + d.x + aw;
       if (d.t === 'tab1') return 'tabulate ' + d.x + aw;
-      if (d.t === 'ct') return 'tabulate ' + d.y + ' ' + d.x + aw + ', col';
+      if (d.t === 'ct') return 'tabulate ' + d.y + ' ' + d.x + aw + ', column chi2';
       if (d.t === 'corr') return 'pwcorr ' + d.x + ' ' + d.y + aw + ', sig obs';
       if (d.t === 'ttest') return 'ttest ' + d.y + ', by(' + d.g + ') unequal';
       if (d.t === 'anova') return 'oneway ' + d.y + ' ' + d.g + aw;
@@ -6052,11 +6413,11 @@ class Component extends DCLogic {
   abbr(nm, w) { nm = String(nm); return nm.length <= w ? nm : nm.slice(0, w - 2) + '~' + nm.slice(-1); }
   rerunCmd(d) {
     this.rerunCore(d);
-    if (!['snacent', 'gen01', 'tsvars', 'txdict', 'vrecode', 'retype', 'dropcol', 'gen', 'nvgen', 'replace', 'recode', 'rename', 'dropv', 'restorev', 'filter', 'unfilter', 'cralpha', 'describe', 'codebook'].includes(d.t)) { this.clearMemo(); this.setState(s => { const k = this.sgTab(s.tab); return k ? { subg: { ...s.subg, all: d.sg || [] } } : null; }); }
+    if (!['cx', 'snacent', 'gen01', 'tsvars', 'txdict', 'vrecode', 'retype', 'dropcol', 'gen', 'nvgen', 'replace', 'recode', 'rename', 'dropv', 'restorev', 'filter', 'unfilter', 'cralpha', 'describe', 'codebook'].includes(d.t)) { this.clearMemo(); this.setState(s => { const k = this.sgTab(s.tab); if (!k) return null; const all = d.sg || []; if (JSON.stringify(all) !== JSON.stringify((s.subg && s.subg.all) || [])) this._cxIf = { prev: s.subg, sig: JSON.stringify(all) }; return { subg: { ...s.subg, all } }; }); }
   }
   rerunCore(d) {
     if (d.t === 'ttestx') { this.setState(Object.assign({tab:'ttest'},d.setup || {})); return; }
-    if (d.t === 'stata') { this.setState({ mfCmd: d.stata, mfPane: 'output', mfDock: true }); return; }
+    if (d.t === 'stata' || d.t === 'cx') { this.setState({ mfCmd: d.t === 'cx' ? this.cxCmd(d, 'stata') : d.stata, mfPane: 'output', mfDock: true }); return; }
     if (['vrecode', 'retype', 'dropcol'].includes(d.t)) { this.setState({ tab: 'browse', browseMode: 'data' }); return; }
     if (d.t === 'sem' || d.t === 'ergm') { this.setState({ tab: d.t }); return; }
     if (d.t === 'txdict') { this.setState({ tab: 'text' }); return; }
@@ -6103,6 +6464,8 @@ class Component extends DCLogic {
   }
   tableFor(d) {
     if (d.t === 'ttestx') return d.tblStata || d.tbl || '';
+    if (d.t === 'cx') return d.tbl || '';
+    if (d.t === 'ct') { const t2 = this.cxCtTable(d); if (t2) return t2; }
     if (d.t === 'ts' || d.t === 'asx') return d.tbl || d.res || '';
     const M = this.memoView(), E = this._E, R = this.padR.bind(this);
     const L = (s, w) => { s = String(s); return s.length >= w ? s.slice(0, w - 1) + ' ' : s + ' '.repeat(w - s.length); };
@@ -6194,7 +6557,7 @@ class Component extends DCLogic {
     return '';
   }
   resFor(d) {
-    if (d.t === 'ttestx') return d.res || '';
+    if (d.t === 'ttestx' || d.t === 'cx') return d.res || '';
     if (d.t === 'ts' || d.t === 'asx') return d.res || '';
     if (d.t === 'describe') { const r = this._raw; return r ? 'obs ' + this.fmtN(r.n) + ' · vars ' + this.fmtN(this.state.cols.length) : ''; }
     if (d.t === 'codebook') { const m = this.state.cols.find(c => c.name === d.x); return m ? (m.treatAs === 'numeric' ? 'numeric' : 'categorical') + ' · ' + this.fmtN(m.valid) + ' valid · ' + this.fmtN(m.miss) + ' missing · ' + (m.distinct > 1200 ? '>1200' : m.distinct) + ' unique' : ''; }
@@ -6219,6 +6582,8 @@ class Component extends DCLogic {
   }
   explFor(d) {
     if (d.t === 'ttestx') return d.res || '';
+    if (d.t === 'cx') return d.expl || 'Typed command';
+    if (d.t === 'ct' && d.cxo) return 'Two-way table of ' + d.y + ' by ' + d.x + ' (' + ['frequencies', d.cxo.row ? 'row %' : '', d.cxo.column || d.cxo.col ? 'column %' : '', d.cxo.cell ? 'cell %' : '', d.cxo.chi2 ? 'chi-square test' : ''].filter(Boolean).join(', ') + ')';
     if (d.t === 'asx') return d.res || d.title || 'Analysis';
     if (d.t === 'ts') return 'Time series with explicit calendar preparation: ' + (d.res || '');
     if (d.t === 'stata') return 'Typed command';
@@ -6905,7 +7270,7 @@ class Component extends DCLogic {
       df: M.dfR || M.n-1, stats: { N: M.n, R2: isO ? M.R2 : NaN, adjR2: isO ? M.adjR2 : NaN, pseudo: isO ? NaN : M.mcfadden, ll: isO ? NaN : M.ll, aic: isO ? NaN : -2 * M.ll + 2 * k, F: isO ? M.F : NaN, rmse: isO ? M.rmse : NaN } };
   }
   pubBuild(models) {
-    const d = this.dec(), f = v => Number.isFinite(v) ? (Math.abs(v) >= 1e5 ? v.toExponential(2) : v.toFixed(d)) : '';
+    const d = this.dec(), f = v => this.cxNum2(v, d);
     const st = p => !Number.isFinite(p) ? '' : p < 0.01 ? '***' : p < 0.05 ? '**' : p < 0.10 ? '*' : '';
     const MODN = { ols: 'OLS', logistic: 'Logit', ologit: 'Ordered logit', poisson: 'Poisson' };
     const main = [], tail = [];
@@ -7320,7 +7685,7 @@ class Component extends DCLogic {
   dlDoFile() {
     const S = this.state, dial = S.dialect, base = String(S.fileName || 'gm26').replace(/\.[^.]+$/, ''), c = dial === 'stata' ? '* ' : '# ';
     const isDta = /\.dta$/i.test(S.fileName || '');
-    const head = [c + 'GM26.1 session — ' + S.fileName + ' — ' + new Date().toLocaleString(), c + 'Every command run in this session, in order.' + (dial === 'stata' ? '' : '  df = your data frame'), dial === 'stata' ? (isDta ? 'use "' + S.fileName + '", clear' : 'import delimited "' + S.fileName + '", clear') : (isDta ? 'library(haven); df <- read_dta("' + S.fileName + '")' : 'df <- read.csv("' + S.fileName + '", na.strings = c("", "NA"))'), ...this.missingDecodeLines(dial), ''];
+    const head = [c + 'GM26.1 session — ' + S.fileName + ' — ' + new Date().toLocaleString(), c + 'Every command run in this session, in order.' + (dial === 'stata' ? '' : '  df = your data frame'), dial === 'stata' ? (isDta ? 'use "' + S.fileName + '", clear' : this.cxImportCmd('stata')) : (isDta ? 'library(haven); df <- read_dta("' + S.fileName + '")' : this.cxImportCmd('r')), ...this.missingDecodeLines(dial), ''];
     const body = S.conLog.map(d => { let s = ''; try { s = d.t === 'ts' ? (dial === 'stata' ? d.stata : d.r) : this.cmdText(d, dial); } catch (e) {} if (!s) return ''; let ex = ''; try { ex = this.explFor(d); } catch (e) {} return (ex ? c + ex + '\n' : '') + s + '\n'; }).filter(Boolean);
     if (!body.length) { this.flash('Nothing has been run yet'); return; }
     this.dlBlob(new Blob([head.concat(body).join('\n') + '\n'], { type: 'text/plain' }), base + (dial === 'stata' ? '.do' : '.R'));
@@ -7412,6 +7777,7 @@ class Component extends DCLogic {
       this.pushLog({ t: 'dropv', list: hide, res: 'hidden from variable lists — data untouched, restore them under Edit data' });
       return ok(s + '   (' + hide.length + ' hidden from the lists — restore them under Edit data)');
     }
+    if ((m = s.match(/^destring\s+(.+?)(?:\s*,(.*))?$/i))) return this.cxDestring(s, m[1], m[2] || '', varlist, fail, ok);
     if ((m = s.match(/^(destring|tostring)\s+(.+?)(?:\s*,.*)?$/i))) {
       const L = varlist(m[2]); if (L.bad.length) return fail('Not variables: ' + L.bad.join(' '));
       L.vars.forEach(v => this.retypeCol(v, m[1].toLowerCase() === 'tostring')); this.clearMemo();
@@ -7466,7 +7832,7 @@ class Component extends DCLogic {
     // ---- multivariate and graphs not covered by the analysis parser
     if (/^(pwcorr|corr|correlate|cor)\s/i.test(s) || /^gr(?:aph)?\s+mat(?:rix)?\s/i.test(s)) {
       const L = varlist(s.replace(/^gr(?:aph)?\s+mat(?:rix)?\s+|^\S+\s+/i, '').replace(/\s+if\s+.*$/, '').replace(/[,[].*$/, ''));
-      if (L.vars.length >= 3 || /^gr/i.test(s)) { if (L.bad.length) return fail('Not variables: ' + L.bad.join(' ')); if (L.vars.length < 3 || L.vars.length > 6) return fail('A correlation matrix takes 3 to 6 variables'); return ok(s, { tab: 'plots', plotKind: 'matrix', mxItems: L.vars, mfMobile: 'analysis' }); }
+      if (/^gr/i.test(s)) { if (L.bad.length) return fail('Not variables: ' + L.bad.join(' ')); if (L.vars.length < 3 || L.vars.length > 6) return fail('A correlation matrix takes 3 to 6 variables'); return ok(s, { tab: 'plots', plotKind: 'matrix', mxItems: L.vars, mfMobile: 'analysis' }); }
       return false;
     }
     if ((m = s.match(/^gr(?:aph)?\s+h?bar\s*(?:\([^)]*\)\s*\S+\s*)?,?\s*over\(\s*(\w+)\s*\)\s*over\(\s*(\w+)\s*\)/i))) {
@@ -7573,6 +7939,7 @@ class Component extends DCLogic {
   runCmdLine(text) {
     this._lastCmd = String(text || '').trim().replace(/^[.>]\s*/, ''); this.jumpArm();
     const S = this.state, raw = this._raw, E = this._E; if (!raw || !E) return;
+    if (this.cxScopeIf(text)) return;
     let s = String(text || '').trim().replace(/^[.>]\s*/, ''); if (!s) return;
     if (/^(g|ge|gen|gene|gener|genera|generat|generate|replace)\s/i.test(s)) return this.runGenReplace(s);
     s = s.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'").replace(/&amp;/g, '&').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/\s+/g, ' ');
@@ -7606,7 +7973,7 @@ class Component extends DCLogic {
         const paired=/^(true|t)$/i.test(kw.paired || '');
         const alternative=String(kw.alternative || 'two.sided').replace(/["']/g,'').toLowerCase();
         if(alternative!=='two.sided')return fail('This t-test workspace reports two-sided tests. Use alternative = "two.sided".');
-        if(/^(true|t)$/i.test(kw['var.equal'] || ''))return fail('The independent-groups test uses Welch unequal-variance inference. var.equal = TRUE is not supported here.');
+        if(/^(true|t)$/i.test(kw['var.equal'] || '')){if(!fm)return fail('var.equal = TRUE needs a formula: t.test(y ~ g, data = df, var.equal = TRUE)');return this.cxRun('ttestpool', s, { done, fail, y: fm[1], g: fm[2].trim(), alpha: opts.ttAlpha, dial: 'r' });}
         if(fm){if(paired)return fail('For paired measurements, use t.test(df$before, df$after, paired = TRUE).');verb='ttest';vars=[fm[1],fm[2].trim()];}
         else{
           const positional=argList.filter(arg=>!/^\s*[A-Za-z_.]+\s*=/.test(arg)),v=dollar(positional[0] || ''),v2=dollar(positional[1] || '');
@@ -7639,12 +8006,12 @@ class Component extends DCLogic {
       if (O.robust === true || O.r === true) opts.vce = 'robust';
       if (O.cluster) { opts.vce = 'cluster'; opts.cl = O.cluster; }
       if (O.by) opts.by = O.by; if (O.over) opts.over = O.over;
-      if (vb === 'summarize') { if (!toks.length) return fail('summarize needs a variable'); verb = 'summarize'; vars = [toks[0]]; }
-      else if (vb === 'tab') { if (!toks.length) return fail('tabulate needs a variable'); verb = toks.length >= 2 ? 'crosstab' : 'tabulate'; vars = toks.length >= 2 ? [toks[0], toks[1]] : [toks[0]]; }
-      else if (vb === 'tabulate') { if (!toks.length) return fail('tab1 needs a variable'); verb = 'tabulate'; vars = [toks[0]]; }
-      else if (vb === 'crosstab') { if (toks.length < 2) return fail('tab2 needs two variables'); verb = 'crosstab'; vars = [toks[0], toks[1]]; }
-      else if (vb === 'correlate') { if (toks.length < 2) return fail('pwcorr needs at least two variables'); verb = 'correlate'; vars = toks.slice(0, 2); if (toks.length > 2) opts.items = toks.slice(); }
-      else if (vb === 'ttest') { const em = body.match(/^\S+\s+([A-Za-z_]\w*)\s*==?\s*(\S+)/); if (opts.by) { if (!toks.length) return fail('ttest needs a variable'); verb = 'ttest'; vars = [toks[0], opts.by]; } else if (em && V(em[2])) { verb = 'ttestp'; vars = [em[1], em[2]]; } else if (em) { verb = 'ttest1'; vars = [em[1]]; opts.mu = em[2]; } else return fail(toks.length >= 2 ? 'In Stata the group goes inside by():   ttest ' + toks[0] + ', by(' + toks[1] + ')' : 'ttest: use  ttest y, by(group)   or   ttest y == 50'); }
+      if (vb === 'summarize') { if (opts.svy) return fail('svy: works with regress, logit, ologit and poisson here — for survey means use Tests ▾ → Survey inference'); if (v0 === 'mean' || v0 === 'tabstat' || toks.length !== 1 || O.detail || O.d || (this.cxBareNumeric(V(toks[0])) && (this.effMeta(V(toks[0])) || {}).treatAs !== 'numeric')) return this.cxRun(v0 === 'mean' ? 'mean' : v0 === 'tabstat' ? 'tabstat' : 'summarize', s, { done, fail }); const hint = this.cxTextNumberHint(V(toks[0])); if (hint) return fail(hint); verb = 'summarize'; vars = [toks[0]]; }
+      else if (vb === 'tab') { if (!toks.length) return fail('tabulate needs a variable'); if (toks.length > 2) return fail('tabulate takes one or two variables — use  tab1 ' + toks.join(' ') + '  for one table each, or  tab2 ' + toks.join(' ') + '  for every pair'); verb = toks.length >= 2 ? 'crosstab' : 'tabulate'; vars = toks.length >= 2 ? [toks[0], toks[1]] : [toks[0]]; if (toks.length === 2) this.cxPend('ct', toks, s); }
+      else if (vb === 'tabulate') { if (!toks.length) return fail('tab1 needs a variable'); if (toks.length > 1) return this.cxRun('tab1', s, { done, fail }); verb = 'tabulate'; vars = [toks[0]]; }
+      else if (vb === 'crosstab') { if (toks.length < 2) return fail('tab2 needs two variables'); if (toks.length > 2) return this.cxRun('tab2', s, { done, fail }); verb = 'crosstab'; vars = [toks[0], toks[1]]; this.cxPend('ct', toks, s); }
+      else if (vb === 'correlate') return this.cxRun(v0 === 'pwcorr' ? 'pwcorr' : 'correlate', s, { done, fail });
+      else if (vb === 'ttest') { const em = body.match(/^\S+\s+([A-Za-z_]\w*)\s*==?\s*(\S+)/); if (opts.by) { if (!toks.length) return fail('ttest needs a variable'); if (!O.unequal && !O.une && !O.uneq && !O.welch) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by }); verb = 'ttest'; vars = [toks[0], opts.by]; } else if (em && V(em[2])) { verb = 'ttestp'; vars = [em[1], em[2]]; } else if (em) { verb = 'ttest1'; vars = [em[1]]; opts.mu = em[2]; } else return fail(toks.length >= 2 ? 'In Stata the group goes inside by():   ttest ' + toks[0] + ', by(' + toks[1] + ')' : 'ttest: use  ttest y, by(group)   or   ttest y == 50'); }
       else if (vb === 'oneway') { if (toks.length < 2) return fail('oneway needs  oneway y group'); verb = 'oneway'; vars = [toks[0], toks[1]]; }
       else if (['regress', 'logit', 'ologit', 'poisson'].includes(vb)) { if (toks.length < 2) return fail(vb + ' needs an outcome and at least one predictor'); verb = vb; vars = [toks[0]]; opts.terms = toks.slice(1); }
       else if (vb === 'hist' || vb === 'box') { if (!toks.length) return fail(v0 + ' needs a variable'); verb = 'plot'; const grouped = vb === 'box' && opts.over; opts.kind = grouped ? 'gbox' : vb; vars = grouped ? [opts.over, toks[0]] : [toks[0]]; }
@@ -7665,26 +8032,26 @@ class Component extends DCLogic {
       for (let t of (opts.terms || [])) {
         t = t.trim(); if (!t || t === '1') continue;
         if (/[#:]/.test(t)) { const parts = t.split(/##|#|:/).map(fac); if (parts.length !== 2) throw new Error('an interaction needs exactly two terms: ' + t); parts.forEach(q => { if (q.c !== null) treat[q.n] = q.c ? 'categorical' : 'numeric'; if (/##/.test(t) && !terms.some(z => z.n === q.n)) terms.push(q); }); ix.push([parts[0].n, parts[1].n]); continue; }
-        const q = fac(t); if (q.c !== null) treat[q.n] = q.c ? 'categorical' : 'numeric'; if (!terms.some(z => z.n === q.n)) terms.push(q);
+        const q = fac(t); if (q.c === null && this.cxBareNumeric(q.n)) q.c = false; if (q.c !== null) treat[q.n] = q.c ? 'categorical' : 'numeric'; if (!terms.some(z => z.n === q.n)) terms.push(q);
       }
     } catch (e) { return fail(e.message); }
-    const patch = { treat };
+    const patch = { treat, conSig: '' };
     if (opts.if) {
       const r = this.stataConds(opts.if); if (r.err) return fail(r.err);
-      let all = [];
+      let all = [...((S.subg && S.subg.all) || [])];
       for (const c of r.conds) {
         const isNum = !c.cat, val = c.val, numV = /^-?\d+(\.\d+)?$/.test(String(val).trim());
         const cond = c.op === '==' ? { v: c.v, t: 'in', vals: [numV ? (isNum ? E.numLab(parseFloat(val)) : String(this.vlabel(c.v, parseFloat(val)))) : val] } : { v: c.v, t: 'op', op: c.op, val, cat: c.cat };
-        all = [...all.filter(x => x.v !== c.v), cond];
+        all = [...all, cond];
       }
-      patch.subg = Object.assign({}, S.subg, { all });
+      patch.subg = Object.assign({}, S.subg, { all }); this._cxIf = { prev: S.subg, sig: JSON.stringify(all) };
     }
     if (opts.ttAlpha !== undefined) patch.alphaSel = String(opts.ttAlpha);
     if (opts.w) { patch.weightVar = opts.w; patch.weightAuto = false; }
     if (opts.w || patch.subg || JSON.stringify(treat) !== JSON.stringify(S.treat || {})) this.clearMemo();
-    const label = s.length > 70 ? s.slice(0, 68) + '…' : s;
-    if (verb === 'describe') { this.setState(patch); this.runDirect({ t: 'describe' }); return done(label, { mfPane: 'output' }); }
-    if (verb === 'codebook') { this.setState(patch); this.runDirect({ t: 'codebook', x: vars[0] }); return done(label, { mfPane: 'output' }); }
+    const label = (s.length > 70 ? s.slice(0, 68) + '…' : s) + (opts.if ? '   · the if applies to this command only' : '');
+    if (verb === 'describe') { delete patch.conSig; this.setState(patch); this.runDirect({ t: 'describe' }); return done(label, { mfPane: 'output' }); }
+    if (verb === 'codebook') { delete patch.conSig; this.setState(patch); this.runDirect({ t: 'codebook', x: vars[0] }); return done(label, { mfPane: 'output' }); }
     if (verb === 'summarize' || verb === 'tabulate') return done(label, Object.assign(patch, { tab: 'one', exploreVar: vars[0] }));
     if (verb === 'crosstab') return done(label, Object.assign(patch, { tab: 'two', twoMode: 'ct', yVar: vars[0], xVar: vars[1] }));
     if (verb === 'correlate') return done(label, Object.assign(patch, { tab: 'two', twoMode: 'corr', xVar: vars[0], yVar: vars[1] }, opts.items ? { mxItems: opts.items } : {}));
@@ -7800,6 +8167,7 @@ class Component extends DCLogic {
     const S = this.state; if (!this._raw || S.screen !== 'work' || !this.sgTab()) return '';
     const cs = this.conds(), N = S.nRows, parts = [];
     parts.push(cs.length ? 'Subgroup: ' + cs.map(c => this.condLabel(c)).join(' & ') + ' · ' + this.fmtN(this.keptN()) + ' of ' + this.fmtN(N) + ' rows' : 'All ' + this.fmtN(N) + ' rows');
+    if (S.tab === 'reg') { try { const dd = this.descFor(), Mo = dd && dd.t === 'reg' ? this.regModelFor(dd) : null; if (Mo && Number.isFinite(Mo.n)) parts.push(this.fmtN(Mo.n) + ' used in the model'); } catch (e) {} }
     if (S.weightVar) parts.push('weighted by ' + S.weightVar);
     if (S.fileName) parts.push(S.fileName);
     return parts.join(' · ');
@@ -8123,7 +8491,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-01.54') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-01.55') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -8431,7 +8799,7 @@ class Component extends DCLogic {
     const cmdLineStyle = "font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; font-weight: 700; color: var(--c226578, #226578); white-space: pre-wrap; cursor: help;";
     const resLineStyle = "font-family: var(--fMono, 'Space Mono', monospace); font-size: 11.5px; color: var(--c433D31, #433D31); white-space: pre-wrap; padding-left: 18px;";
     const rerun = d => () => this.rerunCmd(d);
-    const tblStyle = "font-family: var(--fMono, 'Space Mono', monospace); font-size: 11.5px; line-height: 1.45; color: var(--c1A1711, #1A1711); white-space: pre; overflow-x: auto; padding: 4px 0 8px 14px;";
+    const tblStyle = "font-family: var(--fMono, 'Space Mono', monospace); font-size: 11.5px; line-height: 1.45; color: var(--c1A1711, #1A1711); white-space: pre; overflow-x: auto; padding: 4px 0 8px 14px; background: linear-gradient(to right, var(--cFFFFFF, #FFFFFF) 50%, rgba(255,255,255,0)) left center / 40px 100% no-repeat local, linear-gradient(to left, var(--cFFFFFF, #FFFFFF) 50%, rgba(255,255,255,0)) right center / 40px 100% no-repeat local, radial-gradient(farthest-side at 0 50%, rgba(43,39,30,0.30), rgba(43,39,30,0)) left center / 12px 100% no-repeat scroll, radial-gradient(farthest-side at 100% 50%, rgba(43,39,30,0.30), rgba(43,39,30,0)) right center / 12px 100% no-repeat scroll; scrollbar-width: thin; scrollbar-color: #B9AE98 transparent;";
     out.conLogLines = S.conLog.slice(-16).flatMap(d => {
       const lines = [{ text: out.conPrompt + this.cmdText(d, S.dialect), title: this.explFor(d) + ' — CLICK TO RE-RUN', style: cmdLineStyle, click: rerun(d) }];
       const tbx = this.conTable(d, S.dialect);
@@ -9784,7 +10152,7 @@ class Component extends DCLogic {
           const ciHalf = (dEff.n > 1 && isFinite(dEff.sd)) ? E.critInv(a, dEff.n - 1) * dEff.sd / Math.sqrt(dEff.n) : NaN;
           out.descCells = [['N VALID', this.fmtN(dEff.n)], ['MISSING', this.fmtN(this.conds().length ? Math.max(0, this.keptN() - dEff.n) : missEff)], ['MEAN', this.fmt(dEff.mean)], ['SD', this.fmt(dEff.sd)], [ciPct + '% CI LO', this.fmt(dEff.mean - ciHalf)], [ciPct + '% CI HI', this.fmt(dEff.mean + ciHalf)], ['MEDIAN', this.fmt(dEff.med)], ['MIN', this.fmt(dEff.mn)], ['Q1', this.fmt(dEff.q1)], ['Q3', this.fmt(dEff.q3)], ['MAX', this.fmt(dEff.mx)]].map(([k, v]) => ({ k, v }));
           const skew = isFinite(dEff.sd) && dEff.sd > 0 ? (dEff.mean - dEff.med) / dEff.sd : 0;
-          out.exInterp = 'A typical ' + name + ' is around ' + this.fmt(dEff.mean) + ' (median ' + this.fmt(dEff.med) + '). Values spread about ' + this.fmt(dEff.sd) + ' on average, ranging ' + this.fmt(dEff.mn) + ' to ' + this.fmt(dEff.mx) + '.' + (Math.abs(skew) > 0.25 ? ' The mean sits ' + (skew > 0 ? 'above' : 'below') + ' the median, so a ' + (skew > 0 ? 'few high' : 'few low') + ' values pull the average ' + (skew > 0 ? 'up' : 'down') + '.' : '') + (cc ? ' Codes ' + cc.codes.join(', ') + ' are excluded here.' : '') + wTag;
+          out.exInterp = (this._cxConst = dEff.n > 0 && dEff.mn === dEff.mx) ? 'Every valid value of ' + name + ' is ' + this.fmt(dEff.mn) + ' (n = ' + this.fmtN(dEff.n) + '), so it does not vary here: it cannot show differences between groups or an association with anything.' + (cc ? ' Codes ' + cc.codes.join(', ') + ' are excluded here.' : '') + wTag : 'A typical ' + name + ' is around ' + this.fmt(dEff.mean) + ' (median ' + this.fmt(dEff.med) + '). Values spread about ' + this.fmt(dEff.sd) + ' on average, ranging ' + this.fmt(dEff.mn) + ' to ' + this.fmt(dEff.mx) + '.' + (Math.abs(skew) > 0.25 ? ' The mean sits ' + (skew > 0 ? 'above' : 'below') + ' the median, so a ' + (skew > 0 ? 'few high' : 'few low') + ' values pull the average ' + (skew > 0 ? 'up' : 'down') + '.' : '') + (cc ? ' Codes ' + cc.codes.join(', ') + ' are excluded here.' : '') + wTag;
           out.histChart = E.histChart(R, dEff, { key: 'h|' + name + (cc ? '|cc' : '') + cSel, xlab: name, color: cSel, refCb: this.svgRef('hist'), ax: this.axUI('hist', [name], { x: true, xName: name }) });
           out.boxChart = E.boxChart(R, dEff, { key: 'bx|' + name + (cc ? '|cc' : '') + cSel, color: cSel, refCb: this.svgRef('box'), ax: this.axUI('box', [name], { x: true, zero: 'x', xName: name }) });
           out.dlHist = this.dl('hist', name + '-histogram');
@@ -10022,7 +10390,7 @@ class Component extends DCLogic {
           tagTitle: eff.treatAs === 'numeric' ? 'Read as NUMERIC (its number codes form a scale) — click to dummy-code it as categories instead' : 'Read as CATEGORICAL (dummy-coded) — click to use its number codes as a scale instead',
           tagClick: e3 => { e3.stopPropagation(); if (eff.type !== 'numeric' && eff.treatAs !== 'numeric') return; this.clearMemo(); const mode = eff.treatAs === 'numeric' ? 'categorical' : 'numeric'; this.setState(s => ({ treat: Object.assign({}, s.treat, { [c.name]: mode }) })); },
           tagStyle: 'margin-left: 6px; font-size: 8.5px; padding: 1px 4px; border-radius: 9px; ' + (eff.treatAs === 'numeric' ? 'color: ' + (on ? '#AFD2BF' : '#1F6447') + '; border: 1px solid currentColor;' : 'color: ' + (on ? '#AFD2BF' : '#1A5061') + '; border: 1px solid currentColor;'),
-          style: 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: 11px; border-radius: 9px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; ' + (on
+          style: 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: 11px; border-radius: 9px; padding: 6px 10px; display: flex; align-items: center; ' + (on
             ? 'color: var(--cFFFFFF, #FFFFFF); background: var(--cC4681E, #C4681E); border: 1px solid var(--cA3540F, #A3540F);'
             : 'color: var(--c2B271E, #2B271E); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF);'),
           click: () => this.setState(s => ({ predictors: s.predictors.includes(c.name) ? s.predictors.filter(p => p !== c.name) : [...s.predictors, c.name] }))
@@ -10064,7 +10432,7 @@ class Component extends DCLogic {
           const cv = this.vals(pn);
           if (cv.kind === 'num') return { name: pn, kind: 'num', a: cv.a };
           const f = E.freqOf(cv.a, w);
-          return { name: pn, kind: 'cat', a: cv.a, levels: f.rows.map(r2 => r2.label) };
+          return { name: pn, kind: 'cat', a: cv.a, levels: this.descOrder(pn, f.rows).map(r2 => r2.label) };
         });
         const ixList = this.ixValid();
         const ixSig = ixList.map(p => p.join('*')).join(',');
@@ -10261,7 +10629,7 @@ class Component extends DCLogic {
           out.iRegSig = sig.length; out.iRegP = isOls ? M.pModel : NaN;
           if (isOls) {
             out.regInterp = 'The model explains ' + (100 * M.R2).toFixed(1) + '% of the variation in ' + this.termLab(S.depVar) + ' (adj. R² ' + this.fmt(M.adjR2, 3) + '), and is overall ' + this.sigTxt(M.pModel) + '. ' + (sig.length
-              ? 'Significant predictors (strongest first): ' + sig.slice(0, 4).map(c => this.termLab(c.term) + ' (' + (c.b >= 0 ? '+' : '−') + ', b = ' + this.fmt(c.b, 3) + ')').join('; ') + '. Each b is the expected change in ' + S.depVar + ' per one-unit increase, holding the others constant.'
+              ? 'Significant predictors, largest standardized effect first: ' + sig.slice(0, 4).map(c => this.termLab(c.term) + ' (' + (c.b >= 0 ? '+' : '−') + ', b = ' + this.cxNum2(c.b, 3) + (Number.isFinite(c.beta) ? ', β = ' + this.fmt(c.beta, 2) : '') + ')').join('; ') + '. Each b is the expected change in ' + S.depVar + ' per one-unit increase, holding the others constant; β (the standardized coefficient) puts every predictor on the same scale, so it is what “largest effect” compares.'
               : 'No individual predictor reaches significance at alpha ' + a + '.') + wTag;
           } else if (mdl === 'ologit') {
             out.regInterp = 'This ordinal model predicts where ' + this.termLab(S.depVar) + ' falls among its ' + M.J + ' ordered levels (McFadden pseudo R² ' + this.fmt(M.mcfadden, 3) + '). ' + (sig.length
@@ -10314,7 +10682,7 @@ class Component extends DCLogic {
       if (out.exInterp !== undefined) {
         let t = out.exInterp, ttp = NaN;
         if (out.exIsNum && S.tt1 && S.tt1.x === S.exploreVar && !S.tt1.error && isFinite(S.tt1.p)) { ttp = S.tt1.p; t += ' Compared with the test value ' + (S.tt1.mu != null ? S.tt1.mu : S.mu) + ', the mean is ' + (S.tt1.p < a0 ? 'significantly ' + (S.tt1.t > 0 ? 'higher' : 'lower') : 'not significantly different') + ' (t = ' + this.fmt(S.tt1.t, 2) + ', ' + this.apaP(S.tt1.p) + ').'; }
-        out.iOne = this.mkInterp(t, isFinite(ttp) ? { p: ttp, tip: 'A one-sample t-test asks whether the average could plausibly equal the test value; it assumes a roughly bell-shaped variable or a large sample.' } : { v: 'DESCRIPTIVE', tip: out.exIsNum ? 'The mean is pulled by extreme values — if the histogram is lopsided, report the median as well.' : 'Percentages leave out missing cases. With many small categories, consider grouping them with Data → Recode.' });
+        out.iOne = this.mkInterp(t, isFinite(ttp) ? { p: ttp, tip: 'A one-sample t-test asks whether the average could plausibly equal the test value; it assumes a roughly bell-shaped variable or a large sample.' } : { v: 'DESCRIPTIVE', tip: out.exIsNum ? this._cxConst ? 'A variable with a single value cannot be compared or correlated. If that is unexpected, check the missing-value codes (Settings): auto-screen may have set other values to missing.' : 'The mean is pulled by extreme values — if the histogram is lopsided, report the median as well.' : 'Percentages leave out missing cases. With many small categories, consider grouping them with Data → Recode.' });
       }
       if (out.corrInterp !== undefined) out.iCorr = this.mkInterp(out.corrInterp, { p: out.iCorrP, tip: 'Correlation shows that two variables move together — not that one causes the other. r only captures straight-line patterns, so check the scatterplot.' });
       if (out.testInterp !== undefined) out.iTest = this.mkInterp(out.testInterp, { p: out.iTestP, tip: 'A significant difference is not automatically a big one — look at the effect size (Cohen\u2019s d or \u03b7\u00b2). Very small groups make results unstable.' });
@@ -10351,7 +10719,7 @@ class Component extends DCLogic {
       out.mfSettingsOpen = !!S.mfSettings; out.mfSettingsToggle = () => this.setState({ mfSettings: !S.mfSettings, mfFile: false, mfNav: '', ntOpen: false, pk: null });
       out.mfSettingsStyle = S.mfSettings ? 'color: var(--c194F39, #194F39); background: var(--cEDF5F0, #EDF5F0); border-color: var(--cAFD2BF, #AFD2BF);' : '';
       out.mfHelp = () => this.openModelGuide();
-      out.mfUndoStyle = (this._undo || []).length ? '' : 'opacity: 0.45;';
+      out.mfUndoStyle = (this._undo || []).length ? '' : 'color: var(--c6B6455, #6B6455); border-style: dashed; cursor: default;';
       out.mfFileOpen = !!S.mfFile; out.mfFileToggle = () => this.setState({ mfFile: !S.mfFile, mfSettings: false, mfNav: '', ntOpen: false });
       out.mfFileStyle = S.mfFile ? 'color: var(--c194F39, #194F39); background: var(--cEDF5F0, #EDF5F0);' : '';
       const closeAll = { mfFile: false, mfNav: '', menu: '', mfDl: false, ntOpen: false, mfSettings: false };

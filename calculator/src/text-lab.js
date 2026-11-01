@@ -139,9 +139,7 @@
       try {
         const blob = (window.__resourceBlobs && window.__resourceBlobs[url]) || await (await fetch(url)).blob();
         const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
-        const obj = JSON.parse(await new Response(stream).text()), map = new Map();
-        for (const k in obj) { const v = obj[k]; map.set(k.toLowerCase(), Array.isArray(v) ? v[0] : v); }
-        this._tlLem[lang] = { status: 'done', map };
+        this._tlLem[lang] = { status: 'done', map: this._E.tlLemmaTable(await new Response(stream).text()) };
       } catch (e) { this._tlLem[lang] = { status: 'done', map: null, err: String(e && e.message || e) }; }
       this._memo = {}; this.forceUpdate();
     })();

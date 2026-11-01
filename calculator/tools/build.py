@@ -18,7 +18,7 @@ Everything in it comes from files in this repository:
   src/engine/**/*.mjs     the analysis engine of the Tests menu (validated against R; bundled with Node)
   src/*.js, *.mjs, *.css   feature modules; the tools/*.py integrators copy them into the blocks marked
                            "GM26 … begin" / "GM26 … end" in component.js, template.html and engine.mjs
-  src/lemmas/*.json.gz     lemma tables (embedded as they are, decompressed in the page only when used)
+  src/lemmas/*.json.gz     lemma tables, embedded in a compact form (see compact_lemmas)
 
 The build runs every integrator, writes the result back to src/app/ (so src/app always shows exactly what the
 page runs) and packs index.html. Edit code outside the marked blocks in src/app/*; edit code inside a block in
@@ -37,7 +37,7 @@ ROOT = TOOLS.parent
 APP = ROOT / 'src' / 'app'
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-11-01.54'
+BUILD = '2026-11-01.55'
 LANGS = ['es', 'en', 'pt', 'fr']
 SCRIPT = r'<script type="__bundler/{}">(.*?)</script>'
 COMPONENT = re.compile(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', re.S)
@@ -77,6 +77,37 @@ def join_component(template, component):
     if template.count('@@COMPONENT@@') != 1:
         raise RuntimeError('build: src/app/template.html must contain @@COMPONENT@@ once')
     return template.replace('@@COMPONENT@@', component)
+
+
+# ---------- lemma tables ----------
+def compact_lemmas(raw_gz):
+    """spaCy lemma lookup (JSON word → lemma or [lemmas]) → the map the page uses, in a compact text form.
+
+    The page lower-cases each word and keeps the first lemma; later words win on a clash (JSON order). That map is
+    resolved here, sorted, and written one word per line: one character for how many leading characters the word
+    shares with the previous word (chr(48 + k)), the rest of the word, a tab, then one character for how many
+    characters to drop from the end of the word (chr(48 + n)) and the text to add. "0" alone means lemma = word.
+    """
+    obj = json.loads(gzip.decompress(raw_gz))
+    resolved = {}
+    for k, v in obj.items():
+        resolved[k.lower()] = v[0] if isinstance(v, list) else v
+    lines, prev = [], ''
+    for w in sorted(resolved):
+        lem = resolved[w]
+        if '\t' in w or '\n' in w or '\n' in lem:
+            raise RuntimeError('build: lemma entry with a tab or newline: ' + repr(w))
+        k = 0
+        while k < min(len(w), len(prev), 70) and w[k] == prev[k]:
+            k += 1
+        p = 0
+        while p < min(len(w), len(lem)) and w[p] == lem[p]:
+            p += 1
+        if len(w) - p > 70:
+            raise RuntimeError('build: lemma rule too long for ' + repr(w))
+        lines.append(chr(48 + k) + w[k:] + '\t' + chr(48 + len(w) - p) + lem[p:])
+        prev = w
+    return gzip.compress('\n'.join(lines).encode(), compresslevel=9, mtime=0)
 
 
 # ---------- src/app ----------
@@ -122,7 +153,7 @@ def load_app():
 # ---------- the build ----------
 def integrate(template, component, engine):
     """Every integrator, in order. Each one is idempotent: re-running it on its own output changes nothing."""
-    import text_lab, breakdown, net_lab, data_edit, chart_builder, analysis_suite
+    import text_lab, breakdown, net_lab, data_edit, chart_builder, analysis_suite, console_stata
     text_lab.BUILD = BUILD
     full = join_component(template, component)
     m = COMPONENT.search(full)
@@ -133,6 +164,7 @@ def integrate(template, component, engine):
     c = data_edit.integrate_component(c)
     c = chart_builder.integrate_component(c)
     c = analysis_suite.integrate_component(c)
+    c = console_stata.integrate_component(c)
     full = full[:m.start(2)] + c + full[m.end(2):]
     t = text_lab.integrate_template(full)
     t = breakdown.integrate_template(t)
@@ -166,7 +198,7 @@ def build():
         if a['source'] == 'engine':
             manifest[uid] = {'mime': a['mime'], 'compressed': True, 'data': base64.b64encode(gzip.compress(engine.encode(), mtime=0)).decode()}
         elif a['source'] == 'lemma':
-            data = (ROOT / 'src' / 'lemmas' / f"{a['lang']}_lemma_lookup.json.gz").read_bytes()
+            data = compact_lemmas((ROOT / 'src' / 'lemmas' / f"{a['lang']}_lemma_lookup.json.gz").read_bytes())
             manifest[uid] = {'mime': a['mime'], 'compressed': False, 'data': base64.b64encode(data).decode()}
         else:
             entry = {'mime': a['mime'], 'compressed': a['compressed'], 'data': base64.b64encode((APP / a['file']).read_bytes()).decode()}

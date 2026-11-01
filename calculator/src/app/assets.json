@@ -54,20 +54,6 @@
   "compressed": false
  },
  {
-  "uuid": "ca7f1e74-c6a7-4ae5-9747-7cb1637d5b59",
-  "source": "file",
-  "file": "embedded/ca7f1e74-c6a7-4ae5-9747-7cb1637d5b59.woff2",
-  "mime": "font/woff2",
-  "compressed": false
- },
- {
-  "uuid": "08623763-9e53-41b1-88b8-bea902ce2260",
-  "source": "file",
-  "file": "embedded/08623763-9e53-41b1-88b8-bea902ce2260.woff2",
-  "mime": "font/woff2",
-  "compressed": false
- },
- {
   "uuid": "420d6a81-f413-4b27-9d3b-80dea81c2ecc",
   "source": "file",
   "file": "embedded/420d6a81-f413-4b27-9d3b-80dea81c2ecc.woff2",
@@ -92,48 +78,6 @@
   "uuid": "0d392891-05d5-450b-a7cf-d61e0d137f4f",
   "source": "file",
   "file": "embedded/0d392891-05d5-450b-a7cf-d61e0d137f4f.woff2",
-  "mime": "font/woff2",
-  "compressed": false
- },
- {
-  "uuid": "b6105bf3-74f0-4b17-9f7c-5669f8f37d46",
-  "source": "file",
-  "file": "embedded/b6105bf3-74f0-4b17-9f7c-5669f8f37d46.woff2",
-  "mime": "font/woff2",
-  "compressed": false
- },
- {
-  "uuid": "5b353ecd-7da7-4283-acca-9a9348e6ee8c",
-  "source": "file",
-  "file": "embedded/5b353ecd-7da7-4283-acca-9a9348e6ee8c.woff2",
-  "mime": "font/woff2",
-  "compressed": false
- },
- {
-  "uuid": "a48100c2-511f-4021-af09-f7e4813b9403",
-  "source": "file",
-  "file": "embedded/a48100c2-511f-4021-af09-f7e4813b9403.woff2",
-  "mime": "font/woff2",
-  "compressed": false
- },
- {
-  "uuid": "2f00844b-04e8-46f0-aaff-041b1d54b384",
-  "source": "file",
-  "file": "embedded/2f00844b-04e8-46f0-aaff-041b1d54b384.woff2",
-  "mime": "font/woff2",
-  "compressed": false
- },
- {
-  "uuid": "401a1858-d48d-4585-87bc-a42c694bbf36",
-  "source": "file",
-  "file": "embedded/401a1858-d48d-4585-87bc-a42c694bbf36.woff2",
-  "mime": "font/woff2",
-  "compressed": false
- },
- {
-  "uuid": "217bbeca-6818-48f4-9776-d7451cf8d158",
-  "source": "file",
-  "file": "embedded/217bbeca-6818-48f4-9776-d7451cf8d158.woff2",
   "mime": "font/woff2",
   "compressed": false
  },
