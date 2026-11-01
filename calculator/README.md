@@ -9,7 +9,7 @@ and from a downloaded copy. It is a **build output** — edit the sources below,
 python3 calculator/tools/build.py            # writes index.html, version.json and src/app/*
 python3 calculator/tools/build.py --check    # exit 1 if index.html is not what the sources produce
 node --test calculator/tests/*.test.mjs      # unit and component tests (includes the --check above)
-NODE_PATH=$(npm root -g) node calculator/tests/chart-builder-e2e.cjs   # browser tests (Playwright), also *-e2e.cjs (map-lab-e2e.cjs: maps)
+NODE_PATH=$(npm root -g) node calculator/tests/chart-builder-e2e.cjs   # browser tests (Playwright), also *-e2e.cjs (map-lab-e2e.cjs: maps; compare-means-e2e.cjs: t-tests and the correlation matrix)
 ```
 
 ## Where the code lives

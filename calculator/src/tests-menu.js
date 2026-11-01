@@ -3,7 +3,7 @@
         ['t-tests', goT({ tab: 'ttest' })],
         ['One-way ANOVA', goT({ tab: 'two', twoMode: 'means' })],
         ['Chi-square test', goT({ tab: 'two', twoMode: 'ct' })],
-        ['Correlation', goT({ tab: 'two', twoMode: 'corr' })],
+        ['Correlation', goT({ tab: 'corr' })],
         ['Regression', goT({ tab: 'reg' })],
         ['Text analysis', goT({ tab: 'text' })],
         ['Time series', goT({ tab: 'ts' })],

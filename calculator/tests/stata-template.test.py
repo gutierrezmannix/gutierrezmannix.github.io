@@ -17,11 +17,13 @@ assert '{{ nlEl }}' in within('isErgm') and t.count('{{ nlEl }}')==1  # networks
 ordered(within('tsHasRes'),'{{ tsCells }}','{{ tsRows }}','{{ tsChartEl }}','{{ iTs.text }}')
 ordered(within('hasModel'),'{{ sumCells }}','{{ coefRows }}','{{ iReg.text }}')
 ordered(within('hasModel'),'{{ zHead }}','[95% CI]','{{ lastHead }}')
-ordered(within('ttHasRes'),'{{ stataTtEl }}','{{ ttCells }}','{{ ttChartEl }}')
+# t-tests and the correlation matrix are built by the component (src/compare-means.js, src/correlation-matrix.js)
+assert '{{ cmEl }}' in within('isTtest') and t.count('{{ cmEl }}')==1
+assert '{{ corEl }}' in within('isCorr') and t.count('{{ corEl }}')==1
 main=p.raw(p.at('class="mf-main"','main'));assert main.rindex('{{ keyLine }}')>main.rindex('value="{{ isReg }}"')
 # the text tab is the five-step text lab (word counts come before the cloud inside it); the univariate tab has one breakdown
 assert t.count('{{ tlEl }}')==1 and t.count('{{ obEl }}')==1
 assert t.index('value="{{ oxShow }}"')<t.index('{{ obEl }}')
-assert t.count('{{ stataTtEl }}')==1
+assert '{{ stataTtEl }}' not in t
 assert all(n['end'] for n in p.nodes if n['tag'] in {'sc-if','sc-for','table','tbody','tr'})
 print('Shipped DOM and screen-reader order passed for all result workspaces; table semantics and optional result blocks remain balanced.')

@@ -56,7 +56,7 @@ class Component extends DCLogic {
     requestAnimationFrame(() => this.syncStick());
   }
   async captureTab() {
-    const S = this.state, TL = { ttest: 't-tests', one: 'Univariate Descriptive Analysis', two: 'Correlation', reg: 'Regression', plots: 'Plots', sem: 'SEM', ergm: 'Network model', text: 'Text analysis', ts: 'Time series' };
+    const S = this.state, TL = { ttest: 't-tests', corr: 'Correlation matrix', one: 'Univariate Descriptive Analysis', two: 'Correlation', reg: 'Regression', plots: 'Plots', sem: 'SEM', ergm: 'Network model', text: 'Text analysis', ts: 'Time series' };
     const lab = TL[S.tab]; const root = this._mainEl && this._mainEl.querySelector('[data-screen-label="' + lab + '"]');
     if (!root) return;
     const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -152,7 +152,7 @@ class Component extends DCLogic {
     }
     const estimateName=options.mode==='value'?'Mean':'Mean difference (first minus second)';
     const table='Statistic\tValue\n'+[[estimateName,r.estimate],['Standard error',r.se],['t',r.t],['df',r.df],['p (two-sided)',r.p],['CI lower',r.lo],['CI upper',r.hi],['Confidence level',1-r.alpha],['N (first sample / complete pairs)',r.nA],...(options.mode==='groups'?[['N (second sample)',r.nB]]:[])].map(row=>row.join('\t')).join('\n');
-    const setup={};['exploreVar','ttMode','ttMu','ttG','ttA','ttB','ttY2','ttEqual','ttSwap','subg','flt','missingCodes','autoScreen','alphaSel'].forEach(k=>{setup[k]=S[k];});
+    const setup={};['exploreVar','ttMode','ttMu','ttG','ttA','ttB','ttY2','ttEqual','ttSwap','ttAlt','ttSum','subg','flt','missingCodes','autoScreen','alphaSel'].forEach(k=>{setup[k]=S[k];});
     this._ttLast={t:'ttestx',r:scripts.r,stata:scripts.stata,setup,tbl:table,res:(options.mode==='value'?'One-sample':options.mode==='groups'?(options.equal?'Student (equal-variance) independent-samples':'Welch independent-samples'):'Paired-samples')+' t-test: t('+(Number.isInteger(r.df)?String(r.df):this.fmt(r.df,2))+') = '+this.fmt(r.t,3)+', '+this.apaP(r.p)};
     out.ttCmd=S.dialect==='r'?scripts.r:scripts.stata;
     out.ttCopyLabel=this.cpLabel('ttestx');out.ttCopy=()=>this.copyTSV('ttestx',table);
@@ -1867,7 +1867,7 @@ class Component extends DCLogic {
   // Time series keeps one method in the menus: trends / interrupted time series (tab ts). The R forecasting pages are retired.
   asRetired(){return ['decompose','naive','snaive','drift','ets','arima','sarima','tsreg','ardl','var','vecm','breaks','countts'];}
   asGroups(){
-    const legacy=[['Univariate Descriptive Analysis',[['Descriptive statistics',{tab:'one'}]]],['T-tests',[['One-sample, independent and paired t-tests',{tab:'ttest'}]]],['Proportions & categorical tests',[['Contingency tables / chi-square independence',{tab:'two',twoMode:'ct'}]]],['Nonparametric tests',[]],['ANOVA & ANCOVA',[['One-way ANOVA',{tab:'two',twoMode:'means'}]]],['Correlation',[['Pearson and Spearman correlation',{tab:'two',twoMode:'corr'}]]],['Regression',[['Linear / binary logistic / ordinal / Poisson',{tab:'reg'}]]],['Text analysis',[['Text analysis',{tab:'text'}]]],['Networks analysis',[['Networks analysis',{tab:'ergm'}]]],['Scales & dimension reduction',[['Scale reliability',{tab:'data'}]]],['Structural equation modeling',[['CFA and structural equation modeling',{tab:'sem'}]]],['Multilevel & panel models',[]],['Time series',[['Trends and interrupted time series',{tab:'ts'}]]],['Survival analysis',[]],['Resampling & study planning',[]],['Survey inference & missing data',[]],['Predictive modeling',[]],['Data management',[['Browse, edit and transform data',{tab:'browse'}]]],['Model guide',[['Definitions and choosing a method',{tab:'guide'}]]]];
+    const legacy=[['Univariate Descriptive Analysis',[['Descriptive statistics',{tab:'one'}]]],['T-tests',[['One-sample, independent and paired t-tests',{tab:'ttest'}]]],['Proportions & categorical tests',[['Contingency tables / chi-square independence',{tab:'two',twoMode:'ct'}]]],['Nonparametric tests',[]],['ANOVA & ANCOVA',[['One-way ANOVA',{tab:'two',twoMode:'means'}]]],['Correlation',[['Correlation matrix (Pearson and Spearman)',{tab:'corr'}]]],['Regression',[['Linear / binary logistic / ordinal / Poisson',{tab:'reg'}]]],['Text analysis',[['Text analysis',{tab:'text'}]]],['Networks analysis',[['Networks analysis',{tab:'ergm'}]]],['Scales & dimension reduction',[['Scale reliability',{tab:'data'}]]],['Structural equation modeling',[['CFA and structural equation modeling',{tab:'sem'}]]],['Multilevel & panel models',[]],['Time series',[['Trends and interrupted time series',{tab:'ts'}]]],['Survival analysis',[]],['Resampling & study planning',[]],['Survey inference & missing data',[]],['Predictive modeling',[]],['Data management',[['Browse, edit and transform data',{tab:'browse'}]]],['Model guide',[['Definitions and choosing a method',{tab:'guide'}]]]];
     const retired=new Set(this.asRetired());for(const c of this.asCatalog()){if(retired.has(c.id))continue;const g=legacy.find(g=>g[0]===c.group);if(g)g[1].push([c.title,c.id]);}return legacy;
   }
   asRoute(route){if(route?.annualProportion){this.asOpenAnnual();return;}if(route?.tab==='guide'){this.openModelGuide();return;}if(typeof route==='string')this.asOpen(route);else this.setState({...route,mfNav:'',mfFile:false,mfSettings:false});}
@@ -6679,10 +6679,414 @@ class Component extends DCLogic {
     out.hasIntroRecent = out.introRecent.length > 0;
   }
   // GM26 intro page end
+  // GM26 compare means begin
+  // Tests ▾ → Compare means (build .62): one sentence sets up the t-test, the answer comes first. The statistics are
+  // the t-test workspace's (ttDetails, ttRecord, ttGroups, ttCommands, the console printouts), which this page reuses.
+  // Designs: two groups of a variable (Welch or Student), a second measurement on the same rows (paired), a fixed
+  // value (one sample), or summary numbers typed in (no data file). Two-sided or one-sided.
+  cmSet(patch) { this.clearMemo(); this.setState(patch); }
+  cmFmt(v) { if (!Number.isFinite(v)) return '—'; const a = Math.abs(v); const s = a >= 1000 ? Math.round(v).toLocaleString('en-US') : a >= 100 ? v.toFixed(1) : a >= 1 ? v.toFixed(2) : Number(v.toPrecision(3)).toString(); return s.replace(/^-/, '−'); }
+  cmSigned(v) { return (v > 0 ? '+' : '') + this.cmFmt(v); }
+  cmMag(d) { const a = Math.abs(d); return a < 0.2 ? 'negligible' : a < 0.5 ? 'small' : a < 0.8 ? 'medium' : 'large'; }
+  cmSkew(a) { const xs = Array.from(a).filter(Number.isFinite), n = xs.length; if (n < 3) return NaN; const m = xs.reduce((s, v) => s + v, 0) / n; let m2 = 0, m3 = 0; for (const v of xs) { const d = v - m; m2 += d * d; m3 += d * d * d; } m2 /= n; m3 /= n; return m2 > 0 ? m3 / Math.pow(m2, 1.5) : 0; }
+  cmMedian(a) { const xs = Array.from(a).filter(Number.isFinite).sort((p, q) => p - q), n = xs.length; return !n ? NaN : n % 2 ? xs[(n - 1) / 2] : (xs[n / 2 - 1] + xs[n / 2]) / 2; }
+  // The data behind the current setup, or an error to show.
+  cmData() {
+    const S = this.state, E = this._E, mode = S.ttMode || 'groups', xn = S.exploreVar, w = !!S.weightVar;
+    if (mode === 'summary') {
+      const T = Object.assign({ kind: 'two', m1: '', s1: '', n1: '', m2: '', s2: '', n2: '', mu: '0', l1: 'Group 1', l2: 'Group 2' }, S.ttSum || {}), num = k => Number(String(T[k]).replace(',', '.'));
+      const g1 = { mean: num('m1'), sd: num('s1'), n: Math.round(num('n1')) }, g2 = { mean: num('m2'), sd: num('s2'), n: Math.round(num('n2')) };
+      const bad = g => !(Number.isFinite(g.mean) && g.sd > 0 && g.n >= 2);
+      if (bad(g1) || (T.kind === 'two' && bad(g2))) return { T, error: 'Type the mean, the standard deviation (above 0) and the number of cases (2 or more)' + (T.kind === 'two' ? ' for both groups.' : '.') };
+      const mu = T.kind === 'two' ? 0 : num('mu'); if (!Number.isFinite(mu)) return { T, error: 'Type the value to compare with.' };
+      return { T, summary: true, g1, g2: T.kind === 'two' ? g2 : null, mu, labels: T.kind === 'two' ? [T.l1 || 'Group 1', T.l2 || 'Group 2'] : [T.kind === 'paired' ? 'Differences' : (T.l1 || 'Group 1')] };
+    }
+    if (w) return { error: 'T-tests use unweighted rows. Clear the weight (Settings) to run one, or use Regression with the survey design.', weight: true };
+    if (!xn || !this.effMeta(xn) || !this.numVals(xn)) return { error: 'Choose the outcome: the numeric variable whose means you want to compare.', need: 'outcome' };
+    const X = this.numVals(xn).a;
+    if (mode === 'value') {
+      const mu = String(S.ttMu ?? '').trim() === '' ? NaN : Number(String(S.ttMu).replace(',', '.'));
+      if (!Number.isFinite(mu)) return { error: 'Type the value to compare the mean with (e.g. the midpoint of a scale, or a target).', need: 'value' };
+      return { mode, x: X, mu, labels: [xn] };
+    }
+    if (mode === 'paired') {
+      const y2 = S.ttY2 && this.effMeta(S.ttY2) ? S.ttY2 : '';
+      if (!y2) return { error: 'Choose the second measurement (the same cases measured again, in another column).', need: 'second' };
+      if (!this.numVals(y2)) return { error: '“' + y2 + '” is not numeric — the paired test needs two numeric measurements.', need: 'second' };
+      return { mode, x: X, y: this.numVals(y2).a, labels: [xn, y2] };
+    }
+    const gv = S.ttG && this.effMeta(S.ttG) ? S.ttG : '';
+    if (!gv) return { error: 'Choose the variable that splits the data into two groups.', need: 'group' };
+    const gg = this.ttGroups(), labs = gv ? this.descOrder(gv, this.nvLevels(gv).rows).map(r => String(r.label)) : [];
+    if (labs.length < 2) return { error: gv + ' has only one value — it cannot form two groups.', need: 'group', labs };
+    if (!gg.first || !gg.second) return { error: gv + ' has ' + labs.length + ' values — pick the two groups to compare.', need: 'levels', labs, gv };
+    const g2 = this.vals(gv), lab = i => { const v = g2.a[i]; return g2.kind === 'num' ? (Number.isFinite(v) ? E.numLab(v) : null) : (v == null ? null : String(v)); };
+    const xa = new Float64Array(X.length).fill(NaN), xb = new Float64Array(X.length).fill(NaN);
+    for (let i = 0; i < X.length; i++) { const l = lab(i); if (l === gg.first) xa[i] = X[i]; else if (l === gg.second) xb[i] = X[i]; }
+    return { mode: 'groups', x: xa, y: xb, gv, labs, labels: [String(this.vlabel(gv, gg.first)), String(this.vlabel(gv, gg.second))], gg };
+  }
+  // The test: estimate, CI, t, df, p (two- or one-sided), d; for summaries computed here from M, SD, n.
+  cmResult(D) {
+    const S = this.state, E = this._E, a = this.alpha(), alt = S.ttAlt || 'two', eq = !!S.ttEqual;
+    let r;
+    if (D.summary) {
+      const { g1, g2, mu } = D;
+      if (g2) {
+        const va = g1.sd * g1.sd / g1.n, vb = g2.sd * g2.sd / g2.n, dfP = g1.n + g2.n - 2, sp = Math.sqrt(((g1.n - 1) * g1.sd * g1.sd + (g2.n - 1) * g2.sd * g2.sd) / dfP);
+        const se = eq ? sp * Math.sqrt(1 / g1.n + 1 / g2.n) : Math.sqrt(va + vb), df = eq ? dfP : (va + vb) * (va + vb) / (va * va / (g1.n - 1) + vb * vb / (g2.n - 1)), est = g1.mean - g2.mean, t = est / se;
+        r = { estimate: est, se, t, df, p: E.pT(t, df), d: est / sp, groups: [g1, g2] };
+      } else {
+        const se = g1.sd / Math.sqrt(g1.n), df = g1.n - 1, est = g1.mean - mu, t = est / se;
+        r = { estimate: est, se, t, df, p: E.pT(t, df), d: est / g1.sd, groups: [g1], mu };
+      }
+    } else {
+      const q = E.ttDetails({ mode: D.mode, x: D.x, y: D.y, mu: D.mu, alpha: a, equal: eq });
+      if (q.error) return { error: q.error };
+      const ds = arr => { const s = E.descNum(arr, null); return { mean: s.mean, sd: s.sd, n: s.n }; };
+      if (D.mode === 'groups') r = { estimate: q.estimate, se: q.se, t: q.t, df: q.df, p: q.p, d: q.d, groups: [ds(D.x), ds(D.y)] };
+      else if (D.mode === 'paired') { const xx = [], yy = [], dd = []; for (let i = 0; i < D.x.length; i++) if (Number.isFinite(D.x[i]) && Number.isFinite(D.y[i])) { xx.push(D.x[i]); yy.push(D.y[i]); dd.push(D.x[i] - D.y[i]); } r = { estimate: q.estimate, se: q.se, t: q.t, df: q.df, p: q.p, d: q.mean / q.sd, groups: [ds(xx), ds(yy)], diffs: dd, sdDiff: q.sd }; }
+      else r = { estimate: q.estimate - D.mu, se: q.se, t: q.t, df: q.df, p: q.p, d: (q.mean - D.mu) / q.sd, groups: [ds(D.x)], mu: D.mu };
+    }
+    const two = r.p, one = t => alt === 'gt' ? (t > 0 ? two / 2 : 1 - two / 2) : (t < 0 ? two / 2 : 1 - two / 2);
+    r.alt = alt; r.p = alt === 'two' ? two : one(r.t); r.pTwo = two; r.alpha = a;
+    if (alt === 'two') { const c = E.ttCritical(a, r.df); r.lo = r.estimate - c * r.se; r.hi = r.estimate + c * r.se; }
+    else { const c = E.ttCritical(2 * a, r.df); r.lo = alt === 'gt' ? r.estimate - c * r.se : -Infinity; r.hi = alt === 'lt' ? r.estimate + c * r.se : Infinity; }
+    r.sig = r.p < a; r.equal = eq;
+    return r;
+  }
+  cmName(D) {
+    const S = this.state, mode = D.summary ? (D.g2 ? 'groups' : D.T.kind === 'paired' ? 'paired' : 'value') : D.mode;
+    return { mode, test: mode === 'groups' ? (S.ttEqual ? 'Student’s two-sample t-test (equal variances)' : 'Welch’s two-sample t-test (unequal variances)') : mode === 'paired' ? 'Paired t-test' : 'One-sample t-test', dName: mode === 'paired' ? 'd_z' : 'd' };
+  }
+  cmApa(D, r) { const N = this.cmName(D); return 't(' + (Number.isInteger(r.df) ? r.df : this.fmt(r.df, 1)) + ') = ' + this.fmt(r.t, 2) + ', ' + this.apaP(r.p) + (r.alt === 'two' ? '' : ' (one-sided)') + ', ' + N.dName + ' = ' + this.fmt(r.d, 2); }
+  cmHeadline(D, r) {
+    const h = React.createElement, b = s => h('b', null, s), N = this.cmName(D), xn = this.state.exploreVar, pTxt = this.apaP(r.p) + (r.alt === 'two' ? '' : ', one-sided');
+    const verdict = r.sig ? ' This difference is statistically significant (' + pTxt + ').' : ' A difference this size could easily be chance (' + pTxt + ').';
+    if (N.mode === 'groups') { const [A, B] = D.labels, [gA, gB] = r.groups; return h('p', { className: 'cm-head' }, b(A), ' averages ', b(this.cmFmt(gA.mean)), D.summary ? '' : ' on ' + xn, ' and ', b(B), ' averages ', b(this.cmFmt(gB.mean)), ': ', h('em', null, A + ' is ' + this.cmFmt(Math.abs(r.estimate)) + (r.estimate >= 0 ? ' higher' : ' lower')), ' (' + N.dName + ' = ' + this.fmt(r.d, 2) + ', ' + this.cmMag(r.d) + ').', verdict); }
+    if (N.mode === 'paired') { const [g1, g2] = r.groups; return D.summary ? h('p', { className: 'cm-head' }, 'The differences average ', h('em', null, this.cmSigned(r.estimate)), ' (' + N.dName + ' = ' + this.fmt(r.d, 2) + ', ' + this.cmMag(r.d) + ').', verdict) : h('p', { className: 'cm-head' }, 'On the same ', b(this.fmtN(g1.n)), ' rows, ', b(D.labels[0]), ' averages ', b(this.cmFmt(g1.mean)), ' and ', b(D.labels[1]), ' averages ', b(this.cmFmt(g2.mean)), ': a mean difference of ', h('em', null, this.cmSigned(r.estimate)), ' (' + N.dName + ' = ' + this.fmt(r.d, 2) + ', ' + this.cmMag(r.d) + ').', verdict); }
+    return h('p', { className: 'cm-head' }, 'The mean' + (D.summary ? '' : ' of ' + xn) + ' is ', b(this.cmFmt(r.groups[0].mean)), ', ', h('em', null, this.cmFmt(Math.abs(r.estimate)) + (r.estimate >= 0 ? ' above ' : ' below ') + this.cmFmt(r.mu)), ' (' + N.dName + ' = ' + this.fmt(r.d, 2) + ', ' + this.cmMag(r.d) + ').', verdict);
+  }
+  // ---- charts: every case with the means and CIs; the difference against zero with the negligible band
+  cmTicks(lo, hi) { const t = this._E.ticks(lo, hi, 5); return t.length ? t : [lo, hi]; }
+  cmDots(D, r) {
+    const h = React.createElement, E = this._E, a = r.alpha, W = 340, H = 236, X0 = 50, X1 = W - 10, Y0 = 12, Y1 = H - 34, cols = ['#1F6447', '#1A5061'];
+    const series = [];
+    if (D.summary) r.groups.forEach((g, i) => series.push({ label: D.labels[i] || '', xs: [], g }));
+    else if (D.mode === 'paired') series.push({ label: 'each pair: ' + D.labels[0] + ' − ' + D.labels[1], xs: r.diffs, g: { mean: r.estimate, sd: r.sdDiff, n: r.diffs.length } });
+    else if (D.mode === 'groups') { series.push({ label: D.labels[0], xs: Array.from(D.x).filter(Number.isFinite), g: r.groups[0] }, { label: D.labels[1], xs: Array.from(D.y).filter(Number.isFinite), g: r.groups[1] }); }
+    else series.push({ label: D.labels[0], xs: Array.from(D.x).filter(Number.isFinite), g: r.groups[0] });
+    const ci = g => { const c = E.ttCritical(a, g.n - 1) * g.sd / Math.sqrt(g.n); return [g.mean - c, g.mean + c]; };
+    const ref = D.mode === 'paired' || (D.summary && D.T.kind === 'paired') ? 0 : (D.mode === 'value' || (D.summary && D.T.kind === 'one')) ? r.mu : null;
+    let lo = Infinity, hi = -Infinity; series.forEach(s => { s.xs.forEach(v => { if (v < lo) lo = v; if (v > hi) hi = v; }); const [l, u] = ci(s.g); lo = Math.min(lo, l); hi = Math.max(hi, u); });
+    if (ref != null) { lo = Math.min(lo, ref); hi = Math.max(hi, ref); }
+    if (!(hi > lo)) { lo -= 1; hi += 1; } const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+    const tk = this.cmTicks(lo, hi), y = v => Y1 - (v - lo) / (hi - lo) * (Y1 - Y0), kids = [];
+    tk.forEach((t, i) => kids.push(h('line', { key: 'g' + i, x1: X0, x2: X1, y1: y(t), y2: y(t), stroke: '#EEE8DC' }), h('text', { key: 't' + i, x: X0 - 6, y: y(t) + 3, textAnchor: 'end', fontSize: 10, fill: '#7E7563', fontFamily: 'Space Mono, monospace' }, E.fmtTick ? E.fmtTick(t) : String(t))));
+    if (ref != null) kids.push(h('line', { key: 'ref', x1: X0, x2: X1, y1: y(ref), y2: y(ref), stroke: '#8C8372', strokeDasharray: '4 3' }), h('text', { key: 'reft', x: X1, y: y(ref) - 4, textAnchor: 'end', fontSize: 10, fill: '#6B6455' }, ref === 0 && D.mode !== 'value' ? 'no difference' : 'test value ' + this.cmFmt(ref)));
+    const band = (X1 - X0) / series.length; let seed = 7; const rnd = () => ((seed = (1103515245 * seed + 12345) % 2147483648) / 2147483648);
+    series.forEach((s, i) => {
+      const cx = X0 + band * (i + 0.5), col = cols[i % 2], step = Math.max(1, Math.ceil(s.xs.length / 1500));
+      for (let k = 0; k < s.xs.length; k += step) kids.push(h('circle', { key: 'p' + i + '_' + k, cx: (cx - 30 + rnd() * 34).toFixed(1), cy: y(s.xs[k]).toFixed(1), r: 2.2, fill: col, opacity: 0.22 }));
+      const [l, u] = ci(s.g);
+      kids.push(h('line', { key: 'ci' + i, x1: cx + 18, x2: cx + 18, y1: y(l), y2: y(u), stroke: col, strokeWidth: 2.5 }), h('circle', { key: 'm' + i, cx: cx + 18, cy: y(s.g.mean), r: 5.5, fill: col }),
+        h('text', { key: 'mv' + i, x: cx + 29, y: y(s.g.mean) + 4, fontSize: 10.5, fontWeight: 700, fill: col, fontFamily: 'Space Mono, monospace' }, this.cmFmt(s.g.mean)),
+        h('text', { key: 'l' + i, x: cx, y: H - 14, textAnchor: 'middle', fontSize: 11.5, fill: '#2B271E' }, String(s.label).slice(0, 34) + ' · n ' + this.fmtN(s.g.n)));
+    });
+    return h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': 'Each case, the means and ' + Math.round(100 * (1 - a)) + '% confidence intervals', ref: this.svgRef('tt'), style: { maxWidth: W + 'px' } }, kids);
+  }
+  cmDiff(D, r) {
+    const h = React.createElement, E = this._E, W = 340, H = 236, X0 = 26, X1 = W - 26, mid = 108;
+    const sd = r.groups.length === 2 && this.cmName(D).mode === 'groups' ? Math.sqrt(((r.groups[0].n - 1) * r.groups[0].sd ** 2 + (r.groups[1].n - 1) * r.groups[1].sd ** 2) / (r.groups[0].n + r.groups[1].n - 2)) : r.sdDiff || r.groups[0].sd, neg = 0.2 * sd;
+    const lo0 = Number.isFinite(r.lo) ? r.lo : r.estimate - 3 * r.se, hi0 = Number.isFinite(r.hi) ? r.hi : r.estimate + 3 * r.se, m = Math.max(Math.abs(lo0), Math.abs(hi0), neg) * 1.15, lo = -m, hi = m, x = v => X0 + (v - lo) / (hi - lo) * (X1 - X0), tk = this.cmTicks(lo, hi), kids = [];
+    kids.push(h('rect', { key: 'neg', x: x(-neg), y: 42, width: x(neg) - x(-neg), height: 104, fill: '#EEF5F0' }), h('text', { key: 'negt', x: x(0), y: 34, textAnchor: 'middle', fontSize: 9.5, fill: '#5D7A68' }, 'negligible (|' + this.cmName(D).dName + '| < 0.2)'), h('line', { key: 'z', x1: x(0), x2: x(0), y1: 42, y2: 146, stroke: '#8C8372', strokeDasharray: '4 3' }));
+    const L = Math.max(X0, x(Math.max(lo, r.lo))), U = Math.min(X1, x(Math.min(hi, r.hi)));
+    kids.push(h('line', { key: 'ci', x1: L, x2: U, y1: mid, y2: mid, stroke: '#A8521A', strokeWidth: 3 }), h('circle', { key: 'e', cx: x(r.estimate), cy: mid, r: 6.5, fill: '#A8521A' }), h('text', { key: 'et', x: x(r.estimate), y: mid - 14, textAnchor: 'middle', fontSize: 11, fontWeight: 700, fill: '#A8521A', fontFamily: 'Space Mono, monospace' }, this.cmSigned(r.estimate)));
+    if (!Number.isFinite(r.lo)) kids.push(h('text', { key: 'inf1', x: X0 + 2, y: mid + 4, fontSize: 12, fill: '#A8521A' }, '◀'));
+    if (!Number.isFinite(r.hi)) kids.push(h('text', { key: 'inf2', x: X1 - 10, y: mid + 4, fontSize: 12, fill: '#A8521A' }, '▶'));
+    tk.forEach((t, i) => kids.push(h('text', { key: 't' + i, x: x(t), y: 168, textAnchor: 'middle', fontSize: 10, fill: '#7E7563', fontFamily: 'Space Mono, monospace' }, (t > 0 ? '+' : '') + (E.fmtTick ? E.fmtTick(t) : t))));
+    const N = this.cmName(D), left = N.mode === 'groups' ? '← ' + D.labels[1] + ' higher' : N.mode === 'paired' ? '← second higher' : '← below ' + this.cmFmt(r.mu), right = N.mode === 'groups' ? D.labels[0] + ' higher →' : N.mode === 'paired' ? 'first higher →' : 'above ' + this.cmFmt(r.mu) + ' →';
+    kids.push(h('text', { key: 'lft', x: X0, y: 198, fontSize: 11, fill: '#6B6455' }, String(left).slice(0, 26)), h('text', { key: 'rgt', x: X1, y: 198, textAnchor: 'end', fontSize: 11, fill: '#6B6455' }, String(right).slice(0, 26)));
+    return h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': 'The difference and its confidence interval', style: { maxWidth: W + 'px' } }, kids);
+  }
+  // ---- checks students should make
+  cmChecks(D, r) {
+    const h = React.createElement, N = this.cmName(D), S = this.state, out = [], add = (kind, ...t) => out.push(h('div', { key: out.length, className: 'cm-check ' + kind }, h('b', { 'aria-hidden': 'true' }, kind === 'ok' ? '✓' : kind === 'warn' ? '!' : '?'), h('span', null, ...t)));
+    const link = (label, fn) => h('button', { type: 'button', className: 'tl-link', onClick: fn }, label);
+    const ns = r.groups.map(g => g.n), small = Math.min(...ns) < 30;
+    add(small ? 'warn' : 'ok', small ? 'Small ' + (ns.length > 1 ? 'groups' : 'sample') + ' (' + ns.map(n => this.fmtN(n)).join(' and ') + '): the t-test then needs roughly bell-shaped data — look at the dots.' : 'Large enough: ' + ns.map(n => this.fmtN(n)).join(' and ') + (N.mode === 'paired' ? ' pairs' : ' cases') + (ns.length > 1 ? ' (30 or more each).' : ' (30 or more).'));
+    if (N.mode === 'groups') {
+      const ratio = Math.max(r.groups[0].sd, r.groups[1].sd) / Math.min(r.groups[0].sd, r.groups[1].sd);
+      if (ratio > 2 && S.ttEqual) add('warn', 'The spreads differ (SD ratio ' + this.fmt(ratio, 2) + '): Student’s test assumes equal variances. ', link('Use Welch’s test', () => this.cmSet({ ttEqual: false })));
+      else add('ok', 'Spread: SD ratio ' + this.fmt(ratio, 2) + (ratio > 2 ? ' — the groups differ, which Welch’s test allows for.' : ' — similar, so Welch and Student give nearly the same answer.'));
+    }
+    if (!D.summary) {
+      const arrs = N.mode === 'groups' ? [D.x, D.y] : N.mode === 'paired' ? [r.diffs] : [D.x], sk = arrs.map(a => this.cmSkew(a));
+      if (sk.some(s => Math.abs(s) > 1)) {
+        const nm = N.mode === 'groups' ? D.labels : null, med = arrs.map(a => this.cmMedian(a)), other = N.mode === 'groups' && Math.sign(med[0] - med[1]) !== Math.sign(r.estimate) && med[0] !== med[1];
+        add('warn', (N.mode === 'paired' ? 'The differences are' : (this.state.exploreVar || 'The outcome') + ' is') + ' skewed (skew ' + sk.map(s => this.fmt(s, 1)).join(' and ') + ')' + (nm ? '; medians ' + this.cmFmt(med[0]) + ' vs ' + this.cmFmt(med[1]) + (other ? ' — they point the other way' : '') : '') + '. ',
+          link(N.mode === 'groups' ? 'Compare medians (Mann–Whitney) →' : 'Wilcoxon signed-rank test →', () => this.asOpen(N.mode === 'groups' ? 'mannwhitney' : 'signedrank')));
+      } else add('ok', 'No strong skew (' + sk.map(s => this.fmt(s, 1)).join(' and ') + '), so the mean describes the ' + (N.mode === 'paired' ? 'differences' : 'data') + ' well.');
+      add('ask', N.mode === 'paired' ? 'Each row is one case measured twice? Rows missing either value are left out together.' : 'One row per person (or case)? If cases repeat, use Regression with clustered standard errors.');
+    } else add('ask', 'Summary numbers: the data themselves cannot be checked for skew or outliers.');
+    return h('div', { className: 'cm-checks' }, out);
+  }
+  // ---- exports: a Word table (APA style) and the same table for the clipboard
+  cmTable(D, r) {
+    const N = this.cmName(D), f = v => this.cmFmt(v), pct = Math.round(100 * (1 - r.alpha)), ci = (lo, hi) => '[' + (Number.isFinite(lo) ? f(lo) : '−∞') + ', ' + (Number.isFinite(hi) ? f(hi) : '∞') + ']';
+    const gci = g => { const c = this._E.ttCritical(r.alpha, g.n - 1) * g.sd / Math.sqrt(g.n); return ci(g.mean - c, g.mean + c); };
+    const rows = r.groups.map((g, i) => [D.labels[i] || '', this.fmtN(g.n), f(g.mean), f(g.sd), gci(g)]);
+    const diffLab = N.mode === 'groups' ? 'Difference (' + D.labels[0] + ' − ' + D.labels[1] + ')' : N.mode === 'paired' ? 'Mean difference' : 'Difference from ' + f(r.mu);
+    rows.push({ c: [diffLab, '', this.cmSigned(r.estimate), '', ci(r.lo, r.hi)], rule: true });
+    const xn = this.state.exploreVar, title = (D.summary ? 'Comparison of means from summary statistics' : N.mode === 'groups' ? 'Mean ' + xn + ' by ' + D.gv : N.mode === 'paired' ? xn + ' and ' + D.labels[1] + ' on the same cases' : 'Mean ' + xn + ' compared with ' + f(r.mu));
+    const note = 'Note. ' + N.test + ', ' + (r.alt === 'two' ? 'two-sided' : 'one-sided') + ': ' + this.cmApa(D, r) + '. Brackets: ' + pct + '% confidence intervals.' + (D.summary ? '' : ' ' + (this.stampText() || '') + '.');
+    return { title, head: [['', 'n', 'M', 'SD', pct + '% CI']], rows, note: note.replace(/\.\.$/, '.') };
+  }
+  async cmCopyWord(D, r) {
+    const T = this.cmTable(D, r), B = [{ k: 'table', title: T.title, head: T.head, rows: T.rows, note: T.note }], html = '<div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt;">' + this.blocksHTML(B, null) + '</div>';
+    const txt = [T.title, T.head[0].join('\t'), ...T.rows.map(x => (Array.isArray(x) ? x : x.c).join('\t')), T.note].join('\n');
+    try { await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([txt], { type: 'text/plain' }) })]); this.flash('Table copied — paste it into Word'); }
+    catch (e) { try { await navigator.clipboard.writeText(txt); this.flash('Table copied as text'); } catch (e2) { this.flash('Copy failed'); } }
+  }
+  cmDocx(D, r) { const T = this.cmTable(D, r); this.dlBlob(this.docxBlob([{ k: 'table', title: T.title, head: T.head, rows: T.rows, note: T.note }]), 'ttest-' + String(this.state.exploreVar || 'summary').replace(/[^A-Za-z0-9_-]+/g, '-') + '.docx'); this.flash('Downloaded a Word file (.docx)'); }
+  // ---- summary statistics: a Stata-style printout for the console
+  cmSummaryLog(D, r) {
+    const T = D.T, n = v => String(Number(v)), N = this.cmName(D), lv = Math.round(100 * (1 - r.alpha)), lev = lv === 95 ? '' : ' level(' + lv + ')';
+    const stata = N.mode === 'groups' ? 'ttesti ' + [D.g1.n, D.g1.mean, D.g1.sd, D.g2.n, D.g2.mean, D.g2.sd].map(n).join(' ') + (this.state.ttEqual ? '' : ', unequal') + (lev ? (this.state.ttEqual ? ',' : '') + lev : '') : 'ttesti ' + [D.g1.n, D.g1.mean, D.g1.sd, r.mu].map(n).join(' ') + (lev ? ',' + lev : '');
+    const alt = r.alt === 'two' ? '' : ', alternative = "' + (r.alt === 'gt' ? 'greater' : 'less') + '"';
+    const rc = N.mode === 'groups' ? 'BSDA::tsum.test(mean.x = ' + n(D.g1.mean) + ', s.x = ' + n(D.g1.sd) + ', n.x = ' + D.g1.n + ', mean.y = ' + n(D.g2.mean) + ', s.y = ' + n(D.g2.sd) + ', n.y = ' + D.g2.n + ', var.equal = ' + (this.state.ttEqual ? 'TRUE' : 'FALSE') + alt + ', conf.level = ' + (1 - r.alpha) + ')' : 'BSDA::tsum.test(mean.x = ' + n(D.g1.mean) + ', s.x = ' + n(D.g1.sd) + ', n.x = ' + D.g1.n + ', mu = ' + n(r.mu) + alt + ', conf.level = ' + (1 - r.alpha) + ')';
+    const tbl = [N.test + ' from summary statistics', ...r.groups.map((g, i) => (D.labels[i] || '') + '\tn = ' + g.n + '\tmean = ' + g.mean + '\tsd = ' + g.sd), 'difference\t' + r.estimate + '\t[' + r.lo + ', ' + r.hi + ']', 't = ' + this.fmt(r.t, 4) + '\tdf = ' + this.fmt(r.df, 4) + '\tp = ' + (r.p < 1e-4 ? r.p.toExponential(2) : r.p.toFixed(4)) + (r.alt === 'two' ? '' : ' (one-sided)')].join('\n');
+    return { t: 'ttestx', sg: [], stata, r: rc, tbl, tblStata: tbl, tblR: tbl, res: N.test + ' (summaries): ' + this.cmApa(D, r), setup: { tab: 'ttest', ttMode: 'summary', ttSum: T, ttEqual: this.state.ttEqual, ttAlt: r.alt } };
+  }
+  // ---- the page
+  cmRender(out) {
+    const h = React.createElement, S = this.state, mode = S.ttMode || 'groups', xn = S.exploreVar;
+    const sel = (value, opts, on, aria, cls) => this.tlSelect(value, opts, on, aria, { className: 'tl-select cm-slot' + (cls ? ' ' + cls : '') });
+    const numOpts = (ph, not) => [['', ph]].concat((S.cols || []).filter(c => c.type === 'numeric' && c.name !== not).map(c => [c.name, c.name]));
+    const anyOpts = (ph, not) => [['', ph]].concat((S.cols || []).filter(c => c.name !== not).map(c => [c.name, c.name + ' · ' + (c.distinct > 1200 ? '1200+' : c.distinct) + ' values']));
+    const design = sel(mode, [['groups', 'between two groups of'], ['paired', 'with a second measurement'], ['value', 'with a fixed value'], ['summary', 'using summary numbers (no data)']], v => this.cmSet({ ttMode: v }), 'What to compare with', 'design');
+    const D = this.cmData();
+    // the sentence
+    const line1 = [];
+    if (mode === 'summary') {
+      const T = D.T, setT = patch => this.cmSet({ ttSum: Object.assign({}, T, patch) }), box = (k, ph, w, aria) => this.tlText(String(T[k] ?? ''), v => setT({ [k]: v }), { placeholder: ph, aria: aria || ph, width: w || 74, k, mono: true });
+      line1.push('Compare ', design, ' ', this.tlSeg([['two', 'two groups'], ['one', 'one group vs a value'], ['paired', 'paired differences']], T.kind, v => setT({ kind: v }), { className: 'tl-row cm-inline' }));
+      const grp = (i, lab, gl = T.kind === 'two' ? ' of group ' + i : '') => h('div', { key: 'g' + i, className: 'cm-sumrow' }, T.kind === 'two' ? this.tlText(T['l' + i], v => setT({ ['l' + i]: v }), { aria: 'Name of group ' + i, width: 110, k: 'l' + i }) : h('span', { className: 'cm-sumlab' }, lab), h('span', { className: 'tl-lbl' }, 'mean'), box('m' + i, 'mean', 0, 'Mean' + gl), h('span', { className: 'tl-lbl' }, 'SD'), box('s' + i, 'SD', 0, 'SD' + gl), h('span', { className: 'tl-lbl' }, 'n'), box('n' + i, 'n', 64, 'n' + gl));
+      const sums = [grp(1, T.kind === 'paired' ? 'differences' : 'the group')];
+      if (T.kind === 'two') sums.push(grp(2));
+      else sums.push(h('div', { key: 'mu', className: 'cm-sumrow' }, h('span', { className: 'cm-sumlab' }, T.kind === 'paired' ? 'compared with' : 'test value'), box('mu', 'value', 90)));
+      line1.push(h('div', { key: 'sums', className: 'cm-sums' }, sums));
+    } else {
+      line1.push('Compare the mean of ', sel(xn || '', numOpts('choose the outcome…'), v => this.cmSet({ exploreVar: v }), 'Outcome'), ' ', design, ' ');
+      if (mode === 'groups') line1.push(sel(S.ttG || '', anyOpts('choose the groups…', xn), v => this.cmSet({ ttG: v, ttA: '', ttB: '', ttSwap: false }), 'Group variable'));
+      else if (mode === 'paired') line1.push(sel(S.ttY2 || '', numOpts('choose the second measurement…', xn), v => this.cmSet({ ttY2: v }), 'Second measurement'));
+      else line1.push(this.tlText(String(S.ttMu ?? ''), v => this.cmSet({ ttMu: v }), { placeholder: 'value', aria: 'Value to compare with', width: 110, k: 'mu', mono: true }));
+    }
+    const sentence = [h('div', { key: 's1', className: 'cm-sentence' }, ...line1)];
+    if (mode === 'groups' && D.labs && D.labs.length > 2) {
+      const lvOpts = ph => [['', ph]].concat(D.labs.slice(0, 400).map(l => [l, String(this.vlabel(S.ttG, l))]));
+      sentence.push(h('div', { key: 's2', className: 'cm-sentence' }, sel(S.ttA || '', lvOpts('first group…'), v => this.cmSet({ ttA: v, ttB: S.ttB === v ? '' : S.ttB }), 'First group'), ' minus ', sel(S.ttB || '', lvOpts('second group…'), v => this.cmSet({ ttB: v }), 'Second group'),
+        D.labels ? this.tlBtn('⇄ swap', () => this.cmSet({ ttA: S.ttB, ttB: S.ttA }), '', { 'aria-label': 'Swap the two groups' }) : null));
+    } else if (mode === 'groups' && D.labels) {
+      sentence.push(h('div', { key: 's2', className: 'cm-sentence' }, h('span', { className: 'cm-grp a' }, D.labels[0]), ' minus ', h('span', { className: 'cm-grp b' }, D.labels[1]), this.tlBtn('⇄ swap', () => this.cmSet({ ttSwap: !S.ttSwap }), '', { 'aria-label': 'Swap the two groups' })));
+    }
+    const twoSamples = mode === 'groups' || (mode === 'summary' && D.T && D.T.kind === 'two'), lvl = Math.round(100 * (1 - this.alpha()));
+    const altLab = mode === 'groups' || (mode === 'summary' && D.T && D.T.kind === 'two') ? ['first > second', 'first < second'] : mode === 'paired' || (D.T && D.T.kind === 'paired') ? ['first > second', 'first < second'] : ['mean > value', 'mean < value'];
+    const settings = h('div', { className: 'tl-row cm-settings' },
+      twoSamples ? h('span', { className: 'cm-set' }, h('span', { className: 'tl-lbl' }, 'Variances'), this.tlSeg([['w', 'Welch (unequal)', 'Does not assume equal variances. Stata: ttest …, by() unequal; R’s default.'], ['s', 'Student (equal)', 'Pools the two standard deviations. Stata’s default ttest …, by(); R: var.equal = TRUE.']], S.ttEqual ? 's' : 'w', v => this.cmSet({ ttEqual: v === 's' }), { 'aria-label': 'Variances' })) : null,
+      h('span', { className: 'cm-set' }, h('span', { className: 'tl-lbl' }, 'CI'), this.tlSeg([[90, '90%'], [95, '95%'], [99, '99%']], lvl, v => this.cmSet({ alphaSel: String(+(1 - v / 100).toFixed(2)) }), { 'aria-label': 'Confidence level' })),
+      h('span', { className: 'cm-set' }, h('span', { className: 'tl-lbl' }, 'Test'), this.tlSeg([['two', 'two-sided'], ['gt', altLab[0]], ['lt', altLab[1]]], S.ttAlt || 'two', v => this.cmSet({ ttAlt: v }), { 'aria-label': 'Alternative hypothesis' })));
+    const setup = h('section', { className: 'tl-panel cm-setup' }, h('div', { className: 'tl-ptitle' }, h('h3', null, 'Compare means'), h('span', null, 't-tests')), h('div', { className: 'cm-body' }, ...sentence, settings));
+    // the answer
+    let answer;
+    if (D.error) {
+      answer = h('div', { className: 'cm-body' }, this.tlBanner(D.weight ? 'warn' : 'info', D.error, D.weight ? [' ', this.tlBtn('Clear the weight', () => this.cmSet({ weightVar: '', weightAuto: false }))] : null),
+        D.need === 'group' && mode === 'groups' ? h('p', { className: 'cm-hint' }, 'No 0/1 variable yet? ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.setState({ tab: 'data', deTask: '' }) }, 'Data → Make a new variable → Yes / No (0/1)')) : null);
+    } else {
+      const r = this.cmResult(D);
+      if (r.error) answer = h('div', { className: 'cm-body' }, this.tlBanner('warn', r.error));
+      else {
+        const N = this.cmName(D), pct = Math.round(100 * (1 - r.alpha)), ciTxt = (Number.isFinite(r.lo) ? this.cmSigned(r.lo) : '−∞') + ' to ' + (Number.isFinite(r.hi) ? this.cmSigned(r.hi) : '∞');
+        if (D.summary) this._ttLast = this.cmSummaryLog(D, r);
+        else if (this._ttLast && r.alt !== 'two') { const L = this._ttLast; this._ttLast = Object.assign({}, L, { r: String(L.r).replace(/\)$/, ', alternative = "' + (r.alt === 'gt' ? 'greater' : 'less') + '")'), res: L.res + ' (one-sided p ' + this.apaP(r.p).replace(/^p /, '') + ')' }); }
+        const L = this._ttLast, used = N.mode === 'paired' ? r.groups[0].n : r.groups.reduce((t, g) => t + g.n, 0);
+        const pill = h('span', { className: 'cm-pill ' + (r.sig ? 'sig' : 'ns') }, (r.sig ? 'SIGNIFICANT · ' : 'NOT SIGNIFICANT · ') + this.apaP(r.p) + (r.alt === 'two' ? '' : ' one-sided'));
+        const meta = h('span', { className: 'cm-meta' }, N.test + (D.summary ? ' · from summary numbers' : ' · ' + this.fmtN(used) + (N.mode === 'paired' ? ' complete pairs' : ' cases used') + ' of ' + this.fmtN(this.keptN())));
+        const stats = h('div', { className: 'cm-stats' }, this.tlStat('DIFFERENCE · ' + pct + '% CI', this.cmSigned(r.estimate), ciTxt), this.tlStat('T (DF)', this.fmt(r.t, 2), (Number.isInteger(r.df) ? r.df : this.fmt(r.df, 1)) + ' df'), this.tlStat('P (' + (r.alt === 'two' ? 'TWO-SIDED' : 'ONE-SIDED') + ')', this.fmtP(r.p), 'α = ' + this.alpha()), this.tlStat(N.mode === 'paired' ? "COHEN'S D_Z" : "COHEN'S D", this.fmt(r.d, 2), this.cmMag(r.d)));
+        const charts = h('div', { className: 'cm-charts' }, h('figure', null, h('figcaption', { className: 'tl-lbl' }, D.summary ? 'Means and ' + pct + '% CIs' : N.mode === 'paired' ? 'Each pair’s difference, its mean and ' + pct + '% CI' : 'Every case, the mean and ' + pct + '% CI'), this.cmDots(D, r)), h('figure', null, h('figcaption', { className: 'tl-lbl' }, 'The difference and its ' + pct + '% CI'), this.cmDiff(D, r)));
+        const apa = this.cmApa(D, r), cmdTxt = L ? this.cmdText(L, S.dialect) : '';
+        const actions = h('div', { className: 'tl-row cm-actions' },
+          h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, apa)),
+          this.tlBtn('Copy APA', () => { try { navigator.clipboard.writeText(apa).then(() => this.flash('APA line copied')); } catch (e) {} }),
+          this.tlBtn('Word table (.docx)', () => this.cmDocx(D, r), 'primary'), this.tlBtn('Copy table for Word', () => this.cmCopyWord(D, r)),
+          this.tlBtn('Pin to report', () => this.pinTab()), this.tlBtn('Add to console', () => { if (this._ttLast) this.pushLog(Object.assign({}, this._ttLast)); this.flash('Added to the console'); }),
+          mode === 'groups' && D.labs && D.labs.length > 2 ? this.tlBtn('All ' + D.labs.length + ' groups: ANOVA →', () => this.setState({ tab: 'two', twoMode: 'means', yVar: xn, xVar: S.ttG })) : null);
+        const code = L ? h('details', { className: 'cm-code' }, h('summary', null, (S.dialect === 'r' ? 'R' : 'Stata') + ' output · ', h('code', null, cmdTxt.split('\n').pop())), h('pre', null, cmdTxt + '\n\n' + ((S.dialect === 'r' ? L.tblR : L.tblStata) || L.tbl || ''))) : null;
+        answer = h('div', { className: 'cm-body' }, h('div', { className: 'tl-row cm-top' }, pill, meta), this.cmHeadline(D, r), stats, charts, this.cmChecks(D, r), actions, code);
+      }
+    }
+    return h('div', { className: 'tl cm' }, setup, h('section', { className: 'tl-panel cm-answer', 'aria-live': 'polite' }, answer));
+  }
+  // GM26 compare means end
+  // GM26 correlation matrix begin
+  // Tests ▾ → Correlation (build .62): any number of numeric variables, Pearson or Spearman, pairwise or complete
+  // rows; a heat-table with r, stars, n, p or CIs; click a cell for the pair (scatter, r with its CI, ρ, n, slope).
+  // Exports: the matrix as plain numbers (copy, CSV with r, p and n) and an APA-style Word table.
+  corSet(patch) { this.clearMemo(); this.setState(patch); }
+  corVarsNow() {
+    const S = this.state, ok = n => { const m = this.effMeta(n); return !!(m && m.type === 'numeric'); };
+    if (Array.isArray(S.corVars)) return S.corVars.filter(ok);
+    const seed = [S.xVar, S.yVar].filter((v, i, a) => v && ok(v) && a.indexOf(v) === i);
+    if (seed.length === 2) return seed;
+    return (S.cols || []).filter(c => ok(c.name) && (this.effMeta(c.name).treatAs || 'numeric') === 'numeric' && c.distinct > 2 && c.distinct < (S.nRows || Infinity)).slice(0, 5).map(c => c.name);
+  }
+  corShowNow() { return Object.assign({ stars: true, n: true, p: false, ci: false }, this.state.corShow || {}); }
+  corCompute(vars) {
+    const S = this.state, E = this._E, method = S.corMethod === 'spearman' ? 'spearman' : 'pearson', listwise = S.corRows === 'listwise';
+    return this.memo('corM|' + vars.join(',') + '|' + method + '|' + (listwise ? 'L' : 'P') + '|' + (S.weightVar || '') + '|' + this.alpha() + '|' + (S.dver || 0), () => {
+      const w = this.wArr(), A = vars.map(v => { const nv = this.numVals(v); return nv ? Float64Array.from(nv.a) : new Float64Array(this._raw.n).fill(NaN); });
+      let nAll = 0;
+      if (listwise) { const N = A[0].length; for (let i = 0; i < N; i++) { const ok = A.every(a => Number.isFinite(a[i])) && (!w || Number.isFinite(w[i])); if (ok) nAll++; else A.forEach(a => { a[i] = NaN; }); } }
+      const k = vars.length, cells = vars.map(() => vars.map(() => null)), crit = this.corZ(1 - this.alpha() / 2);
+      for (let i = 0; i < k; i++) for (let j = 0; j < i; j++) {
+        const c = E.corr(A[j], A[i], w); // x = the column variable, y = the row variable (as the scatter draws them)
+        if (c.error) { cells[i][j] = cells[j][i] = { r: NaN, p: NaN, n: c.n || 0, err: c.error }; continue; }
+        const q = c[method], n = c.n, se = method === 'spearman' ? Math.sqrt((1 + q.r * q.r / 2) / (n - 3)) : 1 / Math.sqrt(n - 3), zr = Math.atanh(Math.max(-0.999999, Math.min(0.999999, q.r)));
+        cells[i][j] = cells[j][i] = { r: q.r, p: q.p, n, lo: n > 3 ? Math.tanh(zr - crit * se) : NaN, hi: n > 3 ? Math.tanh(zr + crit * se) : NaN, rP: c.pearson.r, rS: c.spearman.r, pP: c.pearson.p, pS: c.spearman.p, fit: c.fit, i, j };
+      }
+      const desc = A.map(a => E.descNum(a, w));
+      return { vars, cells, method, listwise, nAll, A, w, desc };
+    });
+  }
+  // normal quantile (Acklam's algorithm, relative error below 1.2e-9), for the Fisher-z confidence limits
+  corZ(p) {
+    const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239], b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572], c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783], d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+    const tail = q => { const u = Math.sqrt(-2 * Math.log(q)); return (((((c[0] * u + c[1]) * u + c[2]) * u + c[3]) * u + c[4]) * u + c[5]) / ((((d[0] * u + d[1]) * u + d[2]) * u + d[3]) * u + 1); };
+    if (p < 0.02425) return tail(p);
+    if (p > 1 - 0.02425) return -tail(1 - p);
+    const q = p - 0.5, r = q * q;
+    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  }
+  corR(v) { return Number.isFinite(v) ? v.toFixed(2).replace(/^(-?)0\./, '$1.').replace(/^-/, '−') : '—'; }
+  corStars(p) { return !Number.isFinite(p) ? '' : p < 0.001 ? '***' : p < 0.01 ? '**' : p < 0.05 ? '*' : ''; }
+  // two bands so the text always has 4.5:1 contrast: light tints with dark text up to |r| = .35, then solid tones with white text
+  corColor(r) {
+    if (!Number.isFinite(r)) return '#F4F1EA';
+    const m = Math.abs(r), pos = r >= 0, base = pos ? [26, 80, 97] : [168, 82, 26];
+    if (m <= 0.35) { const a = 0.07 + 0.48 * m / 0.35; return 'rgb(' + base.map(x => Math.round(255 + (x - 255) * a)).join(',') + ')'; }
+    const lo = pos ? [52, 104, 120] : [150, 70, 22], hi = pos ? [16, 58, 72] : [110, 48, 12], t = Math.min(1, (m - 0.35) / 0.5);
+    return 'rgb(' + lo.map((x, k) => Math.round(x + (hi[k] - x) * t)).join(',') + ')';
+  }
+  corSym() { return this.state.corMethod === 'spearman' ? 'ρ' : 'r'; }
+  // the Stata / R commands and printout of the current matrix (logged in the console, the Output view and scripts)
+  corDesc() {
+    const S = this.state, vars = this.corVarsNow(); if (vars.length < 2 || S.screen !== 'work') return null;
+    const M = this.corCompute(vars), sp = M.method === 'spearman', wv = S.weightVar, vl = vars.join(' '), rv = 'df[, c(' + vars.map(v => '"' + v + '"').join(', ') + ')]';
+    const stata = sp ? 'spearman ' + vl + '@IF@, stats(rho p obs)' + (M.listwise ? '' : ' pw') : M.listwise ? 'correlate ' + vl + '@IF@' + (wv ? ' [aw=' + wv + ']' : '') : 'pwcorr ' + vl + '@IF@' + (wv ? ' [aw=' + wv + ']' : '') + ', sig obs';
+    const r = sp ? 'psych::corr.test(' + rv + ', method = "spearman", use = "' + (M.listwise ? 'complete' : 'pairwise') + '", adjust = "none")' : M.listwise ? 'cor(' + rv + ', use = "complete.obs")' : 'psych::corr.test(' + rv + ', use = "pairwise", adjust = "none")';
+    return this.memo('corD|' + vars.join(',') + '|' + M.method + '|' + M.listwise + '|' + (wv || ''), () => {
+      let tbl = '';
+      try { const mk = this.mask(), w = M.w; tbl = sp ? this.corText(M) : M.listwise ? this.cxCorrelate(vars, mk, w).tbl : this.cxPwcorr(vars, mk, w, { sig: true, obs: true }).tbl; } catch (e) { tbl = this.corText(M); }
+      const best = this.corBest(M)[0];
+      return { t: 'cx', stata, r, ifc: [], tbl, expl: (sp ? 'Spearman' : 'Pearson') + ' correlation matrix of ' + vars.length + ' variables' + (M.listwise ? ', rows complete on every variable' : ', each pair on its complete rows'), res: vars.length + ' variables' + (best ? ' · strongest ' + best.a + '–' + best.b + ' ' + this.corSym() + ' = ' + this.corR(best.r) : '') };
+    });
+  }
+  corText(M) {
+    const R = (v, n) => String(v).padStart(n), V = M.vars, f4 = v => Number.isFinite(v) ? v.toFixed(4) : '.', out = [R('', 13) + '|' + V.map(v => R(this.abbr(v, 8), 9)).join(''), '-------------+' + '-'.repeat(9 * V.length)];
+    V.forEach((v, i) => { out.push(R(this.abbr(v, 12), 12) + ' |' + V.slice(0, i + 1).map((_, j) => R(i === j ? '1.0000' : f4(M.cells[i][j].r), 9)).join('')); out.push('             |' + V.slice(0, i).map((_, j) => R(f4(M.cells[i][j].p), 9)).join('')); out.push('             |' + V.slice(0, i).map((_, j) => R(M.cells[i][j].n, 9)).join('')); out.push('             |'); });
+    return out.join('\n').replace(/\s+$/gm, '');
+  }
+  corBest(M) { const L = []; M.vars.forEach((a, i) => M.vars.forEach((b, j) => { if (j < i && Number.isFinite(M.cells[i][j].r)) L.push(Object.assign({ a: b, b: a }, M.cells[i][j])); })); return L.sort((x, y) => Math.abs(y.r) - Math.abs(x.r)); }
+  corHeadline(M) {
+    const h = React.createElement, L = this.corBest(M), a = this.alpha(), sig = L.filter(c => c.p < a), sym = this.corSym(), pair = c => [h('em', { key: c.a + c.b }, c.a + '–' + c.b), ' (' + sym + ' = ' + this.corR(c.r) + ')'];
+    if (!L.length) return h('p', { className: 'cm-head' }, 'No pair has enough complete rows to correlate.');
+    if (!sig.length) return h('p', { className: 'cm-head' }, 'No pair is significantly correlated at α = ' + a + '. The strongest is ', ...pair(L[0]), '.');
+    const top = sig.slice(0, 2), rest = L.filter(c => !top.includes(c)), maxRest = rest.length ? Math.max(...rest.map(c => Math.abs(c.r))) : 0;
+    return h('p', { className: 'cm-head' }, top.length === 1 ? 'One clear relationship: ' : 'The clearest relationships: ', ...pair(top[0]), top[1] ? [' and ', ...pair(top[1])] : null, '.', rest.length ? (maxRest < 0.3 ? ' Everything else is weak (|' + sym + '| < ' + this.corR(Math.ceil(maxRest * 100) / 100).replace('−', '') + ').' : (sig.length > top.length ? ' ' + (sig.length - top.length) + ' more significant pair' + (sig.length - top.length === 1 ? '' : 's') + ' in the table.' : ' No other pair is significant at α = ' + a + '.')) : '');
+  }
+  corScatter(M, c) {
+    const h = React.createElement, E = this._E, xa = M.A[c.j], ya = M.A[c.i], xs = [], ys = []; for (let k = 0; k < xa.length; k++) if (Number.isFinite(xa[k]) && Number.isFinite(ya[k])) { xs.push(xa[k]); ys.push(ya[k]); }
+    const W = 360, H = 240, X0 = 50, X1 = W - 12, Y0 = 10, Y1 = H - 38, mn = a => a.reduce((m, v) => Math.min(m, v), Infinity), mx = a => a.reduce((m, v) => Math.max(m, v), -Infinity);
+    let xl = mn(xs), xh = mx(xs), yl = mn(ys), yh = mx(ys); if (!(xh > xl)) { xl -= 1; xh += 1; } if (!(yh > yl)) { yl -= 1; yh += 1; }
+    const px = (xh - xl) * 0.04, py = (yh - yl) * 0.06; xl -= px; xh += px; yl -= py; yh += py;
+    const x = v => X0 + (v - xl) / (xh - xl) * (X1 - X0), y = v => Y1 - (v - yl) / (yh - yl) * (Y1 - Y0), kids = [], tf = v => E.fmtTick ? E.fmtTick(v) : String(v);
+    this.cmTicks(yl, yh).forEach((t, k) => kids.push(h('line', { key: 'gy' + k, x1: X0, x2: X1, y1: y(t), y2: y(t), stroke: '#EEE8DC' }), h('text', { key: 'ty' + k, x: X0 - 6, y: y(t) + 3, textAnchor: 'end', fontSize: 10, fill: '#7E7563', fontFamily: 'Space Mono, monospace' }, tf(t))));
+    this.cmTicks(xl, xh).forEach((t, k) => kids.push(h('text', { key: 'tx' + k, x: x(t), y: Y1 + 14, textAnchor: 'middle', fontSize: 10, fill: '#7E7563', fontFamily: 'Space Mono, monospace' }, tf(t))));
+    const step = Math.max(1, Math.ceil(xs.length / 2500)); for (let k = 0; k < xs.length; k += step) kids.push(h('circle', { key: 'p' + k, cx: x(xs[k]).toFixed(1), cy: y(ys[k]).toFixed(1), r: 2.4, fill: '#1A5061', opacity: 0.35 }));
+    const f = c.fit; if (f && Number.isFinite(f.slope)) { const a0 = mn(xs), a1 = mx(xs); kids.push(h('line', { key: 'fit', x1: x(a0), y1: y(f.icept + f.slope * a0), x2: x(a1), y2: y(f.icept + f.slope * a1), stroke: '#A8521A', strokeWidth: 2.5 })); }
+    kids.push(h('text', { key: 'xl', x: (X0 + X1) / 2, y: H - 6, textAnchor: 'middle', fontSize: 11, fill: '#5D5648' }, c.b), h('text', { key: 'yl', x: 12, y: (Y0 + Y1) / 2, textAnchor: 'middle', fontSize: 11, fill: '#5D5648', transform: 'rotate(-90 12 ' + (Y0 + Y1) / 2 + ')' }, c.a));
+    return h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': 'Scatter plot of ' + c.a + ' against ' + c.b + ' with the fitted line', ref: this.svgRef('cor'), style: { maxWidth: W + 'px' } }, kids);
+  }
+  // ---- exports
+  corMatrixRows(M, what) { const V = M.vars, f = v => !Number.isFinite(v) ? '' : what === 'p' ? String(+v.toPrecision(4)) : String(+v.toFixed(what === 'n' ? 0 : 4)); return [['', ...V], ...V.map((v, i) => [v, ...V.map((_, j) => i === j ? (what === 'n' ? f(M.desc[i].n) : what === 'p' ? '' : '1') : f(M.cells[i][j][what]))])]; }
+  corCopyMatrix(M) { const t = this.corMatrixRows(M, 'r').map(r => r.join('\t')).join('\n'); try { navigator.clipboard.writeText(t).then(() => this.flash('Correlation matrix copied (paste into Excel or a sheet)'), () => this.flash('Copy failed')); } catch (e) { this.flash('Copy failed'); } }
+  corCsv(M) {
+    const q = v => /[",\n]/.test(v) ? '"' + String(v).replace(/"/g, '""') + '"' : v, block = (title, rows) => [title, ...rows.map(r => r.map(q).join(','))].join('\n');
+    const csv = [block((M.method === 'spearman' ? 'Spearman rho' : 'Pearson r') + (M.listwise ? ' (complete rows)' : ' (pairwise)'), this.corMatrixRows(M, 'r')), block('p (two-sided)', this.corMatrixRows(M, 'p')), block('n', this.corMatrixRows(M, 'n'))].join('\n\n') + '\n';
+    this.dlBlob(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), 'correlation-matrix.csv'); this.flash('Downloaded correlation-matrix.csv (r, p and n)');
+  }
+  corTable(M) {
+    const V = M.vars, f2 = v => Number.isFinite(v) ? (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-US') : v.toFixed(2)) : '—', show = this.corShowNow(), sym = this.corSym();
+    const head = [['Variable', 'M', 'SD', ...V.slice(0, -1).map((_, j) => String(j + 1))]];
+    const rows = V.map((v, i) => [(i + 1) + '. ' + v, f2(M.desc[i].mean), f2(M.desc[i].sd), ...V.slice(0, -1).map((_, j) => j < i ? this.corR(M.cells[i][j].r) + this.corStars(M.cells[i][j].p) + (show.ci ? ' [' + this.corR(M.cells[i][j].lo) + ', ' + this.corR(M.cells[i][j].hi) + ']' : '') : '')]);
+    const ns = []; V.forEach((_, i) => V.forEach((__, j) => { if (j < i && M.cells[i][j].n) ns.push(M.cells[i][j].n); }));
+    const nTxt = M.listwise ? 'n = ' + this.fmtN(M.nAll) + ' (rows complete on every variable)' : 'pairwise deletion, n = ' + (Math.min(...ns) === Math.max(...ns) ? this.fmtN(ns[0]) : this.fmtN(Math.min(...ns)) + '–' + this.fmtN(Math.max(...ns)));
+    return { title: 'Means, standard deviations, and ' + (M.method === 'spearman' ? 'Spearman ' : '') + 'correlations' + (show.ci ? ' with confidence intervals' : ''), head, rows, note: 'Note. M and SD are the mean and standard deviation. ' + (M.method === 'spearman' ? 'Spearman’s ρ' : 'Pearson’s r') + '; ' + nTxt + '.' + (show.ci ? ' Brackets: ' + Math.round((1 - this.alpha()) * 100) + '% confidence intervals.' : '') + ' * p < .05. ** p < .01. *** p < .001.' };
+  }
+  corDocx(M) { const T = this.corTable(M); this.dlBlob(this.docxBlob([{ k: 'table', title: T.title, head: T.head, rows: T.rows, note: T.note }]), 'correlation-table.docx'); this.flash('Downloaded a Word file (.docx)'); }
+  async corCopyWord(M) {
+    const T = this.corTable(M), html = '<div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt;">' + this.blocksHTML([{ k: 'table', title: T.title, head: T.head, rows: T.rows, note: T.note }], null) + '</div>', txt = [T.title, T.head[0].join('\t'), ...T.rows.map(r => r.join('\t')), T.note].join('\n');
+    try { await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([txt], { type: 'text/plain' }) })]); this.flash('Table copied — paste it into Word'); }
+    catch (e) { try { await navigator.clipboard.writeText(txt); this.flash('Table copied as text'); } catch (e2) { this.flash('Copy failed'); } }
+  }
+  // ---- the page
+  corRender() {
+    const h = React.createElement, S = this.state, vars = this.corVarsNow(), show = this.corShowNow(), sym = this.corSym();
+    const numeric = (S.cols || []).filter(c => { const m = this.effMeta(c.name); return !!(m && m.type === 'numeric'); });
+    const chips = h('div', { className: 'cr-chips' }, 'Correlations among ', ...vars.map(v => h('button', { key: v, type: 'button', className: 'cr-chip', title: 'Remove ' + v, 'aria-label': 'Remove ' + v, onClick: () => this.corSet({ corVars: vars.filter(x => x !== v), corSel: null }) }, v, h('span', { 'aria-hidden': 'true' }, '✕'))),
+      this.tlSelect('', [['', '+ add a variable…']].concat(numeric.filter(c => !vars.includes(c.name)).map(c => [c.name, c.name])), v => { if (v) this.corSet({ corVars: vars.concat([v]) }); }, 'Add a variable', { className: 'tl-select cm-slot design' }),
+      numeric.length > vars.length ? this.tlBtn(numeric.length > 30 ? 'first 30 numeric' : 'all numeric (' + numeric.length + ')', () => this.corSet({ corVars: numeric.slice(0, 30).map(c => c.name) })) : null,
+      vars.length ? this.tlBtn('clear', () => this.corSet({ corVars: [], corSel: null })) : null);
+    const settings = h('div', { className: 'tl-row cm-settings' }, h('span', { className: 'cm-set' }, h('span', { className: 'tl-lbl' }, 'Method'), this.tlSeg([['pearson', 'Pearson r', 'Straight-line relationship of the values'], ['spearman', 'Spearman ρ', 'Relationship of the ranks: any steadily rising or falling pattern; robust to outliers']], S.corMethod === 'spearman' ? 'spearman' : 'pearson', v => this.corSet({ corMethod: v }), { 'aria-label': 'Method' })),
+      h('span', { className: 'cm-set' }, h('span', { className: 'tl-lbl' }, 'Rows'), this.tlSeg([['pairwise', 'Pairwise', 'Each pair uses every row where both are present (Stata pwcorr)'], ['listwise', 'Complete on all', 'Only rows complete on every variable (Stata correlate)']], S.corRows === 'listwise' ? 'listwise' : 'pairwise', v => this.corSet({ corRows: v }), { 'aria-label': 'Rows used' })),
+      h('span', { className: 'cm-set' }, h('span', { className: 'tl-lbl' }, 'Show'), h('div', { className: 'tl-row', role: 'group', 'aria-label': 'Show in each cell' }, [['stars', '★ stars'], ['p', 'p'], ['n', 'n'], ['ci', Math.round((1 - this.alpha()) * 100) + '% CI']].map(([k, l]) => this.tlChip(l, !!show[k], () => this.corSet({ corShow: Object.assign({}, show, { [k]: !show[k] }) }), { key: k })))));
+    const setup = h('section', { className: 'tl-panel cm-setup' }, h('div', { className: 'tl-ptitle' }, h('h3', null, 'Correlation'), h('span', null, 'any number of variables')), h('div', { className: 'cm-body' }, chips, settings));
+    if (vars.length < 2) return h('div', { className: 'tl cm' }, setup, h('section', { className: 'tl-panel' }, h('div', { className: 'cm-body' }, this.tlBanner('info', 'Add at least two numeric variables. Click a cell of the matrix to see that pair.'))));
+    const M = this.corCompute(vars), k = vars.length, best = this.corBest(M);
+    let sel = Array.isArray(S.corSel) && S.corSel[0] < k && S.corSel[1] < k && S.corSel[0] > S.corSel[1] ? S.corSel : best.length ? [best[0].i, best[0].j] : [1, 0];
+    const head = h('tr', null, h('th', null), ...vars.slice(0, -1).map((v, j) => h('th', { key: v, scope: 'col', title: v }, v)));
+    const body = vars.slice(1).map((v, ii) => { const i = ii + 1; return h('tr', { key: v }, h('th', { scope: 'row', className: 'rh', title: v }, v), ...vars.slice(0, -1).map((u, j) => {
+      if (j >= i) return h('td', { key: u });
+      const c = M.cells[i][j], on = sel[0] === i && sel[1] === j, dark = Number.isFinite(c.r) && Math.abs(c.r) > 0.35;
+      return h('td', { key: u }, h('button', { type: 'button', className: 'cr-cell' + (on ? ' on' : ''), style: { background: this.corColor(c.r), color: dark ? '#fff' : '#2B271E' }, 'aria-pressed': on ? 'true' : 'false', 'aria-label': v + ' and ' + u + ': ' + sym + ' = ' + this.corR(c.r) + ', p ' + this.fmtP(c.p) + ', n ' + c.n, title: c.err || (sym + ' = ' + this.corR(c.r) + ' · p ' + this.fmtP(c.p) + ' · n ' + c.n + (Number.isFinite(c.lo) ? ' · ' + Math.round((1 - this.alpha()) * 100) + '% CI ' + this.corR(c.lo) + ' to ' + this.corR(c.hi) : '')), onClick: () => this.setState({ corSel: [i, j] }) },
+        h('span', { className: 'r' }, this.corR(c.r) + (show.stars ? this.corStars(c.p) : '')), show.p ? h('span', { className: 's' }, 'p ' + this.fmtP(c.p)) : null, show.n ? h('span', { className: 's' }, 'n ' + this.fmtN(c.n)) : null, show.ci && Number.isFinite(c.lo) ? h('span', { className: 's' }, '[' + this.corR(c.lo) + ', ' + this.corR(c.hi) + ']') : null));
+    })); });
+    const legend = h('div', { className: 'cr-legend' }, h('div', { className: 'cr-scale', 'aria-hidden': 'true' }), h('div', { className: 'mono', style: { display: 'flex', justifyContent: 'space-between', width: '72px', fontSize: '10px' } }, '−.6', h('span', null, '0'), '+.6'), h('br'), '* p < .05', h('br'), '** p < .01', h('br'), '*** p < .001', h('br'), h('br'), h('b', null, 'Click a cell'), h('br'), 'to see the pair');
+    const exportsRow = h('div', { className: 'tl-row cm-actions' }, this.tlBtn('Copy matrix (numbers)', () => this.corCopyMatrix(M)), this.tlBtn('Download CSV (r, p, n)', () => this.corCsv(M)), this.tlBtn('Word table (.docx)', () => this.corDocx(M), 'primary'), this.tlBtn('Copy table for Word', () => this.corCopyWord(M)), this.tlBtn('Pin to report', () => this.pinTab()));
+    const matrix = h('section', { className: 'tl-panel cm-answer' }, h('div', { className: 'cm-body' },
+      h('div', { className: 'tl-row cm-top' }, h('span', { className: 'cm-meta' }, (M.method === 'spearman' ? 'Spearman’s ρ' : 'Pearson’s r') + ' · ' + (M.listwise ? this.fmtN(M.nAll) + ' rows complete on all ' + k + ' variables' : 'each pair on its complete rows') + ' · ' + (this.stampText() || ''))),
+      this.corHeadline(M), h('div', { className: 'cr-wrap' }, h('table', { className: 'cr-table' }, h('thead', null, head), h('tbody', null, body)), legend), exportsRow));
+    // the selected pair
+    const c = M.cells[sel[0]][sel[1]], a = vars[sel[0]], b = vars[sel[1]], cc = Object.assign({ a, b }, c);
+    let pair = null;
+    if (Number.isFinite(c.r)) {
+      const sym2 = M.method === 'spearman' ? 'PEARSON r' : 'SPEARMAN ρ', other = M.method === 'spearman' ? c.rP : c.rS, otherP = M.method === 'spearman' ? c.pP : c.pS, apa = (M.method === 'spearman' ? 'rₛ' : 'r') + '(' + (c.n - 2) + ') = ' + this.corR(c.r) + ', ' + this.apaP(c.p);
+      const dir = c.r >= 0 ? 'as ' + b + ' goes up, ' + a + ' tends to go up' : 'as ' + b + ' goes up, ' + a + ' tends to go down';
+      pair = h('section', { className: 'tl-panel' }, h('div', { className: 'tl-ptitle' }, h('h3', null, 'Selected pair'), h('span', { className: 'mono' }, b + ' × ' + a), h('div', { className: 'tl-pr' }, h('span', { className: 'cm-meta' }, 'click another cell'))),
+        h('div', { className: 'cm-body cr-pair' }, h('figure', { style: { margin: 0 } }, this.corScatter(M, cc)),
+          h('div', { className: 'tl-col' }, h('div', { className: 'cm-stats' }, this.tlStat((M.method === 'spearman' ? 'SPEARMAN ρ' : 'PEARSON r') + ' · ' + Math.round((1 - this.alpha()) * 100) + '% CI', this.corR(c.r), this.corR(c.lo) + ' to ' + this.corR(c.hi)), this.tlStat(sym2, this.corR(other), 'p ' + this.fmtP(otherP)), this.tlStat('N (PAIRS)', this.fmtN(c.n), M.listwise ? 'complete on all' : this.fmtN(this.keptN() - c.n) + ' rows left out'), this.tlStat('SLOPE', (c.fit && c.fit.slope >= 0 ? '+' : '') + this.cmFmt(c.fit ? c.fit.slope : NaN), a + ' per unit of ' + b)),
+            h('p', { className: 'cm-hint', style: { fontSize: '13px', color: '#433D31' } }, sym + ' = ' + this.corR(c.r) + ': a ' + this.strength(c.r) + ' ' + (c.r >= 0 ? 'positive' : 'negative') + ' relationship — ' + dir + '. ' + (c.p < this.alpha() ? 'Statistically significant (' + this.apaP(c.p) + ').' : 'Not statistically significant (' + this.apaP(c.p) + ').') + ' Correlation is not causation.'),
+            h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, apa)),
+            h('div', { className: 'tl-row' }, this.tlBtn('Copy APA', () => { try { navigator.clipboard.writeText(apa).then(() => this.flash('APA line copied')); } catch (e) {} }), this.tlBtn('Regression →', () => this.setState({ tab: 'reg', regModel: 'ols', depVar: a, predictors: [b] })), this.tlBtn('Pair page →', () => this.setState({ tab: 'two', twoMode: 'corr', xVar: b, yVar: a }))))));
+    } else pair = h('section', { className: 'tl-panel' }, h('div', { className: 'cm-body' }, this.tlBanner('warn', a + ' and ' + b + ': ' + (c.err || 'no correlation to compute') + '.')));
+    const d = this.corDesc(), code = d ? h('details', { className: 'cm-code' }, h('summary', null, (S.dialect === 'r' ? 'R' : 'Stata') + ' output · ', h('code', null, this.cmdText(this.tagSg(d), S.dialect).split('\n').pop())), h('pre', null, this.cmdText(this.tagSg(d), S.dialect) + '\n\n' + d.tbl)) : null;
+    return h('div', { className: 'tl cm' }, setup, matrix, pair, code ? h('section', { className: 'tl-panel' }, h('div', { className: 'cm-body' }, code)) : null);
+  }
+  // GM26 correlation matrix end
   descFor() {
     const S = this.state;
     if (S.screen !== 'work' || !S.cols.length) return null;
     const w = S.weightVar || '';
+    if (S.tab === 'corr') return this.corDesc();
     if (S.tab === 'ttest') return this._ttLast || null;
     if (S.tab === 'one' && S.exploreVar) {
       const m = this.effMeta(S.exploreVar); if (!m) return null;
@@ -7267,7 +7671,7 @@ class Component extends DCLogic {
       return this._E.colVals(this._raw, m, t);
     });
   }
-  sgTab(tab) { tab = tab || this.state.tab; return ['ttest', 'one', 'two', 'reg', 'plots', 'browse', 'sem', 'text', 'ts', 'analysis'].includes(tab) && !(tab === 'analysis' && (this.state.analysisId === '__directory' || (this.asCatalog?.().find(q => q.id === this.state.analysisId) || {}).group === 'Data management')) ? tab : null; }
+  sgTab(tab) { tab = tab || this.state.tab; return ['ttest', 'corr', 'one', 'two', 'reg', 'plots', 'browse', 'sem', 'text', 'ts', 'analysis'].includes(tab) && !(tab === 'analysis' && (this.state.analysisId === '__directory' || (this.asCatalog?.().find(q => q.id === this.state.analysisId) || {}).group === 'Data management')) ? tab : null; }
   conds(tab) {
     const S = this.state, out = [];
     if (S.flt && S.flt.on) out.push({ v: S.flt.v, t: 'op', op: S.flt.op, val: S.flt.val, cat: S.flt.cat }, ...(S.flt.more || []));
@@ -7709,7 +8113,7 @@ class Component extends DCLogic {
   saveSession() {
     const raw = this._raw; if (!raw) return;
     const S = this.state, st = {};
-    ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
+    ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","ttAlt","ttSum","ttY2","corVars","corMethod","corRows","corShow","corSel","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
     const vl = {}; if (raw.vlabs) Object.keys(raw.vlabs).forEach(k => { const m = raw.vlabs[k]; vl[k] = m instanceof Map ? [...m.entries()] : m; });
     const cols = raw.cols.map(c => c.k === 'n' ? { k: 'n', a: Array.from(c.a, v => isFinite(v) ? v : null) } : { k: 's', a: Array.from(c.a) });
     const obj = { magic: 'digimi-session', version: 1, app: 'GM26.1', plots: (this._plots || []).map(p => { const q = Object.assign({}, p); delete q.thumb; return q; }), saved: new Date().toISOString(), fileName: S.fileName, data: { n: raw.n, names: raw.names, labels: raw.labels, vlabs: vl, cols }, state: st };
@@ -8165,7 +8569,7 @@ class Component extends DCLogic {
       if (this._plotLast[key] === xml) return;
       this._plotLast[key] = xml;
       const vb = el.viewBox && el.viewBox.baseVal, w = (vb && vb.width) || 600, h = (vb && vb.height) || 400;
-      const S = this.state, TL = { ttest: 't-tests', one: 'Univariate Descriptive Analysis', two: 'Correlation', reg: 'Regression', plots: 'Charts', sem: 'SEM', ergm: 'Networks', text: 'Text analysis', ts: 'Time series' };
+      const S = this.state, TL = { ttest: 't-tests', corr: 'Correlation matrix', one: 'Univariate Descriptive Analysis', two: 'Correlation', reg: 'Regression', plots: 'Charts', sem: 'SEM', ergm: 'Networks', text: 'Text analysis', ts: 'Time series' };
       const name = (this._plotName || {})[key] || key;
       let cmd = ''; try { const d = this.descFor(); cmd = d ? this.cmdText(this.tagSg(d), S.dialect) : ''; } catch (e) {}
       let sg = ''; try { const cs = this.conds(); sg = cs.length ? cs.map(c => this.condLabel(c)).join(' & ') : ''; } catch (e) {}
@@ -9022,7 +9426,7 @@ class Component extends DCLogic {
     if (this._asBusy) { this._asAgain = true; return; }
     this._asBusy = true;
     try {
-      const st = {}; ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
+      const st = {}; ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","ttAlt","ttSum","ttY2","corVars","corMethod","corRows","corShow","corSel","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
       const origN = new Set(this._asOrigNames || []);
       const sum = { nNew: raw.names.filter(n => !origN.has(n)).length, nLog: (S.conLog || []).length, nPins: (S.pins || []).length, nPlots: (this._plots || []).length };
       if (!sum.nNew && !sum.nPins && !sum.nLog && !this._dataRev) return;
@@ -9058,7 +9462,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-01.61') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-01.62') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -9607,6 +10011,7 @@ class Component extends DCLogic {
     out.tabHint = (S.weightVar ? 'WEIGHT: ' + S.weightVar.toUpperCase() : 'UNWEIGHTED') + ' · ALPHA ' + a + ((S.flt && S.flt.on) ? ' · FILTER: ' + this.fltText(S.flt) : '');
 
     out.isTtest = S.tab === 'ttest';
+    out.isCorr = S.tab === 'corr';
     out.isOverview = S.tab === 'overview'; out.isOne = S.tab === 'one'; out.isTwo = S.tab === 'two'; out.isReg = S.tab === 'reg'; out.isData = S.tab === 'data'; out.isPlots = S.tab === 'plots'; out.isBrowse = S.tab === 'browse';
 
     out.isSem = S.tab === 'sem'; out.isErgm = S.tab === 'ergm';
@@ -9780,7 +10185,7 @@ class Component extends DCLogic {
       const validOutcome=!!(xm && xm.type==='numeric' && this.numVals(xn));
       out.ttNeedOutcome = out.isTtest && !validOutcome;
       out.ttWeightBlock = out.isTtest && !!S.weightVar;
-      out.ttShow = out.isTtest && validOutcome && !S.weightVar;
+      out.ttShow = out.isTtest && validOutcome && !S.weightVar && (S.ttMode || 'groups') !== 'summary';
       if (out.ttShow) {
         out.ttX = xn;
         out.ttIsValue = mode === 'value'; out.ttIsGroups = mode === 'groups'; out.ttIsPaired = mode === 'paired';
@@ -11314,7 +11719,7 @@ class Component extends DCLogic {
       out.mfViewPal = vrow(vw2.pal || 'sendero', [['sendero', 'Sendero'], ['resaca', 'Resaca'], ['barro', 'Barro'], ['morado', 'Morado'], ['night', 'Night'], ['term', 'Terminal'], ['contrast', 'High contrast']], 'pal');
       // chooser
       const navItems = label => { const sec = SECTIONS.find(x => x[0] === label); return sec ? sec[3].filter(it => it[1] && it[2] !== 'head').map(([l2, fn]) => ({ label: l2, click: () => { this.setState(closeAll); fn(); } })) : []; };
-      const TABN2 = { ttest: 't-tests', overview: 'Overview', browse: 'Browse', data: 'Edit data', one: 'Univariate Descriptive Analysis', two: 'Correlation', reg: 'Regression', plots: 'Charts', ts: 'Time series', text: 'Text analysis', sem: 'SEM', ergm: 'Networks' };
+      const TABN2 = { ttest: 't-tests', corr: 'Correlation', overview: 'Overview', browse: 'Browse', data: 'Edit data', one: 'Univariate Descriptive Analysis', two: 'Correlation', reg: 'Regression', plots: 'Charts', ts: 'Time series', text: 'Text analysis', sem: 'SEM', ergm: 'Networks' };
       out.mfTabName = TABN2[S.tab] || S.tab;
       const goT = (patch, lbl) => () => { this.setState(Object.assign({}, closeAll, { mfMobile: 'analysis' }, patch)); if (lbl) this.scrollToLabel(lbl); };
       const TESTS = [
@@ -11322,7 +11727,7 @@ class Component extends DCLogic {
         ['t-tests', goT({ tab: 'ttest' })],
         ['One-way ANOVA', goT({ tab: 'two', twoMode: 'means' })],
         ['Chi-square test', goT({ tab: 'two', twoMode: 'ct' })],
-        ['Correlation', goT({ tab: 'two', twoMode: 'corr' })],
+        ['Correlation', goT({ tab: 'corr' })],
         ['Regression', goT({ tab: 'reg' })],
         ['Text analysis', goT({ tab: 'text' })],
         ['Time series', goT({ tab: 'ts' })],
@@ -11331,7 +11736,7 @@ class Component extends DCLogic {
         ['Model guide', () => this.openModelGuide()]
       ];
       const MENU_ONLY = ['tests', 'datam'];
-      const NAV_TESTS = ['ttest', 'one', 'two', 'reg', 'ts', 'text', 'ergm', 'sem'], NAV_DATA = ['overview', 'browse', 'data'];
+      const NAV_TESTS = ['ttest', 'corr', 'one', 'two', 'reg', 'ts', 'text', 'ergm', 'sem'], NAV_DATA = ['overview', 'browse', 'data'];
       const navName = { overview: 'Overview', browse: 'Browse', data: 'Edit data' };
       const NAVG = [
         ['', [
@@ -11429,6 +11834,8 @@ class Component extends DCLogic {
     this.chartSuiteVals(out);
     this.cbVals(out);
     this.mlVals(out);
+    if (out.isTtest) out.cmEl = this.cmRender(out);
+    if (out.isCorr) out.corEl = this.corRender();
     this.analysisSuiteVals(out);
     return out;
   }

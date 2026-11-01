@@ -1,6 +1,8 @@
-# T-tests — validation (build 2026-11-01.61)
+# T-tests — validation (build 2026-11-01.62)
 
-Tests ▾ → T-tests has three designs: two independent groups, paired measurements, and one sample against a value.
+Tests ▾ → T-tests has four designs: two independent groups, paired measurements, one sample against a value, and
+summary numbers. Build .62 redesigned the page (see `COMPARE-MEANS.md`): one sentence sets up the test, and it adds
+one-sided tests and Word exports. The statistics below are unchanged.
 
 ## What the page does
 
@@ -13,7 +15,7 @@ Tests ▾ → T-tests has three designs: two independent groups, paired measurem
   difference ÷ standard deviation of the differences), labelled as such. It is usually larger than Cohen’s d
   for the same data.
 - **One sample.** Mean against a reference value; Cohen’s d = (mean − value) ÷ SD.
-- The tests are classical, unweighted and two-sided. A weight variable blocks them rather than giving a wrong
+- The tests are classical and unweighted, two-sided by default (one-sided under *Test*). A weight variable blocks them rather than giving a wrong
   standard error. The IF subgroup and missing-value codes apply.
 
 ## Console
@@ -45,6 +47,7 @@ Rscript calculator/tests/ttests-reference.R /tmp/gm26-ttests
 GM26_TTEST_R_DIR=/tmp/gm26-ttests node calculator/tests/ttests.test.mjs
 ```
 
-The t-test code lives in `src/app/component.js` (`ttRecord`, `ttCommands`, `ttGroups`, `stataTtestSummary`,
+The page is `src/compare-means.js` (validated against SciPy by `tests/compare-means.test.mjs`); the t-test code it
+reuses lives in `src/app/component.js` (`ttRecord`, `ttCommands`, `ttGroups`, `stataTtestSummary`,
 `ttStataText`, `ttRText`) and `src/app/engine.mjs` (`ttDetails`, `oneSampleT`, `pairedT`, `ttCritical`); the console
 printouts for `by()` and `welch` are in `src/console-stata.js` (`cxTtestPooled`).
