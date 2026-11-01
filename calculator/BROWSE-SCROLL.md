@@ -8,6 +8,6 @@ Cells expose exact raw numeric values for editing and value labels in tooltips. 
 
 The shell's desktop maximum-width cap is removed. The workspace has 12px desktop gutters and 8px mobile gutters. Browser cells are compact (96px wide, 28px high). Browse starts with the right panel collapsed to its rail, making the table wider; users can reopen Plots, Console, Report or Help. This separate Browse preference preserves the right-panel state for other analyses. Existing responsive columns, palette, analyses and chart sizing controls remain in place.
 
-Build: `PYTHONDONTWRITEBYTECODE=1 python3 calculator/tools/build_time_series.py`
+Build: `python3 calculator/tools/build.py`
 
 Focused checks: `node calculator/tests/browse-scroll.test.mjs`

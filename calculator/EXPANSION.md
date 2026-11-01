@@ -73,7 +73,7 @@ Run from the repository root:
 ```
 python calculator/tools/generate_analysis_catalog.py
 python calculator/tools/generate_analysis_guide.py
-python calculator/tools/build_time_series.py
+python3 calculator/tools/build.py
 node --test calculator/tests/*.test.mjs
 python calculator/tests/stata-template.test.py
 python calculator/tools/prepare_analysis_tests.py /absolute/runtime-directory

@@ -29,5 +29,5 @@ for every combination at once: pick **Rows** (e.g. `year`) and, optionally, **Co
   table copies to Excel; the chart downloads as PNG (150/300/600 dpi) or SVG; Stata and R code
   reproduce the table.
 
-Source: `src/breakdown.js`, integrated by `tools/breakdown.py` (run through `tools/text_lab.py`).
+Source: `src/breakdown.js`, integrated by `tools/breakdown.py` (run by `tools/build.py`).
 Test: `node --test calculator/tests/breakdown.test.mjs`.

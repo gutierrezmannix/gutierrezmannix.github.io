@@ -50,7 +50,7 @@ files get a clear message asking to save as .xlsx or CSV.
 ## Build and test
 
 ```sh
-python calculator/tools/text_lab.py
+python3 calculator/tools/build.py
 node --test calculator/tests/text-lab.test.mjs calculator/tests/text-lab-component.test.mjs calculator/tests/xlsx.test.mjs
 GM26_TEST_XLSX=/path/to/workbook.xlsx node --test calculator/tests/xlsx.test.mjs
 GM26_TEXT_FILES="/path/tweets.csv,/path/speeches.xlsx" NODE_PATH=$(npm root -g) node calculator/tests/text-lab-e2e.cjs

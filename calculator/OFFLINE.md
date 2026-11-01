@@ -53,7 +53,7 @@ Method-by-method notes and the few documented deviations are in `tools/engine/NO
 ## Developer notes
 
 - Engine sources: `src/engine/**/*.mjs`; `tools/engine/bundle.mjs` packs them into `src/engine/engine.bundle.js`
-  (run automatically by `tools/build_time_series.py` when sources change; requires Node).
+  (run automatically by `tools/build.py` when sources change; requires Node).
 - Validation: `tools/engine/README.md` (workflow), `tools/engine/cases/*.mjs` (case generators),
   `tests/engine/cases/` (packets and R reference outputs), `tools/engine/ref.R` (R runner),
   `tools/engine/compare.mjs` (comparison), `tools/engine/dist_check.mjs` (distribution functions vs R).

@@ -1,0 +1,192 @@
+[
+ {
+  "uuid": "e53cb61f-4c94-4fab-9192-f87808863bdd",
+  "source": "file",
+  "file": "embedded/e53cb61f-4c94-4fab-9192-f87808863bdd.js.gz",
+  "mime": "application/javascript",
+  "compressed": true
+ },
+ {
+  "uuid": "7f0c6180-e6c1-4faf-bd4a-6b2fddc15715",
+  "source": "engine",
+  "mime": "application/javascript"
+ },
+ {
+  "uuid": "e437231f-fb58-491b-8bfa-b3872218e024",
+  "source": "file",
+  "file": "embedded/e437231f-fb58-491b-8bfa-b3872218e024.js.gz",
+  "mime": "text/javascript",
+  "compressed": true
+ },
+ {
+  "uuid": "13d44c15-d5eb-473b-af68-6560d7229c39",
+  "source": "file",
+  "file": "embedded/13d44c15-d5eb-473b-af68-6560d7229c39.js.gz",
+  "mime": "application/javascript",
+  "compressed": true
+ },
+ {
+  "uuid": "a5c9b1e6-753f-4b10-a263-ee6b5545fa84",
+  "source": "file",
+  "file": "embedded/a5c9b1e6-753f-4b10-a263-ee6b5545fa84.js.gz",
+  "mime": "text/javascript",
+  "compressed": true
+ },
+ {
+  "uuid": "e3f7083d-3ff9-4d8b-b502-2d8991c5cbc7",
+  "source": "file",
+  "file": "embedded/e3f7083d-3ff9-4d8b-b502-2d8991c5cbc7.js.gz",
+  "mime": "text/javascript",
+  "compressed": true
+ },
+ {
+  "uuid": "b1c3860b-a384-4739-be65-552dc5bc89f7",
+  "source": "file",
+  "file": "embedded/b1c3860b-a384-4739-be65-552dc5bc89f7.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "69ffcc7e-2f25-4c1c-b3de-7535d276ef4b",
+  "source": "file",
+  "file": "embedded/69ffcc7e-2f25-4c1c-b3de-7535d276ef4b.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "ca7f1e74-c6a7-4ae5-9747-7cb1637d5b59",
+  "source": "file",
+  "file": "embedded/ca7f1e74-c6a7-4ae5-9747-7cb1637d5b59.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "08623763-9e53-41b1-88b8-bea902ce2260",
+  "source": "file",
+  "file": "embedded/08623763-9e53-41b1-88b8-bea902ce2260.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "420d6a81-f413-4b27-9d3b-80dea81c2ecc",
+  "source": "file",
+  "file": "embedded/420d6a81-f413-4b27-9d3b-80dea81c2ecc.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "a4ea4fdd-14cb-49c6-b4d0-288bb44ebbc4",
+  "source": "file",
+  "file": "embedded/a4ea4fdd-14cb-49c6-b4d0-288bb44ebbc4.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "61de0a30-a4f7-4fa5-b7d8-3c91834d24a3",
+  "source": "file",
+  "file": "embedded/61de0a30-a4f7-4fa5-b7d8-3c91834d24a3.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "0d392891-05d5-450b-a7cf-d61e0d137f4f",
+  "source": "file",
+  "file": "embedded/0d392891-05d5-450b-a7cf-d61e0d137f4f.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "b6105bf3-74f0-4b17-9f7c-5669f8f37d46",
+  "source": "file",
+  "file": "embedded/b6105bf3-74f0-4b17-9f7c-5669f8f37d46.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "5b353ecd-7da7-4283-acca-9a9348e6ee8c",
+  "source": "file",
+  "file": "embedded/5b353ecd-7da7-4283-acca-9a9348e6ee8c.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "a48100c2-511f-4021-af09-f7e4813b9403",
+  "source": "file",
+  "file": "embedded/a48100c2-511f-4021-af09-f7e4813b9403.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "2f00844b-04e8-46f0-aaff-041b1d54b384",
+  "source": "file",
+  "file": "embedded/2f00844b-04e8-46f0-aaff-041b1d54b384.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "401a1858-d48d-4585-87bc-a42c694bbf36",
+  "source": "file",
+  "file": "embedded/401a1858-d48d-4585-87bc-a42c694bbf36.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "217bbeca-6818-48f4-9776-d7451cf8d158",
+  "source": "file",
+  "file": "embedded/217bbeca-6818-48f4-9776-d7451cf8d158.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "4ad60fd7-b705-4c17-833c-d4a13ed7370a",
+  "source": "file",
+  "file": "embedded/4ad60fd7-b705-4c17-833c-d4a13ed7370a.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "1b686238-a312-4381-8174-5918f29aa49a",
+  "source": "file",
+  "file": "embedded/1b686238-a312-4381-8174-5918f29aa49a.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "669b99eb-b670-4cd2-b839-7cecee89f02c",
+  "source": "file",
+  "file": "embedded/669b99eb-b670-4cd2-b839-7cecee89f02c.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "142329f8-8939-41c7-a899-4edd2e46ac2e",
+  "source": "file",
+  "file": "embedded/142329f8-8939-41c7-a899-4edd2e46ac2e.woff2",
+  "mime": "font/woff2",
+  "compressed": false
+ },
+ {
+  "uuid": "c8bca76e-dad3-5274-94ad-2db528804cd2",
+  "source": "lemma",
+  "lang": "es",
+  "mime": "application/gzip"
+ },
+ {
+  "uuid": "69462831-8768-50df-9b59-ccbe2697d5f9",
+  "source": "lemma",
+  "lang": "en",
+  "mime": "application/gzip"
+ },
+ {
+  "uuid": "79bd9cdc-1771-53ca-805e-e561b0ae9d8e",
+  "source": "lemma",
+  "lang": "pt",
+  "mime": "application/gzip"
+ },
+ {
+  "uuid": "280bd807-5a92-5941-898c-d51aec23689d",
+  "source": "lemma",
+  "lang": "fr",
+  "mime": "application/gzip"
+ }
+]

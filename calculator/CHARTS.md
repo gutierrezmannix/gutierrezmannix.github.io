@@ -67,7 +67,7 @@ exports. Per-page configuration, including uploaded boundaries, is saved in sess
 ## Build and validation
 
 ```
-PYTHONDONTWRITEBYTECODE=1 python calculator/tools/build_time_series.py
+python3 calculator/tools/build.py
 node calculator/tests/chart-suite.test.mjs
 ```
 

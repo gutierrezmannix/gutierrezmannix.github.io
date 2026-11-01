@@ -1,6 +1,6 @@
 // Bundle src/engine/**/*.mjs into src/engine/engine.bundle.js: one self-contained factory function
 // (each module in its own scope, imports resolved), so the page can embed it in its engine module and also start
-// it inside a Web Worker. Run: node tools/engine/bundle.mjs   (build_time_series.py runs it when sources change)
+// it inside a Web Worker. Run: node tools/engine/bundle.mjs   (tools/build.py runs it when sources change)
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';

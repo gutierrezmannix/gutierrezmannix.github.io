@@ -65,7 +65,7 @@ direct classification; k-cores, constraint, Louvain, homophily; NodeXL import.
 ## Build and test
 
 ```sh
-python calculator/tools/text_lab.py
+python3 calculator/tools/build.py
 node --test calculator/tests/net-lab.test.mjs calculator/tests/net-lab-component.test.mjs
 GM26_NET_FILES="/path/edges.csv,/path/nodes.csv" node --test calculator/tests/net-lab-component.test.mjs
 GM26_NET_FILES="/path/edges.csv,/path/nodes.csv" NODE_PATH=$(npm root -g) node calculator/tests/net-lab-e2e.cjs

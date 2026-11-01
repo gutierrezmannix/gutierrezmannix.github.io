@@ -6,14 +6,12 @@ Integrates into calculator/index.html, idempotently:
   template   the Text analysis tab (src/text-lab.css), Excel in the file prompts, sheet picker
   assets     src/lemmas/*_lemma_lookup.json.gz (lazy, decompressed on demand)
 
-Run:  python calculator/tools/text_lab.py
+Run:  python3 calculator/tools/build.py   (this module is one step of the build)
 Test: node --test calculator/tests/text-lab.test.mjs calculator/tests/xlsx.test.mjs
 """
-import base64
 import sys
 import json
 import re
-import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -124,35 +122,9 @@ def integrate_template(t):
 
 
 def main():
-    h = PAGE.read_text()
-    ms = re.search(r'<script type="__bundler/manifest">(.*?)</script>', h, re.S)
-    ts = re.search(r'<script type="__bundler/template">(.*?)</script>', h, re.S)
-    es = re.search(r'<script type="__bundler/ext_resources">(.*?)</script>', h, re.S)
-    manifest, template, ext = json.loads(ms[1]), json.loads(ts[1]), json.loads(es[1])
-    m = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', template, re.S)
-    template = template[:m.start(2)] + chart_builder.integrate_component(data_edit.integrate_component(net_lab.integrate_component(breakdown.integrate_component(integrate_component(m[2]))))) + template[m.end(2):]
-    template = chart_builder.integrate_template(data_edit.integrate_template(net_lab.integrate_template(breakdown.integrate_template(integrate_template(template)))))
-    import gzip
-    asset = manifest[ENGINE]
-    e = gzip.decompress(base64.b64decode(asset['data'])).decode()
-    asset['data'] = base64.b64encode(gzip.compress(chart_builder.integrate_engine(net_lab.integrate_engine(integrate_engine(e))).encode(), mtime=0)).decode()
-    # lemma tables: stored as gzip bytes, decompressed in the page only when used
-    for lang in LANGS:
-        uid = str(uuid.uuid5(uuid.NAMESPACE_URL, 'gm26/lemma/' + lang))
-        data = (ROOT / 'src' / 'lemmas' / f'{lang}_lemma_lookup.json.gz').read_bytes()
-        manifest[uid] = {'mime': 'application/gzip', 'compressed': False, 'data': base64.b64encode(data).decode()}
-        ext = [x for x in ext if x.get('id') != 'lemma_' + lang] + [{'id': 'lemma_' + lang, 'uuid': uid}]
-    parts = [
-        (ms.start(1), ms.end(1), '\n' + json.dumps(manifest, separators=(',', ':')) + '\n  '),
-        (ts.start(1), ts.end(1), json.dumps(template, ensure_ascii=False).replace('</', '<\\/')),
-        (es.start(1), es.end(1), '\n' + json.dumps(ext, separators=(',', ':')) + '\n  '),
-    ]
-    for a, b, new in sorted(parts, reverse=True):
-        h = h[:a] + new + h[b:]
-    h = re.sub(r'2026-1[0-2]-\d{2}\.\d+', BUILD, h)
-    PAGE.write_text(h)
-    (ROOT / 'version.json').write_text(json.dumps({'build': BUILD}) + '\n')
-    print('Built text analysis (Design A) and Excel reader:', BUILD, f'({len(h) / 1048576:.1f} MB)')
+    """The page is built by tools/build.py (which runs this module's integrators with all the others)."""
+    import build
+    return build.main([])
 
 
 if __name__ == '__main__':

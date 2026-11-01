@@ -123,7 +123,7 @@ Colors set for a variable are also shared by every chart of that variable. Names
 | `src/chart-builder.js` | Component: gallery, data sentence, Customize, names and colors, the compact panel for other tabs, and the links under analysis charts. |
 | `src/chart-builder.css` | Styles. |
 | `src/breakdown.js` | The Univariate breakdown chart, now drawn by the builder. |
-| `tools/chart_builder.py` | Puts the files into `index.html`. Called by `tools/text_lab.py`. |
+| `tools/chart_builder.py` | Puts the files into `index.html`. Called by `tools/build.py`. |
 
 ## Tests
 

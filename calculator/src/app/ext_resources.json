@@ -1,0 +1,34 @@
+[
+ {
+  "id": "geo",
+  "uuid": "e53cb61f-4c94-4fab-9192-f87808863bdd"
+ },
+ {
+  "id": "engine",
+  "uuid": "7f0c6180-e6c1-4faf-bd4a-6b2fddc15715"
+ },
+ {
+  "id": "https://unpkg.com/react@18.3.1/umd/react.production.min.js",
+  "uuid": "a5c9b1e6-753f-4b10-a263-ee6b5545fa84"
+ },
+ {
+  "id": "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js",
+  "uuid": "e3f7083d-3ff9-4d8b-b502-2d8991c5cbc7"
+ },
+ {
+  "id": "lemma_es",
+  "uuid": "c8bca76e-dad3-5274-94ad-2db528804cd2"
+ },
+ {
+  "id": "lemma_en",
+  "uuid": "69462831-8768-50df-9b59-ccbe2697d5f9"
+ },
+ {
+  "id": "lemma_pt",
+  "uuid": "79bd9cdc-1771-53ca-805e-e561b0ae9d8e"
+ },
+ {
+  "id": "lemma_fr",
+  "uuid": "280bd807-5a92-5941-898c-d51aec23689d"
+ }
+]

@@ -13,7 +13,7 @@ Individual PNG downloads use Blob URLs after rasterization, matching the working
 ## Validation
 
 ```sh
-python3 calculator/tools/build_time_series.py
+python3 calculator/tools/build.py
 node calculator/tests/buttons.test.mjs
 node calculator/tests/network.test.mjs
 node calculator/tests/time-series.test.mjs

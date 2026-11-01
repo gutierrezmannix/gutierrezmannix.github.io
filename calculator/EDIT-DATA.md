@@ -45,4 +45,4 @@ The component test checks each step against a direct computation (alpha against 
 item, quartile groups, dummy counts, CSV contents, undo). The browser test uses every task through the page with all
 internet requests blocked (only the update check is attempted), at 1440 px and 390 px.
 
-Sources: `src/data-edit.js`, `src/data-edit.css`, `tools/data_edit.py` (run through `tools/text_lab.py`).
+Sources: `src/data-edit.js`, `src/data-edit.css`, `tools/data_edit.py` (run by `tools/build.py`).

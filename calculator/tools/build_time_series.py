@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Update the self-contained calculator bundle from its time-series sources.
 
-Run from any directory: python calculator/tools/build_time_series.py
+Historical integration steps (builds up to .44). The page is now built by: python3 calculator/tools/build.py
 The original asset bundle is retained. Only the engine, calendar controls and
 time-series integration are changed. Re-running is deterministic.
 """
@@ -192,50 +192,9 @@ def integrate_navigation(c):
 
 
 def main():
-    h = PAGE.read_text()
-    ms = re.search(r'<script type="__bundler/manifest">(.*?)</script>', h, re.S)
-    ts = re.search(r'<script type="__bundler/template">(.*?)</script>', h, re.S)
-    manifest, template = json.loads(ms[1]), json.loads(ts[1])
-    match = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)',template,re.S)
-    component = integrate_ttests_component(integrate_tests_menu(integrate_network_component(integrate_commandbar_component(integrate_navigation(integrate_component(match[2]))))))
-    template = template[:match.start(2)] + component + template[match.end(2):]
-    controls = (ROOT/'src/time-series-controls.html').read_text()
-    begin, end = '<!-- GM26 setup controls begin -->', '<!-- GM26 setup controls end -->'
-    if begin in template:
-        template = re.sub(re.escape(begin)+'.*?'+re.escape(end),lambda _:begin+controls+end,template,flags=re.S)
-    else:
-        anchor = '                <div style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;">'
-        loc = template.index(anchor,template.index('TIME SERIES — 1 · SET UP THE DATA'))
-        template = template[:loc] + begin + controls + end + '\n' + template[loc:]
-        a = template.index('TIME SERIES — 1 · SET UP THE DATA'); b = template.index('3 · RESULTS',a)
-        part = template[a:b].replace('>TIME VARIABLE</div>', '>{{ tsTimeLabel }}</div>').replace('>YEARS</div>', '>PERIOD RANGE</div>').replace('>EVENT YEAR</div>', '>EVENT DATE / PERIOD</div>').replace('OR EACH UNIT’S YEAR FROM A VARIABLE', 'OR EACH UNIT’S ENCODED EVENT PERIOD').replace('leave the year blank to fit a simple trend', 'leave the event blank to fit a simple trend').replace('placeholder="e.g. 2000"', 'placeholder="{{ tsPeriodFormat }}"').replace('width: 90px; font-weight: 700;', 'width: 190px; font-weight: 700;')
-        part = part.replace('like Stata tsset / xtset: which variable is time, and (for panels) which is the unit', 'Define the calendar, unit and measurement source before estimation. Keep the original frequency by default.')
-        marker = '              <div style="background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cE3DCCE, #E3DCCE); border-radius: 9px; box-shadow: 0 1px 3px rgba(43,39,30,0.06); padding: 10px 14px;">'
-        eventcard = part.index(marker,part.index('WHICH UNITS?'))
-        summary = '<sc-if value="{{ tsHasPreparation }}" hint-placeholder-val="{{ false }}"><div class="ts-setup-summary" role="status" data-testid="time-series-preparation-summary">{{ tsPrepared }}</div><div class="ts-setup-warning" data-testid="time-series-validation">{{ tsValidation }}</div></sc-if>\n'
-        part = part[:eventcard] + summary + part[eventcard:]
-        template = template[:a] + part + template[b:]
-    template = integrate_ttests_template(integrate_network_template(integrate_jade_shell(integrate_commandbar_template(template))))
-    match = re.search(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', template, re.S)
-    template = template[:match.start(2)] + audit_component(ov_component(tss_component(console_component(analysis_component(chart_component(stata_component(regression_component(browse_component(guide_component(range_component(repair_component(match[2])))))))))))) + template[match.end(2):]
-    template = audit_template(ov_template(tss_template(analysis_template(chart_template(stata_template(regression_template(browse_template(guide_template(range_template(repair_template(template)))))))))))
-    asset = manifest[ENGINE]
-    e = gzip.decompress(base64.b64decode(asset['data'])).decode()
-    mod_begin, mod_end = '// GM26 time-series module begin', '// GM26 time-series module end'
-    e = re.sub(re.escape(mod_begin)+'.*?'+re.escape(mod_end),'',e,flags=re.S).rstrip()
-    e = chart_engine(regression_engine(range_engine(repair_engine(integrate_ttests_engine(integrate_network_engine(integrate_engine(e))))))).rstrip()
-    e += '\n\n'+mod_begin+'\n'+(ROOT/'src/time-series-setup.mjs').read_text()+'\n'+mod_end+'\n'
-    e = analysis_engine(audit_engine(tss_engine(e)))
-    asset['data'] = base64.b64encode(gzip.compress(e.encode(),mtime=0)).decode()
-    manifest_json = json.dumps(manifest,separators=(',',':'))
-    template = template.replace('Two variables', 'Correlation')
-    template = template.replace('.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: auto;', '.mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: 4px;')
-    template = re.sub(r'2026-1[0-2]-\d{2}\.\d+', BUILD, template)
-    for a,b,new in sorted([(ms.start(1),ms.end(1), '\n'+manifest_json+'\n  '),(ts.start(1),ts.end(1),json.dumps(template,ensure_ascii=False).replace('</','<\\/'))],reverse=True):
-        h = h[:a] + new + h[b:]
-    PAGE.write_text(h)
-    (ROOT/'version.json').write_text(json.dumps({'build':BUILD})+'\n')
-    print('Built explicit time-series setup:',BUILD)
+    """Superseded: these integrations are already part of src/app/. The page is built by tools/build.py."""
+    import build
+    return build.main([])
 
 
 if __name__ == '__main__':
