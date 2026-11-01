@@ -32,6 +32,19 @@
     }[term.t];
     return term.t === 'edges' ? s : s.replace(/\.$/, '') + (sig ? '.' : tail);
   }
+  // a small alert that says why the model did not converge and offers the fix (remove the effect to blame, or run longer)
+  nlWhy(res, model, to, runLonger, longer) {
+    const h = React.createElement, E = this._E, W = res.why || [];
+    if (!W.length && !res.warning) return null;
+    const r = W[0] || { title: 'Not converged', text: res.warning, term: -1, fix: 'longer' }, t = r.term > 0 && res.terms ? res.terms[r.term] : null, btns = [];
+    if (r.fix === 'remove' && t) btns.push(this.tlBtn('Remove “' + E.nlTermLabel(t) + '” and run', () => { const m = model.filter(x => !(x.t === t.t && (x.a || '') === (t.a || ''))); this.nlSetIn('ties', { model: m, run: (to.run || 0) + 1, ranSig: JSON.stringify(m) + '|' + (to.drop ? 'drop' : '') }); }, 'green'));
+    btns.push(this.tlBtn(longer >= 2 ? 'Run even longer' : 'Run longer', runLonger, r.fix === 'longer' ? 'green' : '', { title: 'Doubles the time allowed (now up to ' + Math.round(Math.min(360, 90 * Math.pow(2, longer + 1)) / 60) + ' min) and starts a fresh simulation' }));
+    return h('div', { className: 'nl-why', role: 'alert' },
+      h('div', { className: 'nl-why-t' }, h('b', null, '⚠ Why it did not converge:'), ' ', r.title),
+      h('p', null, r.text),
+      W.length > 1 ? h('p', { className: 'nl-why-also' }, 'Also: ' + W.slice(1).map(x => x.title).join(' · ')) : null,
+      h('div', { className: 'tl-row' }, ...btns));
+  }
   nlStepTies(o, B) {
     const h = React.createElement, E = this._E, net = B.net, to = o.ties;
     const cats = Object.keys(net.attrs), attr = to.attr && net.attrs[to.attr] ? to.attr : (this.nlBestAttr(net) || cats[0]);
@@ -66,10 +79,13 @@
     let mnet = net, dropped = 0; this._nlLastNet = net;
     if (to.drop) { const used = model.filter(x => x.a).map(x => x.a), keep = Array.from({ length: net.n }, (_, i) => used.every(a => net.attrs[a].kind === 'cat' && model.every(x => x.a !== a || x.t === 'nodematch') ? net.attrs[a].v[i] != null : isFinite(net.attrs[a].x[i]))); dropped = keep.filter(k => !k).length; if (dropped) { mnet = E.nlSubnet(net, keep); mnet.key = net.key + '|drop' + used.join(','); } }
     const ran = to.ranSig === sig && to.run > 0;
-    const jobKey = 'ergm|' + to.run + '|' + sig;
+    // Run longer: each press doubles the time allowed (up to 6 minutes), allows more rounds and starts a fresh chain
+    const longer = to.longerSig === sig ? (to.longer || 0) : 0, budget = Math.min(360, 90 * Math.pow(2, longer));
+    const runLonger = () => this.nlSetIn('ties', { longer: longer + 1, longerSig: sig, run: (to.run || 0) + 1, ranSig: sig });
+    const jobKey = 'ergm|' + to.run + '|' + longer + '|' + sig;
     let res = null, status = null;
     if (ran) {
-      const J = this.nlJob(mnet, jobKey, 'nlErgm', [mnet, model.map(x => Object.assign({}, x)), { seed: 26, gofSims: 100 }], 'Estimating the model');
+      const J = this.nlJob(mnet, jobKey, 'nlErgm', [mnet, model.map(x => Object.assign({}, x)), { seed: 26 + longer, gofSims: 100, seconds: budget, maxIter: 30 + 30 * longer }], 'Estimating the model');
       if (!J.done) { status = h('div', { className: 'nl-run' }, this.tlPending((J.label || 'Starting') + ' — MCMC, like R’s ergm()', J.p), this.tlBtn('Cancel', () => { this.tlCancel('nl|' + mnet.key + '|' + jobKey); this.nlSetIn('ties', { run: 0 }); })); }
       else res = J.value;
     }
@@ -82,12 +98,12 @@
       results = this.tlBanner('warn', h('b', null, res.kind === 'degenerate' ? '✗ The model is degenerate. ' : res.kind === 'missing' ? '✗ Can’t run yet. ' : '✗ Could not estimate the model. '), res.error, fixes.length ? h('div', { className: 'tl-row' }, ...fixes) : null);
     } else if (res) {
       const ok = res.converged && !res.warning;
-      const badge = h('div', { className: 'nl-badge ' + (ok ? 'ok' : 'warn') }, h('b', null, ok ? '✓ Converged' : '⚠ Not converged'), h('span', null, 'MCMC maximum likelihood · ' + res.iterations + ' rounds · ' + this.fmt(res.seconds, 1) + ' s · ' + this.fmtN(res.dyads) + ' pairs' + (dropped ? ' · ' + dropped + ' people left out (missing values)' : '')));
+      const badge = h('div', { className: 'nl-badge ' + (ok ? 'ok' : 'warn') }, h('b', null, ok ? '✓ Converged' : '⚠ Not converged'), h('span', null, 'MCMC maximum likelihood · ' + res.iterations + ' rounds · ' + this.fmt(res.seconds, 1) + ' s · ' + this.fmtN(res.dyads) + ' pairs' + (longer ? ' · longer run (up to ' + Math.round(budget / 60) + ' min)' : '') + (dropped ? ' · ' + dropped + ' people left out (missing values)' : '')));
       const lx = v => 8 + 180 * (Math.log(Math.max(0.2, Math.min(20, v))) - Math.log(0.2)) / (Math.log(20) - Math.log(0.2));
       const forest = c => h('svg', { width: 196, height: 18, 'aria-hidden': 'true' }, h('line', { x1: lx(1), x2: lx(1), y1: 0, y2: 18, stroke: '#AB9F8A', strokeDasharray: '2 2' }), h('line', { x1: lx(c.lo), x2: lx(c.hi), y1: 9, y2: 9, stroke: c.p < 0.05 ? '#2E7D58' : '#AB9F8A', strokeWidth: 2 }), h('circle', { cx: lx(c.or), cy: 9, r: 4.5, fill: c.p < 0.05 ? '#2E7D58' : '#FFFFFF', stroke: c.p < 0.05 ? '#2E7D58' : '#AB9F8A', strokeWidth: 1.5 }));
       const rows = res.coefs.map((c, k) => k === 0 ? null : h('tr', { key: k }, h('td', null, h('b', null, c.term), h('br'), h('span', { className: 'tl-hint' }, this.nlEffectSentence(c, res.terms[k]))), h('td', { className: 'n' }, isFinite(c.or) ? this.fmt(c.or, 2) : '—'), h('td', null, forest(c)), h('td', { className: 'n' }, c.p < 0.001 ? '< .001' : this.fmt(c.p, 3)), to.est ? h('td', { className: 'n' }, this.fmt(c.b, 3) + ' (' + this.fmt(c.se, 3) + ')') : null, to.est ? h('td', { className: 'n' }, this.fmt(res.mple.coef[k], 3)) : null));
       const tbl = h('table', { className: 'tl-tbl nl-model' }, h('thead', null, h('tr', null, h('th', null, 'reason · in words'), h('th', { className: 'n' }, 'odds ×'), h('th', null, '0.2 · 1 · 20'), h('th', { className: 'n' }, 'p'), to.est ? h('th', { className: 'n' }, 'estimate (SE)') : null, to.est ? h('th', { className: 'n' }, 'MPLE') : null)), h('tbody', null, rows));
-      results = h(React.Fragment, null, badge, res.warning ? this.tlBanner('warn', res.warning, h('div', { className: 'tl-row' }, this.tlBtn('Run longer', () => this.nlSetIn('ties', { run: (to.run || 0) + 1, ranSig: sig })))) : null, tbl,
+      results = h(React.Fragment, null, badge, this.nlWhy(res, model, to, runLonger, longer), tbl,
         h('div', { className: 'tl-row' }, this.tlChip('show estimates, SE and MPLE', !!to.est, () => this.nlSetIn('ties', { est: !to.est })), this.tlBtn(this.state.copied === 'nlergm' ? 'Copied ✓' : 'Copy table', () => this.copyTSV('nlergm', ['effect\tR term\testimate\tSE\tz\tp\todds ratio'].concat(res.coefs.map(c => [c.term, c.r, c.b, c.se, c.z, c.p, c.or].join('\t'))).join('\n')))),
         res.gof ? this.nlGofView(res.gof, net.directed) : null);
     }

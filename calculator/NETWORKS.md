@@ -29,6 +29,26 @@ the page, offline; heavy work (layouts, permutation tests, the network model) ru
   error of the observed value; that sample gives the final standard errors.
 - Goodness of fit: 100 networks simulated from the estimate; degrees, edgewise shared partners and distances.
 
+## When a model does not converge (build .56)
+
+A small alert under the result names the reason and offers the fix, most important reason first:
+
+| Reason | Example message | Fix button |
+|---|---|---|
+| A structural effect mixes too slowly | “Friends of friends” is the problem: only 69 of 228 ties (30%) share a contact and the network has few triangles, so the simulation keeps producing almost the same networks. The characteristics are not the problem. | Remove it and run · Run longer |
+| A characteristic almost perfectly predicts ties | nearly every tie falls inside the same groups, so its effect heads towards infinity | Remove it and run |
+| A characteristic has a tiny group | only 3 people have financial = 1 | Remove it and run |
+| A number with extreme values, or one that does not vary | one value lies 9 standard deviations from the mean | Remove it and run |
+| No standard error for an effect | the simulated networks hardly vary on it | Remove it and run |
+| The effects together are near-degenerate | the simulated networks jump between very different shapes | Remove the effect to blame |
+| Nothing wrong with the data | it ran out of time while the estimates were still settling | Run longer |
+
+**Run longer** now really runs longer: each press doubles the time allowed (90 s → 3 min → 6 min), allows more rounds
+and starts a fresh chain (it used to repeat the same 90-second run with the same seed). The diagnosis is
+`nlErgmDiagnose()` in `src/net-lab-ergm.mjs`, tested in `tests/net-lab.test.mjs`. On the cartel files (390 groups,
+331 ties), mutual + friends of friends + same sinaloa does not converge (friends of friends is named); the same model
+without it converges in about 20 s.
+
 ## Validation against R
 
 `tests/r/net-lab-compare.R` checks the calculator against R 4.3 with **sna 2.7-2, network 1.18.2 and igraph 1.6**

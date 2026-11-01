@@ -236,12 +236,71 @@ export function* nlErgm(net, spec, o = {}) {
   const coefs = Array.from(theta, (b, k) => { const z = b / se[k]; return { term: labels[k], r: nlTermR(terms[k]), b, se: se[k], z, p: isFinite(z) ? nlP2(z) : NaN, or: Math.exp(b), lo: Math.exp(b - 1.96 * se[k]), hi: Math.exp(b + 1.96 * se[k]) }; });
   const worst = tratio.map(Math.abs).indexOf(Math.max(...tratio.map(Math.abs)));
   const essF = Math.min(...Array.from({ length: p }, (_, k) => nlEss(Gf.map(r => r[k])))), essK = Array.from({ length: p }, (_, k) => nlEss(Gf.map(r => r[k]))), converged = conv && tratio.every((t, k) => Math.abs(t) < Math.max(0.12, 2.5 / Math.sqrt(Math.max(essK[k], 1))));
-  const res = { coefs, terms, labels, gobs: Array.from(gobs), simMean: Array.from(mu), tratio, converged, iterations: Math.min(it, maxIter), interval, samplesize: size, hist, mple: mpleOut, dyadIndependent: dyadIndep, n, directed: net.directed, dyads: D, seconds: (Date.now() - t0) / 1000, theta: Array.from(theta), ess: essF, timedOut };
-  const unstable = !converged && res.hist.slice(-6).filter(x => x.tmax > 1).length >= 2;
+  const res = { coefs, terms, labels, gobs: Array.from(gobs), simMean: Array.from(mu), tratio, converged, iterations: Math.min(it, maxIter), interval, samplesize: size, hist, mple: mpleOut, dyadIndependent: dyadIndep, n, directed: net.directed, dyads: D, seconds: (Date.now() - t0) / 1000, theta: Array.from(theta), ess: essF, essK, timedOut };
+  const unstable = !converged && res.hist.slice(-6).filter(x => x.tmax > 1).length >= 2; res.unstable = unstable;
   if (!converged) res.warning = (timedOut ? 'Stopped after ' + Math.round((Date.now() - t0) / 1000) + ' seconds without converging:' : 'Did not converge after ' + res.iterations + ' rounds:') + ' the simulated networks still differ from yours on “' + labels[worst] + '” (t = ' + tratio[worst].toFixed(2) + '). Try removing “' + labels[worst] + '”, or press “Run longer”.' + (unstable ? ' The simulated networks jump between very different shapes — a sign that this combination of effects is close to degenerate for your network (common with “Friends of friends” in dense networks); adding a characteristic that explains ties (such as party) often stabilises it.' : '');
   if (coefs.some(c => !isFinite(c.se))) res.warning = 'Standard errors could not be computed — the model is close to degenerate. Remove an effect and run again.';
+  if (!converged || res.warning) res.why = nlErgmDiagnose(net, terms, res, { targetESS });
   if (o.gof !== false) res.gof = yield* nlGof(net, terms, theta, { seed: (o.seed || 26) + 1, interval, nsim: o.gofSims || 100 });
   return res;
+}
+// why a model did not converge, in plain words: the effect or characteristic to blame and what to do about it.
+// Reasons, most important first: { kind, term (index or -1), title, text, fix: 'remove' | 'longer' }.
+export function nlErgmDiagnose(net, terms, res, o = {}) {
+  const labels = terms.map(nlTermLabel), p = terms.length, t = res.tratio || [], ess = res.essK || [], mple = res.mple || {}, target = o.targetESS || 64, out = [];
+  const f1 = x => (Math.round(x * 10) / 10).toLocaleString('en-US'), pct = x => Math.round(100 * x) + '%';
+  // 1. standard errors that cannot be computed
+  const noSE = (res.coefs || []).findIndex((c, k) => k > 0 && !isFinite(c.se));
+  if (noSE > 0) out.push({ kind: 'se', term: noSE, title: 'No standard error for “' + labels[noSE] + '”', text: 'The simulated networks hardly vary on this effect, so its uncertainty cannot be measured. Remove it, or run longer.', fix: 'remove' });
+  // 2. characteristics: almost perfect prediction, tiny groups, extreme values
+  terms.forEach((tm, k) => {
+    if (!tm.a || k === 0) return; const a = net.attrs[tm.a]; if (!a) return;
+    const b = (mple.coef || [])[k], se = (mple.se || [])[k], bm = res.coefs && res.coefs[k] ? res.coefs[k].b : b;
+    if (!isFinite(b) || !isFinite(se) || Math.abs(b) > 7 || se > 4 || Math.abs(bm) > 10) {
+      out.push({ kind: 'separation', term: k, title: '“' + tm.a + '” almost perfectly predicts the ties', text: tm.t === 'nodematch' ? 'Nearly every tie falls ' + ((bm || b) > 0 ? 'inside' : 'across') + ' the “' + tm.a + '” groups, so its effect heads towards infinity and the simulation cannot settle. Remove “' + labels[k] + '”, or merge small groups.' : 'Its estimate is extreme (' + f1(bm) + '), so the simulation cannot settle. Remove it, or rescale “' + tm.a + '” (for example a log or ranks).', fix: 'remove' });
+      return;
+    }
+    if (a.kind === 'cat' && tm.t === 'nodematch') {
+      const cnt = new Map(); let nn = 0; for (const v of a.v) if (v != null) { cnt.set(v, (cnt.get(v) || 0) + 1); nn++; }
+      let lv = null, mn = Infinity; for (const [l, c] of cnt) if (c < mn) { mn = c; lv = l; }
+      if (cnt.size > 1 && mn < Math.max(4, 0.02 * nn)) out.push({ kind: 'rare', term: k, title: '“' + tm.a + '” has a very small group', text: 'Only ' + mn + (mn === 1 ? ' person has ' : ' people have ') + tm.a + ' = ' + lv + ', so pairs inside that group are too rare for “' + labels[k] + '” to be estimated reliably. Remove it, or merge that group with another.', fix: 'remove' });
+    } else if (a.kind === 'num') {
+      const xs = Array.from(a.x).filter(isFinite), m = xs.reduce((s2, v) => s2 + v, 0) / Math.max(1, xs.length), sd = Math.sqrt(xs.reduce((s2, v) => s2 + (v - m) ** 2, 0) / Math.max(1, xs.length - 1));
+      const mz = sd > 0 ? Math.max(...xs.map(v => Math.abs(v - m) / sd)) : 0;
+      if (sd === 0) out.push({ kind: 'constant', term: k, title: '“' + tm.a + '” does not vary', text: 'Everyone has the same value, so it cannot explain anything. Remove “' + labels[k] + '”.', fix: 'remove' });
+      else if (mz > Math.min(8, 0.7 * Math.sqrt(xs.length))) out.push({ kind: 'extreme', term: k, title: '“' + tm.a + '” has a few extreme values', text: 'One value lies ' + f1(mz) + ' standard deviations from the mean, so a handful of people drive “' + labels[k] + '”. Use a log or ranks of “' + tm.a + '”, or remove it.', fix: 'remove' });
+    }
+  });
+  // 3. structural effects that move too slowly in the simulation (friends of friends, popularity)
+  const gw = terms.map((x, k) => x.t.startsWith('gw') ? k : -1).filter(k => k > 0);
+  const minE = ess.length ? Math.min(...ess) : Infinity;
+  if (gw.length && minE < target / 2) {
+    const kG = gw.reduce((b2, k) => (ess[k] < ess[b2] || (ess[k] === ess[b2] && Math.abs(t[k]) > Math.abs(t[b2])) ? k : b2), gw[0]);
+    if (ess[kG] <= 2 * minE || Math.abs(t[kG]) >= Math.max(...t.map(Math.abs)) - 1e-9) {
+      let text;
+      if (terms[kG].t === 'gwesp') {
+        const seen = new Set(); let ties = 0, shared = 0, tri = 0;
+        for (const [i, j] of net.edges) { const key = i < j ? i + ',' + j : j + ',' + i; if (seen.has(key)) continue; seen.add(key); ties++; const A = net.und[i], B = net.und[j], sm = A.size < B.size ? A : B, lg = sm === A ? B : A; let c = 0; for (const x of sm) if (x !== i && x !== j && lg.has(x)) c++; if (c) shared++; tri += c; }
+        tri = Math.round(tri / 3);
+        text = 'Only ' + shared.toLocaleString('en-US') + ' of ' + ties.toLocaleString('en-US') + ' ties (' + pct(shared / Math.max(1, ties)) + ') share a contact and the whole network has ' + tri.toLocaleString('en-US') + ' triangle' + (tri === 1 ? '' : 's') + ' (trios all tied to each other), so the simulation keeps producing almost the same networks (about ' + Math.max(1, Math.round(ess[kG])) + ' of ' + (res.samplesize || 512) + ' are really different) and cannot pin down “friends of friends”.' + (terms.some(x => x.a) ? ' The characteristics are not the problem.' : '') + ' Run the model without it, or Run longer.';
+      } else {
+        const deg = Array.from({ length: net.n }, (_, i) => terms[kG].t === 'gwideg' ? net.inn[i].size : terms[kG].t === 'gwodeg' ? net.out[i].size : net.und[i].size), mx = Math.max(...deg), top = deg.filter(d2 => d2 >= mx / 2).length;
+        text = 'Ties are concentrated on very few people (the most connected has ' + mx + ', and only ' + top + ' have half as many), so “' + labels[kG] + '” changes in large jumps and the simulation settles very slowly (about ' + Math.max(1, Math.round(ess[kG])) + ' of ' + (res.samplesize || 512) + ' simulated networks are really different). Run the model without it, or Run longer.';
+      }
+      out.push({ kind: 'mixing', term: kG, title: '“' + labels[kG] + '” is the problem', text, fix: 'remove' });
+    }
+  }
+  // 4. the simulation jumps between very different networks
+  if (res.unstable && !out.length) {
+    const w = t.map(Math.abs).indexOf(Math.max(...t.map(Math.abs)));
+    out.push({ kind: 'unstable', term: w > 0 ? w : -1, title: 'This combination of effects is close to degenerate', text: 'The simulated networks jump between very different shapes, most on “' + labels[w] + '”. Remove that effect, or add a characteristic that explains who is tied (such as party).', fix: w > 0 ? 'remove' : 'longer' });
+  }
+  // 5. nothing wrong with the data: it needs more time
+  if (!out.length) {
+    const w = t.map(Math.abs).indexOf(Math.max(...t.map(Math.abs)));
+    out.push({ kind: 'time', term: -1, title: res.timedOut ? 'It ran out of time' : 'It needs more rounds', text: 'The estimates were still settling (the largest gap is ' + f1(Math.abs(t[w] || 0)) + ' standard deviations, on “' + labels[w] + '”). Nothing looks wrong with the data — Run longer usually fixes it.', fix: 'longer' });
+  }
+  return out;
 }
 // goodness of fit like statnet gof(): observed vs simulated distributions
 export function* nlGof(net, terms, theta, o = {}) {

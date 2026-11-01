@@ -72,3 +72,9 @@
 .nl .nl-trow{grid-template-columns:40px minmax(50px,1fr) 46px 46px minmax(0,150px)}
 @container (max-width:560px){.nl .nl-trow .td{display:none}.nl .nl-trow{grid-template-columns:40px minmax(50px,1fr) 46px 46px}}
 .nl .tl-tblwrap{max-width:100%}
+.nl .nl-why{border:1px solid #E8B98C;border-left:4px solid #C26A1E;background:#FDF5EC;border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;line-height:1.45;color:#3D3629}
+.nl .nl-why-t{font-size:13px;color:#7A3F0E}
+.nl .nl-why-t b{color:#7A3F0E}
+.nl .nl-why p{margin:0}
+.nl .nl-why-also{font-size:12px;color:#6B6455}
+.nl .nl-why .tl-btn{font-size:12px;padding:4px 10px}

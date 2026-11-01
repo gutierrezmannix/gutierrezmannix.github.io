@@ -139,3 +139,26 @@ test('NodeXL import: columns guessed, self-ties removed, tie types and two-way t
   const y = E.nlBuild(er, nr, Object.assign({}, g, { directed: true, y0: 2021, y1: 2021 })); assert.equal(y.net.edges.length, 1);
   const k = E.nlBuild(er, nr, Object.assign({}, g, { directed: true, keep: { Subgroup: false } })); assert.ok(!k.net.out[0].has(2));
 });
+
+test('why a model did not converge: the effect or characteristic to blame, in plain words', () => {
+  // a sparse network of 40 people: a chain plus one triangle, so few ties share a contact
+  const edges = []; for (let i = 0; i < 39; i++) edges.push([i, i + 1, 1, '']); edges.push([0, 2, 1, '']);
+  const grp = Array.from({ length: 40 }, (_, i) => i < 2 ? 'tiny' : i % 2 ? 'a' : 'b'), x = Array.from({ length: 40 }, (_, i) => i === 39 ? 1000 : i % 5);
+  const net = mk(40, edges, false, { grp, x, side: Array.from({ length: 40 }, (_, i) => i % 2 ? 'left' : 'right') });
+  const base = { samplesize: 512, mple: { converged: true, coef: [-3, 0.5, 0.2], se: [0.3, 0.2, 0.2] }, coefs: [{ b: -3, se: 0.3 }, { b: 0.5, se: 0.2 }, { b: 0.2, se: 0.2 }] };
+  // friends of friends mixes slowly → it is named, with how many ties share a contact; the characteristic is cleared
+  let W = E.nlErgmDiagnose(net, [{ t: 'edges' }, { t: 'gwesp', decay: 0.5 }, { t: 'nodematch', a: 'side' }], Object.assign({}, base, { tratio: [0.1, -0.6, 0.1], essK: [80, 5, 70] }));
+  assert.equal(W[0].kind, 'mixing'); assert.equal(W[0].term, 1); assert.match(W[0].text, /Only 3 of 40 ties \(8%\) share a contact and the whole network has 1 triangle /); assert.match(W[0].text, /characteristics are not the problem/);
+  // a tiny group in a characteristic is named first
+  W = E.nlErgmDiagnose(net, [{ t: 'edges' }, { t: 'gwesp', decay: 0.5 }, { t: 'nodematch', a: 'grp' }], Object.assign({}, base, { tratio: [0.1, 0.1, -0.5], essK: [80, 70, 60] }));
+  assert.equal(W[0].kind, 'rare'); assert.equal(W[0].term, 2); assert.match(W[0].text, /Only 2 people have grp = tiny/);
+  // separation: the pseudo-likelihood estimate runs away
+  W = E.nlErgmDiagnose(net, [{ t: 'edges' }, { t: 'nodematch', a: 'grp' }], Object.assign({}, base, { mple: { converged: true, coef: [-3, 11], se: [0.3, 9] }, coefs: [{ b: -3, se: 0.3 }, { b: 12, se: 3 }], tratio: [0.1, 0.9], essK: [80, 70] }));
+  assert.equal(W[0].kind, 'separation'); assert.match(W[0].title, /almost perfectly predicts/);
+  // extreme values in a number
+  W = E.nlErgmDiagnose(net, [{ t: 'edges' }, { t: 'nodecov', a: 'x' }], Object.assign({}, base, { tratio: [0.1, 0.5], essK: [80, 70] }));
+  assert.equal(W[0].kind, 'extreme');
+  // nothing wrong: it needs more time
+  W = E.nlErgmDiagnose(net, [{ t: 'edges' }, { t: 'gwesp', decay: 0.5 }], Object.assign({}, base, { tratio: [0.1, 0.3], essK: [80, 70], timedOut: true }));
+  assert.equal(W[0].kind, 'time'); assert.equal(W[0].fix, 'longer'); assert.match(W[0].title, /ran out of time/);
+});

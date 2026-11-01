@@ -1,5 +1,7 @@
 // Export what the calculator computes, for comparison in R.
 // Usage: node calculator/tests/r/net-lab-export.mjs <edges> <nodes> <outdir> <tag> <directed 1|0> <attr> <models.json>  (then run net-lab-compare.R on <outdir>)
+import fs from 'node:fs';
+import zlib from 'node:zlib';
 const [ef, nf, out, tag, dirS, attr, modelsJ] = process.argv.slice(2);
 const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 const man = JSON.parse(html.match(/<script type="__bundler\/manifest">([\s\S]*?)<\/script>/)[1]);
