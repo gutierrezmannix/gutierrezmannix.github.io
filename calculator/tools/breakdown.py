@@ -29,7 +29,7 @@ def integrate_component(c):
         if c.count(anchor) != 1:
             raise RuntimeError('breakdown: render anchor')
         c = c.replace(anchor, "    // GM26 breakdown render\n    out.obShow = !!(out.isOne && S.exploreVar && this.effMeta(S.exploreVar)); out.obEl = out.obShow ? this.obRender() : null;\n" + anchor)
-    if '"guideOn","tl","ob"]' not in c:
+    if '"guideOn","tl","ob"' not in c:
         if c.count('"guideOn","tl"]') != 2:
             raise RuntimeError('breakdown: session key lists changed')
         c = c.replace('"guideOn","tl"]', '"guideOn","tl","ob"]')

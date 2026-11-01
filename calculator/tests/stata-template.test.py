@@ -13,7 +13,7 @@ ordered(within('isNumNum'),'{{ corrRows }}','{{ scatterChartEl }}','{{ iCorr.tex
 ordered(within('isCatNum'),'{{ groupRows }}','{{ gboxChartEl }}','{{ iTest.text }}')
 ordered(within('isCatCat'),'{{ ctRows }}','{{ stackChartEl }}','{{ iCt.text }}')
 ordered(within('semHasFit'),'{{ stataSemSample }}','{{ semRows }}','{{ semFitCells }}','{{ semDiagramEl }}','{{ iSem.text }}')
-ordered(within('ngHasFit'),'{{ ngNetCells }}','{{ ngRows }}','{{ ngCentRows }}','{{ ngPlotEl }}','{{ iErgm.text }}')
+assert '{{ nlEl }}' in within('isErgm') and t.count('{{ nlEl }}')==1  # networks tab: eight guided steps (net lab)
 ordered(within('tsHasRes'),'{{ tsCells }}','{{ tsRows }}','{{ tsChartEl }}','{{ iTs.text }}')
 ordered(within('hasModel'),'{{ sumCells }}','{{ coefRows }}','{{ iReg.text }}')
 ordered(within('hasModel'),'{{ zHead }}','[95% CI]','{{ lastHead }}')
