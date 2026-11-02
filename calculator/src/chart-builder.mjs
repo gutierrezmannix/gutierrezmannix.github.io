@@ -278,19 +278,33 @@ function cbDrawXY(C, M) {
   const tickW = Math.max(...yt.map(t => cbTextW(tickFmt(t, yt, false, { pct, fmt: o.fmt }), C.F.tick, true)), 20);
   const endW = endLabels ? Math.min(220, Math.max(...keys.map(k => cbTextW(C.nm(k), C.F.leg, false))) + 18) : 0;
   const lastVals = C.values !== 'none' ? cbTextW(C.vfmt(yr[1], pct), C.F.val) / 2 + 6 : 0;
-  const L = 24 + (yTitle ? C.F.lab + 10 : 0) + tickW + 10, R = 24 + Math.max(endW, lastVals), T = head.h + 10, B = 30 + foot.h + (xTitle ? C.F.lab + 14 : 0) + bottomLeg, PW = W - L - R, PH = H - T - B;
+  const L = 24 + (yTitle ? C.F.lab + 10 : 0) + tickW + 10, R = 24 + Math.max(endW, lastVals), T = head.h + 10, PW = W - L - R;
+  // x ticks. GM26 .72: a time axis in whole years is evenly spaced, years without data included (2016, 2017, 2018, 2019 …);
+  // o.xStep sets the interval (1 = every year, 2 = every two years …); "Every year with data" keeps the old labels
+  let xt; const obsX = [...new Set(series.flatMap(s => s.pts.map(p => p.x)))].filter(cbNum).sort((a, b) => a - b);
+  const xLab = t => M.xLabels && M.xLabels[t] != null ? String(M.xLabels[t]) : String(t);
+  const xStep = Number(o.xStep) > 0 ? Number(o.xStep) : 0, labW = Math.max(...(obsX.length ? obsX : [2000]).map(t => cbTextW(xLab(t), C.F.tick, true)), cbTextW('2000', C.F.tick, true));
+  const years = M.xTime && !M.xLabels && obsX.length > 0 && obsX.every(Number.isInteger);
+  if (M.xTime && (o.everyX || (!years && o.everyX == null && (obsX.length <= 16 || M.xLabels))) && obsX.length <= 60) {
+    const fit = xStep ? Math.max(1, Math.round(xStep)) : Math.max(1, Math.ceil(obsX.length * labW * 1.4 / PW)); xt = obsX.filter((_, i) => i % fit === 0);
+  } else if (years) {
+    const lo = Math.max(Math.ceil(xr[0] - 1e-9), o.xmin !== '' && o.xmin != null && cbNum(Number(o.xmin)) ? Math.ceil(Number(o.xmin)) : obsX[0]), hi = Math.floor(xr[1] + 1e-9);
+    let st = xStep ? Math.max(1, Math.round(xStep)) : 0;
+    if (!st) { for (const c of [1, 2, 5, 10, 20, 25, 50, 100, 200, 500, 1000]) { st = c; if (Math.floor((hi - lo) / c + 1) * labW * 1.4 <= PW) break; } }
+    const t0 = st >= 5 ? Math.ceil(lo / st) * st : lo; // every 5, 10 … years: round years (2005, 2010 …); every 1–4: from the first year
+    xt = []; for (let t = t0; t <= hi + 1e-9 && xt.length < 400; t += st) xt.push(t);
+  } else if (xStep && (xr[1] - xr[0]) / xStep <= 400) { xt = []; for (let k = Math.ceil(xr[0] / xStep - 1e-9); k * xStep <= xr[1] + 1e-9; k++) xt.push(Number((k * xStep).toPrecision(12))); }
+  else xt = cbTicks(xr[0], xr[1], Math.max(3, Math.min(10, Math.floor(PW / 90))), !!M.xTime && obsX.every(Number.isInteger));
+  const xtTxt = t => M.xTime ? xLab(t) : tickFmt(t, xt, false, {}), xtW = Math.max(20, ...xt.map(t => cbTextW(xtTxt(t), C.F.tick, true)));
+  const xRot = xt.length > 1 && xt.length * xtW * 1.15 > PW; // labels that would touch are tilted, never dropped
+  const B = 30 + (xRot ? Math.round(xtW * 0.7) : 0) + foot.h + (xTitle ? C.F.lab + 14 : 0) + bottomLeg, PH = H - T - B;
   const X = x => L + (x - xr[0]) / (xr[1] - xr[0]) * PW;
   const Y = logY ? (y => T + PH - (Math.log10(y) - Math.log10(yr[0])) / (Math.log10(yr[1]) - Math.log10(yr[0])) * PH) : (y => T + PH - (y - yr[0]) / (yr[1] - yr[0]) * PH);
   const clip = (o.clipId || 'cb') + '-c';
   C.defs.push(`<clipPath id="${clip}"><rect x="${L - 6}" y="${T - 6}" width="${PW + 12}" height="${PH + 12}"/></clipPath>`);
   const parts = [head.markup], plot = [];
   yt.forEach(t => { if (t < yr[0] - 1e-9 || t > yr[1] + 1e-9) return; if (o.grid !== false) parts.push(`<line x1="${L}" x2="${L + PW}" y1="${Y(t).toFixed(1)}" y2="${Y(t).toFixed(1)}" stroke="${t === 0 ? CBC.axis : CBC.grid}"/>`); parts.push(C.T(L - 8, Y(t) + 4, tickFmt(t, yt, false, { pct, fmt: o.fmt }), `text-anchor="end" fill="${CBC.mut}"`, C.F.tick, true)); });
-  // x ticks: every observed time when asked (or few), otherwise round values
-  let xt; const obsX = [...new Set(series.flatMap(s => s.pts.map(p => p.x)))].filter(cbNum).sort((a, b) => a - b);
-  const xLab = t => M.xLabels && M.xLabels[t] != null ? String(M.xLabels[t]) : String(t);
-  if (M.xTime && (o.everyX || (o.everyX == null && (obsX.length <= 16 || M.xLabels))) && obsX.length <= 60) { const fit = Math.max(1, Math.ceil(obsX.length * Math.max(...obsX.map(t => cbTextW(xLab(t), C.F.tick, true)), cbTextW('2000', C.F.tick, true)) * 1.4 / PW)); xt = obsX.filter((_, i) => i % fit === 0); }
-  else xt = cbTicks(xr[0], xr[1], Math.max(3, Math.min(10, Math.floor(PW / 90))), !!M.xTime && obsX.every(Number.isInteger));
-  xt.forEach(t => { if (t < xr[0] - 1e-9 || t > xr[1] + 1e-9) return; parts.push(C.T(X(t), T + PH + 20, M.xTime ? xLab(t) : tickFmt(t, xt, false, {}), `text-anchor="middle" fill="${CBC.mut}"`, C.F.tick, true)); });
+  xt.forEach(t => { if (t < xr[0] - 1e-9 || t > xr[1] + 1e-9) return; parts.push(xRot ? C.T(X(t) + 4, T + PH + 16, xtTxt(t), `text-anchor="end" fill="${CBC.mut}" transform="rotate(-45 ${(X(t) + 4).toFixed(1)} ${T + PH + 16})"`, C.F.tick, true) : C.T(X(t), T + PH + 20, xtTxt(t), `text-anchor="middle" fill="${CBC.mut}"`, C.F.tick, true)); });
   parts.push(`<line x1="${L}" x2="${L + PW}" y1="${(T + PH).toFixed(1)}" y2="${(T + PH).toFixed(1)}" stroke="${CBC.axis}"/>`);
   if (M.refY != null && M.refY >= yr[0] && M.refY <= yr[1]) plot.push(`<line x1="${L}" x2="${L + PW}" y1="${Y(M.refY).toFixed(1)}" y2="${Y(M.refY).toFixed(1)}" stroke="${CBC.mut}" stroke-dasharray="5 4"/>`);
   if (M.refX != null && M.refX >= xr[0] && M.refX <= xr[1]) plot.push(`<line x1="${X(M.refX).toFixed(1)}" x2="${X(M.refX).toFixed(1)}" y1="${T}" y2="${T + PH}" stroke="${CBC.mut}" stroke-dasharray="4 4"/>`);

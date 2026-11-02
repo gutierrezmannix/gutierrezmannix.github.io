@@ -5905,7 +5905,7 @@ class Component extends DCLogic {
       palette: pal2, highlight: c.highlight || '', eachColor: !!c.eachColor, patterns: !!c.patterns,
       values: c.values || 'none', valueKeys: c.valueKeys || null, fmt: c.fmt || 'auto', decimals: c.decimals === '' || c.decimals == null ? null : +c.decimals,
       legend: c.legend || 'auto', size: c.size || 'auto', text: c.text || (c.font ? (+c.font <= 11 ? 's' : +c.font >= 14 ? 'l' : 'm') : 'm'), zero: c.zero === '1' || c.zero === true ? true : c.zero === '0' || c.zero === false ? false : undefined, log: !!c.log, grid: c.grid !== false,
-      xmin: c.xmin, xmax: c.xmax, ymin: c.ymin, ymax: c.ymax, sort: c.barSort || 'none', horizontal: c.horizontal || 'auto', everyX: c.everyX === '1' || c.everyX === true ? true : undefined,
+      xmin: c.xmin, xmax: c.xmax, xStep: c.xstep, ymin: c.ymin, ymax: c.ymax, sort: c.barSort || 'none', horizontal: c.horizontal || 'auto', everyX: c.everyX === '1' || c.everyX === true ? true : undefined,
       lineWidth: c.lineWidth || 'normal', markers: c.markers !== false, dashes: Object.assign({}, ((S.cbDash || {})[roles.series || ''] || {}), c.dashes || {}), sliceLabels: c.sliceLabels || (['count', 'both'].includes(c.labels) ? c.labels : undefined)
     };
   }
@@ -6018,7 +6018,8 @@ class Component extends DCLogic {
           this.cbCheck('grid', 'Light grid lines', true),
           cat && m0.mode !== 'diverge' ? this.tlField('Bars', this.cbSeg('horizontal', [['auto', 'Automatic'], ['no', 'Vertical'], ['yes', 'Horizontal']], 'auto', 'Bars')) : null,
           models.length > 1 ? this.tlField('Panels', this.cbSeg('scales', [['shared', 'Same scale'], ['independent', 'Own scale each']], 'shared', 'Panel scales')) : null,
-          h('div', { className: 'tl-row' }, this.cbText('ymin', 'Y minimum', 'auto', 90), this.cbText('ymax', 'Y maximum', 'auto', 90), xy ? this.cbText('xmin', 'X minimum', 'auto', 90) : null, xy ? this.cbText('xmax', 'X maximum', 'auto', 90) : null)),
+          h('div', { className: 'tl-row' }, this.cbText('ymin', 'Y minimum', 'auto', 90), this.cbText('ymax', 'Y maximum', 'auto', 90), xy ? this.cbText('xmin', 'X minimum', 'auto', 90) : null, xy ? this.cbText('xmax', 'X maximum', 'auto', 90) : null, xy ? this.cbText('xstep', 'X interval', 'auto', 90) : null),
+          xy ? h('span', { className: 'tl-hint' }, m0.xTime ? 'X interval: the years between labels — 1 = every year, 2 = every two years. Years without data are shown too.' : 'X interval: the distance between labels on the X axis, e.g. 5 or 10.') : null),
         h('div', { className: 'tl-col' },
           this.tlField('Size', this.cbSeg('size', [['auto', 'Automatic'], ['report', 'Report (3:2)'], ['slide', 'Slide (16:9)'], ['square', 'Square']], 'auto', 'Size')),
           this.tlField('Text', this.cbSeg('text', [['s', 'Small'], ['m', 'Normal'], ['l', 'Large']], 'm', 'Text size'))));
@@ -10225,7 +10226,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-02.71') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-02.72') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {

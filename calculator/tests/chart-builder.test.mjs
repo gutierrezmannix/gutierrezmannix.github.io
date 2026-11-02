@@ -267,3 +267,18 @@ test('many categories: number variables in ranges, text variables as the largest
   open(c, 'line', { x: 'edad', y: 'ss_dir', stat: 'mean', group: 'muni' });
   assert.equal(c.cbLevels('muni').length, 21);
 });
+
+test('a year axis is evenly spaced, years without data included, and takes an interval (build .72)', () => {
+  const yrs = [2008, 2010, 2012, 2014, 2016, 2019, 2021, 2023, 2025];
+  const M = { type: 'xy', xTime: true, series: [{ key: 'a', style: 'line', pts: yrs.map((x, i) => ({ x, y: 3 + (i % 3) })) }], seriesKeys: ['a'] };
+  const lab = o => [...E.cbScene(M, { values: 'none', ...o }).markup.matchAll(/>((?:19|20)\d\d)</g)].map(m => +m[1]);
+  const auto = lab({}), gaps = new Set(auto.slice(1).map((y, i) => y - auto[i]));
+  assert.equal(gaps.size, 1, 'automatic labels are evenly spaced: ' + auto.join(' '));
+  assert.ok(auto.includes(2018) && auto[0] === 2008, 'a year without data (2018) is labelled; the axis starts at the first year');
+  assert.deepEqual(lab({ xStep: 1 }), Array.from({ length: 18 }, (_, i) => 2008 + i), 'interval 1: every year, 2015 and 2017 included');
+  assert.deepEqual(lab({ xStep: '5' }), [2010, 2015, 2020, 2025], 'interval 5: round years');
+  assert.deepEqual(lab({ xStep: 3 }), [2008, 2011, 2014, 2017, 2020, 2023], 'interval 3: from the first year');
+  assert.deepEqual(lab({ everyX: true }), yrs, '"Every year with data" keeps the years that have data');
+  const narrow = E.cbScene(M, { values: 'none', xStep: 1, size: 'square' }).markup;
+  assert.ok(/rotate\(-45/.test(narrow) || lab({ xStep: 1, size: 'square' }).length === 18, 'every year is shown on a narrow chart too (tilted if needed)');
+});

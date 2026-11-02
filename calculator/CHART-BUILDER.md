@@ -1,3 +1,16 @@
+# Year axes and the X interval — build 2026-11-02.72
+
+- **Timelines (and any chart over years)** label the x axis at evenly spaced years, including years with no data.
+  For example, LAPOP waves 2016 and 2019 now have 2017 and 2018 between them, where before the axis skipped them.
+  The interval is picked so the labels fit: every year, every two years, every five …
+- **Customize → Axes & size → X interval**: the years between labels. 1 = every year, 2 = every two years. Five or
+  more lands on round years (2005, 2010 …); smaller intervals start at the first year. On any other X axis it sets the
+  distance between labels. When the chosen labels would touch, they are tilted rather than dropped.
+- **Labels → Years on the axis → Every year with data** still labels only the years that have data.
+
+Test: `tests/chart-builder.test.mjs`, "a year axis is evenly spaced …". It checks automatic, interval 1, 3 and 5, and
+"Every year with data".
+
 # Charts named by type — build 2026-11-02.70
 
 The Charts menu and the gallery used to group charts by question ("Compare amounts", "Change over time", …). They
