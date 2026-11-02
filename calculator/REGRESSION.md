@@ -1,3 +1,32 @@
+# Predictors as Stata enters them; the table printed as Stata prints it — build 2026-11-02.75
+
+**Numbers by default, categories by choice.** `regress pn4 idio2 soct2 q2 educ_nivel` in Stata enters every
+variable as a number, even when each code has a label (0 = Peor, 50 = Igual, 100 = Mejor). The Regression page now
+does the same (`effMeta` in the Regression tab: a numeric predictor is a number unless the C badge, or `i.x` in the
+console, was chosen). Before, labelled codes were dummy-coded without asking, which gave a different model. On
+MexicoLapop_Class1.dta the page reproduces the Stata output to every digit:
+- N = 10,985; F(4, 10980) = 195.76; R² = 0.0666; Root MSE = 24.024;
+- idio2 .0683195 (.0076348), soct2 .1318244 (.0075476), q2 .0110653 (.0157324), educ_nivel −3.235726 (.3451691),
+  _cons 44.71347 (1.112894).
+
+Categories stay one click away and are never forced. The results note names the labelled predictors entered as numbers
+and offers "Use idio2 as categories" (Stata `i.idio2`); the N / C badge switches either way. With categories chosen:
+- the table prints them as Stata does: a row with the variable's name, then each level indented beneath it (Igual,
+  Mejor), with the base level left out;
+- the command line reads `regress pn4 i.idio2 soct2 q2 educ_nivel`;
+- a **marginsplot of idio2** button opens Predictions with that variable on the X axis (Stata `margins idio2` ·
+  `marginsplot`). For example: Peor 42.94, Igual 47.41, Mejor 49.36, as in R.
+
+**Stata's table.** The headings are `pn4 | Coef. | Std. err. | t | P>|t| | [95% conf. interval]`. Numbers use
+Stata's %9.0g format: up to 7 significant digits, no leading zero (.0683195), and 2.91e-06 for very small values.
+P>|t| prints as 0.000. The table has no stars; the publication table on the Export step keeps the star convention.
+The coefficient plot prints each estimate next to its dot, in the same format, so the plot and the table show the same
+numbers.
+
+Tests: `tests/regression-interp.test.mjs` (factor block, Stata digits against R, plot numbers = table numbers, the
+`i.` command line); `tests/labelled-codes.test.mjs` (numbers by default, the categories button);
+`tests/regression-numerics.test.mjs` and `tests/regression-e2e.cjs` (Stata formats).
+
 # Output first, compact as in Stata; interpretations checked against R — build 2026-11-02.74
 
 **Layout, the same for all 13 models.** Step 5 shows the output first, then "What the results say" (the verdict, the

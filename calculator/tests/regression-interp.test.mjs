@@ -102,3 +102,17 @@ test('a tiny per-unit effect is read per +10, +100 … but never beyond the vari
   const [per10] = grab(t, /age \(\+, b = [\d.]+, i\.e\. ([\d.]+) per \+10,/); near(per10, 10 * bAge, 0.0006, 'per +10 years');
   assert.doesNotMatch(t, /per \+100/, 'never per +100 years for ages 18–89');
 });
+
+test('the coefficient table prints as Stata: factor block with indented levels, Stata digits, plot numbers = table numbers (build .75)', () => {
+  const out = fit({ depVar: 'y', predictors: ['x', 'g', 's', 'inc'], regModel: 'ols' }), rows = out.coefRows, R = REF.ols;
+  const i = rows.findIndex(r => r.term === 'g' && r.b === ''); assert.ok(i >= 0, 'a row with the factor variable name and no numbers');
+  assert.deepEqual(rows.slice(i + 1, i + 3).map(r => r.term), ['b', 'c'], 'its levels beneath it (the base level a is left out, as Stata)');
+  assert.match(rows[i + 1].tStyle, /padding-left/); assert.match(rows[i].tStyle, /font-weight: 700/);
+  for (const [term, key] of [['x', 'x'], ['b', 'gb'], ['c', 'gc'], ['s', 's'], ['inc', 'inc'], ['_cons', '(Intercept)']]) {
+    const r = rows.find(q => q.term === term), v = Number(r.b); assert.ok(Math.abs(v - R[key]) <= 5e-7 * Math.max(1, Math.abs(R[key])) + 5e-8, term + ': ' + r.b + ' vs R ' + R[key]);
+    assert.ok(!/\*/.test(r.b) && !/^-?0\.\d/.test(r.b), term + ' as Stata prints it (no stars, no leading zero): ' + r.b);
+  }
+  assert.equal(out.zHead, 't'); assert.equal(out.pHead, 'P>|t|'); assert.equal(out.coefHeadY, 'y');
+  const plot = text(out.coefPlotEl); for (const term of ['x', 'b', 'c', 's']) assert.ok(plot.includes(rows.find(q => q.term === term).b), 'the plot prints ' + term + ' as in the table');
+  assert.match(text(out.rgEl), /regress y x i\.g s inc/, 'the command line names i.g');
+});

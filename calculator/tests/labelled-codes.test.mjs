@@ -73,23 +73,21 @@ test('i.year takes its levels from the rows the model uses; the results count th
   const t = text([out.rgEl, out.rgEl3]);
   assert.match(t, /60 rows used of 90 in the subgroup/);
   const terms = c._rgCtx.M.coefs.map(q => q.term);
-  assert.deepEqual(terms, ['(constant)', 'econ = 1', 'year = 2008'], 'one dummy: 2006 is the base, 2004 (no economy question) is not a level');
+  assert.deepEqual(terms, ['(constant)', 'econ', 'year = 2008'], 'econ (0/1) enters as a number, as Stata; one year dummy: 2006 is the base, 2004 (no economy question) is not a level');
 });
 
-test('a scale read as categories (every code labelled) is named in the results, with one click to use it as a number (build .73)', async () => {
+test('a labelled scale enters as a number, as Stata (regress y soct2); categories are a button away, never forced (build .75)', async () => {
   const c = await load(), find = (el, pred, out = []) => { if (el && typeof el === 'object') { if (Array.isArray(el)) el.forEach(x => find(x, pred, out)); else { if (pred(el)) out.push(el); (el.children || []).forEach(x => find(x, pred, out)); } } return out; };
   const meta = c.state.cols.find(m => m.name === 'soct2'); meta.treatAs = 'categorical'; // as for a .dta variable with a label on every code
   c.state.treat = { m1: 'numeric' };
-  assert.equal(c.effMeta('soct2').treatAs, 'categorical');
+  assert.equal(c.effMeta('soct2').treatAs, 'categorical', 'outside a regression it is shown by its labels');
   c.setState({ depVar: 'm1', predictors: ['soct2'], regModel: 'ols', rgStep: 5, weightVar: '' }); c.clearMemo(); c._regRan = c.regSpec();
   let out = c.renderVals();
-  assert.deepEqual(c._rgCtx.M.coefs.map(q => q.term), ['(constant)', 'soct2 = 2', 'soct2 = 3'], 'one row per level, as i.soct2');
-  assert.match(text([out.rgEl, out.rgEl3]), /soct2 is read as categories because every code has a label, so each level gets its own row compared with the first level \(as Stata’s i\.soct2\)/);
-  const btn = find([out.rgEl, out.rgEl3], e => e.tag === 'button' && text(e) === 'Use soct2 as a number')[0]; assert.ok(btn, 'the button is there');
+  assert.deepEqual(c._rgCtx.M.coefs.map(q => q.term), ['(constant)', 'soct2'], 'one slope, as regress m1 soct2');
+  assert.match(text([out.rgEl, out.rgEl3]), /soct2 has a label on every code and is entered as a number, as Stata does \(regress m1 soct2 …\)/);
+  const btn = find([out.rgEl, out.rgEl3], e => e.tag === 'button' && text(e) === 'Use soct2 as categories')[0]; assert.ok(btn, 'the button is there');
   btn.props.onClick(); await wait(20); out = c.renderVals();
   assert.ok(out.regRan, 'the model runs again at once');
-  assert.deepEqual(c._rgCtx.M.coefs.map(q => q.term), ['(constant)', 'soct2'], 'one slope');
-  assert.doesNotMatch(text([out.rgEl, out.rgEl3]), /read as categories/);
-  c.setState({ treat: { m1: 'numeric', soct2: 'categorical' } }); c.clearMemo(); c._regRan = c.regSpec(); out = c.renderVals();
-  assert.doesNotMatch(text([out.rgEl, out.rgEl3]), /read as categories/, 'no note when the C badge was chosen on purpose');
+  assert.deepEqual(c._rgCtx.M.coefs.map(q => q.term), ['(constant)', 'soct2 = 2', 'soct2 = 3'], 'as i.soct2');
+  assert.doesNotMatch(text([out.rgEl, out.rgEl3]), /entered as a number/, 'no note once categories were chosen');
 });

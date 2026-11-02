@@ -7502,7 +7502,7 @@ class Component extends DCLogic {
           h('td', { key: 'z' }, iZ >= 0 ? cell(r[iZ], x => this.fmt(x, 2)) : '.'), h('td', { key: 'p' }, iP >= 0 ? cell(r[iP], x => this.fmtP(x)) : '.'),
           iL >= 0 && iU >= 0 ? h('td', { key: 'ci' }, '[' + cell(r[iL], x => this.fmtCoef(x)) + ', ' + cell(r[iU], x => this.fmtCoef(x)) + ']') : null))))));
   }
-  rgAsNumber(p) { this.clearMemo(); this.setState(s => ({ treat: Object.assign({}, s.treat, { [p]: 'numeric' }) }), () => { this._regRan = this.regSpec(); this.forceUpdate(); }); }
+  rgAsCats(p) { this.clearMemo(); this.setState(s => ({ treat: Object.assign({}, s.treat, { [p]: 'categorical' }) }), () => { this._regRan = this.regSpec(); this.forceUpdate(); }); }
   // GM26 .71: the rows the model could use — the subgroup's rows when a subgroup is on, not the whole file
   rgPoolN(M) { const tot = M.n + (M.dropped || 0); if (!this.conds().length) return tot; const mk = this.mask(); if (!mk) return tot; let k = 0; for (let i = 0; i < mk.length; i++) k += mk[i]; return Math.min(tot, k); }
   // ---------- 5 · results ----------
@@ -7517,14 +7517,19 @@ class Component extends DCLogic {
     const parts = String(out.regInterp || '').split(/(?<=\.) (?=Each b|For a numeric|An odds ratio|For a category|With an interaction)/);
     const apa = out.apaReg ? h('div', { className: 'tl-row' }, h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, out.apaReg)), out.copyApaReg ? this.tlBtn(out.copyApaRegLabel || 'Copy APA', out.copyApaReg) : null) : null;
     const kids = [head, parts[0] ? h('p', { className: 'rg-lead' }, parts[0]) : null, parts.length > 1 ? h('p', { className: 'rg-mut' }, parts.slice(1).join(' ')) : null, out.iReg && out.iReg.tip ? h('p', { className: 'rg-mut' }, h('b', null, 'Keep in mind: '), out.iReg.tip) : null, apa];
-    // GM26 .73: numeric codes read as categories (every code has a label: 0 = Peor, 50 = Igual, 100 = Mejor) get one row
-    // per level, as Stata's i.var; say so, with one click to use them as a number (one slope per step) instead
-    const tr = S.treat || {}, asCat = (S.predictors || []).filter(p => { const m = this.effMeta(p); return m && m.type === 'numeric' && m.treatAs === 'categorical' && !tr[p] && (m.distinct || 0) >= 3; });
-    if (asCat.length) kids.splice(1, 0, this.tlBanner('info', h('b', null, asCat.join(' and ') + (asCat.length > 1 ? ' are' : ' is') + ' read as categories'), ' because every code has a label, so each level gets its own row compared with the first level (as Stata’s i.' + asCat[0] + '). For one slope per step, e.g. per education level, use ' + (asCat.length > 1 ? 'them' : 'it') + ' as a number: ', ...asCat.map(p => this.tlBtn('Use ' + p + ' as a number', () => this.rgAsNumber(p))), h('span', { className: 'rg-mut' }, ' The N / C badge in step 3 switches it back.')));
+    // GM26 .75: predictors with a label on every code enter as numbers, as in Stata; say so, with one click to use them as
+    // categories (i.var) when their codes are not an ordered scale (estado, etid …)
+    const asNum = (S.predictors || []).filter(p => { const m = this.effMeta(p); return m && m.rgNum && (m.distinct || 0) >= 3; });
+    if (asNum.length) kids.splice(1, 0, this.tlBanner('info', h('b', null, asNum.join(', ') + (asNum.length > 1 ? ' have' : ' has') + ' a label on every code'), ' and ' + (asNum.length > 1 ? 'are' : 'is') + ' entered as a number, as Stata does (regress ' + S.depVar + ' ' + asNum[0] + ' …): one slope per one-unit step. If the codes are categories without an order, use ' + (asNum.length > 1 ? 'them' : 'it') + ' as categories (Stata: i.' + asNum[0] + '): ', ...asNum.map(p => this.tlBtn('Use ' + p + ' as categories', () => this.rgAsCats(p))), h('span', { className: 'rg-mut' }, ' The N / C badge in step 3 switches it back.')));
+    // GM26 .75: predictors used as categories (i.var): a margins plot of each, one click away; and back to a number
+    const asCat = (S.predictors || []).filter(p => { const m = this.effMeta(p); return m && m.treatAs === 'categorical' && M.coefs.some(c => c.term.startsWith(p + ' = ')); });
+    if (asCat.length) kids.splice(1, 0, h('div', { className: 'tl-row rg-cats' }, h('span', null, h('b', null, 'As categories: '), asCat.map(p => 'i.' + p).join(' ') + ' — one row per level, compared with ' + asCat.map(p => { const r = (M.refs || []).find(x => x.startsWith(p + ' = ')); return r ? r.slice(p.length + 3) : '?'; }).join(' / ') + '. '),
+      ...asCat.map(p => this.tlBtn('marginsplot of ' + p, () => { this.rgMgSet({ x: p, by: '' }); this.setState({ rgStep: 7 }); }, 'primary', { title: 'Predicted ' + S.depVar + ' for each level of ' + p + ' (Stata: margins ' + p + ' · marginsplot)' })),
+      ...asCat.filter(p => { const m = this.effMeta(p); return m.type === 'numeric'; }).map(p => this.tlBtn('Use ' + p + ' as a number', () => { this.clearMemo(); this.setState(s2 => ({ treat: Object.assign({}, s2.treat, { [p]: 'numeric' }) }), () => { this._regRan = this.regSpec(); this.forceUpdate(); }); }))));
     // GM26 .74: the output first, compact as in Stata (fit, coefficients, plot); what it means goes below it (rgEl3)
     const line = kids.shift(), ame = model === 'logistic' || model === 'poisson' ? this.rgAmeView(now, ctx) : null;
     this._rgNotes = [ame, this.rgPanel(0, 'What the results say', 'the output above in words', line, ...kids)];
-    return this.rgPanel(5, 'Results', 'the output first, as in Stata; what it means is below', h('div', { className: 'rg-row' }, h('span', { className: 'rg-mut mono' }, this.rgDefs().models[model].t + ' · ' + this.rgDefs().models[model].st + ' ' + S.depVar + ' ' + (S.predictors || []).join(' '))));
+    return this.rgPanel(5, 'Results', 'the output first, as in Stata; what it means is below', h('div', { className: 'rg-row' }, h('span', { className: 'rg-mut mono' }, this.rgDefs().models[model].t + ' · ' + this.rgDefs().models[model].st + ' ' + S.depVar + ' ' + (S.predictors || []).map(p => { const m = this.effMeta(p); return m && m.treatAs === 'categorical' ? 'i.' + p : p; }).join(' ') + this.ixValid().map(([a, b]) => { const ic = v => { const m = this.effMeta(v); return (m && m.treatAs === 'categorical' ? 'i.' : 'c.') + v; }; return ' ' + ic(a) + '#' + ic(b); }).join(''))));
   }
   // Average marginal effects: percentage points (logit) or expected counts (Poisson), with the model's variance.
   rgAme(now, ctx) {
@@ -8397,7 +8402,13 @@ class Component extends DCLogic {
     return { pending: true, p: jb.p, label, id: jb.id, secs: (performance.now() - jb.t0) / 1000, indet: !!jb.indet };
   }
   memo(k, fn) { if (!/^(v\||vn\||vnf\||mask\||vf\||w\||opt|sgLv\||txc\|)/.test(k)) k = k + '#' + this.filterSig(); if (!(k in this._memo)) this._memo[k] = fn(); return this._memo[k]; }
-  effMeta(name) { const m = this.state.cols.find(c => c.name === name); if (!m) return null; const ov = this.state.treat[name]; return ov ? Object.assign({}, m, { treatAs: ov }) : m; }
+  effMeta(name) {
+    const m = this.state.cols.find(c => c.name === name); if (!m) return null; const S = this.state, ov = S.treat[name]; if (ov) return Object.assign({}, m, { treatAs: ov });
+    // GM26 .75: in Regression a numeric predictor enters as a number, as Stata's regress y x does — also when every code has a
+    // label (0 = Peor, 50 = Igual, 100 = Mejor); categories only when chosen (the C badge, or i.x in the console)
+    if (S.tab === 'reg' && m.type === 'numeric' && m.treatAs === 'categorical' && name !== S.depVar && (S.predictors || []).includes(name)) return Object.assign({}, m, { treatAs: 'numeric', rgNum: true });
+    return m;
+  }
   toks() { return this.memo('toks', () => this._E.missTokens(this.state.missingCodes)); }
   // GM26 .69: after a pick from a list, the keyboard focus goes back to the picker's box (the list row is gone)
   pkRefocus() { if (typeof document === 'undefined' || !this._kbPick) return; setTimeout(() => { const ae = document.activeElement, inp = this._pkInput; if ((!ae || ae === document.body) && inp && inp.isConnected) { this._pkNoOpen = true; inp.focus(); setTimeout(() => { this._pkNoOpen = false; }, 0); } }, 0); }
@@ -9014,6 +9025,26 @@ class Component extends DCLogic {
   }
 
   // Variable labels in place of names in regression output ("name = level" keeps its level; interactions keep their ×).
+  // GM26 .75: numbers as Stata prints them in a coefficient table (%9.0g): up to 7 significant digits in 8 characters,
+  // no leading zero (.0683195, -3.235726, 44.71347)
+  stataCoef(v) {
+    if (v == null || !isFinite(v)) return '.'; if (v === 0) return '0';
+    const neg = v < 0, a = Math.abs(v);
+    if (a < 1e-5 || a >= 1e8) return (neg ? '-' : '') + a.toExponential(2).replace(/e([+-])(\d)$/, 'e$10$2'); // 2.91e-06, as Stata
+    for (let sig = 7; sig >= 1; sig--) { let t = String(Number(a.toPrecision(sig))); if (/e/.test(t)) break; t = t.replace(/^0\./, '.'); if (t.length <= 8) return (neg ? '-' : '') + t; }
+    return (neg ? '-' : '') + a.toExponential(2).replace(/e([+-])(\d)$/, 'e$10$2');
+  }
+  // GM26 .75: a factor variable as Stata prints it after i.var — a row with its name, then each level indented beneath
+  // (the base level is left out, as Stata does by default); interactions and numbers stay one row each
+  coefGroup(rows) {
+    const base = 'color: var(--c2B271E, #2B271E); overflow-wrap: anywhere; line-height: 1.3;', out = []; let cur = null;
+    for (const r of rows) {
+      const t = String(r.raw || ''), k = / × /.test(t) ? -1 : t.indexOf(' = ');
+      if (k > 0) { const v = t.slice(0, k); if (v !== cur) { cur = v; out.push({ term: this.coefLab(v), raw: v, b: '', se: '', t: '', p: '', pStyle: '', beta: '', ci: '', tStyle: base + ' font-weight: 700;' }); } out.push(Object.assign({}, r, { term: t.slice(k + 3), tStyle: base + ' padding-left: 18px;' })); }
+      else { cur = null; out.push(Object.assign({}, r, { tStyle: base })); }
+    }
+    return out;
+  }
   regLab(t) { return this.state.regNames === 'labels' ? this.termLab(t) : t; } // GM26 .74: the regression results read in names unless Labels is chosen
   coefLab(t) { return this.state.regNames === 'labels' ? this.termLab(t) : (t === '(constant)' ? '_cons' : t); } // GM26 .74: names in the coefficient table, as Stata
   termLab(t) {
@@ -10264,7 +10295,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-02.74') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-02.75') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -12188,8 +12219,8 @@ class Component extends DCLogic {
       out.depHead = mdl === 'logistic' ? 'OUTCOME (Y) — BINARY, EXACTLY 2 VALUES' : mdl === 'ologit' ? 'OUTCOME (Y) — ORDERED, 2–10 LEVELS' : mdl === 'poisson' ? 'OUTCOME (Y) — NON-NEGATIVE COUNT' : 'OUTCOME (Y) — NUMERIC';
       out.depPlaceholder = 'CHOOSE THE OUTCOME \u00b7 TYPE TO SEARCH';
       out.regEmptyText = 'CHOOSE AN OUTCOME AND AT LEAST ONE PREDICTOR TO FIT ' + (mdl === 'ols' ? 'OLS.' : mdl.toUpperCase() + ' REGRESSION.');
-      out.zHead = mdl === 'ols' ? 'T' : 'Z';
-      out.lastHead = mdl === 'ols' ? 'BETA' : (mdl === 'poisson' ? 'IRR' : 'ODDS RATIO');
+      out.zHead = mdl === 'ols' ? 't' : 'z'; out.pHead = 'P>|' + out.zHead + '|'; out.coefHeadY = S.depVar || 'Term'; // GM26 .75: Stata's headings
+      out.lastHead = mdl === 'ols' ? 'Beta' : (mdl === 'poisson' ? 'IRR' : 'Odds ratio');
       out.depVar = S.depVar;
       const dm = S.depVar ? this.effMeta(S.depVar) : null;
       out.depLabel = dm ? (dm.label || '') : '';
@@ -12432,9 +12463,9 @@ class Component extends DCLogic {
             out.rtLatex = () => { try { navigator.clipboard.writeText(this.pubLatex(T, title)).then(() => flash('l', 'LaTeX copied (needs \\usepackage{booktabs}).'), () => flash('l', 'Copy failed.')); } catch (e3) { flash('l', 'Copy failed.'); } };
             out.hasRtMsg = !!S.rtMsg; out.rtMsg = S.rtMsg || '';
           }
-          const stars = p => this.starsOf(p);
+          const stars = () => ''; // GM26 .75: no stars in the coefficient table, as Stata prints it (the publication table keeps them)
           const crit = E.critInv(0.05, M.dfT != null ? M.dfT : (isOls ? M.df2 : 0));
-          const ciOf = c => '[' + this.fmtCoef(c.b - crit * c.se) + ', ' + this.fmtCoef(c.b + crit * c.se) + ']';
+          const ciOf = c => '[' + this.stataCoef(c.b - crit * c.se) + ', ' + this.stataCoef(c.b + crit * c.se) + ']';
           out.hasApaReg = true;
           out.apaReg = isOls
             ? 'R\u00b2 = ' + this.fmt(M.R2, 2) + ', F(' + M.df1 + ', ' + M.df2 + ') = ' + this.fmt(M.F, 2) + ', ' + this.apaP(M.pModel)
@@ -12443,11 +12474,11 @@ class Component extends DCLogic {
           out.copyApaReg = () => this.copyTSV('apaR', out.apaReg);
           if (isOls) {
             out.sumCells = [['R²', this.fmt(M.R2, 3)], ['ADJ R²', this.fmt(M.adjR2, 3)], ['F', this.fmt(M.F)], ['DF', M.df1 + ', ' + M.df2], ['P (MODEL)', this.fmtP(M.pModel)], ['N', this.fmtN(M.n)]].map(([k, v]) => ({ k, v }));
-            out.coefRows = this.stataTerms(M.coefs).map(c => ({ term: this.coefLab(c.term), raw: c.term, b: this.fmtCoef(c.b) + stars(c.p), se: this.fmtCoef(c.se), t: this.fmt(c.t), p: this.fmtP(c.p), pStyle: this.pStyle(c.p), beta: isFinite(c.beta) ? this.fmt(c.beta, 3) : '—', ci: ciOf(c) }));
+            out.coefRows = this.coefGroup(this.stataTerms(M.coefs).map(c => ({ term: this.coefLab(c.term), raw: c.term, b: this.stataCoef(c.b), se: this.stataCoef(c.se), t: this.fmt(c.t), p: isFinite(c.p) ? c.p.toFixed(3) : '.', pStyle: this.pStyle(c.p), beta: isFinite(c.beta) ? this.fmt(c.beta, 3) : '—', ci: ciOf(c) })));
           } else {
             out.sumCells = [['PSEUDO R²', this.fmt(M.mcfadden, 3)], ['LOG-LIK', this.fmt(M.ll, 1)], ['NULL LOG-LIK', this.fmt(M.llNull, 1)], ['N', this.fmtN(M.n)], ['CONVERGED', M.converged ? 'YES' : 'NO']].map(([k, v]) => ({ k, v }));
             const allRows = [...M.coefs, ...(M.cuts || [])];
-            out.coefRows = allRows.map(c => ({ term: this.coefLab(c.term), raw: c.term, b: this.fmtCoef(c.b) + stars(c.p), se: this.fmtCoef(c.se), t: this.fmt(c.t), p: this.fmtP(c.p), pStyle: this.pStyle(c.p), beta: this.fmtRatio(c.or), ci: ciOf(c) }));
+            out.coefRows = this.coefGroup(allRows.map(c => ({ term: this.coefLab(c.term), raw: c.term, b: this.stataCoef(c.b), se: this.stataCoef(c.se), t: this.fmt(c.t), p: isFinite(c.p) ? c.p.toFixed(3) : '.', pStyle: this.pStyle(c.p), beta: this.fmtRatio(c.or), ci: ciOf(c) })));
           }
           this.regressionSampleVals(out, M);
           this.stataRegressionVals(out, M, mdl);
@@ -12456,7 +12487,7 @@ class Component extends DCLogic {
           out.hasRegNotes = M.dropped > 0 || M.refs.length > 0 || !!mapNote || !!convNote;
           out.hasRegNotes = true;
           const vceTxt = M.vce ? ({ robust: 'ROBUST (HC1) SEs', cluster: 'SEs CLUSTERED BY ' + String(S.regCl).toUpperCase() + ' (' + M.vce.G + ' CLUSTERS' + (M.vce.G < 30 ? ' — FEWER THAN ~30 CLUSTERS: THESE SEs CAN BE TOO SMALL AND p-VALUES TOO OPTIMISTIC; TREAT SIGNIFICANCE AS APPROXIMATE' : '') + ')', svy: 'SURVEY-DESIGN SEs (' + M.vce.G + ' PSUs, ' + M.vce.H + ' STRATA, DF ' + M.vce.df + (M.vce.single ? '; ' + M.vce.single + ' SINGLE-PSU STRATA SKIPPED' : '') + ')' })[M.vce.type] + ' · ' : '';
-          out.regNotes = vceTxt + this.starNote().replace(/, /g, '  ') + ' · CI ON THE ' + (isOls ? 'COEFFICIENT' : 'LOG scale — EXPONENTIATE FOR ' + (mdl === 'poisson' ? 'IRR' : 'OR') + ' BOUNDS') + '. ' + convNote + mapNote + (M.dropped > 0 ? this.fmtN(M.dropped) + ' ROWS DROPPED (MISSING ON A MODEL VARIABLE). ' : '') + (M.refs.length ? 'REFERENCE CATEGORIES: ' + M.refs.map(r => this.regLab(r)).join('; ') + '.' : '');
+          out.regNotes = vceTxt + 'CI ON THE ' + (isOls ? 'COEFFICIENT' : 'LOG scale — EXPONENTIATE FOR ' + (mdl === 'poisson' ? 'IRR' : 'OR') + ' BOUNDS') + '. ' + convNote + mapNote + (M.dropped > 0 ? this.fmtN(M.dropped) + ' ROWS DROPPED (MISSING ON A MODEL VARIABLE). ' : '') + (M.refs.length ? 'REFERENCE CATEGORIES: ' + M.refs.map(r => this.regLab(r)).join('; ') + '.' : '');
           // Plain-language reading of the coefficients. A category is compared with its reference category; a main effect
           // inside an interaction holds only where the other variable is at its reference (or 0); a +1 step too small to
           // matter (income in pesos) is described per +10, +100, … units.
@@ -12507,7 +12538,7 @@ class Component extends DCLogic {
               : 'No predictor reaches significance at alpha ' + a + '.' + ixNote) + wTag;
           }
           out.hasCoefPlot = M.coefs.some(c => c.term !== '(constant)');
-          out.coefPlotEl = E.coefPlot(R, M.coefs.filter(c => c.term !== '(constant)').map(c => ({ term: this.regLab(c.term), b: c.b, lo: c.b - crit * c.se, hi: c.b + crit * c.se, sig: isFinite(c.p) && c.p < a })), { key: 'cp|' + mdl + '|' + S.depVar + '|' + S.predictors.join(',') + '|' + a , refCb: this.svgRef('coef'), ax: this.axUI('coef', [mdl, S.depVar, S.predictors.join(',')], { x: true, xName: 'Coefficient' }) }); out.dlCoef = this.dl('coef', 'coefficient-plot-' + S.depVar);
+          out.coefPlotEl = E.coefPlot(R, M.coefs.filter(c => c.term !== '(constant)').map(c => ({ term: this.regLab(c.term), b: c.b, lo: c.b - crit * c.se, hi: c.b + crit * c.se, sig: isFinite(c.p) && c.p < a })), { valFmt: v => this.stataCoef(v), key: 'cp|' + mdl + '|' + S.depVar + '|' + S.predictors.join(',') + '|' + a , refCb: this.svgRef('coef'), ax: this.axUI('coef', [mdl, S.depVar, S.predictors.join(',')], { x: true, xName: 'Coefficient' }) }); out.dlCoef = this.dl('coef', 'coefficient-plot-' + S.depVar);
           out.hasDiag = isOls && M.diag && M.diag.fitted.length > 5;
           if (out.hasDiag) {
             const dg = M.diag;

@@ -132,7 +132,7 @@ test('the regression page: modeled value, exported code, weights, display, wordi
   // small coefficients keep their digits; the text describes income per +10,000
   let out = fit(c, { depVar: 'y', predictors: ['inc', 'x2'], regModel: 'ols', weightVar: '' });
   const inc = out.coefRows.find(x => x.raw === 'inc');
-  assert.match(inc.b, /^0\.0000396\*\*\*$/); assert.match(inc.se, /^0\.00000291$/); assert.doesNotMatch(inc.ci, /0\.000[,\]]/);
+  assert.equal(inc.b, '.0000396'); assert.equal(inc.se, '2.91e-06'); assert.doesNotMatch(inc.ci, /\b0[,\]]/); // as Stata prints them (build .75)
   assert.match(out.regInterp, /inc \(\+, b = 0\.00004, i\.e\. 0\.396 per \+10,000/);
   out = fit(c, { depVar: 'cnt', predictors: ['inc', 'x2'], regModel: 'poisson' });
   assert.match(out.regInterp, /inc \(IRR 1\.\d\d per \+[\d,]+ — each \+[\d,]+ multiplies the expected count/);
@@ -146,8 +146,9 @@ test('the regression page: modeled value, exported code, weights, display, wordi
   out = fit(c, { depVar: 'y', predictors: ['x2', 'sexo', 'grupo'], regModel: 'ols', regIx: [['x2', 'sexo']], treat: { grupo: 'categorical', sexo: 'categorical' } });
   assert.match(out.regInterp, /x2 \(\+, b = [\d.]+, when sexo = Hombre\)/); assert.match(out.regInterp, /how much the effect of x2 changes when sexo = Mujer/); assert.doesNotMatch(out.regInterp, /β =/);
   // stars: one convention (APA by default), switchable in Settings
-  assert.match(out.regNotes, /\* p < \.05  \*\* p < \.01  \*\*\* p < \.001/);
-  out = fit(c, { starSet: 'econ', regIx: [] }); assert.match(out.regNotes, /\* p < \.10  \*\* p < \.05  \*\*\* p < \.01/);
+  // build .75: the coefficient table prints as Stata (no stars, P>|t| as 0.000); the star convention stays for the publication table
+  assert.ok(out.coefRows.every(r => !/\*/.test(r.b)) && !/\* p </.test(out.regNotes), 'no stars in the Stata-style table');
+  out = fit(c, { starSet: 'econ', regIx: [] }); assert.ok(out.coefRows.every(r => /^(\d\.\d{3}|\.|)$/.test(r.p)) && out.coefRows.some(r => /^\d\.\d{3}$/.test(r.p)), "P>|t| as 0.000 (a factor variable's name row has none)");
   assert.equal(c.starsOf(0.07), '*'); c.setState({ starSet: 'apa' }); assert.equal(c.starsOf(0.07), ''); assert.equal(c.starsOf(0.0005), '***');
   // a collinear pair is an error on the page, naming the variable
   out = fit(c, { depVar: 'y', predictors: ['inc', 'inc_k', 'x2'], regModel: 'ols', treat: {} });

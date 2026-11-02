@@ -20,7 +20,7 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
   const main = () => p.locator('.mf-main').innerText();
   await cmd('regress y inc x2');
   let t = await main();
-  check(/0\.0000396\*\*\*/.test(t) && /0\.00000291/.test(t), 'income in pesos shows 0.0000396*** (0.00000291), not 0.000');
+  check(/\.0000396\b/.test(t) && /2\.91e-06/.test(t), 'income in pesos shows .0000396 (2.91e-06), as Stata prints it, not 0.000');
   check(/0\.396 per \+10,000/.test(t), 'the text gives the effect per +10,000');
   if (shots) await p.screenshot({ path: path.join(shots, 'reg-ols.png'), fullPage: true });
   await cmd('regress y inc inc_k x2');
@@ -32,7 +32,7 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
   check(/generate byte esi_1 = \(esi == "sí"\) if !missing\(esi\)/.test(log) && /logit esi_1 x2 i\.grupo_c/.test(log), 'the Stata code recodes the outcome before logit');
   if (shots) await p.screenshot({ path: path.join(shots, 'reg-logit.png'), fullPage: true });
   await cmd('regress y x2 inc_k [pw=w]');
-  t = await main(); check(/ROBUST \(HC1\) SEs/.test(t) && /0\.238/.test(t), '[pw=]: robust SEs (x2 0.238, as Stata)');
+  t = await main(); check(/ROBUST \(HC1\) SEs/.test(t) && /\.23(7[5-9]|8[0-4])\d*/.test(t), '[pw=]: robust SEs (x2 .238, as Stata)');
   await cmd('regress y x2 i.grupo, vce(robust)');
   await p.getByRole('button', { name: /Predictions/ }).first().click(); await p.waitForTimeout(1500);
   await p.locator('input[aria-label="From"]').fill('-2'); await p.locator('input[aria-label="From"]').press('Enter');
@@ -49,8 +49,8 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
   await p.locator('button', { hasText: /^Settings$/ }).first().click(); await p.waitForTimeout(500);
   check(await p.getByRole('button', { name: '.10 .05 .01' }).count() === 1, 'Settings shows the star convention');
   await p.getByRole('button', { name: '.10 .05 .01' }).click(); await p.waitForTimeout(500);
-  await p.locator('.rg-bar button').filter({ hasText: 'Results' }).click(); await p.waitForTimeout(800);
-  t = await main(); console.log('      notes: ' + (t.match(/[^\n]*p ?< ?\.[^\n]*/gi) || []).slice(0, 3).join(' | ').slice(0, 300)); check(/\* p < \.10\s+\*\* p < \.05\s+\*\*\* p < \.01/i.test(t), 'stars switch to .10 .05 .01');
+  await p.locator('.rg-bar button').filter({ hasText: 'Export' }).click(); await p.waitForTimeout(800); // build .75: the Stata-style table has no stars; the publication table keeps the convention
+  t = await main(); console.log('      notes: ' + (t.match(/[^\n]*p ?< ?\.[^\n]*/gi) || []).slice(0, 3).join(' | ').slice(0, 300)); check(/\*\s*p\s*<\s*\.10/i.test(t) && /\*\*\*\s*p\s*<\s*\.01/i.test(t), 'stars switch to .10 .05 .01 (publication table)');
   await p.getByRole('button', { name: '.05 .01 .001' }).click(); await p.waitForTimeout(500);
   if (shots) await p.screenshot({ path: path.join(shots, 'reg-settings.png') });
   await p.locator('button', { hasText: /^Settings$/ }).first().click().catch(() => {}); await p.waitForTimeout(300);

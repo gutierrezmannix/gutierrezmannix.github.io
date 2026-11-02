@@ -1454,6 +1454,7 @@ export function coefPlot(R, rows, o) {
       kids.push(R.createElement('line', { key: 'c1' + i, x1: sx(r2.lo), x2: sx(r2.lo), y1: cy - 6, y2: cy + 6, stroke: col, strokeWidth: 2 }));
       kids.push(R.createElement('line', { key: 'c2' + i, x1: sx(r2.hi), x2: sx(r2.hi), y1: cy - 6, y2: cy + 6, stroke: col, strokeWidth: 2 }));
     }
+    if (o.valFmt && isFinite(r2.b)) kids.push(R.createElement('text', { key: 'v' + i, x: sx(r2.b), y: cy - 9, textAnchor: 'middle', fill: col, fontFamily: 'Space Mono, monospace', fontSize: 10.5, fontWeight: 700 }, o.valFmt(r2.b))); // GM26 .75: the estimate, as in the table
     kids.push(R.createElement('circle', { key: 'd' + i, cx: sx(r2.b), cy, r: 5, fill: col }));
   });
   const grid = [];

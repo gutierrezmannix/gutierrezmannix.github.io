@@ -247,7 +247,7 @@
           h('td', { key: 'z' }, iZ >= 0 ? cell(r[iZ], x => this.fmt(x, 2)) : '.'), h('td', { key: 'p' }, iP >= 0 ? cell(r[iP], x => this.fmtP(x)) : '.'),
           iL >= 0 && iU >= 0 ? h('td', { key: 'ci' }, '[' + cell(r[iL], x => this.fmtCoef(x)) + ', ' + cell(r[iU], x => this.fmtCoef(x)) + ']') : null))))));
   }
-  rgAsNumber(p) { this.clearMemo(); this.setState(s => ({ treat: Object.assign({}, s.treat, { [p]: 'numeric' }) }), () => { this._regRan = this.regSpec(); this.forceUpdate(); }); }
+  rgAsCats(p) { this.clearMemo(); this.setState(s => ({ treat: Object.assign({}, s.treat, { [p]: 'categorical' }) }), () => { this._regRan = this.regSpec(); this.forceUpdate(); }); }
   // GM26 .71: the rows the model could use — the subgroup's rows when a subgroup is on, not the whole file
   rgPoolN(M) { const tot = M.n + (M.dropped || 0); if (!this.conds().length) return tot; const mk = this.mask(); if (!mk) return tot; let k = 0; for (let i = 0; i < mk.length; i++) k += mk[i]; return Math.min(tot, k); }
   // ---------- 5 · results ----------
@@ -262,14 +262,19 @@
     const parts = String(out.regInterp || '').split(/(?<=\.) (?=Each b|For a numeric|An odds ratio|For a category|With an interaction)/);
     const apa = out.apaReg ? h('div', { className: 'tl-row' }, h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, out.apaReg)), out.copyApaReg ? this.tlBtn(out.copyApaRegLabel || 'Copy APA', out.copyApaReg) : null) : null;
     const kids = [head, parts[0] ? h('p', { className: 'rg-lead' }, parts[0]) : null, parts.length > 1 ? h('p', { className: 'rg-mut' }, parts.slice(1).join(' ')) : null, out.iReg && out.iReg.tip ? h('p', { className: 'rg-mut' }, h('b', null, 'Keep in mind: '), out.iReg.tip) : null, apa];
-    // GM26 .73: numeric codes read as categories (every code has a label: 0 = Peor, 50 = Igual, 100 = Mejor) get one row
-    // per level, as Stata's i.var; say so, with one click to use them as a number (one slope per step) instead
-    const tr = S.treat || {}, asCat = (S.predictors || []).filter(p => { const m = this.effMeta(p); return m && m.type === 'numeric' && m.treatAs === 'categorical' && !tr[p] && (m.distinct || 0) >= 3; });
-    if (asCat.length) kids.splice(1, 0, this.tlBanner('info', h('b', null, asCat.join(' and ') + (asCat.length > 1 ? ' are' : ' is') + ' read as categories'), ' because every code has a label, so each level gets its own row compared with the first level (as Stata’s i.' + asCat[0] + '). For one slope per step, e.g. per education level, use ' + (asCat.length > 1 ? 'them' : 'it') + ' as a number: ', ...asCat.map(p => this.tlBtn('Use ' + p + ' as a number', () => this.rgAsNumber(p))), h('span', { className: 'rg-mut' }, ' The N / C badge in step 3 switches it back.')));
+    // GM26 .75: predictors with a label on every code enter as numbers, as in Stata; say so, with one click to use them as
+    // categories (i.var) when their codes are not an ordered scale (estado, etid …)
+    const asNum = (S.predictors || []).filter(p => { const m = this.effMeta(p); return m && m.rgNum && (m.distinct || 0) >= 3; });
+    if (asNum.length) kids.splice(1, 0, this.tlBanner('info', h('b', null, asNum.join(', ') + (asNum.length > 1 ? ' have' : ' has') + ' a label on every code'), ' and ' + (asNum.length > 1 ? 'are' : 'is') + ' entered as a number, as Stata does (regress ' + S.depVar + ' ' + asNum[0] + ' …): one slope per one-unit step. If the codes are categories without an order, use ' + (asNum.length > 1 ? 'them' : 'it') + ' as categories (Stata: i.' + asNum[0] + '): ', ...asNum.map(p => this.tlBtn('Use ' + p + ' as categories', () => this.rgAsCats(p))), h('span', { className: 'rg-mut' }, ' The N / C badge in step 3 switches it back.')));
+    // GM26 .75: predictors used as categories (i.var): a margins plot of each, one click away; and back to a number
+    const asCat = (S.predictors || []).filter(p => { const m = this.effMeta(p); return m && m.treatAs === 'categorical' && M.coefs.some(c => c.term.startsWith(p + ' = ')); });
+    if (asCat.length) kids.splice(1, 0, h('div', { className: 'tl-row rg-cats' }, h('span', null, h('b', null, 'As categories: '), asCat.map(p => 'i.' + p).join(' ') + ' — one row per level, compared with ' + asCat.map(p => { const r = (M.refs || []).find(x => x.startsWith(p + ' = ')); return r ? r.slice(p.length + 3) : '?'; }).join(' / ') + '. '),
+      ...asCat.map(p => this.tlBtn('marginsplot of ' + p, () => { this.rgMgSet({ x: p, by: '' }); this.setState({ rgStep: 7 }); }, 'primary', { title: 'Predicted ' + S.depVar + ' for each level of ' + p + ' (Stata: margins ' + p + ' · marginsplot)' })),
+      ...asCat.filter(p => { const m = this.effMeta(p); return m.type === 'numeric'; }).map(p => this.tlBtn('Use ' + p + ' as a number', () => { this.clearMemo(); this.setState(s2 => ({ treat: Object.assign({}, s2.treat, { [p]: 'numeric' }) }), () => { this._regRan = this.regSpec(); this.forceUpdate(); }); }))));
     // GM26 .74: the output first, compact as in Stata (fit, coefficients, plot); what it means goes below it (rgEl3)
     const line = kids.shift(), ame = model === 'logistic' || model === 'poisson' ? this.rgAmeView(now, ctx) : null;
     this._rgNotes = [ame, this.rgPanel(0, 'What the results say', 'the output above in words', line, ...kids)];
-    return this.rgPanel(5, 'Results', 'the output first, as in Stata; what it means is below', h('div', { className: 'rg-row' }, h('span', { className: 'rg-mut mono' }, this.rgDefs().models[model].t + ' · ' + this.rgDefs().models[model].st + ' ' + S.depVar + ' ' + (S.predictors || []).join(' '))));
+    return this.rgPanel(5, 'Results', 'the output first, as in Stata; what it means is below', h('div', { className: 'rg-row' }, h('span', { className: 'rg-mut mono' }, this.rgDefs().models[model].t + ' · ' + this.rgDefs().models[model].st + ' ' + S.depVar + ' ' + (S.predictors || []).map(p => { const m = this.effMeta(p); return m && m.treatAs === 'categorical' ? 'i.' + p : p; }).join(' ') + this.ixValid().map(([a, b]) => { const ic = v => { const m = this.effMeta(v); return (m && m.treatAs === 'categorical' ? 'i.' : 'c.') + v; }; return ' ' + ic(a) + '#' + ic(b); }).join(''))));
   }
   // Average marginal effects: percentage points (logit) or expected counts (Poisson), with the model's variance.
   rgAme(now, ctx) {
