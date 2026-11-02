@@ -133,3 +133,82 @@ imputation.
 
 The exported R code was also run in R 4.3.3. The yes/no recodes give the 0/1 coefficients, and the weighted
 correlation code gives the page's r and ρ.
+
+# Regression as eight steps, and margins with chosen values — build 2026-11-02.65
+
+Tests ▾ → Regression is now **one entry**. Five chips under it (*A number · Yes / No · Ordered levels · Categories ·
+A count*) open the page with that kind of outcome already chosen. All 13 models live on one page, which works in steps
+like Networks and Text analysis. The nine models that used to have their own menu entries and Setup / Results form
+(robust, quantile, spline, GAM, probit, multinomial, negative binomial, zero-inflated, hurdle) are picked in step 2.
+They run in the Tests engine and show their tables in the same steps.
+
+| Step | What it does |
+|---|---|
+| 1 Outcome | Pick the variable. The page detects its kind (two values → yes / no; whole numbers from 0 → a count; few labelled codes → ordered levels; text → categories; otherwise a number) and says why. Click another card to override it. For yes / no, it shows the shares and which value is predicted, with a button to predict the other one (`binOne`, used by the fit and by the exported code). |
+| 2 Model | The recommended model for that kind of outcome, its alternatives, and each model's options (percentile, flexibility, family, count part). Three quick questions: rows that repeat (→ clustered standard errors, or a multilevel model); prediction rather than explanation (→ lasso, ridge, tree); and one checked from the data (rare events, many zeros or overdispersion, skew). The full list of 13 models is grouped by kind of outcome. |
+| 3 Predictors | The page's own picker, numeric / categorical switch and interactions. Below it, the predictions to show: the X axis and the lines. |
+| 4 Weights · SEs | Weight, classical / robust / clustered / survey standard errors, strata and PSU. Detects survey data from the column names (`factor`, `upm`, `est_dis` …) and offers the design. |
+| 5 Results | The verdict, the plain sentence, notes, keep-in-mind and APA line first. For logit and Poisson, **average marginal effects** (Stata `margins, dydx(*)`): percentage points or expected counts, with a chart and table. Then the model fit, coefficient table and coefficient plot. |
+| 6 Checks | Enough cases (events per term for logit), redundancy (VIF), survey data, rows that repeat, a changing spread or skewed residuals (linear), overdispersion and extra zeros (Poisson), and curvature (a squared term tested for each numeric predictor). Each has a one-click fix: robust standard errors, clustering, the survey design, negative binomial, zero-inflated, spline or GAM, or quantile regression. The VIF table and residual plots follow. |
+| 7 Predictions | Stata's `margins` and `marginsplot`, at the values you choose (below). |
+| 8 Export | The publication table (add models to compare them side by side), the APA line, and the Stata and R commands. |
+
+The console still works as before. `regress …`, `logit …` and the rest open step 5 with the results.
+
+## Margins and marginsplot
+
+- **What to predict:**
+  - the expected value (linear);
+  - the expected count (Poisson);
+  - the chance of the modeled value (logit);
+  - the chance of one chosen category (ordinal).
+- **X axis, numeric variable:**
+  - *from … to … every …* (Stata's `at(edad=(20(5)80))`, R's `seq(20, 80, by = 5)`);
+  - quick choices: every 1, 2, 5 or 10; min to max; the 10/25/50/75/90th percentiles;
+  - or values you type (`at(edad=(20 35 50))`).
+- **X axis, categorical variable:** the categories you tick.
+- **Lines:** one for each category you tick, or for each value of a numeric variable (the 10th, 50th and 90th percentiles by default, or values you type).
+- **Other predictors:** *as observed* (Stata's default, the average over the rows) or *at their means* (`atmeans`).
+- **Variance:** the model's own: classical, robust, clustered or survey.
+- **Standard errors:** delta method, with t and the model's degrees of freedom after linear regression (as Stata's `margins` after `regress`), and z otherwise.
+- **Averaging:** over every row, unless the number of rows times the number of points exceeds 30 million; then it uses a sample and says so.
+- **The plot (marginsplot options):**
+  - confidence as a shaded band, error bars or none;
+  - lines and points, lines, or points;
+  - Y axis from / to / ticks every;
+  - X axis labels every;
+  - title and axis titles;
+  - legend top right, bottom, right or none;
+  - colours: Sendero, grey or colour-blind safe;
+  - size in pixels.
+- **Exports:** PNG / SVG download, pin to report, add to console.
+- **The margins table:** margin, standard error, t or z, p, CI. Copy it or download it as CSV.
+- **Commands:**
+  - Stata, rewritten as you change the boxes: `margins sexo_c, at(x2=(-2(1)2))` followed by `marginsplot, recastci(rarea) ciopts(fcolor(%25)) ylabel(0(.2)1) xlabel(-2(1)2) title("…") legend(position(1) ring(0))`.
+  - R: `marginaleffects::avg_predictions(m, variables = list(x2 = seq(-2, 2, by = 1), sexo = c("Hombre", "Mujer")))` with the matching ggplot.
+
+### Validation
+
+`tests/regression-numerics.test.mjs` compares the page with the delta method written out in R (`tests/regression-numerics-reference.R`). The cases:
+
+| Case | Agreement |
+|---|---|
+| Logit margins at 5 values × 2 lines | 10⁻⁸ |
+| Average marginal effects (numeric derivatives and discrete changes) | 10⁻⁶ |
+| `atmeans` | 10⁻⁸ |
+| Lines at values of a numeric predictor | 10⁻⁸ |
+| Poisson average marginal effect | 10⁻⁶ |
+| Linear-regression margins, with t intervals on the residual degrees of freedom | 10⁻⁸ |
+| Ordinal Pr(y = 4) | 10⁻⁶ (polr's numerical Hessian) |
+
+The file also checks:
+
+- the step page: outcome detection, model choice, which panels appear in which step, and the margins commands;
+- the console opening step 5.
+
+`tests/regression-e2e.cjs` walks through the steps in Chromium, offline:
+
+- the menu chips;
+- detecting a count;
+- choosing negative binomial, clearing the weight it cannot use, and running it in the steps;
+- step 7 with x2 = −2(0.5)2 by group (27 rows, t statistics, one line per group, error bars instead of bands).

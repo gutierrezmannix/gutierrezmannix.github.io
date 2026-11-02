@@ -2265,40 +2265,62 @@ export function* marginsGen(o) {
     for (let r = 0; r < b.length; r++) g[off + r] = -(fU - fL) * xr[r];
     return [FU - FL, g];
   };
-  const fv = V[o.focus], xCat = fv.kind !== 'num';
-  let grid;
-  if (xCat) grid = fv.levels.slice(0, 12);
-  else { const xs = rowsOk.map(i => fv.a[i]); const uq = [...new Set(xs)].sort((a, c) => a - c); if (uq.length <= 12 && uq.every(Number.isInteger)) grid = uq; else { let mn = Infinity, mx = -Infinity; for (const x of xs) { if (x < mn) mn = x; if (x > mx) mx = x; } grid = Array.from({ length: 10 }, (_, k) => mn + (mx - mn) * k / 9); } }
-  const byLv = o.by >= 0 ? V[o.by].levels.slice(0, 6) : [null];
-  const step = Math.max(1, Math.ceil(n / 12000));
+  // Critical value and p-values as Stata's margins: t with the model's residual degrees of freedom when there are
+  // some (linear regression, survey design), otherwise the normal.
+  const df = o.df > 0 ? o.df : 0, crit = critInv(o.alpha || 0.05, df), pOf = t => df > 0 ? pT(t, df) : pZ(t);
+  const seOf = g => { let va = 0; for (let r = 0; r < P; r++) { let s = 0; for (let c = 0; c < P; c++) s += Vc[r][c] * g[c]; va += g[r] * s; } return Math.sqrt(Math.max(0, va)); };
+  // Average over the estimation rows (Stata's default, "as observed"), every row unless that would be very slow.
   let meanEnc = null;
   if (o.at === 'means') { let sw = 0; const acc = V.map((v, vi) => new Array(encOf(vi, v.kind === 'num' ? 0 : v.levels[0]).length).fill(0)); for (let k = 0; k < n; k++) { const i = rowsOk[k], wi = wv[k]; sw += wi; const en = dataEnc(i); en.forEach((e2, vi) => e2.forEach((x, q) => { acc[vi][q] += wi * x; })); } meanEnc = acc.map(a => a.map(x => x / sw)); }
-  const z = critInv(o.alpha || 0.05, 0);
-  const samp = []; if (!meanEnc) for (let k = 0; k < n; k += step) samp.push(k);
-  const encC = samp.map(k => dataEnc(rowsOk[k]));
-  const pointAt = (gx, fEnc, bEnc) => {
+  const avgAt = (cells, set) => { // the average prediction and its gradient with some variables set (set: en => void)
     let m = 0, g = new Float64Array(P), sw = 0;
-    if (meanEnc) { const en = meanEnc.map(a => a.slice()); en[o.focus] = fEnc; if (bEnc) en[o.by] = bEnc; const pr = pred(buildRow(en)); m = pr[0]; g = pr[1]; sw = 1; }
-    else for (let j = 0; j < samp.length; j++) { const en = encC[j].slice(); en[o.focus] = fEnc; if (bEnc) en[o.by] = bEnc; const wi = wv[samp[j]]; const pr = pred(buildRow(en)), gg = pr[1]; m += wi * pr[0]; for (let r = 0; r < P; r++) g[r] += wi * gg[r]; sw += wi; }
-    m /= sw; for (let r = 0; r < P; r++) g[r] /= sw;
-    let va = 0; for (let r = 0; r < P; r++) { let s = 0; for (let c = 0; c < P; c++) s += Vc[r][c] * g[c]; va += g[r] * s; }
-    const se = Math.sqrt(Math.max(0, va)); let lo = m - z * se, hi = m + z * se;
-    if (fam === 'logistic' || fam === 'ologit') { lo = Math.max(0, lo); hi = Math.min(1, hi); } if (fam === 'poisson') lo = Math.max(0, lo);
-    return { x: gx, y: m, lo, hi, se };
+    if (meanEnc) { const en = meanEnc.map(a => a.slice()); set(en); const pr = pred(buildRow(en)); return [pr[0], pr[1]]; }
+    const step = Math.max(1, Math.ceil(n * cells / 3e7));
+    for (let k = 0; k < n; k += step) { const en = dataEnc(rowsOk[k]); set(en); const wi = wv[k]; const pr = pred(buildRow(en)), gg = pr[1]; m += wi * pr[0]; for (let r = 0; r < P; r++) g[r] += wi * gg[r]; sw += wi; }
+    m /= sw; for (let r = 0; r < P; r++) g[r] /= sw; return [m, g, step];
   };
-  const total = byLv.length * grid.length; let done = 0;
+  const stat = (est, g) => { const se = seOf(g), t = est / se; return { est, se, t, p: pOf(t), lo: est - crit * se, hi: est + crit * se }; };
+  // ---- average marginal effects (Stata: margins, dydx(*)): the derivative for a numeric predictor, the change from
+  // the reference category for a categorical one, each averaged over the rows, with delta-method standard errors
+  if (o.ame) {
+    const out = [], sdOf = vi => { let s = 0, s2 = 0; for (let k = 0; k < n; k++) { const x = V[vi].a[rowsOk[k]]; s += x; s2 += x * x; } const m = s / n; return Math.sqrt(Math.max(0, s2 / n - m * m)) || 1; };
+    V.forEach((v, vi) => {
+      if (v.kind === 'num') {
+        const h = 1e-5 * sdOf(vi);
+        let mU = 0, mD = 0, gU = new Float64Array(P), gD = new Float64Array(P), sw = 0;
+        for (let k = 0; k < n; k++) { const i = rowsOk[k], en = dataEnc(i), x = en[vi][0], wi = wv[k]; en[vi] = [x + h]; const u = pred(buildRow(en)); en[vi] = [x - h]; const d = pred(buildRow(en)); mU += wi * u[0]; mD += wi * d[0]; for (let r = 0; r < P; r++) { gU[r] += wi * u[1][r]; gD[r] += wi * d[1][r]; } sw += wi; }
+        const est = (mU - mD) / (2 * h * sw), g = gU.map((x, r) => (x - gD[r]) / (2 * h * sw));
+        out.push({ name: v.name, level: null, ...stat(est, g) });
+      } else v.levels.slice(1).forEach(L => {
+        const [m1, g1] = avgAt(1, en => { en[vi] = encOf(vi, L); }), [m0, g0] = avgAt(1, en => { en[vi] = encOf(vi, v.levels[0]); });
+        out.push({ name: v.name, level: L, ref: v.levels[0], ...stat(m1 - m0, g1.map((x, r) => x - g0[r])) });
+      });
+    });
+    return { ame: out, n, family: fam, J, df };
+  }
+  const fv = V[o.focus], xCat = fv.kind !== 'num';
+  let grid;
+  if (Array.isArray(o.grid) && o.grid.length) grid = xCat ? o.grid.filter(L => fv.levels.includes(L)) : o.grid.filter(Number.isFinite);
+  else if (xCat) grid = fv.levels.slice(0, 12);
+  else { const xs = rowsOk.map(i => fv.a[i]); const uq = [...new Set(xs)].sort((a, c) => a - c); if (uq.length <= 12 && uq.every(Number.isInteger)) grid = uq; else { let mn = Infinity, mx = -Infinity; for (const x of xs) { if (x < mn) mn = x; if (x > mx) mx = x; } grid = Array.from({ length: 10 }, (_, k) => mn + (mx - mn) * k / 9); } }
+  if (!grid.length) return { error: 'no values to predict at — check the values chosen for ' + fv.name };
+  const bv = o.by >= 0 ? V[o.by] : null;
+  const byLv = !bv ? [null] : Array.isArray(o.byVals) && o.byVals.length ? (bv.kind === 'num' ? o.byVals.filter(Number.isFinite) : o.byVals.filter(L => bv.levels.includes(L))) : bv.kind === 'num' ? (() => { const xs = rowsOk.map(i => bv.a[i]).sort((a, c) => a - c), q = p2 => xs[Math.min(xs.length - 1, Math.floor(p2 * (xs.length - 1)))]; return [...new Set([q(0.1), q(0.5), q(0.9)])]; })() : bv.levels.slice(0, 6);
+  const cells = grid.length * byLv.length; let done = 0, sampled = false;
   yield 0.02;
   const series = [];
   for (const bl of byLv) {
     const pts = [], bEnc = bl != null ? encOf(o.by, bl) : null;
     for (const gx of grid) {
       const fEnc = encOf(o.focus, gx);
-      pts.push(pointAt(gx, fEnc, bEnc));
-      done++; yield 0.02 + 0.98 * done / total;
+      const [m, g, step] = avgAt(cells, en => { en[o.focus] = fEnc; if (bEnc) en[o.by] = bEnc; }); if (step > 1) sampled = true;
+      const s = stat(m, g), bounded = fam === 'logistic' || fam === 'ologit';
+      pts.push({ x: gx, y: m, se: s.se, t: s.t, p: s.p, lo: s.lo, hi: s.hi, plo: bounded ? Math.max(0, s.lo) : fam === 'poisson' ? Math.max(0, s.lo) : s.lo, phi: bounded ? Math.min(1, s.hi) : s.hi });
+      done++; yield 0.02 + 0.98 * done / cells;
     }
-    series.push({ label: bl == null ? '' : String(bl), pts });
+    series.push({ label: bl == null ? '' : String(bl), value: bl, pts });
   }
-  return { grid, xCat, series, n, sampled: step > 1, sampN: samp.length, family: fam, J };
+  return { grid, xCat, series, n, sampled, sampN: sampled ? Math.ceil(n / Math.ceil(n * cells / 3e7)) : n, family: fam, J, df };
 }
 export function margins(o) { const it = marginsGen(o); let r; do { r = it.next(); } while (!r.done); return r.value; }
 export function* jobOf(fn) { yield 0.05; return fn(); }
@@ -2306,7 +2328,7 @@ export function marginsChart(R, mg, o) {
   if (!mg || !mg.series || !mg.series.length || !mg.grid) return null;
   const W = 680, H = 380, legH = mg.series.length > 1 ? 22 : 0, m = { l: 62, r: 18, t: 14 + legH, b: 50 };
   const COLS = [o.color || PAL.green, PAL.orange, PAL.blue, '#B0572F', '#7E57C2', '#5D5648'];
-  let y0 = Infinity, y1 = -Infinity; mg.series.forEach(s => s.pts.forEach(p => { y0 = Math.min(y0, p.lo); y1 = Math.max(y1, p.hi); }));
+  let y0 = Infinity, y1 = -Infinity; mg.series.forEach(s => s.pts.forEach(p => { y0 = Math.min(y0, p.plo ?? p.lo); y1 = Math.max(y1, p.phi ?? p.hi); }));
   { const D = axDom(y0, y1, o.ax, 'y', 0.06); y0 = D[0]; y1 = D[1]; }
   const nG = mg.grid.length, xN = !mg.xCat;
   let gx0 = xN ? mg.grid[0] : 0, gx1 = xN ? mg.grid[nG - 1] : nG - 1;
@@ -2325,13 +2347,13 @@ export function marginsChart(R, mg, o) {
   mg.series.forEach((s, si) => {
     const c = COLS[si % COLS.length];
     if (xN) {
-      const up = s.pts.map(p => sx(p.x).toFixed(1) + ',' + sy(p.hi).toFixed(1)), dn = s.pts.slice().reverse().map(p => sx(p.x).toFixed(1) + ',' + sy(p.lo).toFixed(1));
+      const up = s.pts.map(p => sx(p.x).toFixed(1) + ',' + sy(p.phi ?? p.hi).toFixed(1)), dn = s.pts.slice().reverse().map(p => sx(p.x).toFixed(1) + ',' + sy(p.plo ?? p.lo).toFixed(1));
       kids.push(R.createElement('path', { key: 'band' + si, d: 'M' + up.join('L') + 'L' + dn.join('L') + 'Z', fill: c, fillOpacity: 0.14, stroke: 'none' }));
       kids.push(R.createElement('path', { key: 'ln' + si, d: 'M' + s.pts.map(p => sx(p.x).toFixed(1) + ',' + sy(p.y).toFixed(1)).join('L'), fill: 'none', stroke: c, strokeWidth: 2.2 }));
       s.pts.forEach((p, k) => kids.push(R.createElement('circle', { key: 'pt' + si + '_' + k, cx: sx(p.x), cy: sy(p.y), r: 2.6, fill: c })));
     } else {
       const bw = (W - m.l - m.r) / nG, dx = nS > 1 ? (si - (nS - 1) / 2) * Math.min(18, bw * 0.6 / nS) : 0;
-      s.pts.forEach((p, k) => { const xx = sx(k) + dx; kids.push(R.createElement('line', { key: 'eb' + si + '_' + k, x1: xx, x2: xx, y1: sy(p.lo), y2: sy(p.hi), stroke: c, strokeWidth: 1.8 })); kids.push(R.createElement('line', { key: 'ec1' + si + '_' + k, x1: xx - 4, x2: xx + 4, y1: sy(p.lo), y2: sy(p.lo), stroke: c, strokeWidth: 1.5 })); kids.push(R.createElement('line', { key: 'ec2' + si + '_' + k, x1: xx - 4, x2: xx + 4, y1: sy(p.hi), y2: sy(p.hi), stroke: c, strokeWidth: 1.5 })); kids.push(R.createElement('circle', { key: 'cp' + si + '_' + k, cx: xx, cy: sy(p.y), r: 4, fill: c })); });
+      s.pts.forEach((p, k) => { const xx = sx(k) + dx; kids.push(R.createElement('line', { key: 'eb' + si + '_' + k, x1: xx, x2: xx, y1: sy(p.plo ?? p.lo), y2: sy(p.phi ?? p.hi), stroke: c, strokeWidth: 1.8 })); kids.push(R.createElement('line', { key: 'ec1' + si + '_' + k, x1: xx - 4, x2: xx + 4, y1: sy(p.lo), y2: sy(p.lo), stroke: c, strokeWidth: 1.5 })); kids.push(R.createElement('line', { key: 'ec2' + si + '_' + k, x1: xx - 4, x2: xx + 4, y1: sy(p.hi), y2: sy(p.hi), stroke: c, strokeWidth: 1.5 })); kids.push(R.createElement('circle', { key: 'cp' + si + '_' + k, cx: xx, cy: sy(p.y), r: 4, fill: c })); });
       if (nS > 1) s.pts.slice(0, -1).forEach((p, k) => { const q = s.pts[k + 1]; kids.push(R.createElement('line', { key: 'cl' + si + '_' + k, x1: sx(k) + dx, x2: sx(k + 1) + dx, y1: sy(p.y), y2: sy(q.y), stroke: c, strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.7 })); });
     }
     if (nS > 1) { const lx = m.l + si * 120; kids.push(R.createElement('rect', { key: 'lg' + si, x: lx, y: 8, width: 12, height: 12, rx: 2, fill: c })); kids.push(R.createElement('text', { key: 'lt' + si, x: lx + 17, y: 18, fontSize: 11, fontFamily: 'Space Mono, monospace', fill: PAL.ink }, (o.bylab ? o.bylab + ' = ' : '') + String(s.label).slice(0, 12))); }

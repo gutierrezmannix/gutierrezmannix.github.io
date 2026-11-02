@@ -15,8 +15,8 @@ ordered(within('isCatCat'),'{{ ctRows }}','{{ stackChartEl }}','{{ iCt.text }}')
 ordered(within('semHasFit'),'{{ stataSemSample }}','{{ semRows }}','{{ semFitCells }}','{{ semDiagramEl }}','{{ iSem.text }}')
 assert '{{ nlEl }}' in within('isErgm') and t.count('{{ nlEl }}')==1  # networks tab: eight guided steps (net lab)
 ordered(within('tsHasRes'),'{{ tsCells }}','{{ tsRows }}','{{ tsChartEl }}','{{ iTs.text }}')
-ordered(within('hasModel'),'{{ sumCells }}','{{ coefRows }}','{{ iReg.text }}')
-ordered(within('hasModel'),'{{ zHead }}','[95% CI]','{{ lastHead }}')
+ordered(within('rgHasModel'),'{{ sumCells }}','{{ coefRows }}','{{ iReg.text }}')
+ordered(within('rgHasModel'),'{{ zHead }}','[95% CI]','{{ lastHead }}')
 # t-tests and the correlation matrix are built by the component (src/compare-means.js, src/correlation-matrix.js)
 assert '{{ cmEl }}' in within('isTtest') and t.count('{{ cmEl }}')==1
 assert '{{ corEl }}' in within('isCorr') and t.count('{{ corEl }}')==1

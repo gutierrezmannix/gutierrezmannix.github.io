@@ -192,3 +192,60 @@ test('earlier fixes: one-sided t-test after a swap, ttest options, weighted corr
   const big = Float64Array.from([1e9 + 0.1, 1e9 + 0.2, 1e9 + 0.3, 1e9 + 0.4, 1e9 + 0.7]);
   rel(E.descNum(big, null).mean - 1e9, 0.34, 1e-6, 'mean near 1e9');
 });
+
+// ---- build .65: the Regression steps and margins with chosen values
+const gen = r => { if (r && typeof r.next === 'function') { let x; do { x = r.next(); } while (!x.done); return x.value; } return r; };
+const grp = cat('grupo', ['A', 'B', 'C']), sex = cat('sexo', ['Hombre', 'Mujer']);
+test('margins at chosen values and average marginal effects match the delta method in R', () => {
+  const w = null, logit = { family: 'logistic', y: Y('e'), w, vars: [num('x2'), grp, num('inc_k'), sex], ix: [], alpha: 0.05 };
+  let mg = gen(E.marginsGen({ ...logit, focus: 0, by: 3, at: 'avg', cat: -1, grid: [-2, -1, 0, 1, 2], byVals: ['Hombre', 'Mujer'] }));
+  mg.series.flatMap(s => s.pts).forEach((p, k) => { rel(p.y, REF.mgl_y[k], 1e-8, 'margin'); rel(p.se, REF.mgl_se[k], 1e-6, 'margin se'); });
+  assert.equal(mg.df, 0); rel(mg.series[0].pts[0].hi - mg.series[0].pts[0].y, 1.959963985 * mg.series[0].pts[0].se, 1e-6, 'z interval after logit');
+  const ame = gen(E.marginsGen({ ...logit, ame: true })).ame;
+  assert.deepEqual(ame.map(a => a.level ? a.name + '=' + a.level : a.name), ['x2', 'grupo=B', 'grupo=C', 'inc_k', 'sexo=Mujer']);
+  ame.forEach((a, k) => { rel(a.est, REF.amel[k], 1e-6, 'AME ' + a.name); rel(a.se, REF.amel_se[k], 1e-5, 'AME se ' + a.name); });
+  mg = gen(E.marginsGen({ ...logit, focus: 0, by: -1, at: 'means', cat: -1, grid: [-2, -1, 0, 1, 2] }));
+  mg.series[0].pts.forEach((p, k) => { rel(p.y, REF.mgm_y[k], 1e-8, 'atmeans'); rel(p.se, REF.mgm_se[k], 1e-6, 'atmeans se'); });
+  mg = gen(E.marginsGen({ family: 'logistic', y: Y('e'), w, vars: [num('x2'), num('inc_k')], ix: [], alpha: 0.05, focus: 0, by: 1, at: 'avg', cat: -1, grid: [-1, 0, 1], byVals: [50, 120] }));
+  mg.series.flatMap(s => s.pts).forEach((p, k) => { rel(p.y, REF.mgn_y[k], 1e-8, 'lines at numeric values'); rel(p.se, REF.mgn_se[k], 1e-6, 'se'); });
+  const ap = gen(E.marginsGen({ family: 'poisson', y: Y('cnt'), w, vars: [num('x2'), num('inc_k')], ix: [], alpha: 0.05, ame: true })).ame[0];
+  rel(ap.est, REF.amep[0], 1e-6, 'Poisson AME'); rel(ap.se, REF.amep[1], 1e-5, 'Poisson AME se');
+  // linear regression: t with the residual degrees of freedom, as Stata's margins after regress
+  const m4 = E.regress(Y('y'), [num('x2'), grp], null, null);
+  mg = gen(E.marginsGen({ family: 'ols', y: Y('y'), w, vars: [num('x2'), grp], ix: [], alpha: 0.05, focus: 0, by: -1, at: 'avg', cat: -1, grid: [-2, 0, 2], df: m4.dfT }));
+  mg.series[0].pts.forEach((p, k) => { const r = REF.mgo.slice(4 * k, 4 * k + 4); rel(p.y, r[0], 1e-10, 'ols margin'); rel(p.se, r[1], 1e-8, 'ols se'); rel(p.lo, r[2], 1e-8, 't lower'); rel(p.hi, r[3], 1e-8, 't upper'); });
+  // ordered logit: Pr(o = 4)
+  mg = gen(E.marginsGen({ family: 'ologit', y: Y('o'), w, vars: [num('x2'), num('inc_k')], ix: [], alpha: 0.05, focus: 0, by: -1, at: 'avg', cat: 3, grid: [-2, 0, 2] }));
+  mg.series[0].pts.forEach((p, k) => { rel(p.y, REF.mgo4_y[k], 1e-6, 'ologit Pr(4)'); rel(p.se, REF.mgo4_se[k], 2e-4, 'ologit se'); });
+});
+
+test('the Regression steps: outcome detection, model choice, panels by step, margins with chosen values, commands', async () => {
+  const c = await load(), seenJobs = {}; c.jobMemo = (key, fn) => { const spec = fn(); return (seenJobs[key] = gen(E[spec.__work](...spec.args))); };
+  const T = { grupo: 'categorical', sexo: 'categorical' };
+  assert.equal(c.rgDetect('e').type, 'bin'); assert.equal(c.rgDetect('esi').type, 'bin'); assert.equal(c.rgDetect('o').type, 'ord'); assert.equal(c.rgDetect('cnt').type, 'count'); assert.equal(c.rgDetect('y').type, 'num'); assert.equal(c.rgDetect('grupo').type, 'cat');
+  c.rgPickOutcome('cnt'); assert.equal(c.state.regModel, 'poisson'); c.rgPickModel('negbin'); assert.equal(c.state.rgModel, 'negbin'); assert.equal(c.rgNow().extra, 'negbin');
+  c.rgPickOutcome('e'); assert.equal(c.state.regModel, 'logistic'); assert.equal(c.state.rgModel, '');
+  const base = { depVar: 'e', predictors: ['x2', 'grupo', 'inc_k', 'sexo'], regModel: 'logistic', rgModel: '', treat: T };
+  const flags = out => ['rgSetup', 'rgFit', 'rgPub', 'rgVifShow', 'rgHasModel', 'rgHasCoefPlot'].filter(k => out[k]).join(',');
+  const seen = {}; for (let st = 1; st <= 8; st++) { const out = fit(c, { ...base, rgStep: st }); seen[st] = flags(out); assert.ok(out.rgEl, 'step ' + st); assert.ok(out.hasModel, 'the page’s own flag is untouched'); }
+  assert.equal(seen[3], 'rgSetup'); assert.equal(seen[5], 'rgFit,rgHasModel,rgHasCoefPlot'); assert.equal(seen[6], 'rgVifShow,rgHasModel'); assert.equal(seen[8], 'rgPub,rgHasModel'); assert.equal(seen[1], '');
+  // step 7: x2 from -2 to 2 every 1, one line per sexo — the table equals R's margins
+  let out = fit(c, { ...base, rgStep: 7, rgMg: { x: 'x2', by: 'sexo', from: '-2', to: '2', every: '1', mode: 'step' }, rgPlot: { title: 'Chance by x2', ymin: '0', ymax: '1', ystep: '.2', xstep: '1' } });
+  const t = text(out.rgEl);
+  assert.match(t, /margins sexo_c, at\(x2=\(-2\(1\)2\)\)/); assert.match(t, /marginsplot, recastci\(rarea\)[^\n]*ylabel\(0\(\.2\)1\) xlabel\(-2\(1\)2\) title\("Chance by x2"\)/);
+  assert.match(t, /avg_predictions\(m, variables = list\(x2 = seq\(-2, 2, by = 1\), sexo = c\("Hombre", "Mujer"\)\)\)/);
+  const rows = c._rgMgCmd && t.match(/The margins table · 10 rows/); assert.ok(rows, 'ten rows (5 values × 2 lines)');
+  const mgKey = Object.keys(seenJobs).find(k => k.startsWith('rgmg|') && k.includes('[-2,-1,0,1,2]')); const mg = seenJobs[mgKey];
+  mg.series.flatMap(s => s.pts).forEach((p, k) => rel(p.y, REF.mgl_y[k], 1e-8, 'page margins'));
+  // the quick choices: every 2 / percentiles / typed values
+  assert.deepEqual(c.rgGrid('x2', { mode: 'step', from: '20', to: '80', every: '5' }, Float64Array.from([18, 90])).vals, [20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]);
+  assert.equal(c.rgGrid('x2', { mode: 'step', from: '20', to: '80', every: '5' }, Float64Array.from([18, 90])).txt, '20(5)80');
+  assert.deepEqual(c.rgGrid('x2', { mode: 'list', list: '20, 35 50' }, Float64Array.from([18, 90])).vals, [20, 35, 50]);
+  // step 5: average marginal effects in percentage points
+  out = fit(c, { ...base, rgStep: 5 }); assert.match(text(out.rgEl), /each \+1 of x2\+9\.94 pts/); assert.match(text(out.rgEl), /THE MODEL EXPLAINS SOMETHING/);
+  // step 6: checks; a count outcome with overdispersion offers negative binomial
+  out = fit(c, { depVar: 'cnt', predictors: ['x2', 'inc_k'], regModel: 'poisson', rgModel: '', treat: {}, rgStep: 6 }); const t6 = text(out.rgEl);
+  assert.match(t6, /Enough cases/); assert.match(t6, /Pearson χ² \/ df = /);
+  // the console runs a model and opens step 5
+  c.state.tab = 'one'; c.runCmdLine('regress y x2 i.grupo'); clearTimeout(c._mfOkT); assert.equal(c.state.rgStep, 5); assert.equal(c.state.tab, 'reg');
+});

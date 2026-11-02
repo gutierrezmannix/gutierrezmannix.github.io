@@ -34,17 +34,22 @@ const { chromium } = require('playwright'); const path = require('path'), fs = r
   await cmd('regress y x2 inc_k [pw=w]');
   t = await main(); check(/ROBUST \(HC1\) SEs/.test(t) && /0\.238/.test(t), '[pw=]: robust SEs (x2 0.238, as Stata)');
   await cmd('regress y x2 i.grupo, vce(robust)');
-  await p.waitForTimeout(1500); t = await main();
-  const mg = p.locator('[data-screen-label="Margins plot"]').first();
-  if (await mg.count()) { await mg.scrollIntoViewIfNeeded(); await p.waitForTimeout(2500); }
-  const mgInfo = await p.evaluate(() => { const m = document.querySelector('[data-screen-label="Margins plot"]'); return m ? { svg: m.querySelectorAll('svg path, svg polygon, svg rect').length, text: m.innerText.replace(/\s+/g, ' ').slice(0, 200) } : null; });
-  console.log('      margins: ' + JSON.stringify(mgInfo));
-  check(!!mgInfo && mgInfo.svg > 0, 'robust model: the margins chart is drawn');
-  if (shots && mgInfo) await mg.screenshot({ path: path.join(shots, 'reg-margins.png') });
+  await p.getByRole('button', { name: /Predictions/ }).first().click(); await p.waitForTimeout(1500);
+  await p.locator('input[aria-label="From"]').fill('-2'); await p.locator('input[aria-label="From"]').press('Enter');
+  await p.locator('input[aria-label="To"]').fill('2'); await p.locator('input[aria-label="To"]').press('Enter');
+  await p.locator('input[aria-label="Every"]').fill('0.5'); await p.locator('input[aria-label="Every"]').press('Enter'); await p.waitForTimeout(800);
+  await p.locator('select[aria-label="Margins lines by"]').selectOption('grupo'); await p.waitForTimeout(1500);
+  t = await main();
+  check(/margins grupo_c, at\(x2=\(-2\(0\.5\)2\)\)/.test(t) && /The margins table · 27 rows/i.test(t) && /P>\|t\|/i.test(t), 'step 7: margins at x2 = -2(0.5)2 by grupo, 27 rows, t statistics after regress');
+  check(await p.locator('svg[aria-label*="by x2"] polyline').count() === 3, 'the marginsplot draws one line per group');
+  await p.getByRole('button', { name: 'Error bars' }).click(); await p.waitForTimeout(500);
+  t = await main(); check(!/recastci\(rarea\)/.test(t.match(/marginsplot[^\n]*/)[0]) && await p.locator('svg[aria-label*="by x2"] polygon').count() === 0, 'error bars instead of bands (marginsplot without recastci)');
+  if (shots) await p.screenshot({ path: path.join(shots, 'reg-step7.png'), fullPage: true });
   // Settings → Stars
   await p.locator('button', { hasText: /^Settings$/ }).first().click(); await p.waitForTimeout(500);
   check(await p.getByRole('button', { name: '.10 .05 .01' }).count() === 1, 'Settings shows the star convention');
   await p.getByRole('button', { name: '.10 .05 .01' }).click(); await p.waitForTimeout(500);
+  await p.locator('.rg-bar button').filter({ hasText: 'Results' }).click(); await p.waitForTimeout(800);
   t = await main(); console.log('      notes: ' + (t.match(/[^\n]*p ?< ?\.[^\n]*/gi) || []).slice(0, 3).join(' | ').slice(0, 300)); check(/\* p < \.10\s+\*\* p < \.05\s+\*\*\* p < \.01/i.test(t), 'stars switch to .10 .05 .01');
   await p.getByRole('button', { name: '.05 .01 .001' }).click(); await p.waitForTimeout(500);
   if (shots) await p.screenshot({ path: path.join(shots, 'reg-settings.png') });
@@ -61,6 +66,23 @@ const { chromium } = require('playwright'); const path = require('path'), fs = r
   const card2 = await p.evaluate(() => document.body.innerText.match(/pwcorr [^\n]*sig obs/g) || []);
   check(card2.some(s => /pwcorr y x2 inc cnt/.test(s)), 'plot card command follows the variables (' + card1.slice(-1) + ' → ' + card2.slice(-1) + ')');
   if (shots) await p.screenshot({ path: path.join(shots, 'cor-plotcard.png'), fullPage: true });
+  // from the Tests menu: Yes / No → the steps → run → results → checks
+  await p.locator('button.mf-nav[data-nav="tests"]').click(); await p.waitForTimeout(400);
+  await p.evaluate(() => { const d = [...document.querySelectorAll('.cs-menu details')].find(x => /Regression/.test(x.querySelector('summary').textContent)); if (d) d.open = true; }); await p.waitForTimeout(300);
+  check(await p.locator('.cs-rg-chip').count() === 5, 'the menu has one Regression entry with five outcome chips');
+  await p.evaluate(() => [...document.querySelectorAll('.cs-rg-chip')].find(x => /count/.test(x.textContent)).click()); await p.waitForTimeout(800);
+  await p.locator('select[aria-label="Outcome"]').selectOption('cnt'); await p.waitForTimeout(500);
+  t = await main(); check(/DETECTED FROM YOUR DATA/.test(t) && /cnt holds whole numbers from 0/.test(t), 'step 1 detects a count');
+  await p.getByRole('button', { name: /Next: Model/ }).click(); await p.waitForTimeout(400);
+  await p.getByRole('button', { name: /Negative binomial/ }).first().click(); await p.waitForTimeout(400);
+  await p.getByRole('button', { name: /Next: Predictors/ }).click(); await p.waitForTimeout(400);
+  t = await main(); check(/Negative binomial/.test(t), 'step 2 chose the negative binomial');
+  await p.locator('.rg-bar button').filter({ hasText: 'Weights' }).click(); await p.waitForTimeout(400);
+  if (await p.getByRole('button', { name: 'Clear the weight' }).count()) { await p.getByRole('button', { name: 'Clear the weight' }).click(); await p.waitForTimeout(500); }
+  check(!/the weight w has to be cleared/.test(await main()), 'step 4 clears the weight the engine model cannot use');
+  await p.getByRole('button', { name: 'Run the model' }).click(); await p.waitForFunction(() => /Analysis N =/.test(document.querySelector('.mf-main').innerText), null, { timeout: 90000 }).catch(() => {});
+  t = await main(); if (!/Analysis N = \d+/i.test(t)) console.log('      negbin page: ' + t.replace(/\s+/g, ' ').slice(0, 700)); check(/Analysis N = \d+/i.test(t) && /Negative binomial/.test(t), 'an engine model (negative binomial) runs inside the Regression steps');
+  if (shots) await p.screenshot({ path: path.join(shots, 'reg-negbin.png'), fullPage: true });
   console.log('ERRORS', errs.length); errs.slice(0, 6).forEach(e => console.log('   ', e));
   console.log(fails.length ? 'FAILED: ' + fails.join(' | ') : 'ALL PASSED');
   await b.close(); if (errs.length || fails.length) process.exit(1);
