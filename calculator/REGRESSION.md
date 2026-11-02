@@ -1,3 +1,23 @@
+# Labelled numbers, missing values and factor levels as in Stata — build 2026-11-02.71
+
+These problems came up while running two class activities on the merged AmericasBarometer (LAPOP) file: 326,433 rows,
+29 countries, with value-labelled questions (m1: 1 = Very good … 5 = Very bad).
+
+| Where | Before | Now |
+| --- | --- | --- |
+| Formulas (`generate`, `replace`, Data → Calculation) | a labelled numeric variable was "text": `generate approve = (5 - m1)/4*100` was refused | formulas use the codes, as Stata does (`numCore`) |
+| Conditions | `if soct2 < .` matched no row | missing is larger than any number: `x < .` = not missing, `x >= .` = missing (`condMask`) |
+| `generate x = … if …` | when the formula failed, an all-missing `x` was still created and logged | the formula and the conditions are checked first; a failure leaves nothing behind |
+| Categorical predictors (`i.year`, or the N/C badge) | levels came from the whole file: years without the outcome became empty dummies ("year = 2021 … are combinations of the other predictors") | levels and the base come from the rows the model uses, as Stata's `i.` does; with no rows at all, the rows-that-do-not-overlap note explains why |
+| Results line with a subgroup | "13,193 rows used of 326,433" (the whole file) | "13,193 rows used of 18,116 in the subgroup" |
+
+Checked against base R on the Mexico rows (18,116), for the console path on the raw file and for the Correlation and
+Regression pages on a recoded file. Every r, b and N matches, for example:
+- `regress approve econ_worse`: b = −17.333, N = 13,193;
+- the same with `i.year`: b = −11.656, base 2006.
+
+Tests: `tests/labelled-codes.test.mjs` (4 tests, all failing on build .70).
+
 # Model names as in Stata, and rows that do not overlap — build 2026-11-02.70
 
 **Names.** Tests ▾ → Regression lists the 13 models by their usual names, grouped by outcome as in Stata's

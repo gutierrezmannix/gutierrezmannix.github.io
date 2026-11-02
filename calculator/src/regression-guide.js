@@ -222,6 +222,8 @@
     return w ? { w, st, psu } : null;
   }
   rgUseSurvey(g) { this.clearMemo(); this.setState({ weightVar: g.w, weightAuto: false, svyStrata: g.st || '', svyPsu: g.psu || '', regVce: 'svy' }); }
+  // GM26 .71: the rows the model could use — the subgroup's rows when a subgroup is on, not the whole file
+  rgPoolN(M) { const tot = M.n + (M.dropped || 0); if (!this.conds().length) return tot; const mk = this.mask(); if (!mk) return tot; let k = 0; for (let i = 0; i < mk.length; i++) k += mk[i]; return Math.min(tot, k); }
   // ---------- 5 · results ----------
   rgStep5(now, out) {
     const h = React.createElement, { S, extra, model } = now;
@@ -230,7 +232,7 @@
     const ctx = this._rgCtx, M = ctx && ctx.M; if (!M || M.error) return null;
     const sig = model === 'ols' ? M.pModel < this.alpha() : this._E.pChi2(2 * (M.ll - M.llNull), Math.max(1, M.coefs.length - (model === 'ologit' ? 0 : 1))) < this.alpha();
     const vce = M.vce ? { robust: 'robust (HC1) SEs', cluster: 'SEs clustered by ' + S.regCl + ' (' + M.vce.G + ' groups)', svy: 'survey-design SEs' }[M.vce.type] : 'classical SEs';
-    const head = h('div', { className: 'rg-row' }, h('span', { className: 'cm-pill ' + (sig ? 'sig' : 'ns') }, sig ? 'THE MODEL EXPLAINS SOMETHING' : 'NO CLEAR RELATIONSHIP'), h('span', { className: 'rg-mut mono' }, this.rgDefs().models[model].t + ' · ' + this.fmtN(M.n) + ' rows used' + (M.dropped ? ' of ' + this.fmtN(M.n + M.dropped) : '') + ' · ' + vce + (S.weightVar ? ' · weighted by ' + S.weightVar : '')));
+    const head = h('div', { className: 'rg-row' }, h('span', { className: 'cm-pill ' + (sig ? 'sig' : 'ns') }, sig ? 'THE MODEL EXPLAINS SOMETHING' : 'NO CLEAR RELATIONSHIP'), h('span', { className: 'rg-mut mono' }, this.rgDefs().models[model].t + ' · ' + this.fmtN(M.n) + ' rows used' + (M.dropped ? ' of ' + this.fmtN(this.rgPoolN(M)) + (this.conds().length ? ' in the subgroup' : '') : '') + ' · ' + vce + (S.weightVar ? ' · weighted by ' + S.weightVar : '')));
     const parts = String(out.regInterp || '').split(/(?<=\.) (?=Each b|For a numeric|An odds ratio|For a category|With an interaction)/);
     const apa = out.apaReg ? h('div', { className: 'tl-row' }, h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, out.apaReg)), out.copyApaReg ? this.tlBtn(out.copyApaRegLabel || 'Copy APA', out.copyApaReg) : null) : null;
     const kids = [head, parts[0] ? h('p', { className: 'rg-lead' }, parts[0]) : null, parts.length > 1 ? h('p', { className: 'rg-mut' }, parts.slice(1).join(' ')) : null, out.iReg && out.iReg.tip ? h('p', { className: 'rg-mut' }, h('b', null, 'Keep in mind: '), out.iReg.tip) : null, apa];

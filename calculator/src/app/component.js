@@ -7473,6 +7473,8 @@ class Component extends DCLogic {
     return w ? { w, st, psu } : null;
   }
   rgUseSurvey(g) { this.clearMemo(); this.setState({ weightVar: g.w, weightAuto: false, svyStrata: g.st || '', svyPsu: g.psu || '', regVce: 'svy' }); }
+  // GM26 .71: the rows the model could use — the subgroup's rows when a subgroup is on, not the whole file
+  rgPoolN(M) { const tot = M.n + (M.dropped || 0); if (!this.conds().length) return tot; const mk = this.mask(); if (!mk) return tot; let k = 0; for (let i = 0; i < mk.length; i++) k += mk[i]; return Math.min(tot, k); }
   // ---------- 5 · results ----------
   rgStep5(now, out) {
     const h = React.createElement, { S, extra, model } = now;
@@ -7481,7 +7483,7 @@ class Component extends DCLogic {
     const ctx = this._rgCtx, M = ctx && ctx.M; if (!M || M.error) return null;
     const sig = model === 'ols' ? M.pModel < this.alpha() : this._E.pChi2(2 * (M.ll - M.llNull), Math.max(1, M.coefs.length - (model === 'ologit' ? 0 : 1))) < this.alpha();
     const vce = M.vce ? { robust: 'robust (HC1) SEs', cluster: 'SEs clustered by ' + S.regCl + ' (' + M.vce.G + ' groups)', svy: 'survey-design SEs' }[M.vce.type] : 'classical SEs';
-    const head = h('div', { className: 'rg-row' }, h('span', { className: 'cm-pill ' + (sig ? 'sig' : 'ns') }, sig ? 'THE MODEL EXPLAINS SOMETHING' : 'NO CLEAR RELATIONSHIP'), h('span', { className: 'rg-mut mono' }, this.rgDefs().models[model].t + ' · ' + this.fmtN(M.n) + ' rows used' + (M.dropped ? ' of ' + this.fmtN(M.n + M.dropped) : '') + ' · ' + vce + (S.weightVar ? ' · weighted by ' + S.weightVar : '')));
+    const head = h('div', { className: 'rg-row' }, h('span', { className: 'cm-pill ' + (sig ? 'sig' : 'ns') }, sig ? 'THE MODEL EXPLAINS SOMETHING' : 'NO CLEAR RELATIONSHIP'), h('span', { className: 'rg-mut mono' }, this.rgDefs().models[model].t + ' · ' + this.fmtN(M.n) + ' rows used' + (M.dropped ? ' of ' + this.fmtN(this.rgPoolN(M)) + (this.conds().length ? ' in the subgroup' : '') : '') + ' · ' + vce + (S.weightVar ? ' · weighted by ' + S.weightVar : '')));
     const parts = String(out.regInterp || '').split(/(?<=\.) (?=Each b|For a numeric|An odds ratio|For a category|With an interaction)/);
     const apa = out.apaReg ? h('div', { className: 'tl-row' }, h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, out.apaReg)), out.copyApaReg ? this.tlBtn(out.copyApaRegLabel || 'Copy APA', out.copyApaReg) : null) : null;
     const kids = [head, parts[0] ? h('p', { className: 'rg-lead' }, parts[0]) : null, parts.length > 1 ? h('p', { className: 'rg-mut' }, parts.slice(1).join(' ')) : null, out.iReg && out.iReg.tip ? h('p', { className: 'rg-mut' }, h('b', null, 'Keep in mind: '), out.iReg.tip) : null, apa];
@@ -7898,7 +7900,7 @@ class Component extends DCLogic {
     const p = E.parseFormula(ex, this._raw.names);
     if (p.error) return { error: /^[A-Za-z][A-Za-z ]*$/.test(ex) ? '"' + ex + '" is not a number or a variable name. This variable is NUMERIC — for words, create a TEXT variable.' : p.error };
     const arrs = {};
-    for (const v of p.vars) { const cv = this.valsCore(v); if (!cv || cv.kind !== 'num') return { error: '"' + v + '" is text — formulas need numeric variables' }; arrs[v] = cv.a; }
+    for (const v of p.vars) { let cv = this.valsCore(v); if (cv && cv.kind !== 'num') cv = this.numCore(v) || cv; if (!cv || cv.kind !== 'num') return { error: '"' + v + '" is text — formulas need numeric variables' }; arrs[v] = cv.a; } // GM26 .71: labelled numbers (1 = Very good …) use their codes, as in Stata
     const a = new Float64Array(n); for (let i = 0; i < n; i++) a[i] = E.evalRPN(p.rpn, v => arrs[v][i]);
     return { a };
   }
@@ -7961,8 +7963,8 @@ class Component extends DCLogic {
     if (p.error) return this.setState({ genErr: p.error });
     const arrs = {};
     for (const v of p.vars) {
-      const cv = this.valsCore(v);
-      if (cv.kind !== 'num') return this.setState({ genErr: '"' + v + '" is categorical — formulas need numeric variables' });
+      let cv = this.valsCore(v); if (cv && cv.kind !== 'num') cv = this.numCore(v) || cv; // GM26 .71: labelled numbers use their codes
+      if (!cv || cv.kind !== 'num') return this.setState({ genErr: '"' + v + '" is text — formulas need numeric variables' });
       arrs[v] = cv.a;
     }
     const n = this._raw.n, out = new Float64Array(n); let valid = 0;
@@ -8403,8 +8405,8 @@ class Component extends DCLogic {
     } else if (c.t === 'rng') {
       const lo = c.lo === '' ? -Infinity : parseFloat(c.lo), hi = c.hi === '' ? Infinity : parseFloat(c.hi);
       for (let i = 0; i < n; i++) { const v = base.a[i]; mk[i] = (num && isFinite(v) && v >= lo && v <= hi) ? 1 : 0; }
-    } else if (c.val === '.' && (c.op === '==' || c.op === '!=')) {
-      for (let i = 0; i < n; i++) { const v = base.a[i]; const ms = num ? !isFinite(v) : (v == null || v === ''); mk[i] = (c.op === '==' ? ms : !ms) ? 1 : 0; }
+    } else if (c.val === '.') { // GM26 .71: missing is larger than any number, as in Stata: x < . means "not missing"
+      for (let i = 0; i < n; i++) { const v = base.a[i]; const ms = num ? !isFinite(v) : (v == null || v === ''); mk[i] = (c.op === '==' || c.op === '>=' ? ms : c.op === '!=' || c.op === '<' ? !ms : c.op === '<=' ? 1 : 0) ? 1 : 0; }
     } else {
       const fv = num ? parseFloat(c.val) : c.val, op = c.op;
       for (let i = 0; i < n; i++) {
@@ -9654,6 +9656,8 @@ class Component extends DCLogic {
     });
     if (!isGen) { if (!exists) return fail('"' + name + '" does not exist yet — create it first with  generate ' + name + ' = …'); return runReplace(); }
     if (exists) return fail('"' + name + '" already exists — use  replace ' + name + ' = …  to change it, or pick another name');
+    if (!isStr && val !== '.') { const r = this.evalExprAll(val); if (r.error) return fail(r.error); } // GM26 .71: nothing is created when the formula fails
+    for (const c of conds) { if (c.val !== '.' && !/^".*"$/.test(c.val) && !isFinite(parseFloat(c.val)) && !(this.effMeta(c.v) && this.effMeta(c.v).treatAs !== 'numeric')) return fail(c.v + ' is numeric — compare it to a number (or . for missing)'); }
     const st = isStr ? (conds.length ? 'empty' : 'other') : (conds.length || val === '.' ? '.' : 'other');
     this.setState({ nvName: name, nvType: isStr ? 'str' : 'num', nvStart: st, nvOther: conds.length ? '' : val, nvErr: '' }, () => {
       this.doNewVar();
@@ -10221,7 +10225,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-02.70') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-02.71') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -12203,10 +12207,24 @@ class Component extends DCLogic {
         out.regNameBtns = [['labels', 'LABELS', 'Show variable labels in the tables'], ['names', 'NAMES', 'Show variable names in the tables']].map(([k, l, tip]) => ({ label: l, tip, style: seg(onN === (k === 'names')), click: () => this.setState({ regNames: k }) }));
       }
       if (!out.regEmpty) {
+        // GM26 .71: a categorical predictor's levels (and its base) come from the rows the model uses — those with the
+        // outcome, every predictor, the weight and the cluster / PSU — as Stata's i.var does; a year with no outcome
+        // data no longer becomes an empty dummy ("year = 2021 is a combination of the other predictors")
+        const sampleMask = () => this.memo('rgSample|' + S.depVar + '|' + S.predictors.join(',') + '|' + (S.weightVar || '') + '|' + this._vceSig, () => {
+          const yv = this.numVals(S.depVar) || this.vals(S.depVar); if (!yv) return null;
+          const cols = [yv, ...S.predictors.map(pn => this.vals(pn))].filter(Boolean), n0 = yv.a.length, mk = new Uint8Array(n0), cl = this._vceObj && this._vceObj.cl;
+          for (let i = 0; i < n0; i++) {
+            let ok = !w || isFinite(w[i]);
+            for (let k = 0; ok && k < cols.length; k++) { const v = cols[k].a[i]; ok = cols[k].kind === 'num' ? isFinite(v) : v != null && v !== ''; }
+            if (ok && cl) ok = cl[i] != null && cl[i] === cl[i];
+            mk[i] = ok ? 1 : 0;
+          }
+          return mk;
+        });
         const basePreds = () => S.predictors.map(pn => {
           const cv = this.vals(pn);
           if (cv.kind === 'num') return { name: pn, kind: 'num', a: cv.a };
-          const f = E.freqOf(cv.a, w);
+          const mk0 = sampleMask(), mk = mk0 && mk0.some(x => x) ? mk0 : null, f = E.freqOf(mk ? cv.a.map((v, i) => mk[i] ? v : null) : cv.a, w); // no rows at all: keep every level (the error then names the rows)
           return { name: pn, kind: 'cat', a: cv.a, levels: this.descOrder(pn, f.rows).map(r2 => r2.label) };
         });
         const ixList = this.ixValid();
@@ -12251,7 +12269,7 @@ class Component extends DCLogic {
         out.regBusy = false;
         const busyOf = jb => ({ id: jb.id, cancel: () => this.cancelJob(jb.id), label: jb.label + '…', pct: jb.indet ? 'in the background' : Math.round(100 * Math.max(0.03, jb.p || 0)) + '%', w: jb.indet ? '100%' : Math.max(3, Math.round(100 * (jb.p || 0))) + '%', secs: jb.secs > 1 ? ' · ' + jb.secs.toFixed(0) + ' s' : '', note: 'n = ' + this.fmtN(this._raw ? this._raw.n : 0) + ' rows' });
         if (M && M.pending) { out.regBusy = true; out.regBusyInfo = busyOf(M); M = null; }
-        if (M && M.error) { out.hasRegError = true; const cv = /complete rows|single value|in every complete row/.test(M.error) && this.rgCoverage ? this.rgCoverage() : null; out.regError = cv && cv.msg && cv.n < cv.yN ? cv.msg : M.error; } // GM26 .70: say which variables do not overlap
+        if (M && M.error) { out.hasRegError = true; const cv = /complete rows|single value|in every complete row|only one category/.test(M.error) && this.rgCoverage ? this.rgCoverage() : null; out.regError = cv && cv.msg && cv.n < cv.yN ? cv.msg : M.error; } // GM26 .70: say which variables do not overlap
         out.mgShow = false; out.mgBusy = false;
         if (M && !M.error) {
           const segM = on => "font-family: var(--fMono, 'Space Mono', monospace); font-size: 11px; border-radius: 999px; padding: 4px 11px; cursor: pointer; white-space: nowrap; " + (on ? 'color: var(--cFFFFFF, #FFFFFF); background: var(--c1F6447, #1F6447); border: 1px solid var(--c143E2D, #143E2D);' : 'color: var(--c2B271E, #2B271E); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF);');
