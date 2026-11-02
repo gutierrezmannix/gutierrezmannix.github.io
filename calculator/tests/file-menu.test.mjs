@@ -1,7 +1,7 @@
 // Start page and File menu (build .67): node --test calculator/tests/file-menu.test.mjs
 // Files that are not data get a reason (PDF, SPSS, R, LibreOffice, binary) while text in UTF-8, Windows-1252 and
 // Excel's Unicode text (UTF-16) loads; saved CSV names drop any data extension; a new dataset opens on
-// Make a new variable → Blank, and Fix a variable explains what to do when there are no variables yet.
+// Make a new variable (create it, then set its values), and Fix a variable explains what to do when there are no variables yet.
 // The browser side (file dialogs, confirmations, keeping the dataset on a failed load) is tests/file-menu-e2e.cjs.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -51,12 +51,12 @@ test('saved CSV names drop the data extension (libro.xlsx → libro.csv)', async
   }
 });
 
-test('a new dataset opens on Make a new variable → Blank; Fix a variable explains what to do', async () => {
+test('a new dataset opens on Make a new variable (create it · set its values); Fix a variable explains what to do', async () => {
   const c = comp(); c.state = { ...c.state, screen: 'upload' };
   c.newDataset(); await new Promise(r => setTimeout(r, 50));
   assert.equal(c.state.screen, 'work'); assert.equal(c._raw.n, 20); assert.equal(c._raw.names.length, 0);
-  const D = c.deS(); assert.equal(D.task, 'new'); assert.equal(D.recipe, 'blank');
-  assert.match(txt(c.deRender()), /Blank variable.*type the values yourself/);
+  const D = c.deS(); assert.equal(D.task, 'new'); assert.equal(D.recipe, '');
+  assert.match(txt(c.deRender()), /1 · Create it.*2 · Change values/);
   c.deGo('var'); const t = txt(c.deRender());
   assert.match(t, /this dataset has no variables yet/); assert.match(t, /Make a new variable →/);
 });

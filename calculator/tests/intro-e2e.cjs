@@ -44,7 +44,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   // create a dataset by hand
   p = await page(); await p.getByRole('button', { name: 'Create your own dataset' }).click(); await loaded(p).catch(() => {});
   check(await p.locator('.mf-main').count() === 1, 'Create your own dataset → an empty table');
-  check(/Blank variable/i.test(await p.locator('.mf-main').innerText()), 'it opens Make a new variable → Blank (build .67)'); await p.close();
+  check(/1 · Create it/i.test(await p.locator('.mf-main').innerText()), 'it opens Make a new variable: create it, then set its values (build .68)'); await p.close();
   // build .67: Create is a button (Space works, no file dialog); files that are not data get a clear reason
   p = await page(); await p.locator('.gi-new').focus();
   const fcSpace = p.waitForEvent('filechooser', { timeout: 2000 }).then(() => true).catch(() => false); await p.keyboard.press('Space');

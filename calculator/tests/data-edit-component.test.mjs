@@ -108,18 +108,32 @@ test('replace … if on a variable: live count, bad formulas leave no empty undo
   c.setState({ rpConds: [{ v: 'democrat', op: '==', val: '' }] }); assert.match(text(c.deRender()), /Finish the condition on democrat/);
 });
 
-test('recipe yes / no: one step makes the 0/1 variable and logs generate + replace', async () => {
-  const c = await make(); c.deSet({ task: 'new', recipe: 'dummy', dmName: 'dem_sen', dmConds: [{ v: 'democrat', op: '==', val: '1' }, { v: 'senator', op: '==', val: '1' }] });
+test('make a new variable (build .68): create it, then set its values — generate + replace, as in Stata', async () => {
+  const c = await make(); c.deSet({ task: 'new', recipe: '' });
+  let s = text(c.deRender());
+  assert.match(s, /1 · Create it/); assert.match(s, /2 · Change values/); assert.match(s, /More ways to make a variable/); assert.doesNotMatch(s, /Yes \/ No \(0\/1\)|What do you want to make/);
+  // 1: name, numbers, every row starts at 0
+  c.setState({ nvName: 'dem_sen', nvType: 'num', nvStart: '0' }); assert.match(text(c.deRender()), /generate dem_sen = 0/);
+  const n0 = (c._undo || []).length; c.doNewVar(); assert.equal(c._undo.length, n0 + 1, 'one undo step');
+  assert.equal(c.state.nvCur, 'dem_sen'); assert.match(c.state.nvMsg, /dem_sen created: 60 rows, every one 0/);
+  assert.ok(Array.from(col(c, 'dem_sen').a).every(x => x === 0));
+  // 2: set = 1 where democrat and senator
   const want = rows.slice(1).map(r => r.split(',')).filter(r => r[1] === '1' && r[2] === '1').length;
-  const s = text(c.deRender()); assert.match(s, new RegExp(want + ' of 60 rows will be 1 · ' + (60 - want) + ' will be 0')); assert.match(s, /generate dem_sen = 0/);
-  const n0 = (c._undo || []).length; c.deMakeDummy(); assert.equal(c._undo.length, n0 + 1, 'one undo step');
+  c.setState({ rpVal: '1', rpConds: [{ v: 'democrat', op: '==', val: '1' }, { v: 'senator', op: '==', val: '1' }] });
+  s = text(c.deRender()); assert.match(s, new RegExp(want + ' of 60 rows match')); assert.match(s, /replace dem_sen = 1 if democrat == 1 & senator == 1/);
+  c.doReplace();
   const a = Array.from(col(c, 'dem_sen').a); assert.equal(a.filter(x => x === 1).length, want); assert.equal(a.filter(x => x === 0).length, 60 - want);
-  const L = c.state.conLog.slice(-2).map(d => c.cmdText(d, 'stata')); assert.deepEqual(L, ['generate dem_sen = 0', 'replace dem_sen = 1 if democrat == 1 & senator == 1']);
-  assert.match(c.state.deMsg, new RegExp('dem_sen created: ' + want + ' rows are 1'));
-  // everyone else missing; a name that exists is refused; no rule, no variable
-  c.deSet({ dmName: 'dem_sen2', dmElse: '.', dmConds: [{ v: 'senator', op: '==', val: '1' }] }); c.deMakeDummy(); assert.ok(Array.from(col(c, 'dem_sen2').a).some(x => isNaN(x)));
-  c.deSet({ dmName: 'dem_sen', dmConds: [{ v: 'senator', op: '==', val: '1' }] }); c.deMakeDummy(); assert.match(c.state.deErr, /already exists/);
-  const n1 = c._undo.length; c.deSet({ dmName: 'x9', dmConds: [{ v: '', op: '==', val: '' }] }); c.deMakeDummy(); assert.ok(c.state.deErr); assert.equal(c._undo.length, n1);
+  assert.deepEqual(c.state.conLog.slice(-2).map(d => c.cmdText(d, 'stata')), ['generate dem_sen = 0', 'replace dem_sen = 1 if democrat == 1 & senator == 1']);
+  // starts at 1; text that starts empty and is filled by a rule; a name that exists is refused
+  c.setState({ nvName: 'uno', nvType: 'num', nvStart: '1' }); c.doNewVar(); assert.ok(Array.from(col(c, 'uno').a).every(x => x === 1));
+  c.setState({ nvName: 'grupo', nvType: 'str', nvStart: 'empty' }); c.doNewVar(); assert.equal(col(c, 'grupo').k, 's');
+  c.setState({ rpVal: 'Senado', rpConds: [{ v: 'senator', op: '==', val: '1' }] }); c.doReplace();
+  const nSen = rows.slice(1).filter(r => r.split(',')[2] === '1').length;
+  assert.equal(Array.from(col(c, 'grupo').a).filter(x => x === 'Senado').length, nSen);
+  assert.equal(c.cmdText(c.state.conLog.at(-1), 'stata'), 'replace grupo = "Senado" if senator == 1');
+  const n1 = c._undo.length; c.setState({ nvName: 'dem_sen', nvType: 'num', nvStart: '.' }); c.doNewVar(); assert.match(c.state.nvErr, /already exists/); assert.equal(c._undo.length, n1);
+  // the 0/1 one-step action still works (older links and sessions open the two steps)
+  c.deSet({ recipe: 'dummy', dmName: 'dem2', dmConds: [{ v: 'democrat', op: '==', val: '1' }] }); assert.equal(c.deS().recipe, ''); c.deMakeDummy(); assert.ok(col(c, 'dem2'));
 });
 
 test('recipe copy and recode: categories merge into a new labelled variable; the original is unchanged', async () => {

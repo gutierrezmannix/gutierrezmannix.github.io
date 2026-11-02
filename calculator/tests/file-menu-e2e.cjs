@@ -1,6 +1,6 @@
 // The start page's two buttons and the File menu in a real browser, offline (build .67):
 // NODE_PATH=$(npm root -g) node calculator/tests/file-menu-e2e.cjs
-// Create your own dataset (a button: mouse and keyboard, no file dialog, lands on Make a new variable → Blank, values
+// Create your own dataset (a button: mouse and keyboard, no file dialog, lands on Make a new variable, values
 // typed in Browse are kept); drag and drop without flicker; File → Open another dataset… and Open a saved session…
 // open the file dialog at once and keep the open dataset if the dialog is cancelled or the file cannot be read;
 // unsaved changes are asked about before they are replaced; Create a new dataset asks too; Copy session log with an
@@ -32,12 +32,12 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   let { ctx, p } = await fresh();
   check(await p.evaluate(() => document.querySelector('.gi-new').tagName) === 'BUTTON', 'Create your own dataset is a button');
   await p.locator('.gi-new').focus(); let fc = await chooser(p, () => p.keyboard.press('Space')); await p.waitForTimeout(1500);
-  check(!fc && /Blank variable type the values yourself/i.test(await body(p)), 'Space opens the new dataset on Make a new variable → Blank, with no file dialog');
+  check(!fc && /1 · Create it/i.test(await body(p)), 'Space opens the new dataset on Make a new variable (create it · set its values), with no file dialog');
   await p.getByRole('tab', { name: /Fix a variable/ }).click(); await p.waitForTimeout(300);
   check(/this dataset has no variables yet/.test(await body(p)), 'Fix a variable on an empty dataset says what to do');
   await p.getByRole('button', { name: 'Make a new variable →' }).click(); await p.waitForTimeout(300);
-  await p.locator('.tl input.tl-input').first().fill('edad'); await p.getByRole('button', { name: /^Create edad/ }).click(); await p.waitForTimeout(800);
-  await p.getByRole('button', { name: /See it in Browse/ }).first().click(); await p.waitForTimeout(800);
+  await p.getByLabel('Name of the new variable').fill('edad'); await p.getByRole('button', { name: /^Create edad/ }).click(); await p.waitForTimeout(800);
+  await p.getByRole('button', { name: /Type values by hand in Browse/ }).first().click(); await p.waitForTimeout(800);
   await p.locator('input.mf-browse-cell[data-ck="0:0"]').click(); for (const v of ['34', '41', '29']) { await p.keyboard.type(v); await p.keyboard.press('Enter'); await p.waitForTimeout(250); }
   check(/edad • \[new\] 3 valid/.test(await body(p)), 'values typed in Browse are kept (3 valid)');
   if (shots) await p.screenshot({ path: path.join(shots, 'file-create.png'), fullPage: true });
@@ -70,7 +70,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   p.__dialogs = []; await menu(p, 'Create a new dataset'); await p.waitForTimeout(800);
   check(p.__dialogs.some(m => /Start a new, empty dataset\? It replaces the current one/.test(m)) && await fileName(p) === 'tricky.csv', 'Create a new dataset asks first too');
   p.__answer = true; await menu(p, 'Create a new dataset'); await p.waitForTimeout(1500);
-  check(await fileName(p) === 'my-dataset' && /Blank variable/i.test(await body(p)), 'Yes → a new dataset on Make a new variable → Blank');
+  check(await fileName(p) === 'my-dataset' && /1 · Create it/i.test(await body(p)), 'Yes → a new dataset on Make a new variable');
   await menu(p, 'Copy session log'); await p.waitForTimeout(300); check(/The session log is empty/.test(await body(p)), 'Copy session log with an empty log says so');
   fc = await chooser(p, () => menu(p, 'Open a saved session…')); check(!!fc, 'Open a saved session… opens the file dialog at once');
   if (fc) { await fc.setFiles(sess); await p.waitForTimeout(2500); }

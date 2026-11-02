@@ -2,7 +2,7 @@
   // Every change can be undone and is written to the Console as a Stata (or R) command.
   deDefaults() { return { task: 'var', v: '', vl: null, armDel: '', armNum: '', whereOpen: false, storeOpen: false, recipe: '', grpV: '', cpV: '', cpMap: null, cpName: '', dmName: '', dmDesc: '', dmElse: '0', dmConds: null, ccName: '', ccExpr: '', ccDesc: '', bkName: '', bkText: false, rowsV: '', rowsSel: [], rowsLo: '', rowsHi: '', rowsQ: '', colsQ: '', moreOpen: false, saveOpen: false, saveRows: false, withHidden: false, scaleRev: [], scaleName: '', scaleHow: 'mean' }; }
   // older task names (links, saved sessions, console entries) open the job that now holds them
-  deNorm(d) { const t = d.task; if (t === 'scale') { d.task = 'new'; d.recipe = 'scale'; } else if (t === 'rows' || t === 'cols') d.task = 'use'; else if (t !== 'var' && t !== 'new' && t !== 'use') d.task = 'var'; return d; }
+  deNorm(d) { if (d.recipe === 'dummy' || d.recipe === 'blank') d.recipe = ''; const t = d.task; if (t === 'scale') { d.task = 'new'; d.recipe = 'scale'; } else if (t === 'rows' || t === 'cols') d.task = 'use'; else if (t !== 'var' && t !== 'new' && t !== 'use') d.task = 'var'; return d; }
   // state.de holds the tab's choices; state.deTask (set by links such as the model guide) opens a task once
   deOf(s) { const d = Object.assign(this.deDefaults(), s.de || {}); if (s.deTask) d.task = s.deTask; return this.deNorm(d); }
   deS() { return this.deOf(this.state); }
@@ -68,7 +68,7 @@
     if (!raw || !this._E) return null;
     const hid = (S.hiddenVars || []).filter(v => raw.names.includes(v)), nU = (this._undo || []).length, nC = this.deConds().length;
     const useSub = (nC ? this.fmtN(this.deKept()) + ' of ' + this.fmtN(raw.n) + ' rows' : 'rows · variables') + (hid.length ? ' · ' + hid.length + ' hidden' : '');
-    const tasks = [['var', 'Fix a variable', 'rename · labels · recode'], ['new', 'Make a new variable', '0/1 · groups · scale'], ['use', 'Choose what to use', useSub]];
+    const tasks = [['var', 'Fix a variable', 'rename · labels · recode'], ['new', 'Make a new variable', 'create it · set its values'], ['use', 'Choose what to use', useSub]];
     const saveBtn = (nC || hid.length)
       ? this.tlBtn('Save data as CSV ▾', () => this.deSet(d => ({ saveOpen: !d.saveOpen })), 'primary', { title: 'Choose which rows and variables go into the file', 'aria-expanded': D.saveOpen ? 'true' : 'false' })
       : this.tlBtn('Save data as CSV', () => this.deSaveCsv(false, false), 'primary', { title: 'Download the data with every change you made; open it again any time from File' });
@@ -84,7 +84,7 @@
       hid.length ? h('label', { className: 'de-check' }, h('input', { type: 'checkbox', checked: !!D.withHidden, onChange: e => this.deSet({ withHidden: e.target.checked }) }), 'Include the ' + hid.length + ' hidden variable' + (hid.length === 1 ? '' : 's')) : null,
       h('span', { className: 'tl-hint' }, (D.saveRows && nC ? this.fmtN(this.deKept()) : this.fmtN(raw.n)) + ' rows × ' + (raw.names.length - (D.withHidden ? 0 : hid.length)) + ' variables'),
       this.tlBtn('Download CSV', () => this.deSaveCsv(!!D.withHidden, !!(D.saveRows && nC)), 'primary')) : null;
-    const nav = h('div', { className: 'de-tasks', role: 'tablist', 'aria-label': 'Edit data tasks' }, tasks.map(([k, l, sub]) => h('button', { key: k, type: 'button', role: 'tab', 'aria-selected': D.task === k ? 'true' : 'false', className: 'de-task' + (D.task === k ? ' on' : ''), onClick: () => this.deSet({ task: k, armDel: '', armNum: '' }) },
+    const nav = h('div', { className: 'de-tasks', role: 'tablist', 'aria-label': 'Edit data tasks' }, tasks.map(([k, l, sub]) => h('button', { key: k, type: 'button', role: 'tab', 'aria-selected': D.task === k ? 'true' : 'false', className: 'de-task' + (D.task === k ? ' on' : ''), onClick: () => this.deSet(Object.assign({ task: k, armDel: '', armNum: '' }, k === 'new' ? { recipe: '', waysOpen: false } : {})) },
       h('span', { className: 'ic' }, this.deIcon(k)), h('span', { className: 'tx' }, h('b', null, l), h('span', null, sub)))));
     const body = D.task === 'new' ? this.deTaskNew(D) : D.task === 'use' ? this.deTaskUse(D) : this.deTaskVar(D);
     return h('div', { className: 'tl de' }, head, save, nav, body, h('p', { className: 'tl-hint de-foot' }, 'Every change can be undone (Ctrl/⌘+Z) and appears in the Console as a ' + (S.dialect === 'r' ? 'R' : 'Stata') + ' command. Changes live in this tab until you save the data as CSV or save the session (File).'));
@@ -99,8 +99,8 @@
   deTaskVar(D) {
     const h = React.createElement, S = this.state, v = D.v && this.colIdx(D.v) >= 0 ? D.v : '';
     if (!this._raw.names.length) return this.tlPanel('Fix a variable', 'this dataset has no variables yet', null, // GM26 .66: a new, empty dataset
-      h('p', { className: 'de-hint' }, 'Start with a variable to type values into: Make a new variable → Blank. Then type the values in Browse.'),
-      h('div', { className: 'tl-row' }, this.tlBtn('Make a new variable →', () => this.deGo('new', { recipe: 'blank' }), 'primary')));
+      h('p', { className: 'de-hint' }, 'Start with Make a new variable: give it a name, choose numbers or text and what every row starts as, then set its values or type them in Browse.'),
+      h('div', { className: 'tl-row' }, this.tlBtn('Make a new variable →', () => this.deGo('new', { recipe: '' }), 'primary')));
     if (!v) return this.tlPanel('Fix a variable', 'pick the variable you want to work on', null,
       h('div', { className: 'tl-row wide' }, this.tlField('Variable', this.deVarSelect('', n => this.dePickVar(n), { aria: 'Variable to change' })), h('span', { className: 'tl-hint' }, 'Tip: in Browse, click a column name to open it here.')),
       h('p', { className: 'de-hint' }, 'Rename it, say what it measures, choose whether it holds groups or numbers, write what each code means, change or merge values, or delete it — all on one page.'));
@@ -277,12 +277,10 @@
   // ---- 2. make a new variable: pick a recipe, then name, rule and preview on one screen
   deRecipes() {
     return [
-      ['dummy', 'Yes / No (0/1)', '1 where a rule is true, 0 elsewhere, e.g. Democratic senators.', 'generate · replace if', '0/1'],
       ['groups', 'Groups from a number', 'Age → 18–29, 30–44…, a median split or quartiles.', 'recode … , gen()', 'bars'],
       ['scale', 'Scale from several questions', 'Average the trust items; checks first that they fit together (Cronbach’s alpha).', 'alpha · egen rowmean', 'lines'],
       ['calc', 'Calculation', 'Log, ratio or difference, e.g. gdp / population.', 'generate', 'ƒx'],
-      ['copy', 'Copy and recode', 'Merge categories into a new variable, e.g. 7-point party ID → 3 groups.', 'recode … , gen()', 'grid'],
-      ['blank', 'Blank', 'Start empty and type the values in Browse.', 'generate … = .', 'box']];
+      ['copy', 'Copy and recode', 'Merge categories into a new variable, e.g. 7-point party ID → 3 groups.', 'recode … , gen()', 'grid']];
   }
   deRecipeIcon(k) {
     const h = React.createElement, P = { width: 16, height: 16, viewBox: '0 0 24 24', 'aria-hidden': 'true' }, L = Object.assign({ fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' }, P);
@@ -292,20 +290,47 @@
     if (k === 'box') return h('svg', L, h('rect', { x: 4, y: 4, width: 16, height: 16, rx: 2 }));
     return h('span', { className: 'mono' }, k);
   }
+  // GM26 .68: the simple way first, as in Stata — 1 create it (name · numbers or text · what every row starts as:
+  // generate), 2 change values (set = value if …: replace … if, as often as needed, or type them in Browse). The other
+  // recipes (groups from a number, a scale, a calculation, copy and recode) sit under "More ways to make a variable".
   deTaskNew(D) {
-    const h = React.createElement, S = this.state, R = this.deRecipes(), cur = R.some(r => r[0] === D.recipe) ? D.recipe : '';
-    const grid = this.tlPanel('What do you want to make?', null, null,
-      h('div', { className: 'de-recipes', role: 'radiogroup', 'aria-label': 'What do you want to make?' }, R.map(([k, t, d, st, ic]) => h('button', { key: k, type: 'button', role: 'radio', 'aria-checked': cur === k ? 'true' : 'false', className: 'de-rc' + (cur === k ? ' on' : ''), onClick: () => { this.setState({ deMsg: '', deErr: '' }); this.deSet({ recipe: k }); } },
-        h('span', { className: 'rt' }, h('span', { className: 'ic' }, this.deRecipeIcon(ic)), h('b', null, t)), h('span', { className: 'rd' }, d), h('span', { className: 'de-st' }, st)))),
-      cur ? null : h('p', { className: 'de-hint' }, 'Pick what you want to build. Every recipe shows how many rows it will fill before anything changes, and the Stata command it runs.'));
+    const h = React.createElement, S = this.state, raw = this._raw;
+    const isNum = (S.nvType || 'num') === 'num', st = S.nvStart || (isNum ? '.' : 'empty');
+    const nm = (S.nvName || '').trim();
+    const startOpts = isNum ? [['.', 'missing (.)'], ['0', '0'], ['1', '1'], ['other', 'other…']] : [['empty', 'empty ("")'], ['other', 'other…']];
+    const startTxt = isNum ? (st === 'other' ? ((S.nvOther || '').trim() || '…') : st) : '"' + (st === 'other' ? (S.nvOther || '').trim().replace(/^"(.*)"$/, '$1') : '') + '"';
+    const setNv = p => this.setState(Object.assign({ nvErr: '', nvMsg: '' }, p));
+    const create = this.tlPanel('1 · Create it', 'name · numbers or text · what every row starts as', null,
+      h('div', { className: 'de-namegrid' },
+        this.tlField('Name', h('input', { className: 'tl-input mono', value: S.nvName || '', placeholder: 'e.g. democrat', 'aria-label': 'Name of the new variable', spellCheck: false, onChange: e => setNv({ nvName: e.target.value }), onKeyDown: e => { if (e.key === 'Enter') this.doNewVar(); } })),
+        this.tlField('Holds', this.tlSeg([['num', 'Numbers'], ['str', 'Text (words)']], isNum ? 'num' : 'str', k => setNv({ nvType: k, nvStart: k === 'num' ? '.' : 'empty', nvOther: '' }), { 'aria-label': 'Holds' }))),
+      this.tlField('Every row starts as', h('div', { className: 'tl-row' },
+        this.tlSeg(startOpts, st, k => setNv({ nvStart: k }), { 'aria-label': 'Every row starts as' }),
+        st === 'other' ? h('input', { className: 'tl-input' + (isNum ? ' mono' : ''), value: S.nvOther || '', placeholder: isNum ? 'a number, or a formula: income / 1000' : 'e.g. unknown', 'aria-label': 'Starting value', style: { width: '240px' }, onChange: e => setNv({ nvOther: e.target.value }), onKeyDown: e => { if (e.key === 'Enter') this.doNewVar(); } }) : null)),
+      h('div', { className: 'tl-row' }, this.tlBtn('Create ' + (nm || 'the variable'), () => this.doNewVar(), 'primary'),
+        this.deCmdLines([(isNum ? 'generate ' : 'generate str ') + (nm || 'name') + ' = ' + startTxt], ['df$' + (nm || 'name') + ' <- ' + (isNum ? (startTxt === '.' ? 'NA' : startTxt) : startTxt)])),
+      this.deMsgs(S.nvMsg, S.nvErr));
+    const cur = S.nvCur && this.colIdx(S.nvCur) >= 0 ? S.nvCur : '';
+    const pickCur = n => this.setState({ nvCur: n, rpVal: '', rpConds: [{ v: '', op: '==', val: '' }], rpMsg: '', rpErr: '' });
+    const change = this.tlPanel('2 · Change values', 'set a value where a rule is true — repeat for each value', null,
+      h('div', { className: 'tl-row' }, this.tlField('Variable', this.deVarSelect(cur, pickCur, { placeholder: 'the variable you just made, or any other…', aria: 'Variable to change' })),
+        cur ? h('button', { type: 'button', className: 'tl-link', onClick: () => this.deBrowse(cur) }, 'Type values by hand in Browse →') : null),
+      cur ? this.deReplaceBox(cur) : h('p', { className: 'de-hint' }, raw.names.length ? 'Create a variable above, or pick one, then set its values here — e.g. set democrat = 1 if party is "Democrat".' : 'Create a variable above, then set its values here or type them in Browse.'));
+    // more ways (the recipes), folded
+    const R = this.deRecipes(), more = R.some(r => r[0] === D.recipe) ? D.recipe : '';
+    const waysOpen = !!(D.waysOpen || more);
+    const moreEl = h('section', { className: 'tl-panel de-more' },
+      h('button', { type: 'button', className: 'de-moreh', 'aria-expanded': waysOpen ? 'true' : 'false', onClick: () => this.deSet({ waysOpen: !waysOpen, recipe: waysOpen ? '' : D.recipe }) }, (waysOpen ? '▾ ' : '▸ ') + 'More ways to make a variable', h('span', null, 'groups from a number · scale · calculation · copy and recode')),
+      waysOpen ? h('div', { className: 'de-recipes', role: 'radiogroup', 'aria-label': 'More ways to make a variable' }, R.map(([k, t, d, stx, ic]) => h('button', { key: k, type: 'button', role: 'radio', 'aria-checked': more === k ? 'true' : 'false', className: 'de-rc' + (more === k ? ' on' : ''), onClick: () => { this.setState({ deMsg: '', deErr: '' }); this.deSet({ recipe: more === k ? '' : k, waysOpen: true }); } },
+        h('span', { className: 'rt' }, h('span', { className: 'ic' }, this.deRecipeIcon(ic)), h('b', null, t)), h('span', { className: 'rd' }, d), h('span', { className: 'de-st' }, stx)))) : null);
     let body = null;
-    if (cur === 'dummy') body = this.deRecipeDummy(D);
-    else if (cur === 'groups') body = this.deRecipeGroups(D);
-    else if (cur === 'scale') body = this.deTaskScale(D);
-    else if (cur === 'calc') body = this.deRecipeCalc(D);
-    else if (cur === 'copy') body = this.deRecipeCopy(D);
-    else if (cur === 'blank') body = this.deRecipeBlank(D);
-    return h(React.Fragment, null, grid, body);
+    if (more === 'groups') body = this.deRecipeGroups(D);
+    else if (more === 'scale') body = this.deTaskScale(D);
+    else if (more === 'calc') body = this.deRecipeCalc(D);
+    else if (more === 'copy') body = this.deRecipeCopy(D);
+    // a recipe from More ways replaces the two steps while it is open (one form at a time)
+    if (more) return h(React.Fragment, null, h('div', { className: 'tl-row' }, this.tlBtn('← Back to Create it · Change values', () => { this.setState({ deMsg: '', deErr: '' }); this.deSet({ recipe: '', waysOpen: false }); })), moreEl, body);
+    return h(React.Fragment, null, create, change, moreEl);
   }
   deNameRow(nameKey, descKey, D, ph) {
     const h = React.createElement;

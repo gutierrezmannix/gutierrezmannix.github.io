@@ -57,3 +57,22 @@ internet requests blocked (only the update check is attempted), at 1440 px and 3
 
 Sources: `src/data-edit.js`, `src/data-edit.css`, `tools/data_edit.py` (run by `tools/build.py`). Before/after mockups were
 made from the same fonts and colours; the browser test saves real screenshots with `GM26_SHOTS=dir`.
+
+## Make a new variable as two simple steps — build .68
+
+Make a new variable opens on the two steps of the earlier design, the way Stata does it:
+
+1. **Create it** — a name, **Numbers** or **Text (words)**, and what every row starts as: missing (.), 0 or 1, or
+   other… (a number or a formula such as `income / 1000`); for text, empty ("") or other…. **Create** runs
+   `generate name = …` (`generate str name = ""` for text) and says what it made.
+2. **Change values** — the variable just made (or any other), **set** = a value **if** a rule is true (and more
+   conditions with **+ and another condition**), with the number of rows that match, the command
+   (`replace democrat = 1 if party == 2`) and a preview. Repeat for each value, or **Type values by hand in Browse →**.
+
+A 0/1 variable is "starts as 0" then "set = 1 if …"; a blank variable is "starts as missing" then typing in Browse,
+so the 0/1 and Blank recipes are gone. The other recipes (groups from a number, scale from several questions,
+calculation, copy and recode) are folded under **More ways to make a variable**; opening one shows only that form,
+with **← Back to Create it · Change values**. The Make a new variable tab always opens on the two steps; links to a
+recipe still open it directly. Create your own dataset and File → Create a new dataset open here too.
+Tests: `tests/data-edit-component.test.mjs` (generate 0 / 1 / text, replace with two conditions, the logged
+commands, a name that exists) and `tests/data-edit-e2e.cjs` (the steps in the browser).

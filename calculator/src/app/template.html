@@ -1984,6 +1984,13 @@ code, kbd, samp { font-family: var(--font-mono); }
 @container (max-width:640px){.de .de-recipes{grid-template-columns:repeat(2,minmax(0,1fr))}.de .de-namegrid{grid-template-columns:minmax(0,1fr)}.de .de-grid2{grid-template-columns:minmax(0,1fr)}.de .de-head-r{margin-left:0}}
 @container (max-width:400px){.de .de-task .ic{display:none}.de .de-vt .cnt .de-bar{display:none}.de .de-val input{width:80px;flex-basis:80px}.de .de-vrow .lab{display:none}}
 @container (max-width:540px){.de .de-tasks,.de .de-kinds,.de .de-recipes{grid-template-columns:minmax(0,1fr)}.de .de-task{padding:8px 12px}}
+
+/* GM26 .68: Make a new variable — the two steps first, the other recipes folded under "More ways" */
+.de-more{padding:0}
+.de-moreh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;width:100%;text-align:left;background:none;border:0;padding:12px 16px;cursor:pointer;font:inherit;font-weight:700;color:var(--c194F39,#194F39)}
+.de-moreh span{font-weight:400;font-size:13px;color:var(--c6B6455,#6B6455)}
+.de-moreh:focus-visible{outline:2px solid var(--c194F39,#194F39);outline-offset:-2px;border-radius:9px}
+.de-more .de-recipes{padding:0 14px 14px}
 </style><sc-if value="{{ isData }}" hint-placeholder-val="{{ false }}"><div data-screen-label="Data tools">{{ deEl }}</div></sc-if><!-- GM26 edit data end -->
 
           <sc-if value="{{ isOne }}" hint-placeholder-val="{{ false }}">
@@ -3971,7 +3978,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-02.67</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX / STATA DTA</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-02.68</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX / STATA DTA</span>
   </footer>
 </div>
 </x-dc>

@@ -65,17 +65,21 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   check(new RegExp(nSen + ' of 80 rows match').test(await de.innerText()), 'live count of matching rows');
   await de.getByRole('button', { name: 'Replace', exact: true }).click(); await p.waitForTimeout(300);
   check(/real changes? made/.test(await de.innerText()), 'replace if');
-  // 2 · make a new variable: yes / no in one step
+  // 2 · make a new variable (build .68): create it, then set its values — generate + replace
   await de.getByRole('tab', { name: /Make a new variable/ }).click(); await p.waitForTimeout(200);
-  await de.getByRole('radio', { name: /Yes \/ No/ }).click(); await p.waitForTimeout(200);
-  await de.getByLabel('Name of the new variable').fill('dem_sen');
-  await de.getByLabel('Condition 1 variable').selectOption('party'); await de.getByLabel('Condition 1 value').fill('1');
-  await de.getByRole('button', { name: '+ another condition' }).click(); await de.getByLabel('Condition 2 variable').selectOption('senator'); await de.getByLabel('Condition 2 value').fill('1'); await p.waitForTimeout(200);
-  const want = lines.slice(1).filter(l => { const r = l.split(','); return r[1] === '1' && r[2] === '1'; }).length;
-  check(new RegExp(want + ' of 80 rows will be 1').test(await de.innerText()), 'live count before creating (' + want + ')');
-  await shot('3-new');
+  check(/1 · Create it/i.test(await de.innerText()) && /2 · Change values/i.test(await de.innerText()), 'the two steps come first');
+  await de.getByLabel('Name of the new variable').fill('dem_sen'); await de.getByRole('button', { name: '0', exact: true }).click();
   await de.getByRole('button', { name: 'Create dem_sen' }).click(); await p.waitForTimeout(300);
-  check(new RegExp('dem_sen created: ' + want + ' rows are 1').test(await de.innerText()), 'dummy = 1 only where both conditions hold');
+  check(/dem_sen created: 80 rows, every one 0/.test(await de.innerText()), 'generate dem_sen = 0');
+  await de.getByLabel('New value').fill('1');
+  await de.getByLabel('Condition 1 variable').selectOption('party'); await de.getByLabel('Condition 1 value').fill('1');
+  await de.getByRole('button', { name: '+ and another condition' }).click(); await de.getByLabel('Condition 2 variable').selectOption('senator'); await de.getByLabel('Condition 2 value').fill('1'); await p.waitForTimeout(200);
+  const want = lines.slice(1).filter(l => { const r = l.split(','); return r[1] === '1' && r[2] === '1'; }).length;
+  check(new RegExp(want + ' of 80 rows match').test(await de.innerText()), 'live count before replacing (' + want + ')');
+  await shot('3-new');
+  await de.getByRole('button', { name: 'Replace', exact: true }).click(); await p.waitForTimeout(300);
+  check(new RegExp('\\(' + want + ' real changes? made').test(await de.innerText()), 'dummy = 1 only where both conditions hold');
+  await de.getByRole('button', { name: /More ways to make a variable/ }).click(); await p.waitForTimeout(200);
   // calculation
   await de.getByRole('radio', { name: /Calculation/ }).click(); await de.getByLabel('Name of the new variable').fill('ideo10');
   await de.getByLabel('Formula', { exact: true }).fill('ideology * 10'); await de.getByRole('button', { name: 'Create ideo10' }).click(); await p.waitForTimeout(300);
