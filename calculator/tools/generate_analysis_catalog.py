@@ -67,7 +67,7 @@ a(g,'precision','Sample size for precision',options={'target':'proportion','marg
 g='Survey inference & missing data'
 a(g,'survey_desc','Survey descriptive estimates','variables weight','survey',{'surveyStat':'mean'})
 a(g,'survey_test','Survey-adjusted comparisons','y group weight','survey',{'surveyTest':'means'})
-a(g,'impute','Multiple imputation / pooled regression','y predictors','mice',{'imputations':5,'iterations':10,'family':'gaussian','seed':1729})
+a(g,'impute','Multiple imputation / pooled regression','y predictors','mice',{'imputations':20,'iterations':10,'family':'gaussian','seed':1729})
 a(g,'missing','Missing-data patterns','variables')
 g='Predictive modeling'
 for id,title,pkg,op in [('ridge','Ridge regression','glmnet',{}),('lasso','Lasso regression','glmnet',{}),('elastic','Elastic net','glmnet',{'penalty':.5}),('tree','Decision tree','rpart',{'complexity':.01})]:a(g,id,title,'y predictors',pkg,{**op,'family':'gaussian','trainFraction':.8,'folds':5,'seed':1729})

@@ -63,6 +63,17 @@ export function cases() {
     add('imp_nomissing', 'impute', [num('y', y), num('x1', x1)], { y: 'y', predictors: ['x1'] });
     add('imp_nopred', 'impute', [num('y', yM)], { y: 'y' });
     add('imp_m1', 'impute', [num('y', yM), num('x1', x1M)], { y: 'y', predictors: ['x1'] }, { imputations: 1 });
-    add('imp_it0', 'impute', [num('y', yM), num('x1', x1M)], { y: 'y', predictors: ['x1'] }, { iterations: 0 }); }
+    add('imp_it0', 'impute', [num('y', yM), num('x1', x1M)], { y: 'y', predictors: ['x1'] }, { iterations: 0 });
+    // build .63: auxiliary variables, the outcome checks, the summary notes
+    const z = normals(r, n, 0, 1, 3), noise = withMissing(r, z, 0.1), yScale = y.map(v => Math.round(v));
+    add('imp_aux', 'impute', [num('y', yM), num('x1', x1M), cat('grp', grpM), cat('edu', eduM)], { y: 'y', predictors: ['x1'], auxiliary: ['grp', 'edu'] }, { imputations: 5, iterations: 4 });
+    add('imp_aux_overlap', 'impute', [num('y', yM), num('x1', x1M), cat('grp', grp), num('z', z)], { y: 'y', predictors: ['x1', 'grp'], auxiliary: ['y', 'grp', 'z'] }, { imputations: 3, iterations: 3 });
+    add('imp_nosig', 'impute', [num('y', yM), num('noise', noise)], { y: 'y', predictors: ['noise'] }, { imputations: 4, iterations: 3 });
+    add('imp_enough', 'impute', [num('y', withMissing(r, y, 0.02)), num('x1', x1)], { y: 'y', predictors: ['x1'] }, { imputations: 20, iterations: 3 });
+    add('imp_bin_scale', 'impute', [num('y', withMissing(r, yScale, 0.1)), num('x1', x1M)], { y: 'y', predictors: ['x1'] }, { family: 'binomial' });
+    add('imp_cat_gauss', 'impute', [cat('grp', grpM), num('x1', x1M)], { y: 'grp', predictors: ['x1'] }, { family: 'gaussian' });
+    add('imp_cat3_bin', 'impute', [cat('edu', eduM), num('x1', x1M)], { y: 'edu', predictors: ['x1'] }, { family: 'binomial' });
+    add('imp_cat_pois', 'impute', [cat('grp', grpM), num('x1', x1M)], { y: 'grp', predictors: ['x1'] }, { family: 'poisson' });
+    add('imp_pois_neg', 'impute', [num('y', withMissing(r, y.map(v => v - 7), 0.1)), num('x1', x1M)], { y: 'y', predictors: ['x1'] }, { family: 'poisson' }); }
   return out;
 }

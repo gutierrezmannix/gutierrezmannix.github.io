@@ -1,0 +1,17 @@
+{
+  "id": "impute",
+  "error": "The binomial family needs an outcome with exactly 2 categories; this one has 3. Recode it into 2 categories first.",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "edu",
+    "v2": "x1"
+  },
+  "outputData": null
+}

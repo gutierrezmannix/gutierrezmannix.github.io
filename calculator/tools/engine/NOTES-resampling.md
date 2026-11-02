@@ -1,6 +1,6 @@
 # Resampling family (bootstrap, permutation, impute) — notes
 
-Cases: `tools/engine/cases/resampling.mjs` (51 cases: 22 bootstrap, 16 permutation, 13 impute); all match R
+Cases: `tools/engine/cases/resampling.mjs` (60 cases: 22 bootstrap, 16 permutation, 22 impute); all match R
 4.3.3 (boot 1.3-30, coin 1.4-3, mice 3.16.0, nnet 7.3-19) at the default tolerance (rel 1e-6), including the
 Monte-Carlo quantities. No case uses `compare` overrides.
 
@@ -34,6 +34,29 @@ and R's `vmmin` BFGS, ported from src/appl/optim.c). Then glm per completed data
 `summary(conf.int = TRUE)` (Rubin's rules, Barnard–Rubin df with dfcom = df.residual). Imputations, pooled
 estimates, SEs, df and CIs match R to ~1e-12 in all cases (pmm, logreg, polyreg, mixed, binomial/poisson analysis
 models, factor outcome, constant and collinear columns).
+
+### Build .63 additions (R spec and JS changed together; references regenerated with R 4.3.3 and mice 3.16.0)
+- **Auxiliary variables** (`fields.auxiliary`, optional): included in the imputation model, not in the regression
+  formula. Duplicates of the outcome or a predictor are ignored.
+- **Outcome checks** before mice runs (R's glm would otherwise fail, or silently model a recode):
+  - a categorical outcome needs the binomial family and exactly 2 categories;
+  - a numeric outcome needs 0 to 1 for binomial and 0 or more for Poisson.
+- **Tables**: *Missing data* (variable, role, missing, percent, mice method) before *Rubin-pooled estimates*, and
+  *Missing information* after it (`pool()$pooled` riv, lambda, fmi; lambda unfloored, fmi from the Barnard–Rubin
+  df).
+- **Notes**:
+  - the number of complete rows;
+  - which predictors are significant at α (terms with an NA p-value are listed as not estimated);
+  - the largest fmi, with the m ≥ 100 × fmi rule of thumb;
+  - MAR and auxiliary variables.
+- **Diagnostics** says "No logged events…" instead of R's `NULL`.
+- **Convergence plot** (JS only; R draws `plot(imp)`): chain means in SD units of each variable's observed values,
+  so the variables share one axis.
+- The page's default number of imputations is 20; the engine default stays mice's 5.
+- Checked independently as well: the pooled table and the missing information match statsmodels refits of the same
+  completed data sets with Rubin's rules (8 data sets, Gaussian/logistic/Poisson/categorical outcome). In
+  simulations, MI is unbiased with about 94% coverage at m = 20. An auxiliary proxy of the outcome removes the bias
+  of MAR-on-the-proxy missingness: bias −0.065 → −0.013, coverage 84% → 95%.
 
 ## Deviations
 - **BCa diagnostics for large n**: when the exact `empinf.reg` regression would be too costly in the browser

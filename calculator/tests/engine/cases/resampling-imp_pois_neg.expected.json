@@ -1,0 +1,17 @@
+{
+  "id": "impute",
+  "error": "The Poisson family needs a count outcome (0 or more); this outcome has negative values.",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x1"
+  },
+  "outputData": null
+}

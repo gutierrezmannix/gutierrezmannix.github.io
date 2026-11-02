@@ -1,0 +1,17 @@
+{
+  "id": "impute",
+  "error": "The binomial family needs an outcome coded 0/1 (or a categorical outcome with 2 categories); this outcome has values outside 0 to 1.",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "y",
+    "v2": "x1"
+  },
+  "outputData": null
+}

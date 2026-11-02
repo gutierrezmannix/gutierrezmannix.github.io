@@ -6,6 +6,34 @@
   "excludedN": 0,
   "tables": [
     {
+      "title": "Missing data",
+      "columns": ["variable", "role", "missing", "percent", "method"],
+      "rows": [
+        [
+          "v1",
+          "outcome",
+          11,
+          12.2222222222222,
+          "pmm"
+        ],
+        [
+          "v2",
+          "predictor",
+          15,
+          16.6666666666667,
+          "pmm"
+        ],
+        [
+          "v3",
+          "predictor",
+          0,
+          0,
+          "none (complete)"
+        ]
+      ],
+      "totalRows": 3
+    },
+    {
       "title": "Rubin-pooled estimates",
       "columns": ["term", "estimate", "std.error", "statistic", "df", "p.value", "2.5 %", "97.5 %"],
       "rows": [
@@ -41,6 +69,31 @@
         ]
       ],
       "totalRows": 3
+    },
+    {
+      "title": "Missing information",
+      "columns": ["term", "riv", "lambda", "fmi"],
+      "rows": [
+        [
+          "(Intercept)",
+          0.110547209986991,
+          0.0995430081610724,
+          0.126020511363599
+        ],
+        [
+          "v2",
+          0.111365849116912,
+          0.100206290489673,
+          0.126734386945281
+        ],
+        [
+          "v3",
+          null,
+          null,
+          null
+        ]
+      ],
+      "totalRows": 3
     }
   ],
   "plots": [
@@ -50,7 +103,7 @@
     }
   ],
   "diagnostics": ["  it im dep     meth out", "1  0  0     constant  v3"],
-  "notes": "Rubin pooling combines within- and between-imputation uncertainty. Default conditional imputation models assume MAR given the included variables. Inspect diagnostics and model compatibility.",
+  "notes": ["66 of 90 rows are complete on every variable; a complete-case analysis would use only those. Each of the 5 imputed data sets uses all 90 rows, and the estimates are pooled with Rubin's rules.", "v2 is statistically significant at α = 0.05. v3 was not estimated (constant or collinear).", "Fraction of missing information (fmi): the share of each estimate's uncertainty that comes from the missing data. The largest is 0.13; use at least 13 imputations for stable results (rule of thumb: m ≥ 100 × fmi).", "Imputation assumes the data are missing at random given the variables in the imputation model. Add auxiliary variables that predict the missingness (they are used to impute but are not in the regression), and check the convergence plot: the chains should mix with no trend."],
   "warnings": "Number of logged events: 1",
   "labels": {
     "v1": "y",

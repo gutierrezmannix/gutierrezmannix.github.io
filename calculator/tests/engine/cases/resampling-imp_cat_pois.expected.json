@@ -1,0 +1,17 @@
+{
+  "id": "impute",
+  "error": "The outcome is categorical. Choose the binomial family (an outcome with 2 categories), or a numeric outcome for the gaussian or Poisson family.",
+  "inputN": 90,
+  "analysisN": 90,
+  "excludedN": 0,
+  "tables": [],
+  "plots": [],
+  "diagnostics": [],
+  "notes": [],
+  "warnings": [],
+  "labels": {
+    "v1": "grp",
+    "v2": "x1"
+  },
+  "outputData": null
+}
