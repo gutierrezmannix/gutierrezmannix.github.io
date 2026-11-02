@@ -21,6 +21,15 @@ way to type "aprobacion" and find d5.
   - Search, ranking and the "N rows" note are the same as in `tlCombo`.
   - **Keyboard** (from build .69): ↓ goes into the list, Enter takes the exact name, or else the top row, and Tab takes an exact name.
   - Every input with `data-pk-input` gets the keyboard handler; lists carry `data-pk-list`.
+- **Console → point-and-click commands** (Summarize, Tab, Reg, Ologit …). Each blank lists every variable that fits
+  it (name, label, row count), ranked as above, accents ignored, and Enter takes the top one. It used to show 10 names
+  as buttons. Example: 614 numeric variables for Summarize on LAPOP, and "aprobacion del trabajo" → m1, m2.
+- **Edit data → Choose what to use → Variables** (show / hide): every variable is listed (it stopped at 400), and the
+  search ignores accents ("educacion" → 18 of 1,624 on LAPOP).
+- **Not variable pickers, left as they are:**
+  - the console's typed-command autocomplete, which suggests 8 names as you type, as Stata does;
+  - lists of values, such as subgroup values and map units;
+  - fixed choices such as "the mean of".
 - **Variable list in the sidebar:** search ignores accents. It shows the first 150 variables, with **show all** to see
   every one.
 
@@ -30,6 +39,8 @@ way to type "aprobacion" and find d5.
   - ranking, accents and row counts in both kinds of box;
   - Enter in the predictor picker;
   - the rows-that-do-not-overlap message;
-  - the margins box keeping "none".
+  - the margins box keeping "none";
+  - the console builder (every variable, ranking, Enter);
+  - the Edit data variables list (no cap, accents).
 - `tests/e2e-pick.cjs` (`pickBy`): the browser suites pick variables by typing, as a person would. It falls back to
   `selectOption` for plain drop-downs.

@@ -4,6 +4,7 @@
 // - Variables with data in only part of the rows say how many (LAPOP: a question asked in one year only).
 // - Regression: when the outcome, predictors and weight share no rows, the page names the variables and the years
 //   each one covers, on the Predictors step and in place of the engine's message; it stays quiet when nothing is lost.
+// - The console's point-and-click command builder and Edit data → Variables list every variable, accents ignored.
 // The browser side is tests/regression-e2e.cjs and tests/chart-builder-e2e.cjs (pickBy in tests/e2e-pick.cjs).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -82,4 +83,25 @@ test('margins: the lines-by box keeps its "none" choice', async () => {
   const c = await load(); c.setState({ depVar: 'y', predictors: ['q1', 'ed'], regModel: 'ols', rgStep: 3 }); const out = c.renderVals();
   const boxes = find(out.rgEl2, e => e.props && e.props.role === 'combobox' && e.props['aria-label'] === 'Margins lines by');
   assert.equal(boxes.length, 1); assert.equal(boxes[0].props.placeholder, 'none');
+});
+
+test('console command builder: every matching variable with its label, exact name first, Enter takes the top one', async () => {
+  const c = await load(); c.setState({ tab: 'desc', mfDock: 'console' }); let out = c.renderVals();
+  out.conVerbBtns.find(b => /summ/i.test(b.label)).click(); out = c.renderVals();
+  assert.equal(out.conPickOpen, true);
+  assert.deepEqual(out.conSug.map(x => x.name), ['year', 'y', 'q1', 'ed', 'q2', 'edad', 'wt'], 'all variables, no cap');
+  assert.match(out.conSugNote, /^7 variables — type part of a name or label to narrow/);
+  c.setState({ conQ: 'edad' }); out = c.renderVals();
+  assert.deepEqual(out.conSug.map(x => x.name), ['edad', 'q2']); assert.equal(out.conSug[0].sub, 'Edad · 40 rows');
+  c.setState({ conQ: 'anos' }); out = c.renderVals(); assert.deepEqual(out.conSug.map(x => x.name), ['ed'], 'accents ignored');
+  out.conKey({ key: 'Enter', preventDefault() {} }); assert.equal(c.state.conSlots[0].val, 'ed');
+});
+
+test('Edit data → Variables lists every variable and searches labels without accents', async () => {
+  const c = await load(), many = [];
+  for (let i = 0; i < 450; i++) many.push({ name: 'v' + i, label: i === 449 ? 'Educación' : '', valid: 1 });
+  c.state.cols = c.state.cols.concat(many);
+  let el = c.deColsPanel({}); assert.equal(find(el, e => e.props && /de-vrow/.test(e.props.className || '')).length, 457);
+  el = c.deColsPanel({ colsQ: 'educacion' }); const rows = find(el, e => e.props && /de-vrow/.test(e.props.className || ''));
+  assert.deepEqual(rows.map(r => text(r.children[1])), ['ed', 'v449']); assert.match(text(el), /2 of 457 variables match/);
 });

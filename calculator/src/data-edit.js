@@ -611,10 +611,11 @@
   deKeepRows(v, c) { this.clearMemo(); this.setState(s => ({ subg: Object.assign({}, s.subg, { all: [...((s.subg && s.subg.all) || []).filter(x => x.v !== v), Object.assign({ v }, c)] }) })); this.deSet({ rowsV: '', rowsSel: [], rowsLo: '', rowsHi: '', rowsQ: '' }); }
 
   deColsPanel(D) {
-    const h = React.createElement, S = this.state, hid = new Set(S.hiddenVars || []), q = (D.colsQ || '').toLowerCase();
-    const all = S.cols, match = q ? all.filter(c => c.name.toLowerCase().includes(q) || String(c.label || '').toLowerCase().includes(q)) : all;
+    const h = React.createElement, S = this.state, hid = new Set(S.hiddenVars || []), nz = x => this.tlNorm(x), q = nz((D.colsQ || '').trim()); // GM26 .70: accents ignored
+    const all = S.cols, match = q ? all.filter(c => nz(c.name).includes(q) || nz(c.label || '').includes(q)) : all;
     const empty = all.filter(c => !hid.has(c.name) && !(c.valid > 0));
-    const rows = match.slice(0, 400).map(c => { const on = !hid.has(c.name), m = this.effMeta(c.name) || {}; return h('label', { key: c.name, className: 'de-vrow' + (on ? '' : ' off') },
+    // GM26 .70: every variable is listed (no cap of 400)
+    const rows = match.map(c => { const on = !hid.has(c.name), m = this.effMeta(c.name) || {}; return h('label', { key: c.name, className: 'de-vrow' + (on ? '' : ' off') },
       h('input', { type: 'checkbox', checked: on, onChange: () => this.deToggleHide(c.name) }), h('b', { className: 'mono' }, c.name), h('span', { className: 'lab' }, c.label || ''),
       h('span', { className: 'de-pill' }, m.treatAs === 'numeric' ? 'numbers' : 'groups'), h('span', { className: 'c' }, (c.valid > 0 ? this.fmtN(c.valid) + ' filled' : 'empty'))); });
     return this.tlPanel('Variables', hid.size ? hid.size + ' of ' + all.length + ' hidden' : 'which ones appear in the lists', h('span', { className: 'de-st' }, 'drop / keep varlist'),
@@ -623,7 +624,7 @@
         match.length && match.some(c => !hid.has(c.name)) && q ? this.tlBtn('Hide these ' + match.filter(c => !hid.has(c.name)).length, () => this.deHide(match.filter(c => !hid.has(c.name)).map(c => c.name))) : null,
         hid.size ? this.tlBtn('Show all', () => { this.setState({ hiddenVars: [] }); this.pushLog({ t: 'restorev', res: '' }); }) : null),
       h('div', { className: 'de-list', role: 'group', 'aria-label': 'Variables (ticked = shown)' }, rows),
-      match.length > 400 ? h('span', { className: 'tl-hint' }, 'Showing 400 of ' + match.length + ' — search to narrow.') : null,
+      q ? h('span', { className: 'tl-hint' }, this.fmtN(match.length) + ' of ' + this.fmtN(all.length) + ' variables match.') : null,
       h('p', { className: 'tl-hint' }, 'Ticked variables appear in every list. Hidden ones stay in the data; Save data as CSV leaves them out unless you include them.'));
   }
   deHide(list) { const S = this.state, cur = S.hiddenVars || [], add = list.filter(v => !cur.includes(v)); if (!add.length) return; this.setState({ hiddenVars: [...cur, ...add] }); this.pushLog({ t: 'dropv', list: add, res: 'hidden from variable lists — data untouched, restore any time' }); }

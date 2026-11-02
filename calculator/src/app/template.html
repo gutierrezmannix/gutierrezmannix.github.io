@@ -3875,11 +3875,12 @@ code, kbd, samp { font-family: var(--font-mono); }
             </div>
             <sc-if value="{{ conPickOpen }}" hint-placeholder-val="{{ false }}">
               <div style="display: flex; flex-direction: column; gap: 6px;">
-                <input value="{{ conQ }}" sc-camel-on-change="{{ conType }}" placeholder="{{ conPh }}" style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 13px; color: var(--c194F39, #194F39); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 8px 12px; width: 340px; box-shadow: inset 0 1px 2px rgba(43,39,30,0.06);">
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <input value="{{ conQ }}" sc-camel-on-change="{{ conType }}" sc-camel-on-key-down="{{ conKey }}" aria-label="{{ conPh }}" placeholder="{{ conPh }}" style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 13px; color: var(--c194F39, #194F39); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 8px 12px; width: 100%; box-sizing: border-box; box-shadow: inset 0 1px 2px rgba(43,39,30,0.06);">
+                <div role="group" aria-label="{{ conPh }}" style="width: 100%; max-height: 280px; overflow-y: auto; background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px;">
                   <sc-for list="{{ conSug }}" as="s" hint-placeholder-count="6">
-                    <button sc-camel-on-click="{{ s.pick }}" title="{{ s.sub }}" style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; color: var(--c2B271E, #2B271E); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 6px 11px; cursor: pointer;" style-hover="border-color: var(--cC4681E, #C4681E); color: var(--c9C4A08, #9C4A08);">{{ s.name }}</button>
+                    <div data-value="{{ s.name }}" sc-camel-on-mouse-down="{{ s.pick }}" style="display: flex; align-items: baseline; gap: 10px; padding: 6px 12px; cursor: pointer; border-bottom: 1px solid var(--cECE6DA, #ECE6DA);" style-hover="background: var(--cEDF5F0, #EDF5F0);"><span style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; font-weight: 700; color: var(--c194F39, #194F39); white-space: nowrap;">{{ s.name }}</span><span style="font-size: 12px; color: var(--c5D5648, #5D5648); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ s.sub }}</span></div>
                   </sc-for>
+                  <div style="padding: 6px 12px; font-size: 11.5px; color: var(--c6B6455, #6B6455);">{{ conSugNote }}</div>
                 </div>
               </div>
             </sc-if>

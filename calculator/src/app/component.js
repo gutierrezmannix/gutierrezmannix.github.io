@@ -563,7 +563,7 @@ class Component extends DCLogic {
     else if(id==='paired'){fields=[select('x','Before measurement','num'),select('y','After measurement','num')];explain='Connect the two measurements on each complete row. Each row must represent the same individual at both measurements.';}
     else if(id==='corrmap'){fields=[h('div',{className:'cs-field',role:'group','aria-label':'Numeric variables'},h('span',null,'Numeric variables (choose 2–12)'),this.tlMultiVar(c.vars||[],numeric,vals=>set({vars:vals}),'Numeric variables',{max:12,id:'cs|vars'}))];required=[];explain='Pearson correlations using complete observations for each variable pair. The accompanying table includes pairwise sample sizes.';}
     else if(id==='heatmap'){fields=[select('x','Column categories'),select('group','Row categories'),select('y','Numeric cell value','num')];catX=true;required.push('group');explain='Color and label the mean value within each row / column combination.';}
-    else if(['multiline','panel'].includes(id)){fields=[select('x','Time variable','num'),select('y','Numeric outcome','num'),select('group','Series / panel group','any',id!=='panel')];if(id==='panel')required.push('group');if(id==='multiline')fields.push(h('label',{className:'cs-field'},h('span',null,'Additional numeric series (optional)'),h('select',{'aria-label':'Additional numeric series',multiple:true,size:4,value:c.ys||[],onChange:e=>set({ys:Array.from(e.target.selectedOptions,v=>v.value)})},...numeric.filter(v=>v.name!==c.y).map(v=>h('option',{value:v.name,key:v.name},v.name)))));explain='Show group trends over observed times. Repeated rows at the same time are summarized by their mean.';}
+    else if(['multiline','panel'].includes(id)){fields=[select('x','Time variable','num'),select('y','Numeric outcome','num'),select('group','Series / panel group','any',id!=='panel')];if(id==='panel')required.push('group');if(id==='multiline')fields.push(h('label',{className:'cs-field'},h('span',null,'Additional numeric series (optional)'),this.tlMultiVar(c.ys||[],numeric.filter(v=>v.name!==c.y),v=>set({ys:v}),'Additional numeric series',{id:'cs|ys'})));explain='Show group trends over observed times. Repeated rows at the same time are summarized by their mean.';}
     else if(estimate){fields=[choice('source','Results source',[['columns','Estimate columns in the dataset'],...(['coefficient','prediction','interaction'].includes(id)?[['current','Current fitted regression results']]:[]),...(id==='modelcompare'?[['saved','Models saved to regression table']]:[])],'columns')];if((c.source||'columns')==='columns'){fields.push(select('x',catEstimate?'Term / attribute / contrast':'Predictor value / event time',catEstimate?'any':'num'),select('y','Estimate','num'),select('lo','Lower confidence bound','num'),select('hi','Upper confidence bound','num'),select('group',id==='conjoint'?'Compare groups (e.g. respondent subgroup)':'Model / group','any',true));if(id==='conjoint')fields.push(select('attr','Attribute (feature)','any',true),choice('refLine','Reference line',[['0','0 — AMCEs'],['0.5','0.5 — marginal means']],'0'));required.push('lo','hi');}else required=[];catX=catEstimate;explain='Plot fitted results or supplied estimates. Imported estimates and confidence bounds must be calculated using an appropriate model; this page does not estimate event-study or conjoint effects.';}
     else if(id==='survival'){fields=[select('x','Duration (nonnegative)','num'),select('y','Event status (0 censored / 1 event)','num'),select('group','Group','any',true)];explain='Kaplan–Meier survival curves for unweighted, right-censored data with entry at time zero.';}
     else if(id==='geomap'){fields=[select('x','Geographic identifier'),select('y','Numeric value to map','num'),h('label',{className:'cs-field'},h('span',null,'Boundary file (GeoJSON)'),h('input',{type:'file',accept:'.json,.geojson',onChange:e=>this.csGeo(e.target.files?.[0])})),input('geoKey','GeoJSON identifier property'),c.geoName?h('p',null,c.geoName):null];catX=true;explain='Upload local Polygon / MultiPolygon boundaries. Match the identifier property to the dataset geographic identifier. Values are means for matched areas.';}
@@ -5507,10 +5507,11 @@ class Component extends DCLogic {
   deKeepRows(v, c) { this.clearMemo(); this.setState(s => ({ subg: Object.assign({}, s.subg, { all: [...((s.subg && s.subg.all) || []).filter(x => x.v !== v), Object.assign({ v }, c)] }) })); this.deSet({ rowsV: '', rowsSel: [], rowsLo: '', rowsHi: '', rowsQ: '' }); }
 
   deColsPanel(D) {
-    const h = React.createElement, S = this.state, hid = new Set(S.hiddenVars || []), q = (D.colsQ || '').toLowerCase();
-    const all = S.cols, match = q ? all.filter(c => c.name.toLowerCase().includes(q) || String(c.label || '').toLowerCase().includes(q)) : all;
+    const h = React.createElement, S = this.state, hid = new Set(S.hiddenVars || []), nz = x => this.tlNorm(x), q = nz((D.colsQ || '').trim()); // GM26 .70: accents ignored
+    const all = S.cols, match = q ? all.filter(c => nz(c.name).includes(q) || nz(c.label || '').includes(q)) : all;
     const empty = all.filter(c => !hid.has(c.name) && !(c.valid > 0));
-    const rows = match.slice(0, 400).map(c => { const on = !hid.has(c.name), m = this.effMeta(c.name) || {}; return h('label', { key: c.name, className: 'de-vrow' + (on ? '' : ' off') },
+    // GM26 .70: every variable is listed (no cap of 400)
+    const rows = match.map(c => { const on = !hid.has(c.name), m = this.effMeta(c.name) || {}; return h('label', { key: c.name, className: 'de-vrow' + (on ? '' : ' off') },
       h('input', { type: 'checkbox', checked: on, onChange: () => this.deToggleHide(c.name) }), h('b', { className: 'mono' }, c.name), h('span', { className: 'lab' }, c.label || ''),
       h('span', { className: 'de-pill' }, m.treatAs === 'numeric' ? 'numbers' : 'groups'), h('span', { className: 'c' }, (c.valid > 0 ? this.fmtN(c.valid) + ' filled' : 'empty'))); });
     return this.tlPanel('Variables', hid.size ? hid.size + ' of ' + all.length + ' hidden' : 'which ones appear in the lists', h('span', { className: 'de-st' }, 'drop / keep varlist'),
@@ -5519,7 +5520,7 @@ class Component extends DCLogic {
         match.length && match.some(c => !hid.has(c.name)) && q ? this.tlBtn('Hide these ' + match.filter(c => !hid.has(c.name)).length, () => this.deHide(match.filter(c => !hid.has(c.name)).map(c => c.name))) : null,
         hid.size ? this.tlBtn('Show all', () => { this.setState({ hiddenVars: [] }); this.pushLog({ t: 'restorev', res: '' }); }) : null),
       h('div', { className: 'de-list', role: 'group', 'aria-label': 'Variables (ticked = shown)' }, rows),
-      match.length > 400 ? h('span', { className: 'tl-hint' }, 'Showing 400 of ' + match.length + ' — search to narrow.') : null,
+      q ? h('span', { className: 'tl-hint' }, this.fmtN(match.length) + ' of ' + this.fmtN(all.length) + ' variables match.') : null,
       h('p', { className: 'tl-hint' }, 'Ticked variables appear in every list. Hidden ones stay in the data; Save data as CSV leaves them out unless you include them.'));
   }
   deHide(list) { const S = this.state, cur = S.hiddenVars || [], add = list.filter(v => !cur.includes(v)); if (!add.length) return; this.setState({ hiddenVars: [...cur, ...add] }); this.pushLog({ t: 'dropv', list: add, res: 'hidden from variable lists — data untouched, restore any time' }); }
@@ -10537,14 +10538,18 @@ class Component extends DCLogic {
         out.conQ = S.conQ;
         out.conType = e => this.setState({ conQ: e.target.value });
         const used = new Set(S.conSlots.map((sl, i) => i === S.conActive ? null : sl.val).filter(Boolean));
-        const cq = S.conQ.trim().toLowerCase();
-        out.conSug = visAll.filter(c => !used.has(c.name) && FILTERS[slot.f](c) && (!cq || c.name.toLowerCase().includes(cq) || (c.label && c.label.toLowerCase().includes(cq)))).slice(0, 10).map(c => ({
-          name: c.name, sub: c.label || (this.effMeta(c.name).treatAs + ' \u00b7 ' + (c.distinct > 1200 ? '>1200' : c.distinct) + ' levels'),
-          pick: () => this.setState(s => {
+        // GM26 .70: every matching variable (name or label, accents ignored), the exact name first; Enter takes the top one
+        const nz = x => this.tlNorm(x), cq = nz(S.conQ.trim()), rk = c => !cq ? 0 : nz(c.name) === cq ? 0 : nz(c.name).startsWith(cq) ? 1 : c.label && nz(c.label).startsWith(cq) ? 2 : 3, nR = S.nRows || 0;
+        const hits = visAll.filter(c => !used.has(c.name) && FILTERS[slot.f](c) && (!cq || nz(c.name).includes(cq) || (c.label && nz(c.label).includes(cq)))).map((c, i) => [rk(c), i, c]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
+        out.conSug = hits.map(c => ({
+          name: c.name, sub: (c.label || (this.effMeta(c.name).treatAs + ' \u00b7 ' + (c.distinct > 1200 ? '>1200' : c.distinct) + ' levels')) + (nR && c.valid != null && c.valid < nR * 0.9 ? ' \u00b7 ' + this.fmtN(c.valid) + ' rows' : ''),
+          pick: e => { if (e && e.preventDefault) e.preventDefault(); this.setState(s => {
             const slots = s.conSlots.map((sl, i) => i === s.conActive ? { ...sl, val: c.name } : sl);
             return { conSlots: slots, conActive: slots.findIndex(sl => !sl.val), conQ: '' };
-          })
+          }); }
         }));
+        out.conSugNote = hits.length ? this.fmtN(hits.length) + (cq ? ' matching' : '') + ' variable' + (hits.length === 1 ? '' : 's') + (cq ? '' : ' \u2014 type part of a name or label to narrow') + ' \u00b7 Enter picks the first' : 'No variable matches "' + S.conQ + '"';
+        out.conKey = e => { if (e.key === 'Enter' && out.conSug.length) { e.preventDefault(); out.conSug[0].pick(); } };
       }
     }
     const cmdLineStyle = "font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; font-weight: 700; color: var(--c226578, #226578); white-space: pre-wrap; cursor: help;";
