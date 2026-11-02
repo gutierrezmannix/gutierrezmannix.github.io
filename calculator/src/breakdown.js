@@ -31,12 +31,12 @@
     const rows = this.obLevels(rowsV, rl, rc, fill), cols = colsV ? this.obLevels(colsV, cl, cc, false) : [];
     const rIdx = new Map(rows.map((x, i) => [x.label, i])), cIdx = new Map(cols.map((x, i) => [x.label, i]));
     const R = rows.length, Cn = cols.length, keepVals = stat === 'median' || stat === 'min' || stat === 'max';
-    const mk = () => ({ n: 0, wN: 0, wHit: 0, nNum: 0, wNum: 0, wSum: 0, wSq: 0, vals: keepVals ? [] : null, lev: new Map(), levN: new Map() });
+    const mk = () => ({ n: 0, wN: 0, wHit: 0, nNum: 0, wNum: 0, wSum: 0, mu: 0, m2: 0, vals: keepVals ? [] : null, wv: keepVals && w ? [] : null, lev: new Map(), levN: new Map() });
     const grid = Array.from({ length: R + 1 }, () => Array.from({ length: Cn + 1 }, mk));
     let dropG = 0, dropV = 0;
     const add = (c, i, wi) => {
       c.n++; c.wN += wi; const lab = vl[i]; if (lab === level) c.wHit += wi; c.lev.set(lab, (c.lev.get(lab) || 0) + wi); c.levN.set(lab, (c.levN.get(lab) || 0) + 1);
-      if (vn) { const x = vn.a[i]; if (isFinite(x)) { c.nNum++; c.wNum += wi; c.wSum += wi * x; c.wSq += wi * x * x; if (c.vals) c.vals.push(x); } }
+      if (vn) { const x = vn.a[i]; if (isFinite(x)) { c.nNum++; const wn = c.wNum + wi, dx = x - c.mu; c.mu += dx * wi / wn; c.m2 += wi * dx * (x - c.mu); c.wNum = wn; c.wSum += wi * x; if (c.vals) { c.vals.push(x); if (c.wv) c.wv.push(wi); } } } // GM26 .66: running (Welford) mean and sum of squares, exact for large values
     };
     for (let i = 0; i < n; i++) {
       const rlab = rl[i]; if (rlab == null) { if (vl[i] != null) dropG++; continue; }
@@ -55,10 +55,14 @@
     if (stat === 'count') return c.wHit;
     if (stat === 'n') return c.n;
     if (stat === 'wn') return c.wN;
-    if (stat === 'mean') return c.wNum ? c.wSum / c.wNum : NaN;
+    if (stat === 'mean') return c.wNum ? c.mu : NaN;
     if (stat === 'sum') return c.wSum;
-    if (stat === 'sd') { if (c.nNum < 2 || !c.wNum) return NaN; const mu = c.wSum / c.wNum; return Math.sqrt(Math.max(0, (c.wSq / c.wNum - mu * mu) * c.nNum / (c.nNum - 1))); }
-    if (c.vals && c.vals.length) { const s = c.vals.slice().sort((a, b) => a - b); if (stat === 'min') return s[0]; if (stat === 'max') return s[s.length - 1]; const m = s.length / 2; return s.length % 2 ? s[Math.floor(m)] : (s[m - 1] + s[m]) / 2; }
+    if (stat === 'sd') { if (c.nNum < 2 || !c.wNum) return NaN; return Math.sqrt(Math.max(0, c.m2 / c.wNum * c.nNum / (c.nNum - 1))); }
+    if (c.vals && c.vals.length) {
+      const o = c.vals.map((x, i) => i).sort((a, b) => c.vals[a] - c.vals[b]), xs = o.map(i => c.vals[i]);
+      if (stat === 'min') return xs[0]; if (stat === 'max') return xs[xs.length - 1];
+      return this._E.wQuantile(xs, c.wv ? o.map(i => c.wv[i]) : null, c.wv ? c.wNum : xs.length, 0.5); // GM26 .66: weighted median, as the main panel and tabstat [aw=]
+    }
     return NaN;
   }
   obRender() {
@@ -89,7 +93,8 @@
     if (!res) return head([this.tlBanner('warn', 'These variables could not be read.')]);
     const { rows, cols, grid } = res, Rn = rows.length, Cn = cols.length;
     const pct = stat === 'pct', whole = stat === 'n' || stat === 'wn' || stat === 'count' || stat === 'sum', dec = pct ? 1 : this.dec();
-    const fmtV = x => !isFinite(x) ? '—' : pct ? x.toFixed(1) + '%' : whole ? this.fmtN(Math.round(x)) : this.fmt(x, dec);
+    const fD = isNum ? this.descFmtFor(v) : null; // GM26 .66: the same digits as the descriptives panel (tiny and huge values stay readable)
+    const fmtV = x => !isFinite(x) ? '—' : pct ? x.toFixed(1) + '%' : whole ? (stat === 'sum' && fD && Math.abs(x) < 1000 ? fD(x) : this.fmtN(Math.round(x))) : fD ? fD(x) : this.fmt(x, dec);
     const wN = S.weightVar ? ' (weighted)' : '';
     const codeOf = (name, lab) => { const lv = this.obLevels(name, this.groupLab(name) || [], this.numCore(name), false).find(x => x.label === lab); return lv && isFinite(lv.code) ? this._E.numLab(lv.code) : '"' + lab + '"'; };
     const pick = (ri, ci) => set({ cell: [ri, ci] });
@@ -131,21 +136,23 @@
       detail = h('div', { className: 'tl-col ob-detail' }, h('div', { className: 'tl-row' }, h('code', { className: 'ob-cmd' }, '. ' + cmd + (W ? ' [aw=' + S.weightVar + ']' : '')), this.tlBtn('Close', () => set({ cell: null }))),
         h('table', { className: 'tl-tbl' }, h('thead', null, h('tr', null, h('th', null, v), h('th', { className: 'n' }, 'Freq.'), W ? h('th', { className: 'n' }, 'Weighted total') : null, h('th', { className: 'n' }, 'Percent' + wN), h('th', { className: 'n' }, 'Cum.'))),
           h('tbody', null, lv.map(([l, x]) => { cum += x; return h('tr', { key: l }, h('td', { className: 'w' }, l), h('td', { className: 'n' }, this.fmtN(c.levN.get(l) || 0)), W ? h('td', { className: 'n' }, this.fmtN(Math.round(x))) : null, h('td', { className: 'n' }, (100 * x / c.wN).toFixed(2)), h('td', { className: 'n' }, (100 * cum / c.wN).toFixed(2))); }).concat([h('tr', { key: 'tot', className: 'ob-tot' }, h('td', { className: 'w' }, 'Total'), h('td', { className: 'n' }, this.fmtN(c.n)), W ? h('td', { className: 'n' }, this.fmtN(Math.round(c.wN))) : null, h('td', { className: 'n' }, '100.00'), h('td', { className: 'n' }, ''))]))),
-        isNum && c.wNum ? h('span', { className: 'tl-hint' }, 'summarize ' + v + (conds.length ? ' if ' + conds.join(' & ') : '') + (W ? ' [aw=' + S.weightVar + ']' : '') + ': mean ' + this.fmt(c.wSum / c.wNum) + ', sd ' + this.fmt(this.obValue(c, 'sd')) + ', N ' + this.fmtN(c.nNum)) : null);
+        isNum && c.wNum ? h('span', { className: 'tl-hint' }, 'summarize ' + v + (conds.length ? ' if ' + conds.join(' & ') : '') + (W ? ' [aw=' + S.weightVar + ']' : '') + ': mean ' + (fD ? fD(c.mu) : this.fmt(c.mu)) + ', sd ' + (fD ? fD(this.obValue(c, 'sd')) : this.fmt(this.obValue(c, 'sd'))) + ', N ' + this.fmtN(c.nNum)) : null);
     }
     // reproducible code
-    const wS = S.weightVar ? ' [pw=' + S.weightVar + ']' : '', ifS = this.conds().length ? ' if ' + this.conds().map(c => this.condExpr(c, 'stata')).join(' & ') : '';
+    // GM26 .66: totals, counts and shares as population estimates ([pw=], table); means, SDs, medians, min and max as Stata's
+    // [aw=] gives them (the same numbers as this table); tabstat asks for the statistic on screen.
+    const wTot = ['sum', 'count', 'wn', 'tab', 'pct'].includes(stat), wS = S.weightVar ? (wTot ? ' [pw=' : ' [aw=') + S.weightVar + ']' : '', ifS = this.conds().length ? ' if ' + this.conds().map(c => this.condExpr(c, 'stata')).join(' & ') : '';
     const ex = O.cell ? null : 'tab ' + v + ' if ' + O.rows + ' == ' + codeOf(O.rows, (rows.find(r => !r.empty) || rows[0]).label) + (colsV && cols[0] ? ' & ' + colsV + ' == ' + codeOf(colsV, cols[0].label) : '');
-    const stataStat = { mean: 'mean', sum: 'total', sd: 'sd', median: 'median', min: 'min', max: 'max', n: 'count', wn: 'frequency' }[stat];
+    const stataStat = { mean: 'mean', sum: 'total', sd: 'sd', median: 'median', min: 'min', max: 'max', n: 'count', wn: 'frequency' }[stat], tabSt = { mean: 'mean', sum: 'sum', sd: 'sd', median: 'median', min: 'min', max: 'max', n: 'n' }[stat];
     const stata = (stat === 'pct' || stat === 'count' ? 'generate byte _is = (' + v + ' == ' + codeOf(v, level) + ') if !missing(' + v + ')\ntable ' + O.rows + (colsV ? ' ' + colsV : '') + wS + ifS + ', statistic(' + (pct ? 'mean' : 'total') + ' _is) statistic(count _is)' + (pct ? '   // mean × 100 = %' : '') + '\n'
       : stat === 'tab' ? 'table ' + O.rows + ' ' + v + (colsV ? ' ' + colsV : '') + wS + ifS + ', statistic(percent, across(' + v + '))\n'
       : 'table ' + O.rows + (colsV ? ' ' + colsV : '') + wS + ifS + ', statistic(' + stataStat + ' ' + v + ') statistic(count ' + v + ')\n') +
-      'tabstat ' + v + wS.replace('pw', 'aw') + ifS + ', by(' + O.rows + ') statistics(mean ' + (S.weightVar ? '' : 'sum ') + 'n)\n' + (ex ? '* one cell:\n' + ex + '\n' : '');
+      (tabSt && !(S.weightVar && stat === 'sum') ? 'tabstat ' + v + wS + ifS + ', by(' + O.rows + ') statistics(' + (tabSt === 'n' ? 'n' : tabSt + ' n') + ')\n' : '') + (ex ? '* one cell:\n' + ex + '\n' : '');
     const rW = S.weightVar ? S.weightVar : null;
-    const rStat = { pct: '100 * ' + (rW ? 'weighted.mean(' + v + ' == ' + codeOf(v, level) + ', ' + rW + ', na.rm = TRUE)' : 'mean(' + v + ' == ' + codeOf(v, level) + ', na.rm = TRUE)'), count: 'sum(' + (rW ? rW + ' * ' : '') + '(' + v + ' == ' + codeOf(v, level) + '), na.rm = TRUE)', mean: rW ? 'weighted.mean(' + v + ', ' + rW + ', na.rm = TRUE)' : 'mean(' + v + ', na.rm = TRUE)', sum: 'sum(' + (rW ? rW + ' * ' : '') + v + ', na.rm = TRUE)', sd: 'sd(' + v + ', na.rm = TRUE)', median: 'median(' + v + ', na.rm = TRUE)', min: 'min(' + v + ', na.rm = TRUE)', max: 'max(' + v + ', na.rm = TRUE)', n: 'dplyr::n()', wn: 'sum(' + (rW || '1') + ')', tab: rW ? 'sum(' + rW + ')' : 'dplyr::n()' }[stat];
-    const r = 'library(dplyr)\ndf |>' + (ifS ? ' filter(' + this.conds().map(c => this.condExpr(c, 'r')).join(', ') + ') |>' : '') + ' filter(!is.na(' + v + '), !is.na(' + O.rows + ')' + (colsV ? ', !is.na(' + colsV + ')' : '') + ') |>\n  group_by(' + O.rows + (colsV ? ', ' + colsV : '') + (stat === 'tab' ? ', ' + v : '') + ') |>\n  summarise(value = ' + rStat + ', n = n()' + ') |>\n  tidyr::pivot_wider(names_from = ' + (stat === 'tab' ? v : colsV || O.rows) + ', values_from = ' + (stat === 'tab' ? 'n' : 'value') + ')' + (colsV || stat === 'tab' ? '' : '   # one column per value of ' + O.rows);
+    const rStat = { pct: '100 * ' + (rW ? 'weighted.mean(' + v + ' == ' + codeOf(v, level) + ', ' + rW + ', na.rm = TRUE)' : 'mean(' + v + ' == ' + codeOf(v, level) + ', na.rm = TRUE)'), count: 'sum(' + (rW ? rW + ' * ' : '') + '(' + v + ' == ' + codeOf(v, level) + '), na.rm = TRUE)', mean: rW ? 'weighted.mean(' + v + ', ' + rW + ', na.rm = TRUE)' : 'mean(' + v + ', na.rm = TRUE)', sum: 'sum(' + (rW ? rW + ' * ' : '') + v + ', na.rm = TRUE)', sd: rW ? 'sqrt(sum(' + rW + ' * (' + v + ' - weighted.mean(' + v + ', ' + rW + '))^2) / sum(' + rW + ') * n() / (n() - 1))' : 'sd(' + v + ', na.rm = TRUE)', median: rW ? 'wmed(' + v + ', ' + rW + ')' : 'median(' + v + ', na.rm = TRUE)', min: 'min(' + v + ', na.rm = TRUE)', max: 'max(' + v + ', na.rm = TRUE)', n: 'dplyr::n()', wn: 'sum(' + (rW || '1') + ')', tab: rW ? 'sum(' + rW + ')' : 'dplyr::n()' }[stat];
+    const r = 'library(dplyr)\n' + (rW && stat === 'median' ? 'wmed <- function(x, w) { o <- order(x); x <- x[o]; cw <- cumsum(w[o]) / sum(w); i <- which(cw >= 0.5 - 1e-12)[1]; if (abs(cw[i] - 0.5) < 1e-12) (x[i] + x[i + 1]) / 2 else x[i] }   # weighted median, as Stata\n' : '') + 'df |>' + (ifS ? ' filter(' + this.conds().map(c => this.condExpr(c, 'r')).join(', ') + ') |>' : '') + ' filter(!is.na(' + v + '), !is.na(' + O.rows + ')' + (colsV ? ', !is.na(' + colsV + ')' : '') + (rW ? ', !is.na(' + rW + ')' : '') + ') |>\n  group_by(' + O.rows + (colsV ? ', ' + colsV : '') + (stat === 'tab' ? ', ' + v : '') + ') |>\n  summarise(value = ' + rStat + ', n = n()' + ') |>\n  tidyr::pivot_wider(names_from = ' + (stat === 'tab' ? v : colsV || O.rows) + ', values_from = ' + (stat === 'tab' ? 'n' : 'value') + ')' + (colsV || stat === 'tab' ? '' : '   # one column per value of ' + O.rows);
     const code = S.dialect === 'r' ? r : stata;
-    const note = [res.dropV ? this.fmtN(res.dropV) + ' rows with a missing ' + v + ' left out' : null, res.dropG ? this.fmtN(res.dropG) + ' rows with a missing ' + O.rows + (colsV ? ' or ' + colsV : '') + ' left out' : null, S.weightVar ? 'weighted by ' + S.weightVar + ': % and means use the weights, counts and sums are weighted totals (population estimates), N is the number of observations; min, max and median unweighted' : null, rows.some(r0 => r0.empty) ? rows.filter(r0 => r0.empty).length + ' values of ' + O.rows + ' in the range have no observations (—)' : null].filter(Boolean).join(' · ');
+    const note = [res.dropV ? this.fmtN(res.dropV) + ' rows with a missing ' + v + ' left out' : null, res.dropG ? this.fmtN(res.dropG) + ' rows with a missing ' + O.rows + (colsV ? ' or ' + colsV : '') + ' left out' : null, S.weightVar ? 'weighted by ' + S.weightVar + ': %, means, SDs and medians use the weights (as Stata [aw=]), counts and sums are weighted totals (population estimates, [pw=]), N is the number of observations' : null, rows.some(r0 => r0.empty) ? rows.filter(r0 => r0.empty).length + ' values of ' + O.rows + ' in the range have no observations (—)' : null].filter(Boolean).join(' · ');
     const tsv = () => { const ck = colsV ? cols.map((c, ci) => ci).concat(O.totals ? [Cn] : []) : [Cn]; const lines = [[colsV ? O.rows + '\\' + colsV : O.rows].concat(ck.map(ci => ci === Cn ? (colsV ? 'Total' : stat) : cols[ci].label)).join('\t')]; rows.map((r0, ri) => ri).concat(O.totals ? [Rn] : []).forEach(ri => lines.push([ri === Rn ? 'Total' : rows[ri].label].concat(ck.map(ci => { const x = this.obValue(grid[ri][ci], stat === 'tab' ? 'n' : stat); return isFinite(x) ? (Math.round(x * 1e4) / 1e4) : ''; })).join('\t'))); return lines.join('\n'); };
     return head([
       note ? h('span', { className: 'tl-hint' }, note) : null,

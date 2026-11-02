@@ -2014,9 +2014,14 @@ class Component extends DCLogic {
   descOrder(name,rows){const vm=this._raw?.vlabs?.[name],rev=vm?new Map([...vm.entries()].map(([k,v])=>[String(v),Number(k)])):null,code=r=>{const l=String(r.label);if(rev&&rev.has(l))return rev.get(l);const n=Number(l);return l.trim()!==''&&Number.isFinite(n)?n:null;};
     const num=rows.every(r=>code(r)!==null);return rows.slice().sort((a,b)=>num?code(a)-code(b):(String(a.label)<String(b.label)?-1:String(a.label)>String(b.label)?1:0));}
   descStataText(d){const M=this.memoView(),R=(v,w)=>String(v).padStart(w),G=v=>this.stataG(v);
-    if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';const nm=R(this.abbr(d.x,12),12);
-      if(d.w)return '    Variable |     Obs      Weight        Mean   Std. dev.       Min        Max\n-------------+-----------------------------------------------------------------\n'+nm+' |'+R(this.fmtN(s.n),8)+R(G(s.sw),12)+R(G(s.mean),12)+R(G(s.sd),12)+R(G(s.mn),10)+R(G(s.mx),11);
-      return '    Variable |        Obs        Mean    Std. dev.       Min        Max\n-------------+---------------------------------------------------------\n'+nm+' |'+R(this.fmtN(s.n),11)+R(G(s.mean),12)+R(G(s.sd),12)+R(G(s.mn),11)+R(G(s.mx),11);}
+    if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';const nm=R(this.abbr(d.x,12),12),P=s.pctl||{},xs=s.xs||[],n=s.n,at=i=>i>=0&&i<n?G(xs[i]):'',lab=(k,v)=>'       '+k.padEnd(12)+R(v,11);
+      // GM26 .66: summarize, detail (percentiles, 4 smallest and largest, variance, skewness, kurtosis) and the CI command
+      const sw=d.w?s.sw*this.obWScale():n,var_=s.sd*s.sd,head=d.x.length<61?' '.repeat(Math.floor((61-d.x.length)/2)+1)+d.x:d.x;
+      const L=[head,'-'.repeat(61),'      Percentiles      Smallest',' 1%'+R(G(P[1]),12)+R(at(0),15),' 5%'+R(G(P[5]),12)+R(at(1),15),'10%'+R(G(P[10]),12)+R(at(2),15)+lab('Obs',this.fmtN(n)),'25%'+R(G(P[25]),12)+R(at(3),15)+lab('Sum of wgt.',G(sw)),'','50%'+R(G(P[50]),12)+R('',15)+lab('Mean',G(s.mean)),R('',15)+R('Largest',15)+lab('Std. dev.',G(s.sd)),'75%'+R(G(P[75]),12)+R(at(n-4),15),'90%'+R(G(P[90]),12)+R(at(n-3),15)+lab('Variance',G(var_)),'95%'+R(G(P[95]),12)+R(at(n-2),15)+lab('Skewness',G(s.sk)),'99%'+R(G(P[99]),12)+R(at(n-1),15)+lab('Kurtosis',G(s.ku))];
+      const a=this.alpha(),lv=Math.round((1-a)*100),se=d.w?s.sePw:s.sd/Math.sqrt(n),h=n>1?this._E.critInv(a,n-1)*se:NaN,lo=s.mean-h,hi=s.mean+h;
+      if(d.w)L.push('','','Mean estimation'.padEnd(43)+'Number of obs = '+this.fmtN(n),'','-'.repeat(62),R('',13)+'|       Mean   Std. err.     ['+lv+'% conf. interval]','-------------+'+'-'.repeat(48),nm+' |'+R(G(s.mean),11)+R(G(se),11)+R(G(lo),14)+R(G(hi),12),'-'.repeat(62));
+      else L.push('','','    Variable |        Obs        Mean    Std. err.       ['+lv+'% conf. interval]','-------------+---------------------------------------------------------------',nm+' |'+R(this.fmtN(n),11)+R(G(s.mean),12)+R(G(se),12)+R(G(lo),16)+R(G(hi),12));
+      return L.join('\n');}
     if(d.t==='tab1'){const fr=M['freq|'+d.x];if(!fr||!fr.rows.length)return '';const rows=this.descOrder(d.x,fr.rows),tot=fr.totalW,norm=d.w?fr.totalRaw/tot:1,lw=Math.min(24,Math.max(11,d.x.length,...rows.map(r=>String(r.label).length))),cnt=v=>d.w?G(v*norm):this.fmtN(v);let cum=0;
       const out=[R(this.abbr(d.x,lw),lw)+' |      Freq.     Percent        Cum.','-'.repeat(lw+1)+'+-----------------------------------'];
       for(const r of rows){cum+=r.c;out.push(R(String(r.label).slice(0,lw),lw)+' |'+R(cnt(r.c),11)+R((100*r.c/tot).toFixed(2),12)+R((100*cum/tot).toFixed(2),12));}
@@ -2136,9 +2141,12 @@ class Component extends DCLogic {
       L.push('ggplot(a, aes('+x+', '+m+(g?', colour = '+g:'')+')) + '+(ci?'geom_ribbon(aes(ymin = '+m+' - '+hw+', ymax = '+m+' + '+hw+(g?', fill = '+g:'')+'), alpha = 0.2, colour = NA) + ':'')+'geom_line()');}
     return L.join('\n');}
   descRText(d){const M=this.memoView();
-    if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';if(d.w)return '[1] '+this.rFormat([s.mean])[0].trim();
+    if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';const a=this.alpha(),n=s.n,se=d.w?s.sePw:s.sd/Math.sqrt(n),h=n>1?this._E.critInv(a,n-1)*se:NaN,ci=this.rFormat([s.mean-h,s.mean+h]).map(v=>v.trim()).join(' ');
+      // GM26 .66: the printout of each line of the R command (summary, sd/skewness/kurtosis, the CI; weighted: the named vector and the CI)
+      if(d.w)return this.rNamed(['n','mean','sd','min','q1','median','q3','max'],this.rFormat([n,s.mean,s.sd,s.mn,s.q1,s.med,s.q3,s.mx]),null)+'\n[1] '+ci;
       const mx=Math.max(Math.abs(s.mn),Math.abs(s.mx))||1,z=v=>Number(v.toFixed(Math.max(0,5-Math.ceil(Math.log10(mx))))),vals=this.rFormat([s.mn,s.q1,s.med,s.mean,s.q3,s.mx].map(z),4),names=['Min.','1st Qu.','Median','Mean','3rd Qu.','Max.'];
-      if(s.missing){names.push("NA's");vals.push(String(s.missing));}return this.rNamed(names,vals,null);}
+      if(s.missing){names.push("NA's");vals.push(String(s.missing));}
+      return this.rNamed(names,vals,null)+'\n'+this.rNamed(['sd','skewness','kurtosis'],this.rFormat([s.sd,s.sk,s.ku]),null)+'\n[1] '+ci+'\nattr(,"conf.level")\n[1] '+(1-a);}
     if(d.t==='tab1'){const fr=M['freq|'+d.x];if(!fr||!fr.rows.length)return '';const rows=this.descOrder(d.x,fr.rows),vm=this._raw?.vlabs?.[d.x],rev=vm?new Map([...vm.entries()].map(([k,v])=>[String(v),String(k)])):null,nm=r=>rev&&rev.has(String(r.label))?rev.get(String(r.label)):String(r.label);
       if(d.w)return this.rNamed(rows.map(nm),this.rFormat(rows.map(r=>100*r.c/fr.totalW)),d.x);
       return this.rNamed(rows.map(nm),rows.map(r=>String(r.c)),'');}
@@ -4071,12 +4079,12 @@ class Component extends DCLogic {
     const rows = this.obLevels(rowsV, rl, rc, fill), cols = colsV ? this.obLevels(colsV, cl, cc, false) : [];
     const rIdx = new Map(rows.map((x, i) => [x.label, i])), cIdx = new Map(cols.map((x, i) => [x.label, i]));
     const R = rows.length, Cn = cols.length, keepVals = stat === 'median' || stat === 'min' || stat === 'max';
-    const mk = () => ({ n: 0, wN: 0, wHit: 0, nNum: 0, wNum: 0, wSum: 0, wSq: 0, vals: keepVals ? [] : null, lev: new Map(), levN: new Map() });
+    const mk = () => ({ n: 0, wN: 0, wHit: 0, nNum: 0, wNum: 0, wSum: 0, mu: 0, m2: 0, vals: keepVals ? [] : null, wv: keepVals && w ? [] : null, lev: new Map(), levN: new Map() });
     const grid = Array.from({ length: R + 1 }, () => Array.from({ length: Cn + 1 }, mk));
     let dropG = 0, dropV = 0;
     const add = (c, i, wi) => {
       c.n++; c.wN += wi; const lab = vl[i]; if (lab === level) c.wHit += wi; c.lev.set(lab, (c.lev.get(lab) || 0) + wi); c.levN.set(lab, (c.levN.get(lab) || 0) + 1);
-      if (vn) { const x = vn.a[i]; if (isFinite(x)) { c.nNum++; c.wNum += wi; c.wSum += wi * x; c.wSq += wi * x * x; if (c.vals) c.vals.push(x); } }
+      if (vn) { const x = vn.a[i]; if (isFinite(x)) { c.nNum++; const wn = c.wNum + wi, dx = x - c.mu; c.mu += dx * wi / wn; c.m2 += wi * dx * (x - c.mu); c.wNum = wn; c.wSum += wi * x; if (c.vals) { c.vals.push(x); if (c.wv) c.wv.push(wi); } } } // GM26 .66: running (Welford) mean and sum of squares, exact for large values
     };
     for (let i = 0; i < n; i++) {
       const rlab = rl[i]; if (rlab == null) { if (vl[i] != null) dropG++; continue; }
@@ -4095,10 +4103,14 @@ class Component extends DCLogic {
     if (stat === 'count') return c.wHit;
     if (stat === 'n') return c.n;
     if (stat === 'wn') return c.wN;
-    if (stat === 'mean') return c.wNum ? c.wSum / c.wNum : NaN;
+    if (stat === 'mean') return c.wNum ? c.mu : NaN;
     if (stat === 'sum') return c.wSum;
-    if (stat === 'sd') { if (c.nNum < 2 || !c.wNum) return NaN; const mu = c.wSum / c.wNum; return Math.sqrt(Math.max(0, (c.wSq / c.wNum - mu * mu) * c.nNum / (c.nNum - 1))); }
-    if (c.vals && c.vals.length) { const s = c.vals.slice().sort((a, b) => a - b); if (stat === 'min') return s[0]; if (stat === 'max') return s[s.length - 1]; const m = s.length / 2; return s.length % 2 ? s[Math.floor(m)] : (s[m - 1] + s[m]) / 2; }
+    if (stat === 'sd') { if (c.nNum < 2 || !c.wNum) return NaN; return Math.sqrt(Math.max(0, c.m2 / c.wNum * c.nNum / (c.nNum - 1))); }
+    if (c.vals && c.vals.length) {
+      const o = c.vals.map((x, i) => i).sort((a, b) => c.vals[a] - c.vals[b]), xs = o.map(i => c.vals[i]);
+      if (stat === 'min') return xs[0]; if (stat === 'max') return xs[xs.length - 1];
+      return this._E.wQuantile(xs, c.wv ? o.map(i => c.wv[i]) : null, c.wv ? c.wNum : xs.length, 0.5); // GM26 .66: weighted median, as the main panel and tabstat [aw=]
+    }
     return NaN;
   }
   obRender() {
@@ -4129,7 +4141,8 @@ class Component extends DCLogic {
     if (!res) return head([this.tlBanner('warn', 'These variables could not be read.')]);
     const { rows, cols, grid } = res, Rn = rows.length, Cn = cols.length;
     const pct = stat === 'pct', whole = stat === 'n' || stat === 'wn' || stat === 'count' || stat === 'sum', dec = pct ? 1 : this.dec();
-    const fmtV = x => !isFinite(x) ? '—' : pct ? x.toFixed(1) + '%' : whole ? this.fmtN(Math.round(x)) : this.fmt(x, dec);
+    const fD = isNum ? this.descFmtFor(v) : null; // GM26 .66: the same digits as the descriptives panel (tiny and huge values stay readable)
+    const fmtV = x => !isFinite(x) ? '—' : pct ? x.toFixed(1) + '%' : whole ? (stat === 'sum' && fD && Math.abs(x) < 1000 ? fD(x) : this.fmtN(Math.round(x))) : fD ? fD(x) : this.fmt(x, dec);
     const wN = S.weightVar ? ' (weighted)' : '';
     const codeOf = (name, lab) => { const lv = this.obLevels(name, this.groupLab(name) || [], this.numCore(name), false).find(x => x.label === lab); return lv && isFinite(lv.code) ? this._E.numLab(lv.code) : '"' + lab + '"'; };
     const pick = (ri, ci) => set({ cell: [ri, ci] });
@@ -4171,21 +4184,23 @@ class Component extends DCLogic {
       detail = h('div', { className: 'tl-col ob-detail' }, h('div', { className: 'tl-row' }, h('code', { className: 'ob-cmd' }, '. ' + cmd + (W ? ' [aw=' + S.weightVar + ']' : '')), this.tlBtn('Close', () => set({ cell: null }))),
         h('table', { className: 'tl-tbl' }, h('thead', null, h('tr', null, h('th', null, v), h('th', { className: 'n' }, 'Freq.'), W ? h('th', { className: 'n' }, 'Weighted total') : null, h('th', { className: 'n' }, 'Percent' + wN), h('th', { className: 'n' }, 'Cum.'))),
           h('tbody', null, lv.map(([l, x]) => { cum += x; return h('tr', { key: l }, h('td', { className: 'w' }, l), h('td', { className: 'n' }, this.fmtN(c.levN.get(l) || 0)), W ? h('td', { className: 'n' }, this.fmtN(Math.round(x))) : null, h('td', { className: 'n' }, (100 * x / c.wN).toFixed(2)), h('td', { className: 'n' }, (100 * cum / c.wN).toFixed(2))); }).concat([h('tr', { key: 'tot', className: 'ob-tot' }, h('td', { className: 'w' }, 'Total'), h('td', { className: 'n' }, this.fmtN(c.n)), W ? h('td', { className: 'n' }, this.fmtN(Math.round(c.wN))) : null, h('td', { className: 'n' }, '100.00'), h('td', { className: 'n' }, ''))]))),
-        isNum && c.wNum ? h('span', { className: 'tl-hint' }, 'summarize ' + v + (conds.length ? ' if ' + conds.join(' & ') : '') + (W ? ' [aw=' + S.weightVar + ']' : '') + ': mean ' + this.fmt(c.wSum / c.wNum) + ', sd ' + this.fmt(this.obValue(c, 'sd')) + ', N ' + this.fmtN(c.nNum)) : null);
+        isNum && c.wNum ? h('span', { className: 'tl-hint' }, 'summarize ' + v + (conds.length ? ' if ' + conds.join(' & ') : '') + (W ? ' [aw=' + S.weightVar + ']' : '') + ': mean ' + (fD ? fD(c.mu) : this.fmt(c.mu)) + ', sd ' + (fD ? fD(this.obValue(c, 'sd')) : this.fmt(this.obValue(c, 'sd'))) + ', N ' + this.fmtN(c.nNum)) : null);
     }
     // reproducible code
-    const wS = S.weightVar ? ' [pw=' + S.weightVar + ']' : '', ifS = this.conds().length ? ' if ' + this.conds().map(c => this.condExpr(c, 'stata')).join(' & ') : '';
+    // GM26 .66: totals, counts and shares as population estimates ([pw=], table); means, SDs, medians, min and max as Stata's
+    // [aw=] gives them (the same numbers as this table); tabstat asks for the statistic on screen.
+    const wTot = ['sum', 'count', 'wn', 'tab', 'pct'].includes(stat), wS = S.weightVar ? (wTot ? ' [pw=' : ' [aw=') + S.weightVar + ']' : '', ifS = this.conds().length ? ' if ' + this.conds().map(c => this.condExpr(c, 'stata')).join(' & ') : '';
     const ex = O.cell ? null : 'tab ' + v + ' if ' + O.rows + ' == ' + codeOf(O.rows, (rows.find(r => !r.empty) || rows[0]).label) + (colsV && cols[0] ? ' & ' + colsV + ' == ' + codeOf(colsV, cols[0].label) : '');
-    const stataStat = { mean: 'mean', sum: 'total', sd: 'sd', median: 'median', min: 'min', max: 'max', n: 'count', wn: 'frequency' }[stat];
+    const stataStat = { mean: 'mean', sum: 'total', sd: 'sd', median: 'median', min: 'min', max: 'max', n: 'count', wn: 'frequency' }[stat], tabSt = { mean: 'mean', sum: 'sum', sd: 'sd', median: 'median', min: 'min', max: 'max', n: 'n' }[stat];
     const stata = (stat === 'pct' || stat === 'count' ? 'generate byte _is = (' + v + ' == ' + codeOf(v, level) + ') if !missing(' + v + ')\ntable ' + O.rows + (colsV ? ' ' + colsV : '') + wS + ifS + ', statistic(' + (pct ? 'mean' : 'total') + ' _is) statistic(count _is)' + (pct ? '   // mean × 100 = %' : '') + '\n'
       : stat === 'tab' ? 'table ' + O.rows + ' ' + v + (colsV ? ' ' + colsV : '') + wS + ifS + ', statistic(percent, across(' + v + '))\n'
       : 'table ' + O.rows + (colsV ? ' ' + colsV : '') + wS + ifS + ', statistic(' + stataStat + ' ' + v + ') statistic(count ' + v + ')\n') +
-      'tabstat ' + v + wS.replace('pw', 'aw') + ifS + ', by(' + O.rows + ') statistics(mean ' + (S.weightVar ? '' : 'sum ') + 'n)\n' + (ex ? '* one cell:\n' + ex + '\n' : '');
+      (tabSt && !(S.weightVar && stat === 'sum') ? 'tabstat ' + v + wS + ifS + ', by(' + O.rows + ') statistics(' + (tabSt === 'n' ? 'n' : tabSt + ' n') + ')\n' : '') + (ex ? '* one cell:\n' + ex + '\n' : '');
     const rW = S.weightVar ? S.weightVar : null;
-    const rStat = { pct: '100 * ' + (rW ? 'weighted.mean(' + v + ' == ' + codeOf(v, level) + ', ' + rW + ', na.rm = TRUE)' : 'mean(' + v + ' == ' + codeOf(v, level) + ', na.rm = TRUE)'), count: 'sum(' + (rW ? rW + ' * ' : '') + '(' + v + ' == ' + codeOf(v, level) + '), na.rm = TRUE)', mean: rW ? 'weighted.mean(' + v + ', ' + rW + ', na.rm = TRUE)' : 'mean(' + v + ', na.rm = TRUE)', sum: 'sum(' + (rW ? rW + ' * ' : '') + v + ', na.rm = TRUE)', sd: 'sd(' + v + ', na.rm = TRUE)', median: 'median(' + v + ', na.rm = TRUE)', min: 'min(' + v + ', na.rm = TRUE)', max: 'max(' + v + ', na.rm = TRUE)', n: 'dplyr::n()', wn: 'sum(' + (rW || '1') + ')', tab: rW ? 'sum(' + rW + ')' : 'dplyr::n()' }[stat];
-    const r = 'library(dplyr)\ndf |>' + (ifS ? ' filter(' + this.conds().map(c => this.condExpr(c, 'r')).join(', ') + ') |>' : '') + ' filter(!is.na(' + v + '), !is.na(' + O.rows + ')' + (colsV ? ', !is.na(' + colsV + ')' : '') + ') |>\n  group_by(' + O.rows + (colsV ? ', ' + colsV : '') + (stat === 'tab' ? ', ' + v : '') + ') |>\n  summarise(value = ' + rStat + ', n = n()' + ') |>\n  tidyr::pivot_wider(names_from = ' + (stat === 'tab' ? v : colsV || O.rows) + ', values_from = ' + (stat === 'tab' ? 'n' : 'value') + ')' + (colsV || stat === 'tab' ? '' : '   # one column per value of ' + O.rows);
+    const rStat = { pct: '100 * ' + (rW ? 'weighted.mean(' + v + ' == ' + codeOf(v, level) + ', ' + rW + ', na.rm = TRUE)' : 'mean(' + v + ' == ' + codeOf(v, level) + ', na.rm = TRUE)'), count: 'sum(' + (rW ? rW + ' * ' : '') + '(' + v + ' == ' + codeOf(v, level) + '), na.rm = TRUE)', mean: rW ? 'weighted.mean(' + v + ', ' + rW + ', na.rm = TRUE)' : 'mean(' + v + ', na.rm = TRUE)', sum: 'sum(' + (rW ? rW + ' * ' : '') + v + ', na.rm = TRUE)', sd: rW ? 'sqrt(sum(' + rW + ' * (' + v + ' - weighted.mean(' + v + ', ' + rW + '))^2) / sum(' + rW + ') * n() / (n() - 1))' : 'sd(' + v + ', na.rm = TRUE)', median: rW ? 'wmed(' + v + ', ' + rW + ')' : 'median(' + v + ', na.rm = TRUE)', min: 'min(' + v + ', na.rm = TRUE)', max: 'max(' + v + ', na.rm = TRUE)', n: 'dplyr::n()', wn: 'sum(' + (rW || '1') + ')', tab: rW ? 'sum(' + rW + ')' : 'dplyr::n()' }[stat];
+    const r = 'library(dplyr)\n' + (rW && stat === 'median' ? 'wmed <- function(x, w) { o <- order(x); x <- x[o]; cw <- cumsum(w[o]) / sum(w); i <- which(cw >= 0.5 - 1e-12)[1]; if (abs(cw[i] - 0.5) < 1e-12) (x[i] + x[i + 1]) / 2 else x[i] }   # weighted median, as Stata\n' : '') + 'df |>' + (ifS ? ' filter(' + this.conds().map(c => this.condExpr(c, 'r')).join(', ') + ') |>' : '') + ' filter(!is.na(' + v + '), !is.na(' + O.rows + ')' + (colsV ? ', !is.na(' + colsV + ')' : '') + (rW ? ', !is.na(' + rW + ')' : '') + ') |>\n  group_by(' + O.rows + (colsV ? ', ' + colsV : '') + (stat === 'tab' ? ', ' + v : '') + ') |>\n  summarise(value = ' + rStat + ', n = n()' + ') |>\n  tidyr::pivot_wider(names_from = ' + (stat === 'tab' ? v : colsV || O.rows) + ', values_from = ' + (stat === 'tab' ? 'n' : 'value') + ')' + (colsV || stat === 'tab' ? '' : '   # one column per value of ' + O.rows);
     const code = S.dialect === 'r' ? r : stata;
-    const note = [res.dropV ? this.fmtN(res.dropV) + ' rows with a missing ' + v + ' left out' : null, res.dropG ? this.fmtN(res.dropG) + ' rows with a missing ' + O.rows + (colsV ? ' or ' + colsV : '') + ' left out' : null, S.weightVar ? 'weighted by ' + S.weightVar + ': % and means use the weights, counts and sums are weighted totals (population estimates), N is the number of observations; min, max and median unweighted' : null, rows.some(r0 => r0.empty) ? rows.filter(r0 => r0.empty).length + ' values of ' + O.rows + ' in the range have no observations (—)' : null].filter(Boolean).join(' · ');
+    const note = [res.dropV ? this.fmtN(res.dropV) + ' rows with a missing ' + v + ' left out' : null, res.dropG ? this.fmtN(res.dropG) + ' rows with a missing ' + O.rows + (colsV ? ' or ' + colsV : '') + ' left out' : null, S.weightVar ? 'weighted by ' + S.weightVar + ': %, means, SDs and medians use the weights (as Stata [aw=]), counts and sums are weighted totals (population estimates, [pw=]), N is the number of observations' : null, rows.some(r0 => r0.empty) ? rows.filter(r0 => r0.empty).length + ' values of ' + O.rows + ' in the range have no observations (—)' : null].filter(Boolean).join(' · ');
     const tsv = () => { const ck = colsV ? cols.map((c, ci) => ci).concat(O.totals ? [Cn] : []) : [Cn]; const lines = [[colsV ? O.rows + '\\' + colsV : O.rows].concat(ck.map(ci => ci === Cn ? (colsV ? 'Total' : stat) : cols[ci].label)).join('\t')]; rows.map((r0, ri) => ri).concat(O.totals ? [Rn] : []).forEach(ri => lines.push([ri === Rn ? 'Total' : rows[ri].label].concat(ck.map(ci => { const x = this.obValue(grid[ri][ci], stat === 'tab' ? 'n' : stat); return isFinite(x) ? (Math.round(x * 1e4) / 1e4) : ''; })).join('\t'))); return lines.join('\n'); };
     return head([
       note ? h('span', { className: 'tl-hint' }, note) : null,
@@ -7690,7 +7705,7 @@ class Component extends DCLogic {
     }
     if (dial === 'stata') {
       const aw = d.w ? ' [aw=' + d.w + ']' : '';
-      if (d.t === 'sum') return 'summarize ' + d.x + aw;
+      if (d.t === 'sum') { const lv = Math.round((1 - this.alpha()) * 100), lvl = lv !== 95 ? ', level(' + lv + ')' : ''; return 'summarize ' + d.x + aw + ', detail\n' + (d.w ? 'mean ' + d.x + ' [pw=' + d.w + ']' + lvl : 'ci means ' + d.x + lvl); } // GM26 .66: every number on the panel
       if (d.t === 'tab1') return 'tabulate ' + d.x + aw;
       if (d.t === 'ct') return 'tabulate ' + d.y + ' ' + d.x + aw + ', column chi2';
       if (d.t === 'corr') return 'pwcorr ' + d.x + ' ' + d.y + aw + ', sig obs';
@@ -7702,9 +7717,13 @@ class Component extends DCLogic {
       }
     } else {
       const wp = d.w ? ', weights = ' + d.w : '';
-      if (d.t === 'sum') return d.w ? 'weighted.mean(df$' + d.x + ', df$' + d.w + ', na.rm = TRUE)' : 'summary(df$' + d.x + ', quantile.type = 2)';
+      if (d.t === 'sum') { // GM26 .66: every number on the panel, weighted as the panel computes it
+        const cl = 1 - this.alpha();
+        if (!d.w) return 'summary(df$' + d.x + ', quantile.type = 2)\nx <- na.omit(df$' + d.x + '); m <- mean(x)\nc(sd = sd(x), skewness = mean((x - m)^3) / mean((x - m)^2)^1.5, kurtosis = mean((x - m)^4) / mean((x - m)^2)^2)\nt.test(x, conf.level = ' + cl + ')$conf.int';
+        return 'ok <- !is.na(df$' + d.x + ') & !is.na(df$' + d.w + '); x <- df$' + d.x + '[ok]; w <- df$' + d.w + '[ok]; n <- length(x); m <- weighted.mean(x, w)\nwq <- function(p) { o <- order(x); cw <- cumsum(w[o]) / sum(w); i <- which(cw >= p - 1e-12)[1]; if (abs(cw[i] - p) < 1e-12) mean(x[o][i + 0:1]) else x[o][i] }   # Stata\'s weighted percentiles\nc(n = n, mean = m, sd = sqrt(sum(w * (x - m)^2) / sum(w) * n / (n - 1)), min = min(x), q1 = wq(0.25), median = wq(0.5), q3 = wq(0.75), max = max(x))\nse <- sqrt(n / (n - 1) * sum((w * (x - m))^2)) / sum(w)   # as Stata mean [pw=]\nm + c(-1, 1) * qt(' + (1 - this.alpha() / 2) + ', n - 1) * se';
+      }
       if (d.t === 'tab1') return d.w ? 'prop.table(xtabs(' + d.w + ' ~ ' + d.x + ', data = df)) * 100' : 'table(df$' + d.x + ')';
-      if (d.t === 'ct') return 'prop.table(table(df$' + d.y + ', df$' + d.x + '), margin = 2)';
+      if (d.t === 'ct') return d.w ? 'tb <- xtabs(' + d.w + ' ~ ' + d.y + ' + ' + d.x + ', data = df)\nprop.table(tb, margin = 2) * 100\nchisq.test(tb * sum(complete.cases(df[c("' + d.y + '", "' + d.x + '", "' + d.w + '")])) / sum(tb), correct = FALSE)   # weights rescaled to the observations' : 'tb <- table(df$' + d.y + ', df$' + d.x + ')\nprop.table(tb, margin = 2) * 100\nchisq.test(tb, correct = FALSE)'; // GM26 .66: weighted, with the chi-square
       if (d.t === 'corr') return 'cor.test(df$' + d.x + ', df$' + d.y + ')';
       if (d.t === 'ttest') return 't.test(' + d.y + ' ~ ' + d.g + ', data = df)';
       if (d.t === 'anova') return 'summary(aov(' + d.y + ' ~ ' + d.g + ', data = df))';
@@ -8035,7 +8054,7 @@ class Component extends DCLogic {
     if (d.t === 'describe') { const r = this._raw; return r ? 'obs ' + this.fmtN(r.n) + ' · vars ' + this.fmtN(this.state.cols.length) : ''; }
     if (d.t === 'codebook') { const m = this.state.cols.find(c => c.name === d.x); return m ? (m.treatAs === 'numeric' ? 'numeric' : 'categorical') + ' · ' + this.fmtN(m.valid) + ' valid · ' + this.fmtN(m.miss) + ' missing · ' + (m.distinct > 1200 ? '>1200' : m.distinct) + ' unique' : ''; }
     const M = this.memoView(), E = this._E;
-    if (d.t === 'sum') { const s = M['desc|' + d.x]; return (s && s.n) ? 'mean ' + this.fmt(s.mean) + ' · sd ' + this.fmt(s.sd) + ' · min ' + this.fmt(s.mn) + ' · max ' + this.fmt(s.mx) + ' · n ' + this.fmtN(s.n) : ''; }
+    if (d.t === 'sum') { const s = M['desc|' + d.x], F = this.descFmt(s); return (s && s.n) ? 'mean ' + F(s.mean) + ' · sd ' + F(s.sd) + ' · min ' + F(s.mn) + ' · max ' + F(s.mx) + ' · n ' + this.fmtN(s.n) : ''; }
     if (d.t === 'tab1') { const f = M['freq|' + d.x]; return (f && f.rows.length) ? f.rows.length + ' levels · top "' + f.rows[0].label + '" (' + (100 * f.rows[0].c / f.totalW).toFixed(1) + '%) · n ' + this.fmtN(f.totalRaw) : ''; }
     if (d.t === 'corr') { const c = M['corr|' + d.x + '|' + d.y]; return (c && !c.error) ? 'r = ' + this.fmt(c.pearson.r, 3) + ' (p = ' + this.fmtP(c.pearson.p) + ') · rho = ' + this.fmt(c.spearman.r, 3) + ' · n ' + this.fmtN(c.n) : ''; }
     if (d.t === 'ttest' || d.t === 'anova') {
@@ -8114,6 +8133,31 @@ class Component extends DCLogic {
   fmtRatio(r) { if (!isFinite(r)) return '—'; const d = Math.abs(r - 1); if (d === 0 || d >= 0.0005) return this.fmt(r, 3); return r.toFixed(Math.min(12, 2 - Math.floor(Math.log10(d)))); }
   fmt(x, d) { if (!isFinite(x)) return '—'; if (Math.abs(x) >= 100000) return Math.round(x).toLocaleString('en-US'); const s = x.toFixed(d === undefined ? this.dec() : d); return /^-0(\.0+)?$/.test(s) ? s.slice(1) : s; }
   fmtN(x) { return isFinite(x) ? Math.round(x).toLocaleString('en-US') : '—'; }
+  // GM26 .66: one number format for a variable's descriptives (tiles, text, key result, group table). Decimals: the
+  // Settings choice, or more when the spread is small, so the SD keeps 2 significant digits and close values stay
+  // apart (1e9 ± 1 shows 999,999,999.94); whole numbers when values and spread are both large; scientific notation
+  // when every value is below 0.001 in size; thousands separators on all values once any reaches 10,000.
+  descFmt(d) {
+    const base = this.dec();
+    if (!d || !d.n) return x => this.fmt(x);
+    const big = Math.max(Math.abs(d.mn), Math.abs(d.mx), Math.abs(d.mean)), sd = d.sd;
+    if (!(big > 0) || !isFinite(big)) return x => this.fmt(x);
+    let dp = base;
+    const ref = isFinite(sd) && sd > 0 ? sd : big;
+    dp = Math.max(dp, Math.min(12, 1 - Math.floor(Math.log10(ref))));
+    if (big >= 1e5 && isFinite(sd) && sd >= 100 && dp <= base) dp = 0;
+    if (big < 1e-3 && dp > 6) {
+      const sig = Math.min(10, Math.max(3, Math.floor(Math.log10(big / ref)) + 3));
+      return x => !isFinite(x) ? '—' : x === 0 ? '0' : x.toExponential(sig - 1).replace(/e([+-])(\d+)$/, (m, sg, k) => 'e' + (sg === '-' ? '−' : '') + k);
+    }
+    const comma = big >= 1e4;
+    return x => { if (!isFinite(x)) return '—'; let t = comma ? x.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }) : x.toFixed(dp); if (/^-0(\.0+)?$/.test(t)) t = t.slice(1); return t; };
+  }
+  descTiles(pairs) { // GM26 .66: long numbers take two tile widths and stay on one line
+    const base = 'background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 8px 10px; box-shadow: inset 0 1px 2px rgba(43,39,30,0.06); min-width: 0;';
+    return pairs.map(([k, v]) => { const L = String(v).length, wide = L > 10; return { k, v, ts: base + (wide ? ' grid-column: span 2;' : ''), vs: 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: ' + (L <= 8 ? 19 : L <= 10 ? 16 : L <= 17 ? 16 : 13) + 'px; color: var(--c194F39, #194F39); text-shadow: 0 0 10px rgba(46,125,88,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' }; });
+  }
+  descFmtFor(name) { const E = this._E, w = this.wArr(); return this.descFmt(this.memo('descF|' + name, () => { const v = this.vals(name), a = v && v.kind === 'num' ? v.a : (this.numCore(name) || {}).a; return a ? E.descNum(a, w) : null; })); }
   fmtP(p) { if (!isFinite(p)) return '—'; if (p < 0.001) return '<.001'; return Math.min(p, 0.999).toFixed(3).slice(1); }
   apaP(p) { return !isFinite(p) ? 'p = —' : (p < 0.001 ? 'p < .001' : 'p = ' + this.fmtP(p)); }
   pStyle(p) { return isFinite(p) && p < this.alpha() ? 'color: var(--c934425, #934425); font-weight: 700; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px;' : 'color: var(--c5D5648, #5D5648);'; }
@@ -9715,7 +9759,8 @@ class Component extends DCLogic {
     if (d.t === 'sum') {
       const s = M['desc|' + d.x]; if (!s || !s.n) return null;
       if (this.isBin(d.x)) return { text: pc(s.mean) + ' of observations have ' + d.x + ' = 1' + lab1(d.x) + wt + ' · n = ' + this.fmtN(s.n) };
-      return { text: 'Mean ' + d.x + ' = ' + this.fmt(s.mean) + wt + ' (SD ' + this.fmt(s.sd) + ', median ' + this.fmt(s.med) + ', range ' + this.fmt(s.mn) + ' to ' + this.fmt(s.mx) + ') · n = ' + this.fmtN(s.n) };
+      const F = this.descFmt(s);
+      return { text: 'Mean ' + d.x + ' = ' + F(s.mean) + wt + ' (SD ' + F(s.sd) + ', median ' + F(s.med) + ', range ' + F(s.mn) + ' to ' + F(s.mx) + ') · n = ' + this.fmtN(s.n) };
     }
     if (d.t === 'tab1') {
       const f = M['freq|' + d.x]; if (!f || !f.rows.length) return null;
@@ -9762,11 +9807,13 @@ class Component extends DCLogic {
   // ---- tables for Word / HTML (APA style)
   gridFor(d) {
     const M = this.memoView(), E = this._E, f = (x, k) => isFinite(x) ? x.toFixed(k === undefined ? 2 : k) : '—', P = p => this.pTxt(p), wN = this.state.weightVar ? 'n (weighted)' : 'n';
-    if (d.t === 'sum') { const s = M['desc|' + d.x]; if (!s || !s.n) return null; return { title: 'Descriptive statistics for ' + d.x, head: [['Variable', 'n', 'Mean', 'SD', 'Min', 'Median', 'Max']], rows: [[d.x, this.fmtN(s.n), f(s.mean), f(s.sd), f(s.mn), f(s.med), f(s.mx)]] }; }
+    if (d.t === 'sum') { const s = M['desc|' + d.x]; if (!s || !s.n) return null; const F = this.descFmt(s); return { title: 'Descriptive statistics for ' + d.x, head: [['Variable', 'n', 'Mean', 'SD', 'Min', 'Median', 'Max']], rows: [[d.x, this.fmtN(s.n), F(s.mean), F(s.sd), F(s.mn), F(s.med), F(s.mx)]] }; }
     if (d.t === 'tab1') {
-      const fr = M['freq|' + d.x]; if (!fr || !fr.rows.length) return null; let cum = 0;
-      const rows = fr.rows.slice(0, 40).map(r => { cum += r.c; return [String(r.label), this.fmtN(r.c), f(100 * r.c / fr.totalW, 1), f(100 * cum / fr.totalW, 1)]; });
-      return { title: 'Frequency distribution of ' + d.x, head: [[d.x, wN, '%', 'Cumulative %']], rows: rows.concat([{ c: ['Total', this.fmtN(fr.totalW), '100.0', ''], rule: true }]), note: fr.rows.length > 40 ? 'The 40 most common of ' + fr.rows.length + ' categories are shown.' : '' };
+      const fr = M['freq|' + d.x]; if (!fr || !fr.rows.length) return null; let cum = 0; const W = !!this.state.weightVar;
+      // GM26 .66: value order (as the table on screen and Stata's tab); with a weight, n = observations and % weighted
+      const ord = this.state.freqSort === 'freq' ? fr.rows : this.descOrder(d.x, fr.rows);
+      const rows = ord.slice(0, 40).map(r => { cum += r.c; return [String(r.label), this.fmtN(W ? r.craw : r.c), f(100 * r.c / fr.totalW, 1), f(100 * cum / fr.totalW, 1)]; });
+      return { title: 'Frequency distribution of ' + d.x, head: [[d.x, 'n', W ? '% (weighted)' : '%', W ? 'Cumulative % (weighted)' : 'Cumulative %']], rows: rows.concat([{ c: ['Total', this.fmtN(fr.totalRaw), '100.0', ''], rule: true }]), note: (fr.rows.length > 40 ? (this.state.freqSort === 'freq' ? 'The 40 most common of ' : 'The first 40 of ') + fr.rows.length + ' categories are shown.' : '') + (W ? (fr.rows.length > 40 ? ' ' : '') + 'Percentages weighted by ' + this.state.weightVar + '.' : '') };
     }
     if (d.t === 'ct') {
       const T = M['ct|' + d.x + '|' + d.y]; if (!T || !T.xL.length) return null; const ch = T.chi || E.chi2Of(T);
@@ -9978,7 +10025,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-02.65') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-02.66') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -11260,7 +11307,7 @@ class Component extends DCLogic {
           const d = this.memo('pdesc|' + S.pX, () => E.descNum(this.nvA(S.pX), w));
           if (d.n < 2) { out.plotEmpty = true; out.plotEmptyText = 'NOT ENOUGH VALID VALUES.'; }
           else out.plotChartEl = kk === 'hist'
-            ? E.histChart(R, d, { key: 'ph|' + S.pX + cSel, xlab: S.pX, color: cSel, refCb: this.svgRef('plot'), ax: this.axUI('plot', ['hist', S.pX], { x: true, xName: S.pX }) })
+            ? E.histChart(R, d, { key: 'ph|' + S.pX + cSel, xlab: S.pX, ylab: w ? 'Frequency (weighted by ' + S.weightVar + ')' : 'Frequency', color: cSel, refCb: this.svgRef('plot'), ax: this.axUI('plot', ['hist', S.pX], { x: true, xName: S.pX }) })
             : E.boxChart(R, d, { key: 'pb|' + S.pX + cSel, color: cSel, refCb: this.svgRef('plot'), ax: this.axUI('plot', ['box', S.pX], { x: true, zero: 'x', xName: S.pX }) });
         } else if (kk === 'bar') {
           const f = this.memo('pfreq|' + S.pX, () => E.freqOf(this.groupLab(S.pX), w));
@@ -11640,16 +11687,21 @@ class Component extends DCLogic {
             out.chartNote = cc.codes.join(', ') + (cc.codes.length > 1 ? ' LOOK' : ' LOOKS') + ' LIKE MISSING-DATA CODES (' + this.fmtN(cc.nExcl) + ' CASES) AND ' + (cc.codes.length > 1 ? 'ARE' : 'IS') + ' CURRENTLY INCLUDED IN THESE STATS AND CHARTS \u2014 AUTO-SCREEN IS OFF. EXCLUDE THEM EVERYWHERE \u2192';
             out.applyChartCodes = () => { this.clearMemo(); const mc = (S.missingCodes + ' ' + cc.codes.join(' ')).trim(); this.setState({ missingCodes: mc, missingDraft: mc }); };
           }
-          const ciPct = Math.round((1 - a) * 100);
-          const ciHalf = (dEff.n > 1 && isFinite(dEff.sd)) ? E.critInv(a, dEff.n - 1) * dEff.sd / Math.sqrt(dEff.n) : NaN;
-          out.descCells = [['N VALID', this.fmtN(dEff.n)], ['MISSING', this.fmtN(this.conds().length ? Math.max(0, this.keptN() - dEff.n) : missEff)], ['MEAN', this.fmt(dEff.mean)], ['SD', this.fmt(dEff.sd)], [ciPct + '% CI LO', this.fmt(dEff.mean - ciHalf)], [ciPct + '% CI HI', this.fmt(dEff.mean + ciHalf)], ['MEDIAN', this.fmt(dEff.med)], ['MIN', this.fmt(dEff.mn)], ['Q1', this.fmt(dEff.q1)], ['Q3', this.fmt(dEff.q3)], ['MAX', this.fmt(dEff.mx)]].map(([k, v]) => ({ k, v }));
-          const skew = isFinite(dEff.sd) && dEff.sd > 0 ? (dEff.mean - dEff.med) / dEff.sd : 0;
-          out.exInterp = (this._cxConst = dEff.n > 0 && dEff.mn === dEff.mx) ? 'Every valid value of ' + name + ' is ' + this.fmt(dEff.mn) + ' (n = ' + this.fmtN(dEff.n) + '), so it does not vary here: it cannot show differences between groups or an association with anything.' + (cc ? ' Codes ' + cc.codes.join(', ') + ' are excluded here.' : '') + wTag : 'A typical ' + name + ' is around ' + this.fmt(dEff.mean) + ' (median ' + this.fmt(dEff.med) + '). Values spread about ' + this.fmt(dEff.sd) + ' on average, ranging ' + this.fmt(dEff.mn) + ' to ' + this.fmt(dEff.mx) + '.' + (Math.abs(skew) > 0.25 ? ' The mean sits ' + (skew > 0 ? 'above' : 'below') + ' the median, so a ' + (skew > 0 ? 'few high' : 'few low') + ' values pull the average ' + (skew > 0 ? 'up' : 'down') + '.' : '') + (cc ? ' Codes ' + cc.codes.join(', ') + ' are excluded here.' : '') + wTag;
-          out.histChart = E.histChart(R, dEff, { key: 'h|' + name + (cc ? '|cc' : '') + cSel, xlab: name, color: cSel, refCb: this.svgRef('hist'), ax: this.axUI('hist', [name], { x: true, xName: name }) });
+          const ciPct = Math.round((1 - a) * 100), F = this.descFmt(dEff);
+          // GM26 .66: with a weight the CI is Stata's mean x [pw=w] (sampling weights: linearized SE, t with n − 1 df);
+          // without one it is ci means x. Skewness and kurtosis as summarize, detail.
+          const seM = w ? dEff.sePw : dEff.sd / Math.sqrt(dEff.n);
+          const ciHalf = (dEff.n > 1 && isFinite(seM)) ? E.critInv(a, dEff.n - 1) * seM : NaN;
+          const f2 = v => { if (!isFinite(v)) return '—'; const t = v.toFixed(2); return /^-0\.00$/.test(t) ? '0.00' : t; };
+          out.descCells = this.descTiles([['N VALID', this.fmtN(dEff.n)], ['MISSING', this.fmtN(this.conds().length ? Math.max(0, this.keptN() - dEff.n) : missEff)], ['MEAN', F(dEff.mean)], ['SD', F(dEff.sd)], [ciPct + '% CI LO', F(dEff.mean - ciHalf)], [ciPct + '% CI HI', F(dEff.mean + ciHalf)], ['MEDIAN', F(dEff.med)], ['MIN', F(dEff.mn)], ['Q1', F(dEff.q1)], ['Q3', F(dEff.q3)], ['MAX', F(dEff.mx)], ['SKEWNESS', f2(dEff.sk)], ['KURTOSIS', f2(dEff.ku)]]);
+          out.hasDescNote = !!w; out.descNote = w ? 'WEIGHTED BY ' + S.weightVar.toUpperCase() + ': MEAN, SD, MEDIAN AND QUARTILES USE THE WEIGHTS (STATA SUMMARIZE [AW=]); THE ' + ciPct + '% CI TREATS THEM AS SAMPLING WEIGHTS (STATA MEAN [PW=]). N IS THE NUMBER OF OBSERVATIONS.' : '';
+          const sk = dEff.sk, skT = !isFinite(sk) || dEff.n < 3 ? '' : Math.abs(sk) > 1 ? ' The distribution is strongly skewed (skewness ' + sk.toFixed(2) + '): a few ' + (sk > 0 ? 'very high' : 'very low') + ' values pull the mean ' + (sk > 0 ? 'above' : 'below') + ' the median, so the median describes a typical case better.' : Math.abs(sk) > 0.5 ? ' The distribution is moderately skewed (skewness ' + sk.toFixed(2) + '), with a longer tail of ' + (sk > 0 ? 'high' : 'low') + ' values.' : '';
+          out.exInterp = (this._cxConst = dEff.n > 0 && dEff.mn === dEff.mx) ? 'Every valid value of ' + name + ' is ' + F(dEff.mn) + ' (n = ' + this.fmtN(dEff.n) + '), so it does not vary here: it cannot show differences between groups or an association with anything.' + (cc ? ' Codes ' + cc.codes.join(', ') + ' are excluded here.' : '') + wTag : 'A typical ' + name + ' is around ' + F(dEff.mean) + ' (median ' + F(dEff.med) + '). Values spread about ' + F(dEff.sd) + ' on average, ranging ' + F(dEff.mn) + ' to ' + F(dEff.mx) + '.' + skT + (cc ? ' Codes ' + cc.codes.join(', ') + ' are excluded here.' : '') + wTag;
+          out.histChart = E.histChart(R, dEff, { key: 'h|' + name + (cc ? '|cc' : '') + cSel, xlab: name, ylab: w ? 'Frequency (weighted by ' + S.weightVar + ')' : 'Frequency', color: cSel, refCb: this.svgRef('hist'), ax: this.axUI('hist', [name], { x: true, xName: name }) });
           out.boxChart = E.boxChart(R, dEff, { key: 'bx|' + name + (cc ? '|cc' : '') + cSel, color: cSel, refCb: this.svgRef('box'), ax: this.axUI('box', [name], { x: true, zero: 'x', xName: name }) });
           out.dlHist = this.dl('hist', name + '-histogram');
           out.dlBox = this.dl('box', name + '-boxplot');
-        } else { out.descCells = [{ k: 'N VALID', v: '0' }]; out.exInterp = 'No valid numeric values — check missing codes or READ AS setting.'; }
+        } else { out.descCells = this.descTiles([['N VALID', '0']]); out.exInterp = 'No valid numeric values — check missing codes or READ AS setting.'; }
         out.copyDescLabel = this.cpLabel('desc');
         out.muDraft = S.mu;
         out.setMu = e2 => this.setState({ mu: e2.target.value });
@@ -11667,18 +11719,26 @@ class Component extends DCLogic {
       }
       if (out.exIsCat) {
         const f = this.memo('freq|' + name, () => E.freqOf(this.vals(name).a, w));
+        // GM26 .66: categories in value order (codes, then labels A–Z), as Stata's tab, so CUM adds up the scale in order;
+        // "By frequency" sorts them as tab, sort. With a weight: N is the observations, % and CUM use the weights.
+        const byFreq = S.freqSort === 'freq', rowsO = byFreq ? f.rows : this.descOrder(name, f.rows), cap = 60;
+        const shown = rowsO.slice(0, cap);
         let cum = 0;
-        out.freqRows = f.rows.slice(0, 60).map(r => { cum += r.c; return { level: String(r.label), count: this.fmtN(r.c), pct: (100 * r.c / f.totalW).toFixed(1) + '%', cum: (100 * cum / f.totalW).toFixed(1) + '%' }; });
-        out.hasFreqNote = f.rows.length > 60 || f.missing > 0;
-        out.freqNote = (f.rows.length > 60 ? 'TOP 60 OF ' + f.rows.length + ' LEVELS SHOWN. ' : '') + (f.missing > 0 ? this.fmtN(f.missing) + ' MISSING EXCLUDED.' : '');
+        out.freqRows = shown.map(r => { cum += r.c; return { level: String(r.label), count: this.fmtN(w ? r.craw : r.c), pct: (100 * r.c / f.totalW).toFixed(1) + '%', cum: (100 * cum / f.totalW).toFixed(1) + '%' }; });
+        out.freqHeadN = w ? 'N (OBS.)' : 'COUNT'; out.freqHeadPct = w ? 'PCT (W)' : 'PCT'; out.freqHeadCum = w ? 'CUM (W)' : 'CUM';
+        out.freqSortBtns = [['value', 'BY VALUE'], ['freq', 'BY FREQUENCY']].map(([k, label]) => ({ label, style: 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: 10px; letter-spacing: 0.08em; border-radius: 8px; padding: 4px 9px; cursor: pointer; white-space: nowrap; ' + ((k === 'freq') === byFreq ? 'color: var(--cFFFFFF, #FFFFFF); background: var(--c194F39, #194F39); border: 1px solid var(--c194F39, #194F39);' : 'color: var(--c5D5648, #5D5648); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF);'), click: () => this.setState({ freqSort: k }) }));
+        out.hasFreqNote = f.rows.length > cap || f.missing > 0 || !!w;
+        out.freqNote = (f.rows.length > cap ? (byFreq ? 'THE ' + cap + ' MOST COMMON' : 'THE FIRST ' + cap) + ' OF ' + f.rows.length + ' LEVELS SHOWN. ' : '') + (f.missing > 0 ? this.fmtN(f.missing) + ' MISSING EXCLUDED. ' : '') + (w ? 'WEIGHTED BY ' + S.weightVar.toUpperCase() + ': N IS THE NUMBER OF OBSERVATIONS; PCT AND CUM USE THE WEIGHTS.' : '');
+        const top = f.rows[0];
         if (f.rows.length) {
-          const top = f.rows[0];
           out.exInterp = 'The most common value of ' + name + ' is "' + top.label + '" at ' + (100 * top.c / f.totalW).toFixed(1) + '% of ' + this.fmtN(f.totalRaw) + ' valid cases, across ' + f.rows.length + ' categories.' + wTag;
         } else out.exInterp = 'No valid values — check missing codes.';
-        out.barChartEl = E.barChart(R, f.rows, f.totalW, { key: 'bar|' + name + cSel, color: cSel, refCb: this.svgRef('bar') });
+        // the bar chart follows the table's order; past 20 categories it keeps the 20 most common (in that order)
+        const barRows = rowsO.length > 20 && !byFreq ? (() => { const keep = new Set(f.rows.slice(0, 20)); return rowsO.filter(r => keep.has(r)); })() : rowsO;
+        out.barChartEl = E.barChart(R, barRows, f.totalW, { key: 'bar|' + name + cSel + (byFreq ? '|f' : '|v'), color: cSel, refCb: this.svgRef('bar') });
         out.dlBar = this.dl('bar', name + '-barchart');
         out.copyFreqLabel = this.cpLabel('freq');
-        out.copyFreq = () => { let c2 = 0; this.copyTSV('freq', 'level\tcount\tpct\tcum_pct\n' + f.rows.map(r => { c2 += r.c; return [r.label, Math.round(r.c), (100 * r.c / f.totalW).toFixed(1), (100 * c2 / f.totalW).toFixed(1)].join('\t'); }).join('\n')); };
+        out.copyFreq = () => { let c2 = 0; this.copyTSV('freq', (w ? 'level\tn\tpct_weighted\tcum_pct_weighted\n' : 'level\tcount\tpct\tcum_pct\n') + rowsO.map(r => { c2 += r.c; return [r.label, w ? r.craw : Math.round(r.c), (100 * r.c / f.totalW).toFixed(1), (100 * c2 / f.totalW).toFixed(1)].join('\t'); }).join('\n')); };
       }
     }
 

@@ -155,9 +155,14 @@
   descOrder(name,rows){const vm=this._raw?.vlabs?.[name],rev=vm?new Map([...vm.entries()].map(([k,v])=>[String(v),Number(k)])):null,code=r=>{const l=String(r.label);if(rev&&rev.has(l))return rev.get(l);const n=Number(l);return l.trim()!==''&&Number.isFinite(n)?n:null;};
     const num=rows.every(r=>code(r)!==null);return rows.slice().sort((a,b)=>num?code(a)-code(b):(String(a.label)<String(b.label)?-1:String(a.label)>String(b.label)?1:0));}
   descStataText(d){const M=this.memoView(),R=(v,w)=>String(v).padStart(w),G=v=>this.stataG(v);
-    if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';const nm=R(this.abbr(d.x,12),12);
-      if(d.w)return '    Variable |     Obs      Weight        Mean   Std. dev.       Min        Max\n-------------+-----------------------------------------------------------------\n'+nm+' |'+R(this.fmtN(s.n),8)+R(G(s.sw),12)+R(G(s.mean),12)+R(G(s.sd),12)+R(G(s.mn),10)+R(G(s.mx),11);
-      return '    Variable |        Obs        Mean    Std. dev.       Min        Max\n-------------+---------------------------------------------------------\n'+nm+' |'+R(this.fmtN(s.n),11)+R(G(s.mean),12)+R(G(s.sd),12)+R(G(s.mn),11)+R(G(s.mx),11);}
+    if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';const nm=R(this.abbr(d.x,12),12),P=s.pctl||{},xs=s.xs||[],n=s.n,at=i=>i>=0&&i<n?G(xs[i]):'',lab=(k,v)=>'       '+k.padEnd(12)+R(v,11);
+      // GM26 .66: summarize, detail (percentiles, 4 smallest and largest, variance, skewness, kurtosis) and the CI command
+      const sw=d.w?s.sw*this.obWScale():n,var_=s.sd*s.sd,head=d.x.length<61?' '.repeat(Math.floor((61-d.x.length)/2)+1)+d.x:d.x;
+      const L=[head,'-'.repeat(61),'      Percentiles      Smallest',' 1%'+R(G(P[1]),12)+R(at(0),15),' 5%'+R(G(P[5]),12)+R(at(1),15),'10%'+R(G(P[10]),12)+R(at(2),15)+lab('Obs',this.fmtN(n)),'25%'+R(G(P[25]),12)+R(at(3),15)+lab('Sum of wgt.',G(sw)),'','50%'+R(G(P[50]),12)+R('',15)+lab('Mean',G(s.mean)),R('',15)+R('Largest',15)+lab('Std. dev.',G(s.sd)),'75%'+R(G(P[75]),12)+R(at(n-4),15),'90%'+R(G(P[90]),12)+R(at(n-3),15)+lab('Variance',G(var_)),'95%'+R(G(P[95]),12)+R(at(n-2),15)+lab('Skewness',G(s.sk)),'99%'+R(G(P[99]),12)+R(at(n-1),15)+lab('Kurtosis',G(s.ku))];
+      const a=this.alpha(),lv=Math.round((1-a)*100),se=d.w?s.sePw:s.sd/Math.sqrt(n),h=n>1?this._E.critInv(a,n-1)*se:NaN,lo=s.mean-h,hi=s.mean+h;
+      if(d.w)L.push('','','Mean estimation'.padEnd(43)+'Number of obs = '+this.fmtN(n),'','-'.repeat(62),R('',13)+'|       Mean   Std. err.     ['+lv+'% conf. interval]','-------------+'+'-'.repeat(48),nm+' |'+R(G(s.mean),11)+R(G(se),11)+R(G(lo),14)+R(G(hi),12),'-'.repeat(62));
+      else L.push('','','    Variable |        Obs        Mean    Std. err.       ['+lv+'% conf. interval]','-------------+---------------------------------------------------------------',nm+' |'+R(this.fmtN(n),11)+R(G(s.mean),12)+R(G(se),12)+R(G(lo),16)+R(G(hi),12));
+      return L.join('\n');}
     if(d.t==='tab1'){const fr=M['freq|'+d.x];if(!fr||!fr.rows.length)return '';const rows=this.descOrder(d.x,fr.rows),tot=fr.totalW,norm=d.w?fr.totalRaw/tot:1,lw=Math.min(24,Math.max(11,d.x.length,...rows.map(r=>String(r.label).length))),cnt=v=>d.w?G(v*norm):this.fmtN(v);let cum=0;
       const out=[R(this.abbr(d.x,lw),lw)+' |      Freq.     Percent        Cum.','-'.repeat(lw+1)+'+-----------------------------------'];
       for(const r of rows){cum+=r.c;out.push(R(String(r.label).slice(0,lw),lw)+' |'+R(cnt(r.c),11)+R((100*r.c/tot).toFixed(2),12)+R((100*cum/tot).toFixed(2),12));}
@@ -277,9 +282,12 @@
       L.push('ggplot(a, aes('+x+', '+m+(g?', colour = '+g:'')+')) + '+(ci?'geom_ribbon(aes(ymin = '+m+' - '+hw+', ymax = '+m+' + '+hw+(g?', fill = '+g:'')+'), alpha = 0.2, colour = NA) + ':'')+'geom_line()');}
     return L.join('\n');}
   descRText(d){const M=this.memoView();
-    if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';if(d.w)return '[1] '+this.rFormat([s.mean])[0].trim();
+    if(d.t==='sum'){const s=M['desc|'+d.x];if(!s||!s.n)return '';const a=this.alpha(),n=s.n,se=d.w?s.sePw:s.sd/Math.sqrt(n),h=n>1?this._E.critInv(a,n-1)*se:NaN,ci=this.rFormat([s.mean-h,s.mean+h]).map(v=>v.trim()).join(' ');
+      // GM26 .66: the printout of each line of the R command (summary, sd/skewness/kurtosis, the CI; weighted: the named vector and the CI)
+      if(d.w)return this.rNamed(['n','mean','sd','min','q1','median','q3','max'],this.rFormat([n,s.mean,s.sd,s.mn,s.q1,s.med,s.q3,s.mx]),null)+'\n[1] '+ci;
       const mx=Math.max(Math.abs(s.mn),Math.abs(s.mx))||1,z=v=>Number(v.toFixed(Math.max(0,5-Math.ceil(Math.log10(mx))))),vals=this.rFormat([s.mn,s.q1,s.med,s.mean,s.q3,s.mx].map(z),4),names=['Min.','1st Qu.','Median','Mean','3rd Qu.','Max.'];
-      if(s.missing){names.push("NA's");vals.push(String(s.missing));}return this.rNamed(names,vals,null);}
+      if(s.missing){names.push("NA's");vals.push(String(s.missing));}
+      return this.rNamed(names,vals,null)+'\n'+this.rNamed(['sd','skewness','kurtosis'],this.rFormat([s.sd,s.sk,s.ku]),null)+'\n[1] '+ci+'\nattr(,"conf.level")\n[1] '+(1-a);}
     if(d.t==='tab1'){const fr=M['freq|'+d.x];if(!fr||!fr.rows.length)return '';const rows=this.descOrder(d.x,fr.rows),vm=this._raw?.vlabs?.[d.x],rev=vm?new Map([...vm.entries()].map(([k,v])=>[String(v),String(k)])):null,nm=r=>rev&&rev.has(String(r.label))?rev.get(String(r.label)):String(r.label);
       if(d.w)return this.rNamed(rows.map(nm),this.rFormat(rows.map(r=>100*r.c/fr.totalW)),d.x);
       return this.rNamed(rows.map(nm),rows.map(r=>String(r.c)),'');}

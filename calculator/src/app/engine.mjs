@@ -242,7 +242,7 @@ export async function parseDTA(buf, prog) {
 
 // ---------- profiling ----------
 const BLANK = /^(na|n\/a|null|\.|nan)$/i;
-export function numLab(v) { return Number.isInteger(v) ? String(v) : String(+v.toFixed(4)); }
+export function numLab(v) { if (Number.isInteger(v)) return String(v); const a = Math.abs(v); return String(+v.toFixed(a > 0 && a < 1e-3 ? Math.min(100, 3 - Math.floor(Math.log10(a))) : 4)); } // GM26 .66: tiny values keep 4 significant digits
 export function profileCol(raw, idx, screen) {
   const nm = raw.names[idx], col = raw.cols[idx], n = raw.n;
   const hasVL = !!(raw.vlabs && raw.vlabs[nm]);
@@ -385,6 +385,17 @@ function argsortNum(xs) {
   }
   return idx;
 }
+// Weighted percentile on sorted values (Stata's summarize rule; unweighted = R type 2): the first value whose
+// cumulative weight reaches p·W, averaged with the next one when it lands exactly on p·W.
+export function wQuantile(xs, ws, sw, p) {
+  const n = xs.length; if (!n) return NaN;
+  const target = p * sw, tol = 1e-9 * Math.max(1, sw / n); let cum = 0;
+  for (let i = 0; i < n; i++) {
+    cum += ws ? ws[i] : 1;
+    if (cum >= target - tol) { if (Math.abs(cum - target) < tol && i + 1 < n) return (xs[i] + xs[i + 1]) / 2; return xs[i]; }
+  }
+  return xs[n - 1];
+}
 export function descNum(a, w) {
   const N = a.length;
   let n = 0, sw = 0, sx = 0, mn = Infinity, mx = -Infinity, allInt = true;
@@ -392,24 +403,19 @@ export function descNum(a, w) {
   if (n < 1) return { n: 0, missing: N };
   let mean = sx / sw;
   { let c = 0; for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; c += wi * (x - mean); } mean += c / sw; }
-  let ss = 0, j = 0;
+  let ss = 0, s3 = 0, s4 = 0, sPw = 0, j = 0;
   const xs = new Float64Array(n), ws = new Float64Array(n);
-  for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; ss += wi * (x - mean) * (x - mean); xs[j] = x; ws[j] = wi; j++; }
+  for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; const e = x - mean, e2 = e * e; ss += wi * e2; s3 += wi * e2 * e; s4 += wi * e2 * e2; sPw += wi * wi * e2; xs[j] = x; ws[j] = wi; j++; }
   const idx = argsortNum(xs);
   const sx2 = new Float64Array(n), sw2 = new Float64Array(n);
   for (let i = 0; i < n; i++) { sx2[i] = xs[idx[i]]; sw2[i] = ws[idx[i]]; }
-  const q = (p) => {
-    const target = p * sw; let cum = 0;
-    for (let i = 0; i < n; i++) {
-      cum += sw2[i];
-      if (cum >= target - 1e-9) {
-        if (Math.abs(cum - target) < 1e-9 && i + 1 < n) return (sx2[i] + sx2[i + 1]) / 2;
-        return sx2[i];
-      }
-    }
-    return sx2[n - 1];
-  };
-  return { n, sw, missing: N - n, mean, sd: n > 1 ? Math.sqrt(ss / sw * n / (n - 1)) : NaN, mn, mx, q1: q(0.25), med: q(0.5), q3: q(0.75), xs: sx2, ws: sw2, allInt };
+  const q = p => wQuantile(sx2, sw2, sw, p);
+  // GM26 .66: moments as Stata's summarize, detail (m_r = Σw(x−mean)^r / Σw; skewness m3/m2^1.5, kurtosis m4/m2², normal = 3);
+  // pctl = its 1 5 10 25 50 75 90 95 99 percentiles; sePw = the standard error of the mean for sampling weights (Stata mean [pw=]).
+  const m2 = ss / sw, sk = n > 2 && m2 > 0 ? (s3 / sw) / Math.pow(m2, 1.5) : NaN, ku = n > 3 && m2 > 0 ? (s4 / sw) / (m2 * m2) : NaN;
+  const pctl = {}; for (const p of [1, 5, 10, 25, 50, 75, 90, 95, 99]) pctl[p] = q(p / 100);
+  const sePw = n > 1 ? Math.sqrt(n / (n - 1) * sPw) / sw : NaN;
+  return { n, sw, missing: N - n, mean, sd: n > 1 ? Math.sqrt(ss / sw * n / (n - 1)) : NaN, mn, mx, q1: pctl[25], med: pctl[50], q3: pctl[75], xs: sx2, ws: sw2, allInt, sk, ku, pctl, sePw };
 }
 export function freqOf(a, w) {
   const N = a.length, m = new Map();
@@ -1311,12 +1317,25 @@ export function ticks(lo, hi, count) {
   for (const m of [1, 2, 2.5, 5, 10]) { if (span / (step * m) <= count) { step *= m; break; } }
   const out = [];
   const i0 = Math.ceil(lo / step); for (let k = 0; k < 400; k++) { const v = (i0 + k) * step; if (v > hi + step * 1e-9 || (out.length && v <= out[out.length - 1])) break; out.push(Math.abs(v) < step * 1e-9 ? 0 : v); }
+  out.step = step; out.comma = out.length && Math.max(...out.map(Math.abs)) >= 10000; // GM26 .66: fmtTick(v, out) labels by the step; commas from 10,000 (years stay 1990)
   return out;
 }
-export function fmtTick(v) {
+export function fmtTick(v, T) {
   if (!isFinite(v)) return '';
-  if (Math.abs(v) >= 100000) return (v / 1000).toFixed(0) + 'k';
-  if (Math.abs(v) >= 1000 && Number.isInteger(v)) return v.toLocaleString('en-US');
+  const a = Math.abs(v), step = T && typeof T === 'object' ? T.step : T, comma = T && typeof T === 'object' ? !!T.comma : a >= 1000;
+  if (step > 0) {
+    // GM26 .66: labels by the tick step, so close ticks never print the same text (1000000k, 0, 0 …)
+    if (step >= 1e9 && a >= 1e9) return String(+(v / 1e9).toFixed(3)) + 'B';
+    if (step >= 1e6 && a >= 1e7) return String(+(v / 1e6).toFixed(3)) + 'M';
+    if (step >= 1000 && a >= 100000) return String(+(v / 1000).toFixed(3)) + 'k';
+    let d = 0; while (d < 12 && Math.abs(Math.round(step * Math.pow(10, d)) - step * Math.pow(10, d)) > 1e-6 * step * Math.pow(10, d)) d++;
+    if (a === 0) return d > 6 && step < 1e-3 ? '0' : (0).toFixed(d);
+    if (a < 1e-3 && d > 6) { const ref = T && typeof T === 'object' && T.length ? Math.max(...T.map(Math.abs)) : a; return v.toExponential(Math.max(0, Math.min(5, d + Math.floor(Math.log10(ref))))).replace(/e([+-])(\d+)$/, (m, sg, x) => 'e' + (sg === '-' ? '\u2212' : '') + x); }
+    return comma ? v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : v.toFixed(d);
+  }
+  if (a >= 100000) return (v / 1000).toFixed(0) + 'k';
+  if (a >= 1000 && Number.isInteger(v)) return v.toLocaleString('en-US');
+  if (a > 0 && a < 1e-3) return String(+v.toPrecision(3));
   return Number.isInteger(v) ? String(v) : String(+v.toFixed(3));
 }
 
@@ -1361,6 +1380,8 @@ function svgBase(R, key, refCb, W, H, kids) {
 function txt(R, x, y, s, o) {
   return R.createElement('text', Object.assign({ x, y, fill: PAL.lab, fontSize: 11, fontFamily: MONO }, o || {}), s);
 }
+function fitTicks(lo, hi, count, width) { for (let c = count; c >= 2; c--) { const T = ticks(lo, hi, c), L = Math.max(0, ...T.map(v => fmtTick(v, T).length)); if (c === 2 || T.length * (L * 7.2 + 24) <= width) return T; } return ticks(lo, hi, 2); } // GM26 .66: fewer ticks when labels are long
+function edgeTick(x, label, W) { const half = String(label).length * 3.4; return x - half < 2 ? { x: Math.max(2, x - 4), textAnchor: 'start' } : x + half > W - 2 ? { x: Math.min(W - 2, x + 4), textAnchor: 'end' } : { x, textAnchor: 'middle' }; } // GM26 .66
 function truncLab(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
 export function rvfChart(R, dg, o) {
@@ -1455,16 +1476,17 @@ export function histChart(R, d, o) {
   const sy = v => H - m.b - (H - m.t - m.b) * v / maxC;
   const CG = o.color || PAL.green;
   const kids = [];
-  ticks(0, maxC, 4).forEach((tv, i) => {
+  ticks(0, maxC, 4).forEach((tv, i, T) => {
     kids.push(R.createElement('line', { key: 'gy' + i, x1: m.l, x2: W - m.r, y1: sy(tv), y2: sy(tv), stroke: PAL.grid }));
-    kids.push(txt(R, m.l - 7, sy(tv) + 4, fmtTick(tv), { key: 'gyt' + i, textAnchor: 'end' }));
+    kids.push(txt(R, m.l - 7, sy(tv) + 4, fmtTick(tv, T), { key: 'gyt' + i, textAnchor: 'end' }));
   });
+  { const yl = o.ylab || 'Frequency', yc = (m.t + H - m.b) / 2; kids.push(txt(R, 13, yc, truncLab(yl, 40), { key: 'yl', textAnchor: 'middle', fill: PAL.dim, fontSize: 11, transform: 'rotate(-90 13 ' + yc + ')' })); } // GM26 .66: y-axis title
   bins.forEach((b, i) => {
     if (b.c <= 0) return;
     const xa = sx(b.a) + 1, xb = sx(b.b) - 1;
     kids.push(R.createElement('rect', { key: 'b' + i, x: xa, y: sy(b.c), width: Math.max(1, xb - xa), height: H - m.b - sy(b.c), fill: CG, fillOpacity: 0.8, stroke: CG, strokeOpacity: 0.95 }));
   });
-  ticks(x0, x1, 6).forEach((tv, i) => kids.push(txt(R, sx(tv), H - m.b + 16, fmtTick(tv), { key: 'xt' + i, textAnchor: 'middle' })));
+  fitTicks(x0, x1, 6, W - m.l - m.r).forEach((tv, i, T) => { const lb = fmtTick(tv, T), at = edgeTick(sx(tv), lb, W); kids.push(txt(R, at.x, H - m.b + 16, lb, { key: 'xt' + i, textAnchor: at.textAnchor })); });
   kids.push(R.createElement('line', { key: 'ax', x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: PAL.axis }));
   kids.push(txt(R, (m.l + W - m.r) / 2, H - 8, truncLab(o.xlab, 60), { key: 'xl', textAnchor: 'middle', fill: PAL.dim, fontSize: 11 }));
   return svgBase(R, o.key, o.refCb, W, H, clipMarks(R, kids, o.key, /^b\d/, m.l, m.t, W - m.l - m.r, H - m.t - m.b));
@@ -1482,8 +1504,14 @@ export function boxChart(R, d, o) {
   for (let i = 0; i < d.n; i++) { const v = d.xs[i]; if (v >= loW && v < lo) lo = v; if (v <= hiW && v > hi) hi = v; }
   const CX = o.color || PAL.blue; const CM = '#1A1711';
   const kids = [];
-  const outs = [];
-  for (let i = 0; i < d.n && outs.length < 250; i += Math.max(1, Math.floor(d.n / 4000))) { const v = d.xs[i]; if (v < lo || v > hi) outs.push(v); }
+  // GM26 .66: d.xs is sorted, so the outliers are the values below the lower whisker and above the upper one. Draw all of
+  // them; past 2,000 keep the 200 most extreme on each side and thin the rest evenly (the dots overlap there anyway).
+  const lowO = [], highO = [];
+  for (let i = 0; i < d.n && d.xs[i] < lo; i++) lowO.push(d.xs[i]);
+  for (let i = d.n - 1; i >= 0 && d.xs[i] > hi; i--) highO.push(d.xs[i]);
+  const thin = (arr, k) => { if (arr.length <= k) return arr; const keep = arr.slice(0, 200), rest = arr.slice(200), m2 = k - 200; for (let j = 0; j < m2; j++) keep.push(rest[Math.floor(j * rest.length / m2)]); return keep; };
+  const nO = lowO.length + highO.length, cap = 2000;
+  const outs = nO <= cap ? lowO.concat(highO) : thin(lowO, Math.max(200, Math.round(cap * lowO.length / nO))).concat(thin(highO, Math.max(200, Math.round(cap * highO.length / nO))));
   outs.forEach((v, i) => kids.push(R.createElement('circle', { key: 'o' + i, cx: sx(v), cy, r: 3, fill: 'none', stroke: PAL.orange, strokeOpacity: 0.7 })));
   kids.push(R.createElement('line', { key: 'w1', x1: sx(lo), x2: sx(d.q1), y1: cy, y2: cy, stroke: CX, strokeWidth: 1.5 }));
   kids.push(R.createElement('line', { key: 'w2', x1: sx(d.q3), x2: sx(hi), y1: cy, y2: cy, stroke: CX, strokeWidth: 1.5 }));
@@ -1491,12 +1519,12 @@ export function boxChart(R, d, o) {
   kids.push(R.createElement('line', { key: 'c2', x1: sx(hi), x2: sx(hi), y1: cy - 12, y2: cy + 12, stroke: CX, strokeWidth: 1.5 }));
   kids.push(R.createElement('rect', { key: 'bx', x: sx(d.q1), y: cy - bh / 2, width: Math.max(1, sx(d.q3) - sx(d.q1)), height: bh, fill: CX, fillOpacity: 0.18, stroke: CX, strokeWidth: 1.5, rx: 4 }));
   kids.push(R.createElement('line', { key: 'md', x1: sx(d.med), x2: sx(d.med), y1: cy - bh / 2, y2: cy + bh / 2, stroke: CM, strokeWidth: 3 }));
-  ticks(x0, x1, 7).forEach((tv, i) => {
+  fitTicks(x0, x1, 7, W - m.l - m.r).forEach((tv, i, T) => {
     kids.push(R.createElement('line', { key: 'tk' + i, x1: sx(tv), x2: sx(tv), y1: H - m.b, y2: H - m.b + 4, stroke: PAL.axis }));
-    kids.push(txt(R, sx(tv), H - m.b + 16, fmtTick(tv), { key: 'tt' + i, textAnchor: 'middle' }));
+    { const lb = fmtTick(tv, T), at = edgeTick(sx(tv), lb, W); kids.push(txt(R, at.x, H - m.b + 16, lb, { key: 'tt' + i, textAnchor: at.textAnchor })); }
   });
   kids.push(R.createElement('line', { key: 'ax', x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: PAL.axis }));
-  return svgBase(R, o.key, o.refCb, W, H, clipMarks(R, kids, o.key, /^(o\d|w[12]|c[12]|bx|md)$/, m.l, m.t, W - m.l - m.r, H - m.t - m.b));
+  return svgBase(R, o.key, o.refCb, W, H, clipMarks(R, kids, o.key, /^(o\d|w[12]|c[12]|bx|md)$/, m.l - 5, m.t, W - m.l - m.r + 10, H - m.t - m.b)); // GM26 .66: dots at the ends drawn whole
 }
 
 export function barChart(R, rows, totalW, o) {
@@ -1647,14 +1675,14 @@ export function lineChart(R, ts, o) {
   const sx = v => m.l + (W - m.l - m.r) * (v - xmn) / (xmx - xmn || 1);
   const sy = v => H - m.b - (H - m.t - m.b) * (v - ymn) / (ymx - ymn || 1);
   const kids = [];
-  ticks(ymn, ymx, 5).forEach((tv, i) => {
+  ticks(ymn, ymx, 5).forEach((tv, i, T) => {
     kids.push(R.createElement('line', { key: 'gy' + i, x1: m.l, x2: W - m.r, y1: sy(tv), y2: sy(tv), stroke: PAL.grid }));
-    kids.push(txt(R, m.l - 7, sy(tv) + 4, fmtTick(tv), { key: 'gyt' + i, textAnchor: 'end' }));
+    kids.push(txt(R, m.l - 7, sy(tv) + 4, fmtTick(tv, T), { key: 'gyt' + i, textAnchor: 'end' }));
   });
-  ticks(xmn, xmx, 7).forEach((tv, i) => {
+  ticks(xmn, xmx, 7).forEach((tv, i, T) => {
     if (tv < xmn || tv > xmx) return;
     kids.push(R.createElement('line', { key: 'gx' + i, x1: sx(tv), x2: sx(tv), y1: m.t, y2: H - m.b, stroke: PAL.grid }));
-    kids.push(txt(R, sx(tv), H - m.b + 16, Number.isInteger(tv) ? String(tv) : fmtTick(tv), { key: 'xt' + i, textAnchor: 'middle' }));
+    kids.push(txt(R, sx(tv), H - m.b + 16, Number.isInteger(tv) ? String(tv) : fmtTick(tv, T), { key: 'xt' + i, textAnchor: 'middle' }));
   });
   ser.forEach((s, si) => {
     let run = [];
@@ -1692,9 +1720,9 @@ export function gboxChart(R, levels, o) {
   const band = (W - m.l - m.r) / levels.length;
   const bw = Math.min(52, band * 0.5);
   const kids = [];
-  ticks(ymn, ymx, 5).forEach((tv, i) => {
+  ticks(ymn, ymx, 5).forEach((tv, i, T) => {
     kids.push(R.createElement('line', { key: 'gy' + i, x1: m.l, x2: W - m.r, y1: sy(tv), y2: sy(tv), stroke: PAL.grid }));
-    kids.push(txt(R, m.l - 7, sy(tv) + 4, fmtTick(tv), { key: 'gyt' + i, textAnchor: 'end' }));
+    kids.push(txt(R, m.l - 7, sy(tv) + 4, fmtTick(tv, T), { key: 'gyt' + i, textAnchor: 'end' }));
   });
   levels.forEach((g, gi) => {
     const cx = m.l + band * (gi + 0.5);

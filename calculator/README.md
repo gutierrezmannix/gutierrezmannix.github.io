@@ -10,7 +10,8 @@ python3 calculator/tools/build.py            # writes index.html, version.json a
 python3 calculator/tools/build.py --check    # exit 1 if index.html is not what the sources produce
 node --test calculator/tests/*.test.mjs      # unit and component tests (includes the --check above)
 Rscript calculator/tests/regression-numerics-reference.R   # regenerate the regression references (see REGRESSION.md)
-NODE_PATH=$(npm root -g) node calculator/tests/chart-builder-e2e.cjs   # browser tests (Playwright), also *-e2e.cjs (map-lab-e2e.cjs: maps; compare-means-e2e.cjs: t-tests and the correlation matrix; regression-e2e.cjs: regression)
+Rscript calculator/tests/descriptives-reference.R   # regenerate the descriptives references (see DESCRIPTIVES.md)
+NODE_PATH=$(npm root -g) node calculator/tests/chart-builder-e2e.cjs   # browser tests (Playwright), also *-e2e.cjs (map-lab-e2e.cjs: maps; compare-means-e2e.cjs: t-tests and the correlation matrix; regression-e2e.cjs: regression; descriptives-e2e.cjs: the descriptives tab)
 ```
 
 ## Where the code lives
