@@ -1,3 +1,12 @@
+# Scales read as categories — build 2026-11-02.73
+
+A numeric variable whose every code has a value label (0 = Peor, 50 = Igual, 100 = Mejor; 0 = Ninguno … 3 = Superior)
+is read as categories, so a regression gives one row per level, compared with the first level, as Stata's `i.var`.
+The results step now says so ("idio2 and educ_nivel are read as categories …") and has a button for each such
+predictor, "Use idio2 as a number", which switches it to one slope and runs the model again. The note does not show
+when the C badge was chosen on purpose. Checked on MexicoLapop_Class1.dta: `pn4` on `idio2`, `q2` and `educ_nivel`
+as numbers gives 0.127, 0.030 and −2.659, N = 12,574, as in R. Test: `tests/labelled-codes.test.mjs`.
+
 # Labelled numbers, missing values and factor levels as in Stata — build 2026-11-02.71
 
 These problems came up while running two class activities on the merged AmericasBarometer (LAPOP) file: 326,433 rows,

@@ -7474,6 +7474,7 @@ class Component extends DCLogic {
     return w ? { w, st, psu } : null;
   }
   rgUseSurvey(g) { this.clearMemo(); this.setState({ weightVar: g.w, weightAuto: false, svyStrata: g.st || '', svyPsu: g.psu || '', regVce: 'svy' }); }
+  rgAsNumber(p) { this.clearMemo(); this.setState(s => ({ treat: Object.assign({}, s.treat, { [p]: 'numeric' }) }), () => { this._regRan = this.regSpec(); this.forceUpdate(); }); }
   // GM26 .71: the rows the model could use — the subgroup's rows when a subgroup is on, not the whole file
   rgPoolN(M) { const tot = M.n + (M.dropped || 0); if (!this.conds().length) return tot; const mk = this.mask(); if (!mk) return tot; let k = 0; for (let i = 0; i < mk.length; i++) k += mk[i]; return Math.min(tot, k); }
   // ---------- 5 · results ----------
@@ -7488,6 +7489,10 @@ class Component extends DCLogic {
     const parts = String(out.regInterp || '').split(/(?<=\.) (?=Each b|For a numeric|An odds ratio|For a category|With an interaction)/);
     const apa = out.apaReg ? h('div', { className: 'tl-row' }, h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, out.apaReg)), out.copyApaReg ? this.tlBtn(out.copyApaRegLabel || 'Copy APA', out.copyApaReg) : null) : null;
     const kids = [head, parts[0] ? h('p', { className: 'rg-lead' }, parts[0]) : null, parts.length > 1 ? h('p', { className: 'rg-mut' }, parts.slice(1).join(' ')) : null, out.iReg && out.iReg.tip ? h('p', { className: 'rg-mut' }, h('b', null, 'Keep in mind: '), out.iReg.tip) : null, apa];
+    // GM26 .73: numeric codes read as categories (every code has a label: 0 = Peor, 50 = Igual, 100 = Mejor) get one row
+    // per level, as Stata's i.var; say so, with one click to use them as a number (one slope per step) instead
+    const tr = S.treat || {}, asCat = (S.predictors || []).filter(p => { const m = this.effMeta(p); return m && m.type === 'numeric' && m.treatAs === 'categorical' && !tr[p] && (m.distinct || 0) >= 3; });
+    if (asCat.length) kids.splice(1, 0, this.tlBanner('info', h('b', null, asCat.join(' and ') + (asCat.length > 1 ? ' are' : ' is') + ' read as categories'), ' because every code has a label, so each level gets its own row compared with the first level (as Stata’s i.' + asCat[0] + '). For one slope per step, e.g. per education level, use ' + (asCat.length > 1 ? 'them' : 'it') + ' as a number: ', ...asCat.map(p => this.tlBtn('Use ' + p + ' as a number', () => this.rgAsNumber(p))), h('span', { className: 'rg-mut' }, ' The N / C badge in step 3 switches it back.')));
     if (model === 'logistic' || model === 'poisson') kids.push(this.rgAmeView(now, ctx));
     return this.rgPanel(5, 'Results', 'the answer first; the full table, coefficient plot and Stata output below', ...kids);
   }
@@ -10226,7 +10231,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-02.72') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-02.73') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
