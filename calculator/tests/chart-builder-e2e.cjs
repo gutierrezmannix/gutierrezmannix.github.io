@@ -2,7 +2,7 @@
 //   NODE_PATH=$(npm root -g) node calculator/tests/chart-builder-e2e.cjs [GM26_SHOTS=dir]
 // Builds charts through the page (gallery, data sentence, Customize), renames groups, sets values and colors,
 // downloads a PNG, follows the links between tabs, checks phone width, and fails on any console error.
-const { chromium } = require('playwright'); const path = require('path'), os = require('os'), fs = require('fs');
+const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pick.cjs'); const path = require('path'), os = require('os'), fs = require('fs');
 (async () => {
   const shots = process.env.GM26_SHOTS || ''; const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gm26-cb-'));
   let seed = 4; const rnd = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
@@ -21,13 +21,13 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
 
   // 1 · Charts → gallery → Lines: % of ss_dir by year and sexo
   await p.locator('button.mf-nav[data-nav="plots"]').click(); await p.waitForTimeout(400);
-  await p.getByRole('button', { name: 'What do you want to show? — all charts' }).click(); await p.waitForTimeout(400);
+  await p.getByRole('button', { name: 'All charts', exact: true }).click(); await p.waitForTimeout(400);
   const cb = p.locator('.tl.cb');
   check(await cb.locator('.cb-fam').count() >= 8, 'the gallery shows the chart questions');
   await shot('1-gallery');
-  await cb.getByRole('button', { name: 'Lines', exact: true }).click(); await p.waitForTimeout(400);
-  await cb.getByLabel('Show', { exact: true }).selectOption('pct'); await p.waitForTimeout(200);
-  await cb.getByLabel('Outcome', { exact: true }).selectOption('ss_dir'); await cb.getByLabel('Over (time)').selectOption('year'); await cb.getByLabel('Split by', { exact: true }).selectOption('sexo'); await p.waitForTimeout(500);
+  await cb.getByRole('button', { name: 'Timeline', exact: true }).click(); await p.waitForTimeout(400);
+  await pickBy(p, cb, 'Show', 'pct'); await p.waitForTimeout(200);
+  await pickBy(p, cb, 'Outcome', 'ss_dir'); await pickBy(p, cb, 'Over (time)', 'year'); await pickBy(p, cb, 'Split by', 'sexo'); await p.waitForTimeout(500);
   let m = await svgHtml(cb.locator('.cb-figs'));
   check((m.match(/fill="none" stroke="[^"]*" stroke-width="[^"]*" stroke-linejoin/g) || []).length === 2, 'two lines, one per sexo');
   // 2 · names → value labels, values at every point, a color
@@ -43,8 +43,8 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   await shot('2-lines');
   // 3 · the same names in another chart (donut panels by sexo)
   await cb.getByRole('button', { name: '← All charts' }).click(); await p.waitForTimeout(300);
-  await cb.getByRole('button', { name: 'Donut', exact: true }).click(); await p.waitForTimeout(300);
-  await cb.getByLabel('Show the share of each').selectOption('ent'); await cb.getByLabel('One per').selectOption('sexo'); await p.waitForTimeout(500);
+  await cb.getByRole('button', { name: 'Donut chart', exact: true }).click(); await p.waitForTimeout(300);
+  await pickBy(p, cb, 'Show the share of each', 'ent'); await pickBy(p, cb, 'One per', 'sexo'); await p.waitForTimeout(500);
   m = await cb.locator('.cb-figs').evaluate(f => f.innerHTML);
   check(/Hombres/.test(m) && /Mujeres/.test(m), 'the donut panels use the value labels');
   await shot('3-donut');
@@ -53,13 +53,13 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
 
   // 3b · heat map of a variable with many values (edad: 60 ages) — grouped into ranges instead of refusing
   await cb.getByRole('button', { name: '← All charts' }).click(); await p.waitForTimeout(300);
-  await cb.getByRole('button', { name: 'Heat map', exact: true }).click(); await p.waitForTimeout(300);
-  await cb.getByLabel('Columns', { exact: true }).selectOption('edad'); await cb.getByLabel('Rows', { exact: true }).selectOption('sexo'); await cb.getByLabel('Mean of', { exact: true }).selectOption('ingreso'); await p.waitForTimeout(600);
+  await cb.getByRole('button', { name: 'Heat map of a mean', exact: true }).click(); await p.waitForTimeout(300);
+  await pickBy(p, cb, 'Columns', 'edad'); await pickBy(p, cb, 'Rows', 'sexo'); await pickBy(p, cb, 'Mean of', 'ingreso'); await p.waitForTimeout(600);
   m = await svgHtml(cb.locator('.cb-figs'));
   check(await cb.getByRole('alert').count() === 0 && /15–19|20–24/.test(m), 'heat map of 60 ages draws in ranges of 5');
   check(/Mean of ingreso by edad and sexo/.test(m) && /Hombres/.test(m), 'heat map title and named rows');
   check(await cb.getByText('edad has 60 values').count() === 1, 'the grouping choice is in the data sentence');
-  await cb.getByLabel('Group edad').selectOption('each'); await p.waitForTimeout(600);
+  await pickBy(p, cb, 'Group edad', 'each'); await p.waitForTimeout(600);
   m = await svgHtml(cb.locator('.cb-figs'));
   check(await cb.getByRole('alert').count() === 0 && (m.match(/<rect [^>]*><title>/g) || []).length === 120, 'each age as its own column (60 × 2 cells)');
   await shot('3b-heatmap');
@@ -68,8 +68,8 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   await p.locator('button.mf-nav[data-nav="tests"]').click(); await p.waitForTimeout(300);
   await p.evaluate(() => [...document.querySelectorAll('button')].find(e => e.offsetParent && e.textContent.trim() === 'Descriptive statistics').click()); await p.waitForTimeout(800);
   await p.locator('.mf-main, body').getByText('ss_dir', { exact: true }).first().click(); await p.waitForTimeout(900);
-  await p.getByLabel('Break down by (rows)').selectOption('year'); await p.waitForTimeout(400);
-  await p.getByLabel('Break down by (columns)').selectOption('sexo'); await p.waitForTimeout(700);
+  await pickBy(p, p, 'Break down by (rows)', 'year'); await p.waitForTimeout(400);
+  await pickBy(p, p, 'Break down by (columns)', 'sexo'); await p.waitForTimeout(700);
   const ob = p.locator('section.ob');
   m = await svgHtml(ob);
   check(/>Hombres</.test(m) && />Total</.test(m), 'breakdown chart: named lines and the total');
@@ -89,7 +89,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   // 5 · More options in Charts → the same numbers on the Charts page
   const tableVal = (await ob.locator('table').first().locator('tbody tr').first().locator('td').nth(1).textContent()).match(/[\d.]+%/)[0];
   await ob.getByRole('button', { name: 'More options in Charts →' }).click(); await p.waitForTimeout(800);
-  check(/Change over time/.test(await p.locator('.tl.cb h2').first().textContent()), 'opens the line chart in Charts');
+  check(/Timelines/.test(await p.locator('.tl.cb h2').first().textContent()), 'opens the line chart (Timelines) in Charts');
   m = await svgHtml(p.locator('.tl.cb .cb-figs'));
   check(m.includes('>' + tableVal + '<'), 'the Charts page shows the same value as the table (' + tableVal + ')');
   await shot('5-from-breakdown');

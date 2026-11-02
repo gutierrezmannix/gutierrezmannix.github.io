@@ -165,8 +165,16 @@
       const sel0 = c.group ? (c.sel || []).filter(v => lvAll.includes(v)) : [], sel = c.group ? (sel0.length ? sel0 : lvAll.slice(0, id === 'panel' ? 24 : 10)) : null;
       const outcomes = st === 'count' ? [null] : [c.y, ...(c.ys || [])].filter(Boolean);
       const series = []; let n = 0, excl = 0, times = [];
+      // GM26 .70: when no time has both the outcome and the split, say which times each one has (merged surveys)
+      const why = () => { const cov = (get, isLab) => { const ys = new Set(); for (let i = 0; i < t.length; i++) { if (mask && !mask[i]) continue; const tv = t[i]; if (!isFinite(tv)) continue; const v = get(i); if (isLab ? (v != null && v !== '') : isFinite(v)) ys.add(tv); } return [...ys].sort((a2, b2) => a2 - b2); }, list = a2 => a2.length ? a2.join(', ') : 'none';
+        const yv0 = outcomes[0], yA = yv0 ? num(yv0) : null, yc = yA ? cov(i => yA[i], false) : null, gc = g ? cov(i => g[i], true) : null;
+        if (yc && gc) { const both = yc.filter(x => gc.includes(x)); if (!both.length) return 'No ' + c.x + ' has both ' + yv0 + ' and ' + c.group + ': ' + yv0 + ' has data in ' + list(yc) + '; ' + c.group + ' in ' + list(gc) + '. Split by another variable, or by none.'; }
+        if (yc && !yc.length) return yv0 + ' has no values with a ' + c.x + ' here.';
+        return 'No rows with both a time and an outcome for these selections.'; };
+      try {
       outcomes.forEach(yv => { const r = E.cbTimeAgg(t, yv ? num(yv) : new Float64Array(t.length), g, w, mask, { stat: st, sel, t0: c.t0, t1: c.t1, ci: !!c.ci, alpha: this.alpha() }); n += r.n; excl += r.excluded; times = times.concat(r.times); r.series.forEach(s => series.push(Object.assign({}, s, { key: outcomes.length > 1 ? (yv + (g ? ' · ' + s.key : '')) : s.key, group: s.key, outcome: yv }))); });
-      if (!series.length) throw Error('No rows with both a time and an outcome for these selections.');
+      } catch (e0) { if (/No rows with both a time/.test(e0.message)) throw Error(why()); throw e0; }
+      if (!series.length) throw Error(why());
       roles.series = outcomes.length > 1 ? null : (c.group || null);
       const statT = { mean: 'Mean of ', sum: 'Sum of ', pct: '% equal to 1 of ', count: 'Number of rows' }[st] + (st === 'count' ? '' : outcomes.join(', '));
       const mk = ss => ({ type: 'xy', xTime: true, series: ss.map(s => Object.assign({}, s, { style: id === 'area' ? 'area' : 'line', band: !!c.ci && (st === 'mean' || st === 'pct') && id !== 'area' })), seriesKeys: ss.map(s => s.key), pct: st === 'pct', zero: st !== 'mean', yTitle: statT, xTitle: c.x, n, excluded: excl, weighted: !!w, table: ss.flatMap(s => s.pts.map(p => [s.key, p.x, p.y, p.n].concat(c.ci ? [p.lo, p.hi] : []))), headers: ['Series', c.x, statT, 'n'].concat(c.ci ? ['Lower', 'Upper'] : []), note: (st === 'mean' ? 'Each point is the ' + (w ? 'weighted ' : '') + 'mean at that time. ' : st === 'sum' ? 'Each point is the ' + (w ? 'weighted ' : '') + 'sum at that time. ' : '') + 'Lines break where a series has no observation.' + (c.group && !(c.sel && c.sel.length) && lvAll.length > sel.length ? ' Showing the ' + sel.length + ' most frequent of ' + lvAll.length + ' groups — pick others below.' : '') });
@@ -309,9 +317,10 @@
     const h = React.createElement, S = this.state, E = this._E, id = S.plotKind, fam = E.cbFamilyOf(id), c = this.cbC(), kindId = id === 'multiline' ? 'line' : id;
     const top = h('div', { className: 'cb-top' },
       h('button', { type: 'button', className: 'tl-link', onClick: () => this.csOpen('__gallery') }, '← All charts'),
-      h('h2', null, fam.q),
+      this.cbIcon(fam.icon, 40), h('h2', null, fam.q),
       h('div', { className: 'tl-row cb-kinds', role: 'group', 'aria-label': 'Chart type' }, fam.kinds.filter(k => !['map', 'geomap'].includes(k[0])).map(([k, t]) => this.tlChip(t, k === kindId, () => this.cbSwitch(k), { key: k }))));
-    const fields = h('section', { className: 'tl-panel cb-data' }, h('div', { className: 'cb-fields' }, ...this.cbFields(id)));
+    // GM26 .70: 1 the variables (searchable boxes: type part of a name or of its label), 2 the chart, 3 customize
+    const fields = h('section', { className: 'tl-panel cb-data' }, h('div', { className: 'tl-ptitle' }, h('h3', null, '1 · Variables'), h('span', null, (fam.d ? fam.d + ' ' : '') + 'Type part of a name or a label to find a variable.')), h('div', { className: 'cb-fields' }, ...this.cbFields(id)));
     let res = null, err = '';
     try { res = this.cbBuild(id); } catch (e) { err = e.message; }
     let chart;
@@ -438,26 +447,31 @@
   }
 
   // ---- the gallery: nine questions
+  // GM26 .70: small pictures of each chart type (gallery and menu)
+  cbIcon(k, size) {
+    const h = React.createElement, kids = [], G = '#2E7D58', D = '#1F5C44', O = '#E5912A';
+    const R = (x, y, w, hh, f) => kids.push(h('rect', { key: 'r' + kids.length, x, y, width: w, height: hh, fill: f || G }));
+    if (k === 'bars') [[6, 18, 10, 18], [20, 8, 10, 28], [34, 24, 10, 12], [48, 14, 10, 22]].forEach(r => R(...r));
+    else if (k === 'hist') [[6, 28, 9, 8], [15, 16, 9, 20], [24, 6, 9, 30], [33, 14, 9, 22], [42, 26, 9, 10]].forEach(r => R(...r));
+    else if (k === 'pie') kids.push(h('circle', { key: 'a', cx: 32, cy: 20, r: 16, fill: '#C9D6CE' }), h('path', { key: 'b', d: 'M32,20 L32,4 A16,16 0 0 1 47.2,25 Z', fill: D }));
+    else if (k === 'line') kids.push(h('polyline', { key: 'a', points: '4,30 16,27 28,28 40,16 52,12 60,8', fill: 'none', stroke: G, strokeWidth: 3 }), h('polyline', { key: 'b', points: '4,34 16,33 28,33 40,26 52,24 60,20', fill: 'none', stroke: O, strokeWidth: 3 }));
+    else if (k === 'scatter') { [[8, 30], [16, 26], [22, 28], [30, 20], [38, 18], [46, 12], [54, 10]].forEach((q, i) => kids.push(h('circle', { key: i, cx: q[0], cy: q[1], r: 2.6, fill: G }))); kids.push(h('line', { key: 'l', x1: 4, y1: 32, x2: 60, y2: 8, stroke: O, strokeWidth: 2 })); }
+    else if (k === 'ci') [[14, 8, 30, 19], [32, 14, 34, 24], [50, 4, 22, 13]].forEach((q, i) => kids.push(h('line', { key: 'l' + i, x1: q[0], x2: q[0], y1: q[1], y2: q[2], stroke: D, strokeWidth: 2 }), h('circle', { key: 'c' + i, cx: q[0], cy: q[3], r: 4, fill: D })));
+    else if (k === 'likert') [['#B0572F', 4, 14], ['#E5912A', 18, 10], ['#DDD6C8', 28, 8], ['#80B79B', 36, 12], ['#2E7D58', 48, 12]].forEach(q => R(q[1], 12, q[2], 14, q[0]));
+    else if (k === 'coef') kids.push(h('line', { key: 'z', x1: 32, y1: 2, x2: 32, y2: 38, stroke: '#9A917F', strokeDasharray: '3 3' }), ...[[36, 56, 9, 46], [14, 30, 20, 22], [28, 46, 31, 37]].flatMap((q, i) => [h('line', { key: 'l' + i, x1: q[0], x2: q[1], y1: q[2], y2: q[2], stroke: D, strokeWidth: 2 }), h('circle', { key: 'c' + i, cx: q[3], cy: q[2], r: 3.5, fill: D })]));
+    else if (k === 'map') kids.push(h('path', { key: 'm', d: 'M6,10 L22,6 L30,14 L44,8 L58,14 L54,30 L36,34 L20,30 L8,24 Z', fill: '#80B79B', stroke: D }));
+    else if (k === 'heat') [['#1F5C44', '#80B79B', '#EFE7D6'], ['#80B79B', '#1F5C44', '#E5912A'], ['#EFE7D6', '#E5912A', '#1F5C44']].forEach((row, i) => row.forEach((f, j) => R(14 + j * 12, 4 + i * 11, 11, 10, f)));
+    else if (k === 'dumbbell') [[8, 40, 9], [18, 52, 20], [12, 30, 31]].forEach((q, i) => kids.push(h('line', { key: 'l' + i, x1: q[0], x2: q[1], y1: q[2], y2: q[2], stroke: '#9A917F', strokeWidth: 2 }), h('circle', { key: 'a' + i, cx: q[0], cy: q[2], r: 4, fill: O }), h('circle', { key: 'b' + i, cx: q[1], cy: q[2], r: 4, fill: D })));
+    else if (k === 'step') kids.push(h('polyline', { key: 'a', points: '4,6 16,6 16,12 28,12 28,20 40,20 40,26 60,26', fill: 'none', stroke: G, strokeWidth: 3 }), h('polyline', { key: 'b', points: '4,6 12,6 12,16 22,16 22,28 36,28 36,34 60,34', fill: 'none', stroke: O, strokeWidth: 3 }));
+    const w = size || 64; return h('svg', { viewBox: '0 0 64 40', width: w, height: w * 40 / 64, 'aria-hidden': 'true', focusable: 'false' }, kids);
+  }
   cbGallery() {
     const h = React.createElement, E = this._E;
-    const icon = {
-      bars: [['rect', 6, 18, 10, 18], ['rect', 20, 8, 10, 28], ['rect', 34, 24, 10, 12], ['rect', 48, 14, 10, 22]], pie: 'pie', hist: [['rect', 6, 28, 9, 8], ['rect', 15, 16, 9, 20], ['rect', 24, 6, 9, 30], ['rect', 33, 14, 9, 22], ['rect', 42, 26, 9, 10]],
-      line: 'line', scatter: 'scatter', ci: 'ci', likert: 'likert', coef: 'coef', map: 'map'
-    };
-    const svgIcon = k => { const kids = []; const s = icon[k];
-      if (Array.isArray(s)) s.forEach((r, i) => kids.push(h('rect', { key: i, x: r[1], y: r[2], width: r[3], height: r[4], fill: '#2E7D58' })));
-      else if (s === 'pie') kids.push(h('circle', { key: 'a', cx: 32, cy: 20, r: 16, fill: '#C9D6CE' }), h('path', { key: 'b', d: 'M32,20 L32,4 A16,16 0 0 1 47.2,25 Z', fill: '#1F6447' }));
-      else if (s === 'line') kids.push(h('polyline', { key: 'a', points: '4,30 16,27 28,28 40,16 52,12 60,8', fill: 'none', stroke: '#2E7D58', strokeWidth: 3 }), h('polyline', { key: 'b', points: '4,34 16,33 28,33 40,26 52,24 60,20', fill: 'none', stroke: '#E5912A', strokeWidth: 3 }));
-      else if (s === 'scatter') { [[8, 30], [16, 26], [22, 28], [30, 20], [38, 18], [46, 12], [54, 10]].forEach((p, i) => kids.push(h('circle', { key: i, cx: p[0], cy: p[1], r: 2.6, fill: '#2E7D58' }))); kids.push(h('line', { key: 'l', x1: 4, y1: 32, x2: 60, y2: 8, stroke: '#E5912A', strokeWidth: 2 })); }
-      else if (s === 'ci') [[14, 8, 30, 19], [32, 14, 34, 24], [50, 4, 22, 13]].forEach((p, i) => kids.push(h('line', { key: 'l' + i, x1: p[0], x2: p[0], y1: p[1], y2: p[2], stroke: '#1F5C44', strokeWidth: 2 }), h('circle', { key: 'c' + i, cx: p[0], cy: p[3], r: 4, fill: '#1F5C44' })));
-      else if (s === 'likert') [['#B0572F', 4, 14], ['#E5912A', 18, 10], ['#DDD6C8', 28, 8], ['#80B79B', 36, 12], ['#2E7D58', 48, 12]].forEach((p, i) => kids.push(h('rect', { key: i, x: p[1], y: 12, width: p[2], height: 14, fill: p[0] })));
-      else if (s === 'coef') kids.push(h('line', { key: 'z', x1: 32, y1: 2, x2: 32, y2: 38, stroke: '#9A917F', strokeDasharray: '3 3' }), ...[[36, 56, 9, 46], [14, 30, 20, 22], [28, 46, 31, 37]].flatMap((p, i) => [h('line', { key: 'l' + i, x1: p[0], x2: p[1], y1: p[2], y2: p[2], stroke: '#1F5C44', strokeWidth: 2 }), h('circle', { key: 'c' + i, cx: p[3], cy: p[2], r: 3.5, fill: '#1F5C44' })]));
-      else if (s === 'map') kids.push(h('path', { key: 'm', d: 'M6,10 L22,6 L30,14 L44,8 L58,14 L54,30 L36,34 L20,30 L8,24 Z', fill: '#80B79B', stroke: '#1F5C44' }));
-      return h('svg', { viewBox: '0 0 64 40', width: 64, height: 40, 'aria-hidden': 'true' }, kids);
-    };
     return h('div', { className: 'tl cb' },
-      h('div', { className: 'cb-top' }, h('h2', null, 'What do you want to show?'), h('button', { type: 'button', className: 'tl-link', onClick: () => this.csOpen('__directory') }, 'Output — everything you have run →')),
-      h('div', { className: 'cb-gallery' }, E.CB_FAMILIES.map(f => h('div', { key: f.id, className: 'cb-fam' }, h('div', { className: 'cb-famtop' }, svgIcon(f.icon), h('b', null, f.q)), h('div', { className: 'tl-row' }, f.kinds.map(([k, t]) => h('button', { key: k, type: 'button', className: 'tl-chip', onClick: () => this.csOpen(k) }, t)))))));
+      h('div', { className: 'cb-top' }, h('h2', null, 'Charts'), h('span', { className: 'tl-hint' }, 'Pick a chart type, then the variables.'), h('button', { type: 'button', className: 'tl-link', style: { marginLeft: 'auto' }, onClick: () => this.csOpen('__directory') }, 'Output — everything you have run →')),
+      h('div', { className: 'cb-gallery' }, E.CB_FAMILIES.map(f => h('section', { key: f.id, className: 'cb-fam', 'aria-label': f.q },
+        h('div', { className: 'cb-famtop' }, this.cbIcon(f.icon), h('div', null, h('h3', null, f.q), f.d ? h('p', null, f.d) : null)),
+        h('div', { className: 'cb-famkinds' }, f.kinds.map(([k, t]) => h('button', { key: k, type: 'button', className: 'tl-chip', onClick: () => this.csOpen(k) }, t)))))));
   }
   cbVals(out) {
     const S = this.state, E = this._E; if (E && E.cbFamilyOf && !out.isPlots) this.cbTabLinks(out); if (!out.isPlots || !E || !E.cbFamilyOf) return;
@@ -468,8 +482,12 @@
   }
   cbMenu(R) {
     const E = this._E, h = R.createElement;
-    return h('nav', { 'aria-label': 'Chart types', className: 'cs-menu' }, h('button', { type: 'button', onClick: () => this.csOpen('__gallery') }, 'What do you want to show? — all charts'), h('button', { type: 'button', onClick: () => this.csOpen('__directory') }, 'Output — everything you have run'),
-      ...E.CB_FAMILIES.map(f => h('details', { key: f.id }, h('summary', null, f.q), h('div', { className: 'cs-submenu' }, ...f.kinds.map(([id, t]) => h('button', { type: 'button', key: id, onClick: () => this.csOpen(id) }, t))))));
+    // GM26 .70: every chart type at once, grouped under its name — no folded questions
+    return h('nav', { 'aria-label': 'Chart types', className: 'cs-menu cb-menu' },
+      h('div', { className: 'cb-mtop' }, h('button', { type: 'button', onClick: () => this.csOpen('__gallery') }, 'All charts'), h('button', { type: 'button', onClick: () => this.csOpen('__directory') }, 'Output — everything you have run')),
+      ...E.CB_FAMILIES.map(f => h('div', { key: f.id, className: 'cb-mgroup', role: 'group', 'aria-label': f.q },
+        h('div', { className: 'cb-mhead' }, this.cbIcon(f.icon, 28), h('span', null, f.q)),
+        h('div', { className: 'cb-mitems' }, ...f.kinds.map(([id, t]) => h('button', { type: 'button', key: id, className: 'cb-mitem', onClick: () => this.csOpen(id) }, t))))));
   }
   // ---- the same Customize panel, compact, under charts in other tabs (Univariate breakdown)
   // o: { cfg, set(patch), sets: [{ role, title, v, keys, map, colorable }], lineish, open() }

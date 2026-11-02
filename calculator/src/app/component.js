@@ -548,10 +548,10 @@ class Component extends DCLogic {
     out.plotEmpty=true;out.plotReady=false;out.plotChartEl=null;
     if(!info){out.chartSuiteEl=this.outputView(h,(text,fn,props={})=>h('button',{type:'button',onClick:fn,...props},text));return;}
     const id=info.id,c=(S.csPages||{})[id]||{},set=p=>this.csSet({...p,drawn:false}),cols=S.cols||[],numeric=cols.filter(v=>{const m=this.effMeta(v.name);return m&&(m.type==='numeric'||m.treatAs==='numeric');});
-    const select=(key,label,type='any',optional=false)=>h('label',{key,className:'cs-field'},h('span',null,label),h('select',{'aria-label':label,value:c[key]||'',onChange:e=>set({[key]:e.target.value})},h('option',{value:''},optional?'None':'Select a variable'),...(type==='num'?numeric:cols).map(v=>h('option',{key:v.name,value:v.name},v.name+(v.label?' — '+v.label:'')))));
+    const select=(key,label,type='any',optional=false)=>h('div',{key,className:'cs-field',role:'group','aria-label':label},h('span',null,label),this.tlSelect(c[key]||'',[['',optional?'None':'Select a variable']].concat((type==='num'?numeric:cols).map(v=>[v.name,v.name])),v=>set({[key]:v}),label,{combo:true,comboId:'cs|'+key})); // GM26 .70: searchable
     const input=(key,label,type='text',def='')=>h('label',{key,className:'cs-field'},h('span',null,label),h('input',{'aria-label':label,type,value:c[key]??def,onChange:e=>set({[key]:e.target.value})}));
     const check=(key,label,def=false)=>h('label',{className:'cs-check',key},h('input',{type:'checkbox',checked:c[key]??def,onChange:e=>set({[key]:e.target.checked})}),label);
-    const choice=(key,label,options,def)=>h('label',{className:'cs-field',key},h('span',null,label),h('select',{'aria-label':label,value:c[key]||def,onChange:e=>set({[key]:e.target.value})},...options.map(([v,t])=>h('option',{value:v,key:v},t))));
+    const choice=(key,label,options,def)=>h('div',{className:'cs-field',key,role:'group','aria-label':label},h('span',null,label),this.tlSelect(c[key]||def,options,v=>set({[key]:v}),label,{comboId:'cs|'+key}));
     const estimate=['coefficient','modelcompare','prediction','marginal','interaction','event','conjoint'].includes(id),catEstimate=['coefficient','modelcompare','marginal','conjoint'].includes(id);
     let fields=[],explain='',hasY=true,catX=false,catY=false,required=['x','y'];
     if(['pie','donut'].includes(id)){fields=[select('x','Category'),choice('labels','Slice labels',[['percent','Percentages'],['count','Counts'],['both','Counts and percentages']],'percent'),choice('sort','Slice order',[['size','Largest first'],['category','Category order']],'size'),input('other','Combine slices below (%)','number','0'),check('missing','Include missing as a category')];hasY=false;catX=true;required=['x'];explain='Show shares of one complete total. Percentages use the selected data and missing-value rule.';}
@@ -561,7 +561,7 @@ class Component extends DCLogic {
     else if(['mean','proportion'].includes(id)){fields=[select('x','Group'),select('y',id==='mean'?'Numeric outcome':'Binary outcome (0 / 1)','num')];catX=true;explain=id==='mean'?'Group means with confidence intervals using the confidence level in Settings.':'Proportion coded 1 within each group, with Wilson confidence intervals.';}
     else if(['dumbbell','slope'].includes(id)){fields=[select('x','Category'),select('lo','First-value column','num'),select('y','Second-value column','num')];catX=true;required=['x','y','lo'];explain='Connect two values for each category. Repeated observations are summarized by their mean.';}
     else if(id==='paired'){fields=[select('x','Before measurement','num'),select('y','After measurement','num')];explain='Connect the two measurements on each complete row. Each row must represent the same individual at both measurements.';}
-    else if(id==='corrmap'){fields=[h('label',{className:'cs-field'},h('span',null,'Numeric variables (choose 2–12)'),h('select',{'aria-label':'Numeric variables',multiple:true,size:6,value:c.vars||[],onChange:e=>set({vars:Array.from(e.target.selectedOptions,v=>v.value)})},...numeric.map(v=>h('option',{value:v.name,key:v.name},v.name))))];required=[];explain='Pearson correlations using complete observations for each variable pair. The accompanying table includes pairwise sample sizes.';}
+    else if(id==='corrmap'){fields=[h('div',{className:'cs-field',role:'group','aria-label':'Numeric variables'},h('span',null,'Numeric variables (choose 2–12)'),this.tlMultiVar(c.vars||[],numeric,vals=>set({vars:vals}),'Numeric variables',{max:12,id:'cs|vars'}))];required=[];explain='Pearson correlations using complete observations for each variable pair. The accompanying table includes pairwise sample sizes.';}
     else if(id==='heatmap'){fields=[select('x','Column categories'),select('group','Row categories'),select('y','Numeric cell value','num')];catX=true;required.push('group');explain='Color and label the mean value within each row / column combination.';}
     else if(['multiline','panel'].includes(id)){fields=[select('x','Time variable','num'),select('y','Numeric outcome','num'),select('group','Series / panel group','any',id!=='panel')];if(id==='panel')required.push('group');if(id==='multiline')fields.push(h('label',{className:'cs-field'},h('span',null,'Additional numeric series (optional)'),h('select',{'aria-label':'Additional numeric series',multiple:true,size:4,value:c.ys||[],onChange:e=>set({ys:Array.from(e.target.selectedOptions,v=>v.value)})},...numeric.filter(v=>v.name!==c.y).map(v=>h('option',{value:v.name,key:v.name},v.name)))));explain='Show group trends over observed times. Repeated rows at the same time are summarized by their mean.';}
     else if(estimate){fields=[choice('source','Results source',[['columns','Estimate columns in the dataset'],...(['coefficient','prediction','interaction'].includes(id)?[['current','Current fitted regression results']]:[]),...(id==='modelcompare'?[['saved','Models saved to regression table']]:[])],'columns')];if((c.source||'columns')==='columns'){fields.push(select('x',catEstimate?'Term / attribute / contrast':'Predictor value / event time',catEstimate?'any':'num'),select('y','Estimate','num'),select('lo','Lower confidence bound','num'),select('hi','Upper confidence bound','num'),select('group',id==='conjoint'?'Compare groups (e.g. respondent subgroup)':'Model / group','any',true));if(id==='conjoint')fields.push(select('attr','Attribute (feature)','any',true),choice('refLine','Reference line',[['0','0 — AMCEs'],['0.5','0.5 — marginal means']],'0'));required.push('lo','hi');}else required=[];catX=catEstimate;explain='Plot fitted results or supplied estimates. Imported estimates and confidence bounds must be calculated using an appropriate model; this page does not estimate event-study or conjoint effects.';}
@@ -1868,7 +1868,7 @@ class Component extends DCLogic {
   // Time series keeps one method in the menus: trends / interrupted time series (tab ts). The R forecasting pages are retired.
   asRetired(){return ['decompose','naive','snaive','drift','ets','arima','sarima','tsreg','ardl','var','vecm','breaks','countts'];}
   asGroups(){
-    const legacy=[['Univariate Descriptive Analysis',[['Descriptive statistics',{tab:'one'}]]],['T-tests',[['One-sample, independent and paired t-tests',{tab:'ttest'}]]],['Proportions & categorical tests',[['Contingency tables / chi-square independence',{tab:'two',twoMode:'ct'}]]],['Nonparametric tests',[]],['ANOVA & ANCOVA',[['One-way ANOVA',{tab:'two',twoMode:'means'}]]],['Correlation',[['Correlation matrix (Pearson and Spearman)',{tab:'corr'}]]],['Regression',[['Regression — every model, step by step',{route:{tab:'reg',rgStep:1},chips:[['123 A number',{tab:'reg',rgStep:1,rgType:'num',regModel:'ols',rgModel:''}],['✓✕ Yes / No',{tab:'reg',rgStep:1,rgType:'bin',regModel:'logistic',rgModel:''}],['1‹2‹3 Ordered levels',{tab:'reg',rgStep:1,rgType:'ord',regModel:'ologit',rgModel:''}],['A·B·C Categories',{tab:'reg',rgStep:1,rgType:'cat',rgModel:'multinomial'}],['# A count',{tab:'reg',rgStep:1,rgType:'count',regModel:'poisson',rgModel:''}]]}]]],['Text analysis',[['Text analysis',{tab:'text'}]]],['Networks analysis',[['Networks analysis',{tab:'ergm'}]]],['Scales & dimension reduction',[['Scale reliability',{tab:'data'}]]],['Structural equation modeling',[['CFA and structural equation modeling',{tab:'sem'}]]],['Multilevel & panel models',[]],['Time series',[['Trends and interrupted time series',{tab:'ts'}]]],['Survival analysis',[]],['Resampling & study planning',[]],['Survey inference & missing data',[]],['Predictive modeling',[]],['Data management',[['Browse, edit and transform data',{tab:'browse'}]]],['Model guide',[['Definitions and choosing a method',{tab:'guide'}]]]];
+    const legacy=[['Univariate Descriptive Analysis',[['Descriptive statistics',{tab:'one'}]]],['T-tests',[['One-sample, independent and paired t-tests',{tab:'ttest'}]]],['Proportions & categorical tests',[['Contingency tables / chi-square independence',{tab:'two',twoMode:'ct'}]]],['Nonparametric tests',[]],['ANOVA & ANCOVA',[['One-way ANOVA',{tab:'two',twoMode:'means'}]]],['Correlation',[['Correlation matrix (Pearson and Spearman)',{tab:'corr'}]]],['Regression',[['Regression — all models',{route:{tab:'reg',rgStep:1},models:this.rgDefs?this.rgDefs().types.map(T=>[T.g,T.models.map(m=>[this.rgDefs().models[m].t,this.rgDefs().models[m].cmd||this.rgDefs().models[m].st,{tab:'reg',rgStep:1,rgType:T.k,rgModelPicked:true,...this.rgModelPatch(m)}])]):[]}]]],['Text analysis',[['Text analysis',{tab:'text'}]]],['Networks analysis',[['Networks analysis',{tab:'ergm'}]]],['Scales & dimension reduction',[['Scale reliability',{tab:'data'}]]],['Structural equation modeling',[['CFA and structural equation modeling',{tab:'sem'}]]],['Multilevel & panel models',[]],['Time series',[['Trends and interrupted time series',{tab:'ts'}]]],['Survival analysis',[]],['Resampling & study planning',[]],['Survey inference & missing data',[]],['Predictive modeling',[]],['Data management',[['Browse, edit and transform data',{tab:'browse'}]]],['Model guide',[['Definitions and choosing a method',{tab:'guide'}]]]];
     const retired=new Set(this.asRetired());for(const c of this.asCatalog()){if(retired.has(c.id)||c.group==='Regression')continue; // the nine other regression models are chosen inside Regression (step 2)
       const g=legacy.find(g=>g[0]===c.group);if(g)g[1].push([c.title,c.id]);}return legacy;
   }
@@ -2197,23 +2197,24 @@ class Component extends DCLogic {
   asExportR(){const s=this._asResult;if(!s||s.signature!==this.asSignature())return;const json=JSON.stringify(s.packet);const script='# Computed in GM26 with: '+s.result.runtime+'\n# Reproduce this analysis in R. Install the packages listed below once.\n# install.packages('+JSON.stringify(['jsonlite','car','lmtest',...this.asCatalog().find(q=>q.id===s.packet.id).packages]).replace('[','c(').replace(']',')')+')\n'+this.asSource()+'\npacket <- jsonlite::fromJSON('+JSON.stringify(json)+', simplifyVector=FALSE)\nresult <- gm_run(packet)\nprint(result)\n';this.dlBlob(new Blob([script],{type:'text/plain'}),'analysis-'+s.packet.id+'.R');}
   analysisSuiteVals(out){
     const S=this.state,h=React.createElement,button=(text,fn,props={})=>h('button',{type:'button',onClick:fn,...props},text),groups=this.asGroups();
-    for(const g of out.mfNavGroups||[])for(const t of g.items||[])if(t.key==='tests'){t.items=[];t.hasMenu=true;t.click=()=>this.setState({mfNav:S.mfNav==='tests'?'':'tests',mfFile:false,mfDl:false});t.content=h('nav',{'aria-label':'Test categories',className:'cs-menu'},button('Output — everything you have run',()=>this.asOpen('__directory')),...groups.map(([title,items])=>h('details',{key:title},h('summary',null,title),h('div',{className:'cs-submenu'},...items.map(([title,route])=>route&&route.chips?h('div',{key:title,className:'cs-rg'},button(title,()=>this.asRoute(route.route)),h('span',{className:'cs-rg-note'},'Start from what your outcome is:'),h('div',{className:'cs-rg-chips'},...route.chips.map(([l,r])=>button(l,()=>this.asRoute(r),{key:l,className:'cs-rg-chip'})))):button(title,()=>this.asRoute(route),{key:title}))))));if(S.tab==='analysis'){t.style='color:#194F39;background:#FFFEFA;border-color:#698477;box-shadow:inset 0 -2px #C4681E';t.caretStyle='color:#194F39';}}
+    for(const g of out.mfNavGroups||[])for(const t of g.items||[])if(t.key==='tests'){t.items=[];t.hasMenu=true;t.click=()=>this.setState({mfNav:S.mfNav==='tests'?'':'tests',mfFile:false,mfDl:false});t.content=h('nav',{'aria-label':'Test categories',className:'cs-menu'},button('Output — everything you have run',()=>this.asOpen('__directory')),...groups.map(([title,items])=>h('details',{key:title},h('summary',null,title),h('div',{className:'cs-submenu'},...items.map(([title,route])=>route&&route.models?h('div',{key:title,className:'cs-rg'},button(title,()=>this.asRoute(route.route)),...route.models.map(([g,ms])=>h('div',{key:g,className:'cs-rg-group'},h('span',{className:'cs-rg-g'},g),h('div',{className:'cs-rg-ms'},...ms.map(([l,cmd,r])=>button([l,h('code',{key:'c'},cmd)],()=>this.asRoute(r),{key:l})))))):button(title,()=>this.asRoute(route),{key:title}))))));if(S.tab==='analysis'){t.style='color:#194F39;background:#FFFEFA;border-color:#698477;box-shadow:inset 0 -2px #C4681E';t.caretStyle='color:#194F39';}}
     out.isAnalysis=S.tab==='analysis';if(!out.isAnalysis)return;out.plotEmpty=true;out.plotReady=false;out.plotChartEl=null;
     const info=this.asCatalog().find(q=>q.id===S.analysisId),c=(S.analysisPages||{})[S.analysisId]||{},set=p=>this.asSet(p),sub=S.analysisSub||'Setup',cols=S.cols||[];
     if(!info){out.analysisEl=this.outputView(h,button);return;}
-    const select=(k,label,multiple=false,optional=false)=>h('label',{className:'cs-field',key:k},h('span',null,label+(optional?' (optional)':'')),h('select',{'aria-label':label,multiple,size:multiple?5:undefined,value:multiple?(c.fields?.[k]||[]):c.fields?.[k]?.[0]||'',onChange:e=>set({fields:{...c.fields,[k]:multiple?Array.from(e.target.selectedOptions,x=>x.value):e.target.value?[e.target.value]:[]}})},!multiple?h('option',{value:''},optional?'None':'Select a variable'):null,...cols.map(v=>h('option',{value:v.name,key:v.name},v.name))));
+    // GM26 .70: searchable variable boxes (names and labels); several variables as chips with a box to add more
+    const select=(k,label,multiple=false,optional=false)=>h('div',{className:'cs-field',key:k,role:'group','aria-label':label},h('span',null,label+(optional?' (optional)':'')),multiple?this.tlMultiVar(c.fields?.[k]||[],cols,vals=>set({fields:{...c.fields,[k]:vals}}),label,{id:'as|'+k}):this.tlSelect(c.fields?.[k]?.[0]||'',[['',optional?'None':'Select a variable']].concat(cols.map(v=>[v.name,v.name])),v=>set({fields:{...c.fields,[k]:v?[v]:[]}}),label,{combo:true,comboId:'as|'+k}));
     const opt=(k,value)=>set({options:{...c.options,[k]:value}}),text=(k,label,value,area=false)=>h('label',{className:'cs-field',key:k},h('span',null,label),h(area?'textarea':'input',{'aria-label':label,value:c[k]??value,onChange:e=>set({[k]:e.target.value}),rows:area?5:undefined}));
     const labels={y:'Outcome',y2:'Second paired outcome',predictors:'Predictors',group:'Group / condition',group2:'Second categorical variable',subject:'Subject / panel identifier',time:info.group==='Survival analysis'?'Duration':'Numeric time index',variables:'Variables',factors:'Categorical factors',covariates:'Numeric covariates',event:'Event indicator (0 censored, 1 event)',weight:'Survey weights',keys:'Key columns',probability:'Predicted probability (held-out)',psu:'Primary sampling unit',strata:'Stratum',offset:'Exposure (positive)',auxiliary:'Auxiliary variables (optional: used to impute, not in the regression)'};
     const multi=new Set(['predictors','variables','factors','covariates','keys','auxiliary']);let inputs=[...info.inputs];if(info.id==='km')inputs.push('group');if(info.id.startsWith('survey_'))inputs.push('psu','strata');if(info.id==='permutation')inputs.push('strata');if(info.id==='bootstrap'&&((c.options?.resample||info.options.resample)==='block'))inputs.push('time');if(['negbin','hurdle','zeroinfl'].includes(info.id))inputs.push('offset');if(info.id==='impute')inputs.push('auxiliary');
     const enums={ss:['II','III'],adjust:['holm','bonferroni','BH','BY','hochberg','hommel','none'],countFamily:['negbin','poisson'],family:info.id==='countts'?['negbin','poisson']:info.id==='glmm'?['binomial','poisson','negbin']:info.id==='gam'?['gaussian','binomial','poisson','negbin']:info.id==='impute'?['gaussian','binomial','poisson']:['gaussian','binomial'],effects:['individual','time','twoways'],distribution:['weibull','exponential','lognormal','loglogistic','gaussian','logistic'],rotation:['oblimin','varimax','promax','none'],factorMethod:['minres','ml','pa'],statistic:['mean','median','sd'],resample:['iid','block'],design:info.id==='power_t'?['two.sample','one.sample','paired']:['two.sample','one.sample'],target:['proportion','mean'],surveyStat:['mean','total'],surveyTest:['means','categorical'],linkage:['ward.D2','complete','average','single'],join:['left','right','inner','full']};
     const optionLabels={null:'Null value',df:'Spline degrees of freedom / maximum basis size',frequency:'Observations per seasonal cycle',horizon:'Forecast horizon',evaluate:'Evaluate one-step forecasts at rolling origins',initial:'Initial evaluation window (0 = automatic)',p:'AR order p (−1 = automatic)',d:'Differences d (−1 = automatic)',q:'MA order q (−1 = automatic)',P:'Seasonal AR order',D:'Seasonal differences',Q:'Seasonal MA order',fourier:'Fourier pairs',sample:'Sample size (0 = solve for n)',power:'Target power',effect:'Standardized effect',ss:'Sums of squares',reml:'Use restricted maximum likelihood',randomSlope:'Random-slope predictor (optional)',nfactors:'Number of factors',repetitions:'Resampling repetitions',responseRate:'Expected response rate (0–1)',designEffect:'Design effect',trainFraction:'Training fraction',penalty:'Elastic-net mixing parameter',complexity:'Tree complexity parameter',imputations:'Number of imputations',iterations:'Imputation iterations',manyToMany:'Allow many-to-many joins',contrasts:'Contrast rows in displayed group order (comma-separated coefficients)',reference:'Control group label (blank = first)',expected:'Expected category probabilities (blank = equal)'};
     const optionKeys=[...new Set([...Object.keys(info.options),...((info.id.startsWith('summary_t')||c.inputMode==='summary')?info.summary:[])])];
-    const optionControls=optionKeys.filter(k=>!(k==='frequency'&&c.inputMode==='annual_proportion')&&!(k==='blockLength'&&(c.options?.resample||info.options.resample)!=='block')&&!(k==='power'&&Number(c.options?.sample)>0)).map(k=>{const def=info.options[k]??'',v=c.options?.[k]??def,label=this.asFieldLabel(info.id,k)||optionLabels[k]||k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase());if(typeof def==='boolean')return h('label',{className:'cs-check',key:k},h('input',{type:'checkbox',checked:!!v,onChange:e=>opt(k,e.target.checked)}),label);if(enums[k])return h('label',{className:'cs-field',key:k},h('span',null,label),h('select',{'aria-label':label,value:v,onChange:e=>opt(k,e.target.value)},...enums[k].map(v=>h('option',{key:v,value:v},v))));if(k==='randomSlope')return h('label',{className:'cs-field',key:k},h('span',null,label),h('select',{'aria-label':label,value:v,onChange:e=>opt(k,e.target.value)},h('option',{value:''},'None'),...(c.fields?.predictors||[]).map(n=>h('option',{key:n,value:n},n))));return h('label',{className:'cs-field',key:k},h('span',null,label),h(['table','contrasts'].includes(k)?'textarea':'input',{'aria-label':label,type:typeof def==='number'?'number':'text',step:'any',rows:4,value:v,onChange:e=>opt(k,typeof def==='number'?e.target.value===''?'':Number(e.target.value):e.target.value)}));});
+    const optionControls=optionKeys.filter(k=>!(k==='frequency'&&c.inputMode==='annual_proportion')&&!(k==='blockLength'&&(c.options?.resample||info.options.resample)!=='block')&&!(k==='power'&&Number(c.options?.sample)>0)).map(k=>{const def=info.options[k]??'',v=c.options?.[k]??def,label=this.asFieldLabel(info.id,k)||optionLabels[k]||k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase());if(typeof def==='boolean')return h('label',{className:'cs-check',key:k},h('input',{type:'checkbox',checked:!!v,onChange:e=>opt(k,e.target.checked)}),label);if(enums[k])return h('label',{className:'cs-field',key:k},h('span',null,label),h('select',{'aria-label':label,value:v,onChange:e=>opt(k,e.target.value)},...enums[k].map(v=>h('option',{key:v,value:v},v))));if(k==='randomSlope')return h('label',{className:'cs-field',key:k},h('span',null,label),this.tlSelect(v,[['','None']].concat((c.fields?.predictors||[]).map(n=>[n,n])),val=>opt(k,val),label,{combo:true,comboId:'as|opt|'+k}));return h('label',{className:'cs-field',key:k},h('span',null,label),h(['table','contrasts'].includes(k)?'textarea':'input',{'aria-label':label,type:typeof def==='number'?'number':'text',step:'any',rows:4,value:v,onChange:e=>opt(k,typeof def==='number'?e.target.value===''?'':Number(e.target.value):e.target.value)}));});
     const snap=this._asResult,current=snap?.signature===this.asSignature(),r=current?snap.result:null,arr=v=>v==null?[]:Array.isArray(v)?v:[v],labelTerm=v=>{if(typeof v!=='string')return v;return this.asRelabel(v,r?.labels||{});},format=v=>v==null?'—':typeof v==='number'?Number.isInteger(v)?String(v):Math.abs(v)>0&&Math.abs(v)<.0001?v.toExponential(4):Number(v.toPrecision(7)).toString():String(labelTerm(v));
     const table=t=>h('section',{className:'as-table-section',key:t.title},h('h3',null,t.title),h('div',{className:'as-table-scroll',tabIndex:0,role:'region','aria-label':t.title},h('table',{className:'as-table'},h('thead',null,h('tr',null,...arr(t.columns).map((v,i)=>h('th',{scope:'col',key:i},labelTerm(v))))),h('tbody',null,...arr(t.rows).map((row,i)=>h('tr',{key:i},...arr(row).map((v,j)=>h('td',{key:j},format(v)))))))),t.totalRows>5000?h('p',null,'Showing the first 5,000 of '+t.totalRows+' rows.'):null,button('Copy table',()=>this.copyTSV('as-'+t.title,[arr(t.columns).join('\t'),...arr(t.rows).map(row=>arr(row).map(v=>v==null?'':labelTerm(v)).join('\t'))].join('\n'))));
     const plots=(forecastOnly=false)=>arr(r?.plots).filter(p=>forecastOnly?/forecast/i.test(p.title):!/forecast/i.test(p.title)).map((p,i)=>{const key='analysis-'+info.id+'-'+i;this._plotName=this._plotName||{};this._plotName[key]=info.title+' — '+p.title;return h('section',{key},h('h3',null,p.title),h('div',{className:'as-plot',ref:el=>{const svg=el?.querySelector('svg');if(svg){svg.setAttribute('role','img');svg.setAttribute('aria-label',p.title);this.svgRef(key)(svg);}},dangerouslySetInnerHTML:{__html:p.svg.replace(/id="([^"]+)"/g,(_,id)=>'id="'+key+'-'+id+'"').replace(/(href="#|url\(#)([^"\)]+)/g,(_,prefix,id)=>prefix+key+'-'+id)}}),button('Save SVG',()=>this.dlSvgFile(key,info.id+'-'+i)),button('Save PNG',()=>this.dlSvg(key,info.id+'-'+i)));});
     let annual=null,annualError='';const annualMode=c.inputMode==='annual_proportion';if(annualMode&&c.annualPreview===this.asAnnualSignature(c))try{annual=this.asAnnual(c);}catch(e){annualError=e.message;}
-    const annualControls=this.asAnnualSupported(info.id)?h('section',{className:'as-preparation'},h('h3',null,'Prepare the time series'),h('label',{className:'cs-field'},h('span',null,'Source data'),h('select',{'aria-label':'Source data',value:c.inputMode||'raw',onChange:e=>{const mode=e.target.value;set({inputMode:mode,annualPreview:null,...(mode==='annual_proportion'?{annualWeight:c.annualWeight??S.weightVar??'',options:{...c.options,frequency:1,horizon:3}}:{})});}},h('option',{value:'raw'},'One observation per time point'),h('option',{value:'annual_proportion'},'Individual records → proportion by year'))),annualMode?h('div',null,h('p',null,'Choose a numeric 0/1 outcome and calendar year. Each year becomes one time point; missing responses are excluded. Original records and active subgroup filters are preserved.'),h('div',{className:'cs-controls'},select('y','Binary outcome (0 / 1)'),select('time','Calendar year')),h('p',null,'Annual preparation uses seasonal cycle 1. The default forecast horizon is 3 years; you can change the horizon below.'),h('label',{className:'cs-field'},h('span',null,'Population weight (optional)'),h('select',{'aria-label':'Population weight (optional)',value:c.annualWeight||'',onChange:e=>set({annualWeight:e.target.value,annualPreview:null})},h('option',{value:''},'None — unweighted proportion'),...cols.filter(v=>v.type==='numeric').map(v=>h('option',{value:v.name,key:v.name},v.name)))),S.weightVar&&c.annualWeight!==S.weightVar?h('p',{className:'as-warning'},'The active Settings weight is '+S.weightVar+'. This preparation uses '+(c.annualWeight||'no weight')+' as selected above.'):null,button('Preview annual series',()=>this.asAnnualPreview()),annualError?h('p',{role:'alert',className:'as-error'},annualError):null,annual?h('div',null,h('p',{role:'status'},annual.activeN+' individual records in the active sample → '+annual.rows.length+' annual time points; '+annual.usedN+' contributing records. '+(annual.weightName?'Weighted by '+annual.weightName+'.':'Unweighted.')),table({title:'Annual proportion preview',columns:['Year','Input records','Used records','Missing outcome','Observed ones','Weight total','Proportion coded 1'],rows:annual.rows.map(g=>[g.year,g.records,g.used,g.missing,g.ones,g.weightSum,g.proportion]),totalRows:annual.rows.length}),...annual.errors.map((e,i)=>h('p',{role:'alert',className:'as-error',key:'error'+i},e)),...annual.warnings.map((e,i)=>h('p',{className:'as-warning',key:'warning'+i},e)),button('Download annual series CSV',()=>this.dlBlob(new Blob([['year,input_records,used_records,missing_outcome,observed_ones,weight_total,proportion',...annual.rows.map(g=>[g.year,g.records,g.used,g.missing,g.ones,g.weightSum,g.proportion??''].join(','))].join('\n')],{type:'text/csv'}),'annual-proportions.csv'))):null):null):null;
+    const annualControls=this.asAnnualSupported(info.id)?h('section',{className:'as-preparation'},h('h3',null,'Prepare the time series'),h('label',{className:'cs-field'},h('span',null,'Source data'),h('select',{'aria-label':'Source data',value:c.inputMode||'raw',onChange:e=>{const mode=e.target.value;set({inputMode:mode,annualPreview:null,...(mode==='annual_proportion'?{annualWeight:c.annualWeight??S.weightVar??'',options:{...c.options,frequency:1,horizon:3}}:{})});}},h('option',{value:'raw'},'One observation per time point'),h('option',{value:'annual_proportion'},'Individual records → proportion by year'))),annualMode?h('div',null,h('p',null,'Choose a numeric 0/1 outcome and calendar year. Each year becomes one time point; missing responses are excluded. Original records and active subgroup filters are preserved.'),h('div',{className:'cs-controls'},select('y','Binary outcome (0 / 1)'),select('time','Calendar year')),h('p',null,'Annual preparation uses seasonal cycle 1. The default forecast horizon is 3 years; you can change the horizon below.'),h('label',{className:'cs-field'},h('span',null,'Population weight (optional)'),this.tlSelect(c.annualWeight||'',[['','None — unweighted proportion']].concat(cols.filter(v=>v.type==='numeric').map(v=>[v.name,v.name])),val=>set({annualWeight:val,annualPreview:null}),'Population weight (optional)',{combo:true,comboId:'as|annualWeight'})),S.weightVar&&c.annualWeight!==S.weightVar?h('p',{className:'as-warning'},'The active Settings weight is '+S.weightVar+'. This preparation uses '+(c.annualWeight||'no weight')+' as selected above.'):null,button('Preview annual series',()=>this.asAnnualPreview()),annualError?h('p',{role:'alert',className:'as-error'},annualError):null,annual?h('div',null,h('p',{role:'status'},annual.activeN+' individual records in the active sample → '+annual.rows.length+' annual time points; '+annual.usedN+' contributing records. '+(annual.weightName?'Weighted by '+annual.weightName+'.':'Unweighted.')),table({title:'Annual proportion preview',columns:['Year','Input records','Used records','Missing outcome','Observed ones','Weight total','Proportion coded 1'],rows:annual.rows.map(g=>[g.year,g.records,g.used,g.missing,g.ones,g.weightSum,g.proportion]),totalRows:annual.rows.length}),...annual.errors.map((e,i)=>h('p',{role:'alert',className:'as-error',key:'error'+i},e)),...annual.warnings.map((e,i)=>h('p',{className:'as-warning',key:'warning'+i},e)),button('Download annual series CSV',()=>this.dlBlob(new Blob([['year,input_records,used_records,missing_outcome,observed_ones,weight_total,proportion',...annual.rows.map(g=>[g.year,g.records,g.used,g.missing,g.ones,g.weightSum,g.proportion??''].join(','))].join('\n')],{type:'text/csv'}),'annual-proportions.csv'))):null):null):null;
     let body;if(sub==='Setup'&&info.group==='Time series'&&!annualMode)body=this.tsSetup(info,c,h,button,set,opt,{source:annualControls});else if(sub==='Setup')body=h('div',null,h('p',{className:'as-runtime-note'},'Analyses run in your browser with the built-in statistical engine, which reproduces R\u2019s results. No internet connection is needed and your data stay on this device.'),annualControls,info.summary.length&&!info.id.startsWith('summary_t')?h('label',{className:'cs-field'},h('span',null,'Input format'),h('select',{value:c.inputMode||'raw',onChange:e=>set({inputMode:e.target.value})},h('option',{value:'raw'},'Dataset observations'),h('option',{value:'summary'},'Summary statistics / counts'))):null,h('div',{className:'cs-controls'},...(c.inputMode!=='summary'&&c.inputMode!=='annual_proportion'&&!info.id.startsWith('summary_t')?inputs.map(k=>select(k,labels[k]||k,multi.has(k),!info.inputs.includes(k))):[]),...optionControls),['arima','sarima'].includes(info.id)?h('p',null,'Set p, d and q to nonnegative integers for a manual order. A −1 in any of these selects the complete order automatically, including seasonality for SARIMA.'):null,info.id.startsWith('power_')?h('p',null,'Leave sample size at 0 to solve for n. A positive sample size calculates achieved power instead of using the target power.'):null,info.id==='tsreg'?(h('p',null,'Future predictor columns, in order: '+(c.fields?.predictors||[]).join(', '))):null,info.id==='tsreg'?text('future','Future predictors: one comma-separated row per future period','',true):null,['merge','append'].includes(info.id)?h('div',null,h('label',{className:'cs-field'},h('span',null,'Second dataset (CSV / TSV)'),h('input',{type:'file',accept:'.csv,.tsv,.txt',onChange:e=>this.asOtherFile(e.target.files?.[0])})),c.otherFile?h('p',null,'Loaded '+c.otherFile+' · '+c.otherData.n+' rows. '+c.otherData.names.join(', ')):null,c.otherData?button('Use pasted rows instead',()=>set({otherData:null,otherFile:''})):null,h('p',null,'Paste the second dataset without a header. Column order: '+this._raw.names.join(', ')+'. Use commas or tabs; quoted delimiters are not supported here.'),!c.otherData?text('other','Second dataset rows','',true):null):null,info.group==='Data management'?h('p',null,'Data operations preview the complete dataset, including rows currently excluded by filters. Review before applying; Undo restores the original.'):null,button(S.analysisBusy?'Running…':'Run analysis',()=>this.asRun(),{disabled:!!S.analysisBusy||(annualMode&&(!annual||!!annual.errors.length)),className:'as-run'}),this.asRunStatus(h,button));
     else if(!r)body=h('p',{role:'status'},'Run this specification from Setup to see current results.');else if(sub==='Results')body=h('div',null,h('p',{className:'as-sample'},(info.id.startsWith('power_')||info.id==='precision'?'Study planning':info.id.startsWith('summary_t')||c.inputMode==='summary'?'Summarized observations = '+r.analysisN:info.id==='repeated'?'Subjects = '+r.analysisN+' · Input measurement rows = '+r.inputN+' · Excluded rows = '+r.excludedN:'Analysis N = '+r.analysisN+' · Input rows = '+r.inputN+' · Excluded = '+r.excludedN)+' · '+r.runtime),...arr(r.notes).map((v,i)=>h('p',{key:i},labelTerm(v))),...arr(r.warnings).map((v,i)=>h('p',{key:'w'+i,className:'as-warning'},labelTerm(v))),...arr(r.tables).filter(t=>!/^Predictions|^Forecast|^Holdout predictions|^Predicted survival/.test(t.title)).map(table),button('Download reproducible R analysis',()=>this.asExportR()),r.outputData?h('div',null,button('Download preview as CSV',()=>this.dlBlob(new Blob([this.asDataCSV(r.outputData,r.labels)],{type:'text/csv'}),info.id+'-preview.csv')),button('Apply preview to dataset',()=>this.asApply())):null);
     else if(sub==='Diagnostics')body=h('div',null,h('pre',{className:'as-diagnostics'},arr(r.diagnostics).map(labelTerm).join('\n')||'This method has no additional diagnostic output.'),...plots());else body=h('div',null,...arr(r.tables).filter(t=>/^Predictions|^Forecast|^Holdout predictions|^Predicted survival/.test(t.title)).map(table),...plots(true),!arr(r.tables).some(t=>/^Predictions|^Forecast|^Holdout predictions|^Predicted survival/.test(t.title))?h('p',null,'This analysis does not produce predictions.'):null);
@@ -2322,7 +2323,7 @@ class Component extends DCLogic {
   tsSetup(info,c,h,button,set,opt,extra){
     const S=this.state,E=this._E,cols=S.cols||[],kind=this.tsKinds()[info.id],b=this.tsBuild(info,c),f=E.TSD_FREQ[b.freq]||{};
     const field=(label,control,hint,key)=>h('label',{className:'cs-field',key:key||label},h('span',null,label),control,hint?h('small',{className:'ts-hint'},hint):null);
-    const sel=(value,onChange,options,aria)=>h('select',{'aria-label':aria,value,onChange:e=>onChange(e.target.value)},...options.map(([v,l])=>h('option',{key:v,value:v},l)));
+    const sel=(value,onChange,options,aria)=>this.tlSelect(value,options,onChange,aria); // GM26 .70: searchable when it lists variables
     const setField=(k,v)=>set({fields:{...(c.fields||{}),[k]:v}});
     const numeric=cols.filter(v=>v.type==='numeric').map(v=>v.name),tv=c.fields?.time?.[0]||'',yv=c.fields?.y?.[0]||'';
     const checks=(k,label,exclude)=>{const cur=c.fields?.[k]||[];return h('fieldset',{className:'ts-checks',key:k},h('legend',null,label),...numeric.filter(n=>!exclude.includes(n)).map(n=>h('label',{key:n,className:'cs-check'},h('input',{type:'checkbox',checked:cur.includes(n),onChange:e=>setField(k,e.target.checked?[...cur,n]:cur.filter(x=>x!==n))}),n)));};
@@ -2694,7 +2695,72 @@ class Component extends DCLogic {
   tlChip(label, on, onClick, extra) { return React.createElement('button', Object.assign({ type: 'button', className: 'tl-chip' + (on ? ' on' : ''), onClick, 'aria-pressed': on ? 'true' : 'false' }, extra || {}), label); }
   tlSeg(opts, cur, pick, extra) { const h = React.createElement; return h('div', Object.assign({ className: 'tl-row', role: 'group' }, extra || {}), opts.map(([v, l, tip]) => this.tlChip(l, cur === v, () => pick(v), { key: String(v), title: tip || undefined }))); }
   tlField(label, ...kids) { const h = React.createElement; return h('div', { className: 'tl-field' }, h('span', { className: 'tl-lbl' + (/[@#]/.test(String(label)) ? ' ui' : '') }, label), ...kids); }
-  tlSelect(value, options, onChange, aria, extra) { const h = React.createElement; return h('select', Object.assign({ className: 'tl-select', value: value == null ? '' : value, onChange: e => onChange(e.target.value), 'aria-label': aria }, extra || {}), options.map(([v, l]) => h('option', { key: String(v), value: v }, l))); }
+  tlSelect(value, options, onChange, aria, extra) { const h = React.createElement; if (this.tlComboWanted(options, extra)) return this.tlCombo(value, options, onChange, aria, extra); return h('select', Object.assign({ className: 'tl-select', value: value == null ? '' : value, onChange: e => onChange(e.target.value), 'aria-label': aria }, extra || {}), options.map(([v, l]) => h('option', { key: String(v), value: v }, l))); }
+  // GM26 .70: every list of variables (or any list longer than 12) is a searchable box — type part of a name or of its
+  // label (accents ignored), all variables listed with their labels; ↑ ↓ move, Enter picks, Escape closes, Tab takes an
+  // exact or only match. One box is open at a time (state.tlCombo = { id, q, hi }).
+  tlVarInfo() {
+    const S = this.state, cols = S.cols || [];
+    if (this._tlVI && this._tlVI.cols === cols) return this._tlVI;
+    const lab = new Map(), part = new Map(), n = S.nRows || 0;
+    for (const c of cols) { lab.set(c.name, String(c.label || '')); if (n && c.valid != null && c.valid < n * 0.9) part.set(c.name, c.valid); } // GM26 .70: variables with data in part of the rows say how many
+    return (this._tlVI = { cols, lab, part });
+  }
+  tlComboWanted(options, extra) {
+    if (extra && extra.native) return false;
+    if (extra && extra.combo) return true;
+    if (options.length > 12) return true;
+    const L = this.tlVarInfo().lab; let k = 0, n = 0;
+    for (const o of options) { if (o[0] === '' || o[0] == null) continue; n++; if (L.has(String(o[0]))) k++; }
+    return k > 0 && k >= n * 0.6;
+  }
+  tlNorm(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+  tlCombo(value, options, onChange, aria, extra) {
+    const h = React.createElement, S = this.state, ex = extra || {}, id = String(ex.comboId || aria || 'combo' + options.length);
+    const C = S.tlCombo && S.tlCombo.id === id ? S.tlCombo : null, L = this.tlVarInfo().lab, P = this.tlVarInfo().part, sval = value == null ? '' : String(value);
+    const items = options.map(([v, l]) => { const sv = String(v == null ? '' : v), isVar = sv !== '' && L.has(sv), ll = String(l == null ? '' : l); return isVar && (ll === sv || ll.startsWith(sv + ' ') || ll.startsWith(sv + '—')) ? { v: sv, raw: v, n: sv, sub: L.get(sv), isVar } : { v: sv, raw: v, n: ll, sub: isVar && L.get(sv) && !ll.includes(L.get(sv).slice(0, 16)) ? L.get(sv) : '', isVar }; });
+    const cur = items.find(it => it.v === sval), q = C ? C.q : '', qn = this.tlNorm(q.trim());
+    let shown = items;
+    if (qn) {
+      shown = items.filter(it => it.v !== '' && this.tlNorm(it.v + ' ' + it.n + ' ' + it.sub).includes(qn));
+      const rank = it => { const a = this.tlNorm(it.v), b = this.tlNorm(it.n); return a === qn || b === qn ? 0 : a.startsWith(qn) || b.startsWith(qn) ? 1 : this.tlNorm(it.sub).startsWith(qn) ? 2 : 3; };
+      shown = shown.map((it, i) => [rank(it), i, it]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
+    }
+    const hi = C ? Math.max(0, Math.min(C.hi || 0, shown.length - 1)) : 0, listId = 'tlc-' + id.replace(/[^A-Za-z0-9_-]+/g, '-');
+    const showCur = it => it ? (it.isVar ? it.n + (it.sub ? ' — ' + it.sub : '') : it.n) : '';
+    const ph0 = items[0] && items[0].v === '' ? items[0].n : 'Type to search…', display = cur && cur.v !== '' ? showCur(cur) : '';
+    const setC = p => this.setState(s => ({ tlCombo: Object.assign({ id, q: '', hi: 0 }, s.tlCombo && s.tlCombo.id === id ? s.tlCombo : {}, p) }));
+    const open = () => { if (!C) this.setState({ tlCombo: { id, q: '', hi: Math.max(0, items.findIndex(it => it.v === sval)) } }); };
+    const close = () => { if (this.state.tlCombo && this.state.tlCombo.id === id) this.setState({ tlCombo: null }); };
+    const pick = it => { this.setState({ tlCombo: null }); if (it && it.v !== sval) onChange(it.raw); };
+    const scrollHi = i => setTimeout(() => { const el = typeof document !== 'undefined' && document.getElementById(listId + '-' + i); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }, 0);
+    const key = e => {
+      const k = e.key;
+      if (k === 'ArrowDown' || k === 'ArrowUp') { e.preventDefault(); if (!C) return open(); const n = Math.max(0, Math.min(shown.length - 1, hi + (k === 'ArrowDown' ? 1 : -1))); setC({ hi: n }); scrollHi(n); return; }
+      if (k === 'PageDown' || k === 'PageUp') { if (!C) return; e.preventDefault(); const n = Math.max(0, Math.min(shown.length - 1, hi + (k === 'PageDown' ? 10 : -10))); setC({ hi: n }); scrollHi(n); return; }
+      if (k === 'Enter') { if (C) { e.preventDefault(); if (shown[hi]) pick(shown[hi]); } return; }
+      if (k === 'Escape') { if (C) { e.preventDefault(); e.stopPropagation(); close(); } return; }
+      if (k === 'Tab' && C) { const ex1 = qn ? shown.find(it => this.tlNorm(it.v) === qn || this.tlNorm(it.n) === qn) : null; if (ex1) pick(ex1); else if (qn && shown.length === 1) pick(shown[0]); else close(); }
+    };
+    const input = h('input', { type: 'text', className: 'tl-select tl-combo-in', role: 'combobox', 'aria-label': aria, 'aria-expanded': C ? 'true' : 'false', 'aria-controls': listId, 'aria-autocomplete': 'list', 'aria-activedescendant': C && shown[hi] ? listId + '-' + hi : undefined,
+      value: C ? q : display, placeholder: C ? (display || ph0) : ph0, title: display || ph0, autoComplete: 'off', spellCheck: false, disabled: ex.disabled,
+      onFocus: open, onMouseDown: () => { if (!C) open(); }, onChange: e => setC({ q: e.target.value, hi: 0 }), onKeyDown: key,
+      onBlur: () => setTimeout(() => { const ae = typeof document !== 'undefined' && document.activeElement; if (ae && ae.closest && ae.closest('#' + listId)) return; close(); }, 120) });
+    const list = C ? h('div', { id: listId, role: 'listbox', 'aria-label': aria, className: 'tl-combo-list' },
+      shown.length ? shown.map((it, i) => h('div', { key: it.v + '|' + i, id: listId + '-' + i, role: 'option', 'data-value': it.v, 'aria-selected': it.v === sval ? 'true' : 'false', className: 'tl-combo-opt' + (i === hi ? ' hi' : '') + (it.v === sval ? ' cur' : '') + (it.v === '' ? ' none' : ''), onMouseDown: e => { e.preventDefault(); pick(it); }, onMouseEnter: () => { if (i !== hi) setC({ hi: i }); } },
+        h('span', { className: it.isVar ? 'n mono' : 'n' }, it.n), it.sub ? h('span', { className: 's' }, it.sub) : null, it.isVar && P.has(it.v) ? h('span', { className: 'c', title: 'rows with data' }, P.get(it.v).toLocaleString('en-US') + ' rows') : null))
+        : h('div', { className: 'tl-combo-none' }, 'Nothing matches "' + q + '"'),
+      shown.length > 30 ? h('div', { className: 'tl-combo-foot' }, shown.length.toLocaleString('en-US') + (qn ? ' match · ' : ' in the list · ') + 'type to narrow, ↑ ↓ Enter') : null) : null;
+    return h('div', { className: 'tl-combo' + (ex.className ? ' ' + String(ex.className).replace(/\btl-select\b/g, '').trim() : '') + (C ? ' open' : ''), style: ex.style }, input, h('span', { className: 'tl-combo-caret', 'aria-hidden': 'true' }, '▾'), list);
+  }
+  // several variables: chips, and a searchable box to add one more
+  tlMultiVar(values, cols, onChange, aria, o) {
+    const h = React.createElement, vals = (values || []).filter(Boolean), max = (o && o.max) || 0, L = this.tlVarInfo().lab;
+    const chips = vals.map(v => h('span', { key: v, className: 'tl-mchip', title: L.get(v) || v }, h('span', { className: 'mono' }, v), h('button', { type: 'button', 'aria-label': 'Remove ' + v, onClick: () => onChange(vals.filter(x => x !== v)) }, '×')));
+    const full = max && vals.length >= max;
+    const add = full ? h('span', { className: 'tl-hint' }, 'Maximum reached (' + max + ')') : this.tlSelect('', [['', vals.length ? '+ add another variable…' : '+ add a variable…']].concat(cols.filter(c => !vals.includes(c.name)).map(c => [c.name, c.name])), v => { if (v) onChange([...vals, v]); }, aria, { combo: true, comboId: (o && o.id) || ('multi|' + aria) });
+    return h('div', { className: 'tl-multivar' }, chips, add);
+  }
   tlNum(value, onChange, o) {
     o = o || {}; const h = React.createElement;
     return h('input', { type: 'number', className: 'tl-input num', key: 'n' + value, defaultValue: value, min: o.min, max: o.max, step: o.step || 1, 'aria-label': o.aria, style: { width: (o.width || 64) + 'px' }, onBlur: e => { const x = Number(e.target.value); if (isFinite(x) && x !== value) onChange(o.min != null ? Math.max(o.min, o.max != null ? Math.min(o.max, x) : x) : x); }, onKeyDown: e => { if (e.key === 'Enter') e.target.blur(); } });
@@ -5710,8 +5776,16 @@ class Component extends DCLogic {
       const sel0 = c.group ? (c.sel || []).filter(v => lvAll.includes(v)) : [], sel = c.group ? (sel0.length ? sel0 : lvAll.slice(0, id === 'panel' ? 24 : 10)) : null;
       const outcomes = st === 'count' ? [null] : [c.y, ...(c.ys || [])].filter(Boolean);
       const series = []; let n = 0, excl = 0, times = [];
+      // GM26 .70: when no time has both the outcome and the split, say which times each one has (merged surveys)
+      const why = () => { const cov = (get, isLab) => { const ys = new Set(); for (let i = 0; i < t.length; i++) { if (mask && !mask[i]) continue; const tv = t[i]; if (!isFinite(tv)) continue; const v = get(i); if (isLab ? (v != null && v !== '') : isFinite(v)) ys.add(tv); } return [...ys].sort((a2, b2) => a2 - b2); }, list = a2 => a2.length ? a2.join(', ') : 'none';
+        const yv0 = outcomes[0], yA = yv0 ? num(yv0) : null, yc = yA ? cov(i => yA[i], false) : null, gc = g ? cov(i => g[i], true) : null;
+        if (yc && gc) { const both = yc.filter(x => gc.includes(x)); if (!both.length) return 'No ' + c.x + ' has both ' + yv0 + ' and ' + c.group + ': ' + yv0 + ' has data in ' + list(yc) + '; ' + c.group + ' in ' + list(gc) + '. Split by another variable, or by none.'; }
+        if (yc && !yc.length) return yv0 + ' has no values with a ' + c.x + ' here.';
+        return 'No rows with both a time and an outcome for these selections.'; };
+      try {
       outcomes.forEach(yv => { const r = E.cbTimeAgg(t, yv ? num(yv) : new Float64Array(t.length), g, w, mask, { stat: st, sel, t0: c.t0, t1: c.t1, ci: !!c.ci, alpha: this.alpha() }); n += r.n; excl += r.excluded; times = times.concat(r.times); r.series.forEach(s => series.push(Object.assign({}, s, { key: outcomes.length > 1 ? (yv + (g ? ' · ' + s.key : '')) : s.key, group: s.key, outcome: yv }))); });
-      if (!series.length) throw Error('No rows with both a time and an outcome for these selections.');
+      } catch (e0) { if (/No rows with both a time/.test(e0.message)) throw Error(why()); throw e0; }
+      if (!series.length) throw Error(why());
       roles.series = outcomes.length > 1 ? null : (c.group || null);
       const statT = { mean: 'Mean of ', sum: 'Sum of ', pct: '% equal to 1 of ', count: 'Number of rows' }[st] + (st === 'count' ? '' : outcomes.join(', '));
       const mk = ss => ({ type: 'xy', xTime: true, series: ss.map(s => Object.assign({}, s, { style: id === 'area' ? 'area' : 'line', band: !!c.ci && (st === 'mean' || st === 'pct') && id !== 'area' })), seriesKeys: ss.map(s => s.key), pct: st === 'pct', zero: st !== 'mean', yTitle: statT, xTitle: c.x, n, excluded: excl, weighted: !!w, table: ss.flatMap(s => s.pts.map(p => [s.key, p.x, p.y, p.n].concat(c.ci ? [p.lo, p.hi] : []))), headers: ['Series', c.x, statT, 'n'].concat(c.ci ? ['Lower', 'Upper'] : []), note: (st === 'mean' ? 'Each point is the ' + (w ? 'weighted ' : '') + 'mean at that time. ' : st === 'sum' ? 'Each point is the ' + (w ? 'weighted ' : '') + 'sum at that time. ' : '') + 'Lines break where a series has no observation.' + (c.group && !(c.sel && c.sel.length) && lvAll.length > sel.length ? ' Showing the ' + sel.length + ' most frequent of ' + lvAll.length + ' groups — pick others below.' : '') });
@@ -5854,9 +5928,10 @@ class Component extends DCLogic {
     const h = React.createElement, S = this.state, E = this._E, id = S.plotKind, fam = E.cbFamilyOf(id), c = this.cbC(), kindId = id === 'multiline' ? 'line' : id;
     const top = h('div', { className: 'cb-top' },
       h('button', { type: 'button', className: 'tl-link', onClick: () => this.csOpen('__gallery') }, '← All charts'),
-      h('h2', null, fam.q),
+      this.cbIcon(fam.icon, 40), h('h2', null, fam.q),
       h('div', { className: 'tl-row cb-kinds', role: 'group', 'aria-label': 'Chart type' }, fam.kinds.filter(k => !['map', 'geomap'].includes(k[0])).map(([k, t]) => this.tlChip(t, k === kindId, () => this.cbSwitch(k), { key: k }))));
-    const fields = h('section', { className: 'tl-panel cb-data' }, h('div', { className: 'cb-fields' }, ...this.cbFields(id)));
+    // GM26 .70: 1 the variables (searchable boxes: type part of a name or of its label), 2 the chart, 3 customize
+    const fields = h('section', { className: 'tl-panel cb-data' }, h('div', { className: 'tl-ptitle' }, h('h3', null, '1 · Variables'), h('span', null, (fam.d ? fam.d + ' ' : '') + 'Type part of a name or a label to find a variable.')), h('div', { className: 'cb-fields' }, ...this.cbFields(id)));
     let res = null, err = '';
     try { res = this.cbBuild(id); } catch (e) { err = e.message; }
     let chart;
@@ -5983,26 +6058,31 @@ class Component extends DCLogic {
   }
 
   // ---- the gallery: nine questions
+  // GM26 .70: small pictures of each chart type (gallery and menu)
+  cbIcon(k, size) {
+    const h = React.createElement, kids = [], G = '#2E7D58', D = '#1F5C44', O = '#E5912A';
+    const R = (x, y, w, hh, f) => kids.push(h('rect', { key: 'r' + kids.length, x, y, width: w, height: hh, fill: f || G }));
+    if (k === 'bars') [[6, 18, 10, 18], [20, 8, 10, 28], [34, 24, 10, 12], [48, 14, 10, 22]].forEach(r => R(...r));
+    else if (k === 'hist') [[6, 28, 9, 8], [15, 16, 9, 20], [24, 6, 9, 30], [33, 14, 9, 22], [42, 26, 9, 10]].forEach(r => R(...r));
+    else if (k === 'pie') kids.push(h('circle', { key: 'a', cx: 32, cy: 20, r: 16, fill: '#C9D6CE' }), h('path', { key: 'b', d: 'M32,20 L32,4 A16,16 0 0 1 47.2,25 Z', fill: D }));
+    else if (k === 'line') kids.push(h('polyline', { key: 'a', points: '4,30 16,27 28,28 40,16 52,12 60,8', fill: 'none', stroke: G, strokeWidth: 3 }), h('polyline', { key: 'b', points: '4,34 16,33 28,33 40,26 52,24 60,20', fill: 'none', stroke: O, strokeWidth: 3 }));
+    else if (k === 'scatter') { [[8, 30], [16, 26], [22, 28], [30, 20], [38, 18], [46, 12], [54, 10]].forEach((q, i) => kids.push(h('circle', { key: i, cx: q[0], cy: q[1], r: 2.6, fill: G }))); kids.push(h('line', { key: 'l', x1: 4, y1: 32, x2: 60, y2: 8, stroke: O, strokeWidth: 2 })); }
+    else if (k === 'ci') [[14, 8, 30, 19], [32, 14, 34, 24], [50, 4, 22, 13]].forEach((q, i) => kids.push(h('line', { key: 'l' + i, x1: q[0], x2: q[0], y1: q[1], y2: q[2], stroke: D, strokeWidth: 2 }), h('circle', { key: 'c' + i, cx: q[0], cy: q[3], r: 4, fill: D })));
+    else if (k === 'likert') [['#B0572F', 4, 14], ['#E5912A', 18, 10], ['#DDD6C8', 28, 8], ['#80B79B', 36, 12], ['#2E7D58', 48, 12]].forEach(q => R(q[1], 12, q[2], 14, q[0]));
+    else if (k === 'coef') kids.push(h('line', { key: 'z', x1: 32, y1: 2, x2: 32, y2: 38, stroke: '#9A917F', strokeDasharray: '3 3' }), ...[[36, 56, 9, 46], [14, 30, 20, 22], [28, 46, 31, 37]].flatMap((q, i) => [h('line', { key: 'l' + i, x1: q[0], x2: q[1], y1: q[2], y2: q[2], stroke: D, strokeWidth: 2 }), h('circle', { key: 'c' + i, cx: q[3], cy: q[2], r: 3.5, fill: D })]));
+    else if (k === 'map') kids.push(h('path', { key: 'm', d: 'M6,10 L22,6 L30,14 L44,8 L58,14 L54,30 L36,34 L20,30 L8,24 Z', fill: '#80B79B', stroke: D }));
+    else if (k === 'heat') [['#1F5C44', '#80B79B', '#EFE7D6'], ['#80B79B', '#1F5C44', '#E5912A'], ['#EFE7D6', '#E5912A', '#1F5C44']].forEach((row, i) => row.forEach((f, j) => R(14 + j * 12, 4 + i * 11, 11, 10, f)));
+    else if (k === 'dumbbell') [[8, 40, 9], [18, 52, 20], [12, 30, 31]].forEach((q, i) => kids.push(h('line', { key: 'l' + i, x1: q[0], x2: q[1], y1: q[2], y2: q[2], stroke: '#9A917F', strokeWidth: 2 }), h('circle', { key: 'a' + i, cx: q[0], cy: q[2], r: 4, fill: O }), h('circle', { key: 'b' + i, cx: q[1], cy: q[2], r: 4, fill: D })));
+    else if (k === 'step') kids.push(h('polyline', { key: 'a', points: '4,6 16,6 16,12 28,12 28,20 40,20 40,26 60,26', fill: 'none', stroke: G, strokeWidth: 3 }), h('polyline', { key: 'b', points: '4,6 12,6 12,16 22,16 22,28 36,28 36,34 60,34', fill: 'none', stroke: O, strokeWidth: 3 }));
+    const w = size || 64; return h('svg', { viewBox: '0 0 64 40', width: w, height: w * 40 / 64, 'aria-hidden': 'true', focusable: 'false' }, kids);
+  }
   cbGallery() {
     const h = React.createElement, E = this._E;
-    const icon = {
-      bars: [['rect', 6, 18, 10, 18], ['rect', 20, 8, 10, 28], ['rect', 34, 24, 10, 12], ['rect', 48, 14, 10, 22]], pie: 'pie', hist: [['rect', 6, 28, 9, 8], ['rect', 15, 16, 9, 20], ['rect', 24, 6, 9, 30], ['rect', 33, 14, 9, 22], ['rect', 42, 26, 9, 10]],
-      line: 'line', scatter: 'scatter', ci: 'ci', likert: 'likert', coef: 'coef', map: 'map'
-    };
-    const svgIcon = k => { const kids = []; const s = icon[k];
-      if (Array.isArray(s)) s.forEach((r, i) => kids.push(h('rect', { key: i, x: r[1], y: r[2], width: r[3], height: r[4], fill: '#2E7D58' })));
-      else if (s === 'pie') kids.push(h('circle', { key: 'a', cx: 32, cy: 20, r: 16, fill: '#C9D6CE' }), h('path', { key: 'b', d: 'M32,20 L32,4 A16,16 0 0 1 47.2,25 Z', fill: '#1F6447' }));
-      else if (s === 'line') kids.push(h('polyline', { key: 'a', points: '4,30 16,27 28,28 40,16 52,12 60,8', fill: 'none', stroke: '#2E7D58', strokeWidth: 3 }), h('polyline', { key: 'b', points: '4,34 16,33 28,33 40,26 52,24 60,20', fill: 'none', stroke: '#E5912A', strokeWidth: 3 }));
-      else if (s === 'scatter') { [[8, 30], [16, 26], [22, 28], [30, 20], [38, 18], [46, 12], [54, 10]].forEach((p, i) => kids.push(h('circle', { key: i, cx: p[0], cy: p[1], r: 2.6, fill: '#2E7D58' }))); kids.push(h('line', { key: 'l', x1: 4, y1: 32, x2: 60, y2: 8, stroke: '#E5912A', strokeWidth: 2 })); }
-      else if (s === 'ci') [[14, 8, 30, 19], [32, 14, 34, 24], [50, 4, 22, 13]].forEach((p, i) => kids.push(h('line', { key: 'l' + i, x1: p[0], x2: p[0], y1: p[1], y2: p[2], stroke: '#1F5C44', strokeWidth: 2 }), h('circle', { key: 'c' + i, cx: p[0], cy: p[3], r: 4, fill: '#1F5C44' })));
-      else if (s === 'likert') [['#B0572F', 4, 14], ['#E5912A', 18, 10], ['#DDD6C8', 28, 8], ['#80B79B', 36, 12], ['#2E7D58', 48, 12]].forEach((p, i) => kids.push(h('rect', { key: i, x: p[1], y: 12, width: p[2], height: 14, fill: p[0] })));
-      else if (s === 'coef') kids.push(h('line', { key: 'z', x1: 32, y1: 2, x2: 32, y2: 38, stroke: '#9A917F', strokeDasharray: '3 3' }), ...[[36, 56, 9, 46], [14, 30, 20, 22], [28, 46, 31, 37]].flatMap((p, i) => [h('line', { key: 'l' + i, x1: p[0], x2: p[1], y1: p[2], y2: p[2], stroke: '#1F5C44', strokeWidth: 2 }), h('circle', { key: 'c' + i, cx: p[3], cy: p[2], r: 3.5, fill: '#1F5C44' })]));
-      else if (s === 'map') kids.push(h('path', { key: 'm', d: 'M6,10 L22,6 L30,14 L44,8 L58,14 L54,30 L36,34 L20,30 L8,24 Z', fill: '#80B79B', stroke: '#1F5C44' }));
-      return h('svg', { viewBox: '0 0 64 40', width: 64, height: 40, 'aria-hidden': 'true' }, kids);
-    };
     return h('div', { className: 'tl cb' },
-      h('div', { className: 'cb-top' }, h('h2', null, 'What do you want to show?'), h('button', { type: 'button', className: 'tl-link', onClick: () => this.csOpen('__directory') }, 'Output — everything you have run →')),
-      h('div', { className: 'cb-gallery' }, E.CB_FAMILIES.map(f => h('div', { key: f.id, className: 'cb-fam' }, h('div', { className: 'cb-famtop' }, svgIcon(f.icon), h('b', null, f.q)), h('div', { className: 'tl-row' }, f.kinds.map(([k, t]) => h('button', { key: k, type: 'button', className: 'tl-chip', onClick: () => this.csOpen(k) }, t)))))));
+      h('div', { className: 'cb-top' }, h('h2', null, 'Charts'), h('span', { className: 'tl-hint' }, 'Pick a chart type, then the variables.'), h('button', { type: 'button', className: 'tl-link', style: { marginLeft: 'auto' }, onClick: () => this.csOpen('__directory') }, 'Output — everything you have run →')),
+      h('div', { className: 'cb-gallery' }, E.CB_FAMILIES.map(f => h('section', { key: f.id, className: 'cb-fam', 'aria-label': f.q },
+        h('div', { className: 'cb-famtop' }, this.cbIcon(f.icon), h('div', null, h('h3', null, f.q), f.d ? h('p', null, f.d) : null)),
+        h('div', { className: 'cb-famkinds' }, f.kinds.map(([k, t]) => h('button', { key: k, type: 'button', className: 'tl-chip', onClick: () => this.csOpen(k) }, t)))))));
   }
   cbVals(out) {
     const S = this.state, E = this._E; if (E && E.cbFamilyOf && !out.isPlots) this.cbTabLinks(out); if (!out.isPlots || !E || !E.cbFamilyOf) return;
@@ -6013,8 +6093,12 @@ class Component extends DCLogic {
   }
   cbMenu(R) {
     const E = this._E, h = R.createElement;
-    return h('nav', { 'aria-label': 'Chart types', className: 'cs-menu' }, h('button', { type: 'button', onClick: () => this.csOpen('__gallery') }, 'What do you want to show? — all charts'), h('button', { type: 'button', onClick: () => this.csOpen('__directory') }, 'Output — everything you have run'),
-      ...E.CB_FAMILIES.map(f => h('details', { key: f.id }, h('summary', null, f.q), h('div', { className: 'cs-submenu' }, ...f.kinds.map(([id, t]) => h('button', { type: 'button', key: id, onClick: () => this.csOpen(id) }, t))))));
+    // GM26 .70: every chart type at once, grouped under its name — no folded questions
+    return h('nav', { 'aria-label': 'Chart types', className: 'cs-menu cb-menu' },
+      h('div', { className: 'cb-mtop' }, h('button', { type: 'button', onClick: () => this.csOpen('__gallery') }, 'All charts'), h('button', { type: 'button', onClick: () => this.csOpen('__directory') }, 'Output — everything you have run')),
+      ...E.CB_FAMILIES.map(f => h('div', { key: f.id, className: 'cb-mgroup', role: 'group', 'aria-label': f.q },
+        h('div', { className: 'cb-mhead' }, this.cbIcon(f.icon, 28), h('span', null, f.q)),
+        h('div', { className: 'cb-mitems' }, ...f.kinds.map(([id, t]) => h('button', { type: 'button', key: id, className: 'cb-mitem', onClick: () => this.csOpen(id) }, t))))));
   }
   // ---- the same Customize panel, compact, under charts in other tabs (Univariate breakdown)
   // o: { cfg, set(patch), sets: [{ role, title, v, keys, map, colorable }], lineish, open() }
@@ -7174,27 +7258,27 @@ class Component extends DCLogic {
   rgDefs() {
     return {
       types: [
-        { k: 'num', icon: '123', t: 'A number', ex: 'income, age, a test score', models: ['ols', 'robustreg', 'quantile', 'spline', 'gam'] },
-        { k: 'bin', icon: '✓✕', t: 'Yes / No', ex: 'poor or not, voted, has insurance', models: ['logistic', 'probit'] },
-        { k: 'ord', icon: '1‹2‹3', t: 'Ordered levels', ex: 'satisfaction 1–5, education level', models: ['ologit'] },
-        { k: 'cat', icon: 'A·B·C', t: 'Categories without order', ex: 'party, religion, type of job', models: ['multinomial'] },
-        { k: 'count', icon: '#', t: 'A count', ex: 'children, doctor visits, arrests', models: ['poisson', 'negbin', 'zeroinfl', 'hurdle'] }],
+        { k: 'num', g: 'Linear models', gx: 'a continuous outcome', icon: '123', t: 'A number', ex: 'income, age, a test score', models: ['ols', 'robustreg', 'quantile', 'spline', 'gam'] },
+        { k: 'bin', g: 'Binary outcomes', gx: 'yes / no, 0 / 1', icon: '✓✕', t: 'Yes / No', ex: 'poor or not, voted, has insurance', models: ['logistic', 'probit'] },
+        { k: 'ord', g: 'Ordinal outcomes', gx: 'ordered levels: 1 < 2 < 3', icon: '1‹2‹3', t: 'Ordered levels', ex: 'satisfaction 1–5, education level', models: ['ologit'] },
+        { k: 'cat', g: 'Categorical outcomes', gx: 'categories without order', icon: 'A·B·C', t: 'Categories without order', ex: 'party, religion, type of job', models: ['multinomial'] },
+        { k: 'count', g: 'Count outcomes', gx: '0, 1, 2 …', icon: '#', t: 'A count', ex: 'children, doctor visits, arrests', models: ['poisson', 'negbin', 'zeroinfl', 'hurdle'] }],
       models: {
-        ols: { t: 'Linear regression (OLS)', sub: 'The usual choice for a number: how much the outcome changes per unit of each predictor.', st: 'regress', r: 'lm()', core: true },
-        robustreg: { t: 'Robust linear regression', sub: 'Like OLS, but a few extreme values pull the line much less.', st: 'rreg', r: 'MASS::rlm()' },
-        quantile: { t: 'Quantile regression', sub: 'The median (or another percentile) instead of the mean; good for skewed outcomes such as income.', st: 'qreg', r: 'quantreg::rq()' },
-        spline: { t: 'Natural-spline regression', sub: 'Lets numeric predictors bend, for relationships that are not a straight line.', st: 'mkspline, then regress', r: 'lm(y ~ splines::ns(x, df))' },
-        gam: { t: 'Generalized additive model', sub: 'Smooth curves for the numeric predictors, their shape chosen from the data.', st: 'no built-in command', r: 'mgcv::gam()' },
-        logistic: { t: 'Logistic regression (logit)', sub: 'The usual choice for yes / no: odds ratios, and changes in the chance in percentage points.', st: 'logit', r: 'glm(family = binomial)', core: true },
-        probit: { t: 'Probit', sub: 'Same conclusions as logit, coefficients on another scale; common in economics.', st: 'probit', r: 'glm(binomial(link = "probit"))' },
-        ologit: { t: 'Ordinal logistic regression', sub: 'For ordered levels (1 < 2 < 3 …): the odds of being in a higher level.', st: 'ologit', r: 'MASS::polr()', core: true },
-        multinomial: { t: 'Multinomial logistic', sub: 'For categories without order: each one compared with a base category.', st: 'mlogit', r: 'nnet::multinom()' },
-        poisson: { t: 'Poisson regression', sub: 'The usual start for counts (0, 1, 2 …): rate ratios.', st: 'poisson', r: 'glm(family = poisson)', core: true },
-        negbin: { t: 'Negative binomial', sub: 'Counts that vary more than Poisson allows (overdispersion).', st: 'nbreg', r: 'MASS::glm.nb()' },
-        zeroinfl: { t: 'Zero-inflated count model', sub: 'Extra zeros from a group that is always zero (people who never visit a doctor).', st: 'zinb / zip', r: 'pscl::zeroinfl()' },
-        hurdle: { t: 'Hurdle count model', sub: 'Zero or not, then how many: two separate parts.', st: 'two parts: logit and tnbreg', r: 'pscl::hurdle()' }
+        ols: { cmd: 'regress', t: 'Linear regression (OLS)', sub: 'The usual choice for a number: how much the outcome changes per unit of each predictor.', st: 'regress', r: 'lm()', core: true },
+        robustreg: { cmd: 'rreg', t: 'Robust regression', sub: 'Like OLS, but a few extreme values pull the line much less.', st: 'rreg', r: 'MASS::rlm()' },
+        quantile: { cmd: 'qreg', t: 'Quantile regression', sub: 'The median (or another percentile) instead of the mean; good for skewed outcomes such as income.', st: 'qreg', r: 'quantreg::rq()' },
+        spline: { cmd: 'mkspline + regress', t: 'Linear regression with splines', sub: 'Lets numeric predictors bend, for relationships that are not a straight line.', st: 'mkspline, then regress', r: 'lm(y ~ splines::ns(x, df))' },
+        gam: { cmd: 'R: mgcv::gam', t: 'Generalized additive model (GAM)', sub: 'Smooth curves for the numeric predictors, their shape chosen from the data.', st: 'no built-in command', r: 'mgcv::gam()' },
+        logistic: { cmd: 'logit', t: 'Logistic regression (logit)', sub: 'The usual choice for yes / no: odds ratios, and changes in the chance in percentage points.', st: 'logit', r: 'glm(family = binomial)', core: true },
+        probit: { cmd: 'probit', t: 'Probit regression', sub: 'Same conclusions as logit, coefficients on another scale; common in economics.', st: 'probit', r: 'glm(binomial(link = "probit"))' },
+        ologit: { cmd: 'ologit', t: 'Ordered logistic regression', sub: 'For ordered levels (1 < 2 < 3 …): the odds of being in a higher level.', st: 'ologit', r: 'MASS::polr()', core: true },
+        multinomial: { cmd: 'mlogit', t: 'Multinomial logistic regression', sub: 'For categories without order: each one compared with a base category.', st: 'mlogit', r: 'nnet::multinom()' },
+        poisson: { cmd: 'poisson', t: 'Poisson regression', sub: 'The usual start for counts (0, 1, 2 …): rate ratios.', st: 'poisson', r: 'glm(family = poisson)', core: true },
+        negbin: { cmd: 'nbreg', t: 'Negative binomial regression', sub: 'Counts that vary more than Poisson allows (overdispersion).', st: 'nbreg', r: 'MASS::glm.nb()' },
+        zeroinfl: { cmd: 'zip / zinb', t: 'Zero-inflated Poisson / negative binomial', sub: 'Extra zeros from a group that is always zero (people who never visit a doctor).', st: 'zinb / zip', r: 'pscl::zeroinfl()' },
+        hurdle: { cmd: 'logit + tnbreg', t: 'Hurdle model', sub: 'Zero or not, then how many: two separate parts.', st: 'two parts: logit and tnbreg', r: 'pscl::hurdle()' }
       },
-      steps: ['Outcome', 'Model', 'Predictors', 'Weights · SEs', 'Results', 'Checks', 'Predictions', 'Export']
+      steps: ['Model & outcome', 'Options', 'Predictors', 'Weights · SEs', 'Results', 'Checks', 'Predictions', 'Export']
     };
   }
   // What kind of outcome a variable is, from its values (the user can override it in step 1).
@@ -7223,10 +7307,12 @@ class Component extends DCLogic {
   rgGo(step) { this.setState({ rgStep: step }); try { requestAnimationFrame(() => { const el = document.querySelector('.rg-bar'); if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }); } catch (e) { } }
   rgPickOutcome(v) {
     const det = this.rgDetect(v), D = this.rgDefs(), T = D.types.find(t => t.k === (det ? det.type : 'num')), cur = this.rgNow().model;
+    // GM26 .70: a model chosen first (step 1 or the Tests menu) stays; otherwise the one that fits the outcome
+    if (this.state.rgModelPicked) { const TM = D.types.find(t => t.models.includes(cur)); this.clearMemo(); this.setState({ depVar: v, rgType: TM ? TM.k : '', predictors: (this.state.predictors || []).filter(p => p !== v) }); return; }
     this.clearMemo(); this.setState(Object.assign({ depVar: v, rgType: '', predictors: (this.state.predictors || []).filter(p => p !== v) }, this.rgModelPatch(T.models.includes(cur) ? cur : T.models[0])));
   }
   rgPickType(k) { const T = this.rgDefs().types.find(t => t.k === k), cur = this.rgNow().model; this.clearMemo(); this.setState(Object.assign({ rgType: k }, this.rgModelPatch(T.models.includes(cur) ? cur : T.models[0]))); }
-  rgPickModel(m) { const D = this.rgDefs(), T = D.types.find(t => t.models.includes(m)), now = this.rgNow(); this.clearMemo(); this.setState(Object.assign({}, this.rgModelPatch(m), T && T.k !== now.type ? { rgType: T.k } : {})); }
+  rgPickModel(m) { const D = this.rgDefs(), T = D.types.find(t => t.models.includes(m)), now = this.rgNow(); this.clearMemo(); this.setState(Object.assign({ rgModelPicked: true }, this.rgModelPatch(m), T && T.k !== now.type ? { rgType: T.k } : {})); }
   // Fit the current specification: the Regression page's own run, or the Tests engine for the other models.
   rgRun(out) {
     const now = this.rgNow(), S = this.state;
@@ -7270,26 +7356,25 @@ class Component extends DCLogic {
       steps, h('div', { className: 'rg-sum' }, h('span', { className: 'rg-sumtxt' }, ...bits), h('span', { className: 'rg-nav' }, step > 1 ? this.tlBtn('← Back', () => this.rgGo(step - 1)) : null, step < 8 ? this.tlBtn('Next: ' + D.steps[step] + ' →', () => this.rgGo(step + 1)) : null, step >= 3 ? run : null)));
   }
   rgPanel(n, title, sub, ...kids) { const h = React.createElement; return h('section', { className: 'tl-panel rg-step', key: 'p' + n + title }, h('div', { className: 'tl-ptitle' }, h('h3', null, n ? n + ' · ' + title : title), sub ? h('span', null, sub) : null), h('div', { className: 'rg-body' }, ...kids)); }
-  // ---------- 1 · outcome ----------
+  // ---------- 1 · model & outcome (GM26 .70: as in Stata — the model by name, grouped by kind of outcome; the dependent
+  // variable from a searchable box with labels; what the data look like, and the model that fits, as a hint) ----------
   rgStep1(now) {
-    const h = React.createElement, { S, D, det, type } = now, cols = S.cols || [];
-    const pick = this.tlSelect(S.depVar || '', [['', 'choose the outcome…']].concat(cols.map(c => [c.name, c.name + (c.label ? ' · ' + c.label : '')])), v => v ? this.rgPickOutcome(v) : this.setState({ depVar: '' }), 'Outcome', { className: 'tl-select rg-big' });
-    const cards = D.types.map(T => {
-      const on = S.depVar && T.k === type, auto = det && det.type === T.k;
-      return h('button', { type: 'button', key: T.k, className: 'rg-card' + (on ? ' on' : ''), 'aria-pressed': on ? 'true' : 'false', onClick: () => this.rgPickType(T.k) },
-        auto && S.depVar ? h('span', { className: 'rg-tag' }, 'DETECTED FROM YOUR DATA') : null,
-        h('span', { className: 'rg-ct' }, h('span', { className: 'rg-ic' }, T.icon), T.t), h('span', { className: 'rg-ex' }, 'e.g. ' + T.ex),
-        h('span', { className: 'rg-to' }, '→ starts with ', h('b', null, D.models[T.models[0]].t)), auto && S.depVar ? h('span', { className: 'rg-why mono' }, det.why) : null);
-    });
-    cards.push(h('div', { key: 'else', className: 'rg-card dashed' }, h('span', { className: 'rg-ct' }, 'Something else?'), h('span', { className: 'rg-ex' }, 'Time until an event: ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.asOpen('cox') }, 'Survival analysis')), h('span', { className: 'rg-ex' }, 'The same people or places measured again: ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.asOpen('mixed') }, 'Multilevel & panel'), ' (or step 2 asks)')));
+    const h = React.createElement, { S, D, det, model } = now, cols = S.cols || [];
+    const TM = D.types.find(t => t.models.includes(model)), fitsT = det && S.depVar ? D.types.find(t => t.k === det.type) : null;
+    const pick = this.tlSelect(S.depVar || '', [['', 'type or choose the dependent variable…']].concat(cols.map(c => [c.name, c.name])), v => v ? this.rgPickOutcome(v) : this.setState({ depVar: '' }), 'Outcome', { className: 'rg-big', combo: true, comboId: 'rg|outcome' });
+    const groups = D.types.map(T => h('div', { key: T.k, className: 'rg-mgroup' + (fitsT && fitsT.k === T.k ? ' fits' : ''), role: 'group', 'aria-label': T.g },
+      h('div', { className: 'rg-mg' }, h('b', null, T.g), h('span', { className: 'rg-mut' }, T.gx), fitsT && fitsT.k === T.k ? h('span', { className: 'rg-tag' }, 'FITS ' + S.depVar) : null),
+      ...T.models.map(m => { const M = D.models[m], on = model === m; return h('button', { type: 'button', key: m, className: 'rg-mbtn' + (on ? ' on' : ''), 'aria-pressed': on ? 'true' : 'false', title: M.sub, onClick: () => this.rgPickModel(m) }, h('span', null, M.t), h('code', null, M.cmd || M.st)); })));
     let note = null;
-    if (S.depVar && type === 'bin') {
-      const b = this.regBin(S.depVar), cv = this.vals(S.depVar), fr = this._E.freqOf(cv.kind === 'cat' ? cv.a : Array.from(cv.a, x => isFinite(x) ? this._E.numLab(x) : null), null), tot = fr.rows.reduce((s, r) => s + r.c, 0), share = l => { const r = fr.rows.find(q => String(q.label) === String(l)); return r ? r.c / tot : 0; };
-      if (b.one != null) note = this.tlBanner('info', S.depVar + ': ', h('b', null, this.fmt(100 * share(b.one), 1) + '% are ' + this.vlabel(S.depVar, b.one)), ' (' + this.fmtN(Math.round(share(b.one) * tot)) + ' rows), ' + this.fmt(100 * share(b.zero), 1) + '% are ' + this.vlabel(S.depVar, b.zero) + '. The model predicts ', h('b', null, 'the chance that ' + S.depVar + ' = ' + this.vlabel(S.depVar, b.one)), '. ', this.tlBtn('Predict “' + this.vlabel(S.depVar, b.zero) + '” instead', () => { this.clearMemo(); this.setState({ binOne: Object.assign({}, S.binOne || {}, { [S.depVar]: b.zero }) }); }));
+    if (S.depVar && det && fitsT && TM && fitsT.k !== TM.k) note = this.tlBanner('warn', det.why + '. ', h('b', null, D.models[model].t), ' is for ' + TM.gx + '; ', h('b', null, D.models[fitsT.models[0]].t), ' fits ' + S.depVar + '. ', this.tlBtn('Use ' + D.models[fitsT.models[0]].t, () => this.rgPickModel(fitsT.models[0])));
+    else if (S.depVar && now.type === 'bin') {
+      const b = this.regBin(S.depVar), cv = this.vals(S.depVar), fr = this._E.freqOf(cv.kind === 'cat' ? cv.a : Array.from(cv.a, x => isFinite(x) ? this._E.numLab(x) : null), null), tot = fr.rows.reduce((s2, r) => s2 + r.c, 0), share = l => { const r = fr.rows.find(q => String(q.label) === String(l)); return r ? r.c / tot : 0; };
+      if (b.one != null) note = this.tlBanner('info', S.depVar + ': ', h('b', null, this.fmt(100 * share(b.one), 1) + '% are ' + this.vlabel(S.depVar, b.one)), ' (' + this.fmtN(Math.round(share(b.one) * tot)) + ' rows), ' + this.fmt(100 * share(b.zero), 1) + '% are ' + this.vlabel(S.depVar, b.zero) + '. The model predicts ', h('b', null, this.vlabel(S.depVar, b.one)), '. ', this.tlBtn('Model ' + this.vlabel(S.depVar, b.zero) + ' instead', () => this.setState({ binOne: { y: S.depVar, v: String(b.zero) } })));
     } else if (S.depVar && det) note = this.tlBanner('info', det.why + '.');
-    return this.rgPanel(1, 'Outcome', 'the variable you want to explain', h('div', { className: 'rg-q' }, 'What do you want to explain? ', pick),
-      h('div', { className: 'rg-row' }, h('span', { className: 'tl-lbl' }, 'What kind of outcome is it?'), h('span', { className: 'rg-mut' }, S.depVar ? 'Detected from the data; click another card if it guessed wrong.' : 'Choose the outcome first, or a card to see its models.')),
-      h('div', { className: 'rg-cards' }, ...cards), note);
+    const other = h('p', { className: 'rg-mut rg-other' }, 'Other models: ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.asOpen('cox') }, 'survival (Cox, stcox)'), ' · ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.asRoute ? this.setState({ mfNav: 'tests' }) : null }, 'multilevel & panel (mixed, xtreg) in Tests ▾'));
+    return this.rgPanel(1, 'Model & outcome', 'choose the model, then the dependent variable — as in Stata',
+      h('div', { className: 'rg-q' }, h('span', { className: 'tl-lbl' }, 'Dependent variable'), pick),
+      h('div', { className: 'rg-models' }, ...groups), note, other);
   }
   // ---------- 2 · model ----------
   rgStep2(now) {
@@ -7310,8 +7395,8 @@ class Component extends DCLogic {
     const all = h('details', { className: 'rg-all', open: !T.models.includes(model) || undefined }, h('summary', { className: 'tl-lbl' }, 'All 13 models, by kind of outcome · the ones for other kinds are faded'),
       h('div', { className: 'rg-grid' }, ...D.types.map(t2 => h('div', { key: t2.k, className: 'rg-col' + (t2.k === type ? '' : ' faded') }, h('span', { className: 'tl-lbl' }, t2.t), ...t2.models.map(m => this.tlChip((model === m ? '✓ ' : '') + D.models[m].t, model === m, () => this.rgPickModel(m), { key: m }))))));
     const mismatch = !T.models.includes(model) ? this.tlBanner('warn', D.models[model].t + ' is meant for ' + (D.types.find(t2 => t2.models.includes(model)) || T).t.toLowerCase() + ' outcomes, and ' + (S.depVar || 'the outcome') + ' looks like ' + T.t.toLowerCase() + '. ', this.tlBtn('Use ' + D.models[rec].t, () => this.rgPickModel(rec))) : null;
-    return this.rgPanel(2, 'Model', 'for ' + T.t.toLowerCase() + (S.depVar ? ' · ' + S.depVar : ''), mismatch, h('div', { className: 'rg-mcards' }, card(rec, true), ...alts.map(m => card(m, false))), opts,
-      h('div', { className: 'rg-qs' }, h('span', { className: 'tl-lbl' }, 'Quick questions about your data'), q1, q2, q3), all);
+    return this.rgPanel(2, 'Options', D.models[model].t + ' · ' + D.models[model].st + (S.depVar ? ' · ' + S.depVar : ''), mismatch, h('p', { className: 'rg-mut' }, D.models[model].sub, ' ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.rgGo(1) }, 'Change the model →')), opts, // GM26 .70: the model is chosen in step 1
+      h('div', { className: 'rg-qs' }, h('span', { className: 'tl-lbl' }, 'Quick questions about your data'), q1, q2, q3));
   }
   rgOutcomeStats(v, type) {
     return this.memo('rgst|' + v + '|' + type, () => {
@@ -7332,10 +7417,38 @@ class Component extends DCLogic {
     return rows.length ? h('div', { className: 'rg-opts' }, ...rows) : null;
   }
   // ---------- 3 · predictors (the page's own picker, plus what to show as predictions) ----------
+  // GM26 .70: rows with data on the outcome, every predictor, the weight and the cluster / PSU variable. When they are
+  // few, say which variables do not overlap — by survey wave when the file has a year or wave variable (LAPOP, ENIGH).
+  rgCoverage() {
+    const S = this.state, y = S.depVar, preds = (S.predictors || []).filter(Boolean); if (!this._raw || !y || !preds.length) return null;
+    const vce = S.regVce || 'classical', cl = vce === 'cluster' ? S.regCl : vce === 'svy' ? S.svyPsu : '';
+    const vars = [...new Set([y, ...preds, ...(S.weightVar ? [S.weightVar] : []), ...(cl ? [cl] : [])])];
+    return this.memo('rgcov|' + vars.join(',') + '|' + (S.autoScreen ? 1 : 0) + '|' + (S.missingCodes || ''), () => {
+      const n = this._raw.n, fmt = x => this.fmtN(x);
+      const has = vars.map(v => { const c = this.effMeta(v) ? (this.numVals(v) || this.vals(v)) : null; if (!c) return () => false; const a = c.a; return c.kind === 'num' ? i => a[i] === a[i] && isFinite(a[i]) : i => a[i] != null && a[i] !== ''; });
+      const cnt = vars.map(() => 0); let all = 0;
+      for (let i = 0; i < n; i++) { let ok = true; for (let k = 0; k < vars.length; k++) { if (has[k](i)) cnt[k]++; else ok = false; } if (ok) all++; }
+      const yN = cnt[0]; if (!yN) return { n: 0, yN: 0, msg: y + ' has no values here.' };
+      const okW = c => c && c.type === 'numeric' && c.distinct >= 2 && c.distinct <= 60 && !vars.includes(c.name), cs = S.cols || [];
+      const wc = ['year', 'anio', 'año', 'ano', 'yr', 'survey_year', 'surveyyear', 'wave', 'ronda', 'round', 'ola', 'periodo'].map(nm => cs.find(c => c.name.toLowerCase() === nm)).find(okW);
+      const t = wc && this.numVals(wc.name), tv = t ? t.a : null;
+      let allW = null, wOf = null;
+      if (tv) { const sets = vars.map(() => new Set()); for (let i = 0; i < n; i++) { const w = tv[i]; if (!isFinite(w)) continue; for (let k = 0; k < vars.length; k++) if (has[k](i)) sets[k].add(w); } allW = [...new Set(sets.flatMap(x => [...x]))].sort((a, b) => a - b); wOf = sets; }
+      const runs = set => { const out = []; let a = null, b = null; for (const w of allW) { if (set.has(w)) { if (a == null) a = w; b = w; } else if (a != null) { out.push(a === b ? String(a) : a + '–' + b); a = null; } } if (a != null) out.push(a === b ? String(a) : a + '–' + b); return out.join(', ') || 'none'; };
+      const sameW = k => !wOf || (wOf[k].size === wOf[0].size && [...wOf[0]].every(w => wOf[k].has(w)));
+      const lim = vars.map((v, k) => k).filter(k => k > 0 && (cnt[k] < 0.9 * yN || !sameW(k))).sort((a, b) => cnt[a] - cnt[b]).slice(0, 4);
+      if (!lim.length || all >= yN || (all >= 0.5 * yN && all >= 30)) return { n: all, yN, msg: '' };
+      const where = k => wOf ? (wOf[k].size === 1 ? ' is only in ' : ' is in ') + wc.name + ' ' + runs(wOf[k]) + ' (' + fmt(cnt[k]) + ' rows)' : ' has data in ' + fmt(cnt[k]) + ' rows';
+      const lead = all ? 'Only ' + fmt(all) + ' of the ' + fmt(yN) + ' rows with ' + y + ' have data on every variable of the model.' : 'No row has data on all of ' + vars.slice(0, -1).join(', ') + ' and ' + vars[vars.length - 1] + '.';
+      const notes = lim.map(k => vars[k] + where(k)).concat(lim.length && wOf && !sameW(0) && lim.length < 2 ? [y + where(0)] : []);
+      return { n: all, yN, msg: lead + (notes.length ? ' ' + notes.join('; ') + '.' : '') + (all < 30 && lim.length ? ' Remove ' + (lim.length > 1 ? 'one of them' : vars[lim[0]]) + ', or use a variable asked in the same ' + (wOf ? (wc.name === 'year' || /^(anio|año|ano|yr)$/i.test(wc.name) ? 'years' : 'waves') : 'rows') + '.' : '') };
+    });
+  }
   rgStep3(now) {
     const h = React.createElement, { S } = now, preds = S.predictors || [], g = this.rgMg(), opt = [['', 'none']].concat(preds.map(p => [p, p]));
-    this._rgAfter = this.rgPanel(0, 'Predictions to show (margins)', 'optional · the values and the plot are set in step 7',
-      h('div', { className: 'rg-row' }, h('span', { className: 'tl-lbl' }, 'X axis'), this.tlSelect(g.x || '', opt, v => this.rgMgSet({ x: v, by: g.by === v ? '' : g.by }), 'Margins X axis'), h('span', null, '· one line for each'), this.tlSelect(g.by || '', opt.filter(([p]) => p !== g.x), v => this.rgMgSet({ by: v }), 'Margins lines by')));
+    const cov = this.rgCoverage();
+    this._rgAfter = [cov && cov.msg ? this.tlBanner(cov.n < 30 ? 'warn' : 'info', cov.msg) : null, this.rgPanel(0, 'Predictions to show (margins)', 'optional · the values and the plot are set in step 7',
+      h('div', { className: 'rg-row' }, h('span', { className: 'tl-lbl' }, 'X axis'), this.tlSelect(g.x || '', opt, v => this.rgMgSet({ x: v, by: g.by === v ? '' : g.by }), 'Margins X axis'), h('span', null, '· one line for each'), this.tlSelect(g.by || '', opt.filter(([p]) => p === '' || p !== g.x), v => this.rgMgSet({ by: v }), 'Margins lines by')))];
     return null;
   }
   // ---------- 4 · weights and standard errors ----------
@@ -10107,7 +10220,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-02.69') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-02.70') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -10202,15 +10315,19 @@ class Component extends DCLogic {
     const visAll = hid.size ? S.cols.filter(c => !hid.has(c.name)) : S.cols;
     const mkPicker = (id, current, setFn, filterFn, extraRows) => {
       const open = S.pk === id;
-      const pq = (S.pq || '').toLowerCase();
+      const pq = this.tlNorm ? this.tlNorm(S.pq || '') : (S.pq || '').toLowerCase(); // GM26 .70: accents ignored
       let rows = [];
       if (open) {
         const gT2 = S.genTags || {};
-        const pool = visAll.filter(c => (!filterFn || filterFn(c)) && (!pq || c.name.toLowerCase().includes(pq) || (c.label && c.label.toLowerCase().includes(pq))))
-          .sort((a2, b2) => (gT2[b2.name] ? 1 : 0) - (gT2[a2.name] ? 1 : 0));
-        const cap = 600;   // every picker lists (up to) 600 variables; typing narrows the list
+        const nz = x => this.tlNorm ? this.tlNorm(x) : String(x).toLowerCase();
+        // GM26 .70: matches ranked as in the other boxes — the exact name first, then names and labels that start with it
+        const rk = c => !pq ? 0 : nz(c.name) === pq ? 0 : nz(c.name).startsWith(pq) ? 1 : c.label && nz(c.label).startsWith(pq) ? 2 : 3;
+        const pool = visAll.filter(c => (!filterFn || filterFn(c)) && (!pq || nz(c.name).includes(pq) || (c.label && nz(c.label).includes(pq))))
+          .map((c, i) => [rk(c), gT2[c.name] ? 0 : 1, i, c]).sort((a2, b2) => a2[0] - b2[0] || a2[1] - b2[1] || a2[2] - b2[2]).map(x => x[3]);
+        const nR = S.nRows || 0;
+        const cap = 5000;   // GM26 .70: every variable is listed (typing narrows the list)
         rows = (extraRows || []).concat(pool.slice(0, cap).map(c => ({
-          name: c.name, sub: c.label || (this.effMeta(c.name).treatAs === 'numeric' ? 'numeric' : 'categorical'),
+          name: c.name, sub: (c.label || (this.effMeta(c.name).treatAs === 'numeric' ? 'numeric' : 'categorical')) + (nR && c.valid != null && c.valid < nR * 0.9 ? ' · ' + this.fmtN(c.valid) + ' rows' : ''),
           pick: () => { setFn(c.name); this.setState({ pk: null, pq: '' }); this.pkRefocus(); }
         })));
         rows = rows.map((r, k) => k < (extraRows || []).length ? Object.assign({}, r, { pick: () => { r.pick(); this.pkRefocus(); } }) : r);
@@ -10224,11 +10341,13 @@ class Component extends DCLogic {
         // on); ↓ goes into the list (↑ ↓ move, Enter picks and comes back here); Escape closes the list
         key: e => {
           const k = e.key;
-          if (k === 'ArrowDown') { e.preventDefault(); if (this.state.pk !== id) { this.setState({ pk: id, pq: '' }); return; } const row = e.target.parentElement && e.target.parentElement.querySelector('[data-pk-list] [data-kb]'); if (row) row.focus(); return; }
+          if (k === 'ArrowDown') { e.preventDefault(); if (this.state.pk !== id) { this.setState({ pk: id, pq: '' }); return; } const row = (e.target.parentElement && e.target.parentElement.querySelector('[data-pk-list] [data-kb]')) || (typeof document !== 'undefined' && document.querySelector('[data-pk-list] [data-kb]')); if (row) row.focus(); return; } // GM26 .70: the open list wherever it sits
           if (k === 'Escape') { if (this.state.pk === id) { e.stopPropagation(); this.setState({ pk: null, pq: '' }); } return; }
           if (k === 'Enter' || (k === 'Tab' && !e.shiftKey)) {
             const q = String(this.state.pq || '').trim().toLowerCase(), hit = q ? visAll.find(c => c.name.toLowerCase() === q && (!filterFn || filterFn(c))) : null;
             if (k === 'Enter') e.preventDefault();
+            const first = !hit && k === 'Enter' && q && this.state.pk === id ? rows.slice((extraRows || []).length).find(r => r.name !== '\u2026') : null; // GM26 .70: Enter takes the first match
+            if (first) { first.pick(); return; }
             if (this.state.pk === id) this.setState({ pk: null, pq: '' });
             if (hit && hit.name !== current) setFn(hit.name);
           }
@@ -10572,10 +10691,11 @@ class Component extends DCLogic {
     out.search = S.search; out.setSearch = e => this.setState({ search: e.target.value });
     out.varCount = S.cols.length;
 
-    const q = S.search.trim().toLowerCase();
-    const filtered = q ? visAll.filter(c => c.name.toLowerCase().includes(q) || (c.label && c.label.toLowerCase().includes(q))) : visAll;
+    const nzq = x => this.tlNorm ? this.tlNorm(x) : String(x).toLowerCase(), q = nzq(S.search.trim()); // GM26 .70: accents ignored
+    const filtered = q ? visAll.filter(c => nzq(c.name).includes(q) || (c.label && nzq(c.label).includes(q))) : visAll;
+    const varCap = S.varAll ? 5000 : 150;
     const chipStyleOf = m => 'flex: none; font-family: var(--fMono, \'Space Mono\', monospace); font-size: 10px; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 9px; ' + (m.treatAs === 'numeric' ? 'color: var(--c1A5061, #1A5061); border: 1px solid var(--c95C3CE, #95C3CE); background: var(--cE8F2F4, #E8F2F4);' : 'color: var(--c743620, #743620); border: 1px solid var(--cE6B59A, #E6B59A); background: var(--cFAEEE7, #FAEEE7);');
-    out.varRows = filtered.slice(0, 150).map(m => {
+    out.varRows = filtered.slice(0, varCap).map(m => {
       const eff = this.effMeta(m.name);
       const sel = S.exploreVar === m.name && ['one','ttest'].includes(S.tab);
       const tag = (S.genTags || {})[m.name];
@@ -10587,7 +10707,7 @@ class Component extends DCLogic {
         click: () => this.setState({ tab: S.tab === 'ttest' ? 'ttest' : 'one', exploreVar: m.name, mfMobile: 'analysis' })
       };
     });
-    out.hasVarNote = filtered.length > 150; out.varNote = 'SHOWING 150 OF ' + filtered.length + ' — TYPE TO SEARCH';
+    out.hasVarNote = filtered.length > 150; out.varNote = S.varAll ? 'ALL ' + filtered.length.toLocaleString('en-US') + ' SHOWN · SHOW FEWER' : 'SHOWING 150 OF ' + filtered.length.toLocaleString('en-US') + ' — TYPE TO SEARCH, OR SHOW ALL'; out.varAllToggle = () => this.setState({ varAll: !S.varAll });
 
     if (!this._refFns) this._refFns = {
       main: el => { this._mainEl = el; if (el) this.watchStick(null); },
@@ -12126,7 +12246,7 @@ class Component extends DCLogic {
         out.regBusy = false;
         const busyOf = jb => ({ id: jb.id, cancel: () => this.cancelJob(jb.id), label: jb.label + '…', pct: jb.indet ? 'in the background' : Math.round(100 * Math.max(0.03, jb.p || 0)) + '%', w: jb.indet ? '100%' : Math.max(3, Math.round(100 * (jb.p || 0))) + '%', secs: jb.secs > 1 ? ' · ' + jb.secs.toFixed(0) + ' s' : '', note: 'n = ' + this.fmtN(this._raw ? this._raw.n : 0) + ' rows' });
         if (M && M.pending) { out.regBusy = true; out.regBusyInfo = busyOf(M); M = null; }
-        if (M && M.error) { out.hasRegError = true; out.regError = M.error; }
+        if (M && M.error) { out.hasRegError = true; const cv = /complete rows|single value|in every complete row/.test(M.error) && this.rgCoverage ? this.rgCoverage() : null; out.regError = cv && cv.msg && cv.n < cv.yN ? cv.msg : M.error; } // GM26 .70: say which variables do not overlap
         out.mgShow = false; out.mgBusy = false;
         if (M && !M.error) {
           const segM = on => "font-family: var(--fMono, 'Space Mono', monospace); font-size: 11px; border-radius: 999px; padding: 4px 11px; cursor: pointer; white-space: nowrap; " + (on ? 'color: var(--cFFFFFF, #FFFFFF); background: var(--c1F6447, #1F6447); border: 1px solid var(--c143E2D, #143E2D);' : 'color: var(--c2B271E, #2B271E); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF);');

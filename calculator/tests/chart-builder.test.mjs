@@ -66,17 +66,18 @@ test('every chart kind draws through the builder, with the Customize panel and d
   }
 });
 
-test('the gallery groups every chart by the question it answers', async () => {
+test('the gallery groups every chart by chart type (build .70)', async () => {
   const c = await make();
   c.state = { ...c.state, plotKind: '__gallery' };
   const out = c.renderVals(), t = text(out.chartSuiteEl);
   assert.ok(out.isChartSuite);
-  for (const f of E.CB_FAMILIES) assert.ok(t.includes(f.q), 'question: ' + f.q);
+  for (const f of E.CB_FAMILIES) assert.ok(t.includes(f.q), 'chart type: ' + f.q);
+  for (const q of ['Bar charts', 'Timelines (line charts)', 'Histograms & box plots', 'Scatter plots', 'Pie & donut charts', 'Maps']) assert.ok(t.includes(q), q);
   const ids = E.CB_FAMILIES.flatMap(f => f.kinds.map(k => k[0]));
   for (const id of Object.keys(kinds)) assert.ok(ids.includes(id === 'multiline' ? 'line' : id), id + ' is in the gallery');
   const buttons = flat(out.chartSuiteEl).filter(n => n.tag === 'button');
   assert.ok(buttons.length >= Object.keys(kinds).length, 'a button per chart');
-  buttons.find(b => text(b) === 'Pie').props.onClick();
+  buttons.find(b => text(b) === 'Pie chart').props.onClick();
   assert.equal(c.state.plotKind, 'pie');
 });
 
@@ -155,7 +156,7 @@ test('number format, decimals, axis limits and the Charts menu', async () => {
   const sc = E.cbScene({ type: 'xy', series: [{ key: 'a', pts: [{ x: 1, y: 1 }, { x: 9, y: 9 }], style: 'line' }], seriesKeys: ['a'] }, { xmin: 0, xmax: 10, ymin: -5, ymax: 20, values: 'none' });
   assert.ok(sc.markup.includes('>20<') && sc.markup.includes('>-5<'), 'y limits are exact');
   const menu = c.cbMenu(React), mt = text(menu);
-  assert.match(mt, /What do you want to show\?/);
+  assert.match(mt, /All charts/); assert.match(mt, /Bar charts.*Bar chart.*Grouped bars/); assert.match(mt, /Timelines \(line charts\)\s*Timeline/);
   for (const f of E.CB_FAMILIES) assert.ok(mt.includes(f.q));
 });
 

@@ -6,16 +6,21 @@ export const CB_PALETTES = {
   gray: ['#1F1F1F', '#7A7A7A', '#B5B5B5', '#4A4A4A', '#9A9A9A', '#D0D0D0'],
   bold: ['#5B2A86', '#D1495B', '#00798C', '#EDAE49', '#30638E', '#003D5B', '#8F2D56', '#218380']
 };
+// GM26 .70: families named by chart type (Bar charts, Timelines, Histograms & box plots, Scatter plots …), each with a
+// one-line description for the gallery
 export const CB_FAMILIES = [
-  { id: 'amounts', q: 'Compare amounts between groups', icon: 'bars', kinds: [['bar', 'Bars'], ['groupbar', 'Grouped bars'], ['stackcount', 'Stacked bars'], ['dot', 'Dot plot']] },
-  { id: 'parts', q: 'Show parts of a whole', icon: 'pie', kinds: [['pie', 'Pie'], ['donut', 'Donut'], ['stack', '100% stacked bars']] },
-  { id: 'survey', q: 'Survey responses', icon: 'likert', kinds: [['likert', 'Likert responses']] },
-  { id: 'spread', q: 'How values are spread', icon: 'hist', kinds: [['hist', 'Histogram'], ['density', 'Density'], ['box', 'Box plot'], ['gbox', 'Box plots by group'], ['violin', 'Violin']] },
-  { id: 'time', q: 'Change over time', icon: 'line', kinds: [['line', 'Lines'], ['area', 'Area'], ['panel', 'One panel per group']] },
-  { id: 'xy', q: 'Two numbers together', icon: 'scatter', kinds: [['scatterplain', 'Scatterplot'], ['scatter', 'With fitted line'], ['smooth', 'With smoother'], ['hexbin', 'Hexbin (many points)'], ['matrix', 'Scatterplot matrix'], ['corrmap', 'Correlation matrix'], ['heatmap', 'Heat map']] },
-  { id: 'ci', q: 'Compare groups with uncertainty', icon: 'ci', kinds: [['mean', 'Means with intervals'], ['proportion', 'Proportions with intervals'], ['dumbbell', 'Dumbbell'], ['slope', 'Slope'], ['paired', 'Before and after']] },
-  { id: 'model', q: 'Model results', icon: 'coef', kinds: [['coefficient', 'Coefficients'], ['modelcompare', 'Model comparison'], ['prediction', 'Predictions'], ['marginal', 'Marginal effects'], ['interaction', 'Interaction'], ['event', 'Event study'], ['conjoint', 'Conjoint / AMCE'], ['survival', 'Survival curves']] },
-  { id: 'maps', q: 'Maps', icon: 'map', kinds: [['map', 'Map: countries, states, municipalities']] }
+  { id: 'amounts', q: 'Bar charts', d: 'Counts, percentages, means or sums for each category.', icon: 'bars', kinds: [['bar', 'Bar chart'], ['groupbar', 'Grouped bars'], ['stackcount', 'Stacked bars'], ['stack', '100% stacked bars'], ['dot', 'Dot plot']] },
+  { id: 'time', q: 'Timelines (line charts)', d: 'A mean, sum or share over the years, one line per group if you like.', icon: 'line', kinds: [['line', 'Timeline'], ['area', 'Area chart'], ['panel', 'One panel per group']] },
+  { id: 'spread', q: 'Histograms & box plots', d: 'How the values of a number are spread.', icon: 'hist', kinds: [['hist', 'Histogram'], ['density', 'Density curve'], ['box', 'Box plot'], ['gbox', 'Box plots by group'], ['violin', 'Violin plot']] },
+  { id: 'xy', q: 'Scatter plots', d: 'Two numbers together, with a fitted line or a smoother.', icon: 'scatter', kinds: [['scatterplain', 'Scatter plot'], ['scatter', 'Scatter + fitted line'], ['smooth', 'Scatter + smoother'], ['hexbin', 'Hexbin (many points)'], ['matrix', 'Scatter-plot matrix']] },
+  { id: 'ci', q: 'Error bars: means & proportions', d: 'Group means or shares with their confidence intervals.', icon: 'ci', kinds: [['mean', 'Means with CIs'], ['proportion', 'Proportions with CIs']] },
+  { id: 'parts', q: 'Pie & donut charts', d: 'Each category as a share of the whole.', icon: 'pie', kinds: [['pie', 'Pie chart'], ['donut', 'Donut chart']] },
+  { id: 'survey', q: 'Likert charts', d: 'Agree–disagree and other scale answers, centred on the neutral answer.', icon: 'likert', kinds: [['likert', 'Likert chart']] },
+  { id: 'heat', q: 'Heat maps', d: 'Correlations, or a mean for every pair of categories.', icon: 'heat', kinds: [['corrmap', 'Correlation heat map'], ['heatmap', 'Heat map of a mean']] },
+  { id: 'change', q: 'Before & after', d: 'Two moments or two measurements side by side.', icon: 'dumbbell', kinds: [['dumbbell', 'Dumbbell chart'], ['slope', 'Slope chart'], ['paired', 'Paired before / after']] },
+  { id: 'model', q: 'Regression results', d: 'Coefficient plots, margins plots and other results of a model.', icon: 'coef', kinds: [['coefficient', 'Coefficient plot'], ['modelcompare', 'Model comparison'], ['prediction', 'Margins plot (predictions)'], ['marginal', 'Marginal effects plot'], ['interaction', 'Interaction plot'], ['event', 'Event-study plot'], ['conjoint', 'Conjoint (AMCE)']] },
+  { id: 'surv', q: 'Survival curves', d: 'Kaplan–Meier curves, by group.', icon: 'step', kinds: [['survival', 'Kaplan–Meier curves']] },
+  { id: 'maps', q: 'Maps', d: 'Countries, states or municipalities shaded by a value.', icon: 'map', kinds: [['map', 'Map: countries, states, municipalities']] }
 ];
 export const cbFamilyOf = id => { const k = id === 'multiline' ? 'line' : id; return CB_FAMILIES.find(f => f.kinds.some(x => x[0] === k)) || null; };
 export const cbTitleOf = id => { const k = id === 'multiline' ? 'line' : id; for (const f of CB_FAMILIES) for (const x of f.kinds) if (x[0] === k) return x[1]; return id; };

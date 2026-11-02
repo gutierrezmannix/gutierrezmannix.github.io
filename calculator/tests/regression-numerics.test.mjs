@@ -224,7 +224,14 @@ test('the Regression steps: outcome detection, model choice, panels by step, mar
   const T = { grupo: 'categorical', sexo: 'categorical' };
   assert.equal(c.rgDetect('e').type, 'bin'); assert.equal(c.rgDetect('esi').type, 'bin'); assert.equal(c.rgDetect('o').type, 'ord'); assert.equal(c.rgDetect('cnt').type, 'count'); assert.equal(c.rgDetect('y').type, 'num'); assert.equal(c.rgDetect('grupo').type, 'cat');
   c.rgPickOutcome('cnt'); assert.equal(c.state.regModel, 'poisson'); c.rgPickModel('negbin'); assert.equal(c.state.rgModel, 'negbin'); assert.equal(c.rgNow().extra, 'negbin');
+  // build .70: a model chosen first stays when the outcome changes, with the model that fits as a hint
+  c.rgPickOutcome('e'); assert.equal(c.rgNow().model, 'negbin', 'a model chosen first stays');
+  assert.match(text(c.rgStep1(c.rgNow())), /Negative binomial regression is for 0, 1, 2 …; Logistic regression \(logit\) fits e/);
+  c.rgPickModel('logistic'); assert.equal(c.state.regModel, 'logistic'); assert.equal(c.state.rgModel, '');
+  c.setState({ rgModelPicked: false }); c.rgPickOutcome('cnt'); assert.equal(c.state.regModel, 'poisson', 'no model chosen yet: the one that fits');
   c.rgPickOutcome('e'); assert.equal(c.state.regModel, 'logistic'); assert.equal(c.state.rgModel, '');
+  assert.match(text(c.rgStep1(c.rgNow())), /Linear models.*Binary outcomes.*Ordinal outcomes.*Categorical outcomes.*Count outcomes/);
+  assert.match(text(c.rgStep1(c.rgNow())), /Ordered logistic regressionologit/);
   const base = { depVar: 'e', predictors: ['x2', 'grupo', 'inc_k', 'sexo'], regModel: 'logistic', rgModel: '', treat: T };
   const flags = out => ['rgSetup', 'rgFit', 'rgPub', 'rgVifShow', 'rgHasModel', 'rgHasCoefPlot'].filter(k => out[k]).join(',');
   const seen = {}; for (let st = 1; st <= 8; st++) { const out = fit(c, { ...base, rgStep: st }); seen[st] = flags(out); assert.ok(out.rgEl, 'step ' + st); assert.ok(out.hasModel, 'the page’s own flag is untouched'); }

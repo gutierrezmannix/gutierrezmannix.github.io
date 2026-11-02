@@ -68,10 +68,10 @@ test('a survey\'s own numbers are not taken for official codes (Mongolia 1–10)
   assert.match(r.text, /0 of 10/, 'none of the ten numbers is taken as a province');
   assert.match(r.text, /seem to be the data.s own codes/, 'it says why');
   const sel = c.mlSel(c.cbC());
-  const pickFor = key => r.nodes.find(n => n.tag === 'select' && n.props['aria-label'] === 'Place for ' + key);
+  const pickFor = key => r.nodes.find(n => (n.tag === 'select' || n.props?.role === 'combobox') && n.props['aria-label'] === 'Place for ' + key); // build .70: a searchable box
   assert.ok(pickFor('1'), 'a place list for each number');
   const uvs = sel.areas.find(a => a.name === 'Uvs').id;
-  pickFor('1').props.onChange({ target: { value: uvs } });
+  pickFor('1').props.onFocus(); r = render(c); r.nodes.find(n => n.props?.role === 'option' && n.props['data-value'] === String(uvs)).props.onMouseDown({ preventDefault() {} });
   assert.equal(c._raw.vlabs.region.get(1), 'Uvs', 'saved as a value label');
   assert.ok((c.state.conLog || []).some(d => d.stata === 'label define region_lb 1 "Uvs", modify'));
   // the other nine from a pasted list (a codebook)

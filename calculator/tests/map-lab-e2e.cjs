@@ -5,7 +5,7 @@
 // Opens the Map page from the chart gallery, checks the column and map it finds, uses the survey weight in one click,
 // draws states and municipalities, one state only, customizes and downloads; then a second file whose region numbers
 // 1–10 are the survey's own codes for Mongolia is matched through the table and a pasted list. Fails on console errors.
-const { chromium } = require('playwright'); const path = require('path'), os = require('os'), fs = require('fs');
+const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pick.cjs'); const path = require('path'), os = require('os'), fs = require('fs');
 (async () => {
   const shots = process.env.GM26_SHOTS || '', tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gm26-map-'));
   let file = process.env.GM26_MAP_DTA;
@@ -26,7 +26,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
     await p.locator('input[type=file]').first().setInputFiles(f);
     await p.waitForFunction(() => document.querySelector('.mf-main'), null, { timeout: 90000 }); await p.waitForTimeout(1500);
     await p.locator('button.mf-nav[data-nav="plots"]').click(); await p.waitForTimeout(400);
-    await p.getByRole('button', { name: 'What do you want to show? — all charts' }).click(); await p.waitForTimeout(400);
+    await p.getByRole('button', { name: 'All charts', exact: true }).click(); await p.waitForTimeout(400);
     await p.locator('.tl.cb').getByRole('button', { name: /^Map/ }).first().click();
     return p;
   }
@@ -46,11 +46,11 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   await shot(p, '1-states');
   // 2 · municipalities, then one state
   await p.locator('.cb.ml').getByRole('button', { name: /^Municipalities/ }).click(); await p.waitForTimeout(500);
-  await p.getByLabel('Which column says the place?').selectOption('ubica_geo'); await p.waitForTimeout(1500);
+  await pickBy(p, p, 'Which column says the place?', 'ubica_geo'); await p.waitForTimeout(1500);
   check(/values of ubica_geo recognised as Mexico.s municipalities/.test(await found(p)), 'ubica_geo recognised as municipalities (' + await found(p) + ')');
   m = await svgOf(p); check(/stroke="#3D3629"/.test(m), 'state borders over the municipalities');
   await shot(p, '2-municipalities');
-  await p.getByLabel('Only in').selectOption({ label: 'Jalisco' }); await p.waitForTimeout(800);
+  await pickBy(p, p, 'Only in', { label: 'Jalisco' }); await p.waitForTimeout(800);
   m = await svgOf(p); check(/Guadalajara/.test(m) && !/Iztapalapa/.test(m), 'only Jalisco’s municipalities');
   // 3 · customize and download
   await p.locator('.cb.ml').getByRole('tab', { name: 'Labels' }).click(); await p.locator('.cb.ml').getByRole('button', { name: 'Area names' }).click(); await p.waitForTimeout(600);
@@ -66,11 +66,11 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   await p.context().close();
   // 4 · Mongolia: the survey's own region numbers 1–10
   p = await open(mongolia); await p.waitForTimeout(800);
-  await p.getByLabel('Country', { exact: true }).selectOption({ label: 'Mongolia' }); await p.waitForTimeout(600);
-  await p.getByLabel('Which column says the place?').selectOption('region'); await p.waitForTimeout(600);
-  const show = p.getByLabel('Show', { exact: true }); await show.selectOption('mean'); await p.getByLabel('Variable', { exact: true }).selectOption('income'); await p.waitForTimeout(600);
+  await pickBy(p, p, 'Country', { label: 'Mongolia' }); await p.waitForTimeout(600);
+  await pickBy(p, p, 'Which column says the place?', 'region'); await p.waitForTimeout(600);
+  const show = p.getByLabel('Show', { exact: true }); await show.selectOption('mean'); await pickBy(p, p, 'Variable', 'income'); await p.waitForTimeout(600);
   check(/0 of 10/.test(await found(p)), 'the numbers 1–10 are not taken for official codes (' + await found(p) + ')');
-  await p.getByLabel('Place for 1', { exact: true }).selectOption({ label: 'Uvs' }); await p.waitForTimeout(600);
+  await pickBy(p, p, 'Place for 1', { label: 'Uvs' }); await p.waitForTimeout(600);
   check(/1 of 10/.test(await found(p)), 'one number placed by hand');
   await p.locator('.ml-paste summary').click();
   await p.locator('.ml-paste textarea').fill('2, Khovd\n3, Zavkhan\n4, Bulgan\n5, Dornogovi\n6, Ulaanbaatar\n7, Selenge\n8, Khentii\n9, Dornod\n10, Ömnögovi');

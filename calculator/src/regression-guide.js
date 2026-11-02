@@ -8,27 +8,27 @@
   rgDefs() {
     return {
       types: [
-        { k: 'num', icon: '123', t: 'A number', ex: 'income, age, a test score', models: ['ols', 'robustreg', 'quantile', 'spline', 'gam'] },
-        { k: 'bin', icon: '✓✕', t: 'Yes / No', ex: 'poor or not, voted, has insurance', models: ['logistic', 'probit'] },
-        { k: 'ord', icon: '1‹2‹3', t: 'Ordered levels', ex: 'satisfaction 1–5, education level', models: ['ologit'] },
-        { k: 'cat', icon: 'A·B·C', t: 'Categories without order', ex: 'party, religion, type of job', models: ['multinomial'] },
-        { k: 'count', icon: '#', t: 'A count', ex: 'children, doctor visits, arrests', models: ['poisson', 'negbin', 'zeroinfl', 'hurdle'] }],
+        { k: 'num', g: 'Linear models', gx: 'a continuous outcome', icon: '123', t: 'A number', ex: 'income, age, a test score', models: ['ols', 'robustreg', 'quantile', 'spline', 'gam'] },
+        { k: 'bin', g: 'Binary outcomes', gx: 'yes / no, 0 / 1', icon: '✓✕', t: 'Yes / No', ex: 'poor or not, voted, has insurance', models: ['logistic', 'probit'] },
+        { k: 'ord', g: 'Ordinal outcomes', gx: 'ordered levels: 1 < 2 < 3', icon: '1‹2‹3', t: 'Ordered levels', ex: 'satisfaction 1–5, education level', models: ['ologit'] },
+        { k: 'cat', g: 'Categorical outcomes', gx: 'categories without order', icon: 'A·B·C', t: 'Categories without order', ex: 'party, religion, type of job', models: ['multinomial'] },
+        { k: 'count', g: 'Count outcomes', gx: '0, 1, 2 …', icon: '#', t: 'A count', ex: 'children, doctor visits, arrests', models: ['poisson', 'negbin', 'zeroinfl', 'hurdle'] }],
       models: {
-        ols: { t: 'Linear regression (OLS)', sub: 'The usual choice for a number: how much the outcome changes per unit of each predictor.', st: 'regress', r: 'lm()', core: true },
-        robustreg: { t: 'Robust linear regression', sub: 'Like OLS, but a few extreme values pull the line much less.', st: 'rreg', r: 'MASS::rlm()' },
-        quantile: { t: 'Quantile regression', sub: 'The median (or another percentile) instead of the mean; good for skewed outcomes such as income.', st: 'qreg', r: 'quantreg::rq()' },
-        spline: { t: 'Natural-spline regression', sub: 'Lets numeric predictors bend, for relationships that are not a straight line.', st: 'mkspline, then regress', r: 'lm(y ~ splines::ns(x, df))' },
-        gam: { t: 'Generalized additive model', sub: 'Smooth curves for the numeric predictors, their shape chosen from the data.', st: 'no built-in command', r: 'mgcv::gam()' },
-        logistic: { t: 'Logistic regression (logit)', sub: 'The usual choice for yes / no: odds ratios, and changes in the chance in percentage points.', st: 'logit', r: 'glm(family = binomial)', core: true },
-        probit: { t: 'Probit', sub: 'Same conclusions as logit, coefficients on another scale; common in economics.', st: 'probit', r: 'glm(binomial(link = "probit"))' },
-        ologit: { t: 'Ordinal logistic regression', sub: 'For ordered levels (1 < 2 < 3 …): the odds of being in a higher level.', st: 'ologit', r: 'MASS::polr()', core: true },
-        multinomial: { t: 'Multinomial logistic', sub: 'For categories without order: each one compared with a base category.', st: 'mlogit', r: 'nnet::multinom()' },
-        poisson: { t: 'Poisson regression', sub: 'The usual start for counts (0, 1, 2 …): rate ratios.', st: 'poisson', r: 'glm(family = poisson)', core: true },
-        negbin: { t: 'Negative binomial', sub: 'Counts that vary more than Poisson allows (overdispersion).', st: 'nbreg', r: 'MASS::glm.nb()' },
-        zeroinfl: { t: 'Zero-inflated count model', sub: 'Extra zeros from a group that is always zero (people who never visit a doctor).', st: 'zinb / zip', r: 'pscl::zeroinfl()' },
-        hurdle: { t: 'Hurdle count model', sub: 'Zero or not, then how many: two separate parts.', st: 'two parts: logit and tnbreg', r: 'pscl::hurdle()' }
+        ols: { cmd: 'regress', t: 'Linear regression (OLS)', sub: 'The usual choice for a number: how much the outcome changes per unit of each predictor.', st: 'regress', r: 'lm()', core: true },
+        robustreg: { cmd: 'rreg', t: 'Robust regression', sub: 'Like OLS, but a few extreme values pull the line much less.', st: 'rreg', r: 'MASS::rlm()' },
+        quantile: { cmd: 'qreg', t: 'Quantile regression', sub: 'The median (or another percentile) instead of the mean; good for skewed outcomes such as income.', st: 'qreg', r: 'quantreg::rq()' },
+        spline: { cmd: 'mkspline + regress', t: 'Linear regression with splines', sub: 'Lets numeric predictors bend, for relationships that are not a straight line.', st: 'mkspline, then regress', r: 'lm(y ~ splines::ns(x, df))' },
+        gam: { cmd: 'R: mgcv::gam', t: 'Generalized additive model (GAM)', sub: 'Smooth curves for the numeric predictors, their shape chosen from the data.', st: 'no built-in command', r: 'mgcv::gam()' },
+        logistic: { cmd: 'logit', t: 'Logistic regression (logit)', sub: 'The usual choice for yes / no: odds ratios, and changes in the chance in percentage points.', st: 'logit', r: 'glm(family = binomial)', core: true },
+        probit: { cmd: 'probit', t: 'Probit regression', sub: 'Same conclusions as logit, coefficients on another scale; common in economics.', st: 'probit', r: 'glm(binomial(link = "probit"))' },
+        ologit: { cmd: 'ologit', t: 'Ordered logistic regression', sub: 'For ordered levels (1 < 2 < 3 …): the odds of being in a higher level.', st: 'ologit', r: 'MASS::polr()', core: true },
+        multinomial: { cmd: 'mlogit', t: 'Multinomial logistic regression', sub: 'For categories without order: each one compared with a base category.', st: 'mlogit', r: 'nnet::multinom()' },
+        poisson: { cmd: 'poisson', t: 'Poisson regression', sub: 'The usual start for counts (0, 1, 2 …): rate ratios.', st: 'poisson', r: 'glm(family = poisson)', core: true },
+        negbin: { cmd: 'nbreg', t: 'Negative binomial regression', sub: 'Counts that vary more than Poisson allows (overdispersion).', st: 'nbreg', r: 'MASS::glm.nb()' },
+        zeroinfl: { cmd: 'zip / zinb', t: 'Zero-inflated Poisson / negative binomial', sub: 'Extra zeros from a group that is always zero (people who never visit a doctor).', st: 'zinb / zip', r: 'pscl::zeroinfl()' },
+        hurdle: { cmd: 'logit + tnbreg', t: 'Hurdle model', sub: 'Zero or not, then how many: two separate parts.', st: 'two parts: logit and tnbreg', r: 'pscl::hurdle()' }
       },
-      steps: ['Outcome', 'Model', 'Predictors', 'Weights · SEs', 'Results', 'Checks', 'Predictions', 'Export']
+      steps: ['Model & outcome', 'Options', 'Predictors', 'Weights · SEs', 'Results', 'Checks', 'Predictions', 'Export']
     };
   }
   // What kind of outcome a variable is, from its values (the user can override it in step 1).
@@ -57,10 +57,12 @@
   rgGo(step) { this.setState({ rgStep: step }); try { requestAnimationFrame(() => { const el = document.querySelector('.rg-bar'); if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }); } catch (e) { } }
   rgPickOutcome(v) {
     const det = this.rgDetect(v), D = this.rgDefs(), T = D.types.find(t => t.k === (det ? det.type : 'num')), cur = this.rgNow().model;
+    // GM26 .70: a model chosen first (step 1 or the Tests menu) stays; otherwise the one that fits the outcome
+    if (this.state.rgModelPicked) { const TM = D.types.find(t => t.models.includes(cur)); this.clearMemo(); this.setState({ depVar: v, rgType: TM ? TM.k : '', predictors: (this.state.predictors || []).filter(p => p !== v) }); return; }
     this.clearMemo(); this.setState(Object.assign({ depVar: v, rgType: '', predictors: (this.state.predictors || []).filter(p => p !== v) }, this.rgModelPatch(T.models.includes(cur) ? cur : T.models[0])));
   }
   rgPickType(k) { const T = this.rgDefs().types.find(t => t.k === k), cur = this.rgNow().model; this.clearMemo(); this.setState(Object.assign({ rgType: k }, this.rgModelPatch(T.models.includes(cur) ? cur : T.models[0]))); }
-  rgPickModel(m) { const D = this.rgDefs(), T = D.types.find(t => t.models.includes(m)), now = this.rgNow(); this.clearMemo(); this.setState(Object.assign({}, this.rgModelPatch(m), T && T.k !== now.type ? { rgType: T.k } : {})); }
+  rgPickModel(m) { const D = this.rgDefs(), T = D.types.find(t => t.models.includes(m)), now = this.rgNow(); this.clearMemo(); this.setState(Object.assign({ rgModelPicked: true }, this.rgModelPatch(m), T && T.k !== now.type ? { rgType: T.k } : {})); }
   // Fit the current specification: the Regression page's own run, or the Tests engine for the other models.
   rgRun(out) {
     const now = this.rgNow(), S = this.state;
@@ -104,26 +106,25 @@
       steps, h('div', { className: 'rg-sum' }, h('span', { className: 'rg-sumtxt' }, ...bits), h('span', { className: 'rg-nav' }, step > 1 ? this.tlBtn('← Back', () => this.rgGo(step - 1)) : null, step < 8 ? this.tlBtn('Next: ' + D.steps[step] + ' →', () => this.rgGo(step + 1)) : null, step >= 3 ? run : null)));
   }
   rgPanel(n, title, sub, ...kids) { const h = React.createElement; return h('section', { className: 'tl-panel rg-step', key: 'p' + n + title }, h('div', { className: 'tl-ptitle' }, h('h3', null, n ? n + ' · ' + title : title), sub ? h('span', null, sub) : null), h('div', { className: 'rg-body' }, ...kids)); }
-  // ---------- 1 · outcome ----------
+  // ---------- 1 · model & outcome (GM26 .70: as in Stata — the model by name, grouped by kind of outcome; the dependent
+  // variable from a searchable box with labels; what the data look like, and the model that fits, as a hint) ----------
   rgStep1(now) {
-    const h = React.createElement, { S, D, det, type } = now, cols = S.cols || [];
-    const pick = this.tlSelect(S.depVar || '', [['', 'choose the outcome…']].concat(cols.map(c => [c.name, c.name + (c.label ? ' · ' + c.label : '')])), v => v ? this.rgPickOutcome(v) : this.setState({ depVar: '' }), 'Outcome', { className: 'tl-select rg-big' });
-    const cards = D.types.map(T => {
-      const on = S.depVar && T.k === type, auto = det && det.type === T.k;
-      return h('button', { type: 'button', key: T.k, className: 'rg-card' + (on ? ' on' : ''), 'aria-pressed': on ? 'true' : 'false', onClick: () => this.rgPickType(T.k) },
-        auto && S.depVar ? h('span', { className: 'rg-tag' }, 'DETECTED FROM YOUR DATA') : null,
-        h('span', { className: 'rg-ct' }, h('span', { className: 'rg-ic' }, T.icon), T.t), h('span', { className: 'rg-ex' }, 'e.g. ' + T.ex),
-        h('span', { className: 'rg-to' }, '→ starts with ', h('b', null, D.models[T.models[0]].t)), auto && S.depVar ? h('span', { className: 'rg-why mono' }, det.why) : null);
-    });
-    cards.push(h('div', { key: 'else', className: 'rg-card dashed' }, h('span', { className: 'rg-ct' }, 'Something else?'), h('span', { className: 'rg-ex' }, 'Time until an event: ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.asOpen('cox') }, 'Survival analysis')), h('span', { className: 'rg-ex' }, 'The same people or places measured again: ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.asOpen('mixed') }, 'Multilevel & panel'), ' (or step 2 asks)')));
+    const h = React.createElement, { S, D, det, model } = now, cols = S.cols || [];
+    const TM = D.types.find(t => t.models.includes(model)), fitsT = det && S.depVar ? D.types.find(t => t.k === det.type) : null;
+    const pick = this.tlSelect(S.depVar || '', [['', 'type or choose the dependent variable…']].concat(cols.map(c => [c.name, c.name])), v => v ? this.rgPickOutcome(v) : this.setState({ depVar: '' }), 'Outcome', { className: 'rg-big', combo: true, comboId: 'rg|outcome' });
+    const groups = D.types.map(T => h('div', { key: T.k, className: 'rg-mgroup' + (fitsT && fitsT.k === T.k ? ' fits' : ''), role: 'group', 'aria-label': T.g },
+      h('div', { className: 'rg-mg' }, h('b', null, T.g), h('span', { className: 'rg-mut' }, T.gx), fitsT && fitsT.k === T.k ? h('span', { className: 'rg-tag' }, 'FITS ' + S.depVar) : null),
+      ...T.models.map(m => { const M = D.models[m], on = model === m; return h('button', { type: 'button', key: m, className: 'rg-mbtn' + (on ? ' on' : ''), 'aria-pressed': on ? 'true' : 'false', title: M.sub, onClick: () => this.rgPickModel(m) }, h('span', null, M.t), h('code', null, M.cmd || M.st)); })));
     let note = null;
-    if (S.depVar && type === 'bin') {
-      const b = this.regBin(S.depVar), cv = this.vals(S.depVar), fr = this._E.freqOf(cv.kind === 'cat' ? cv.a : Array.from(cv.a, x => isFinite(x) ? this._E.numLab(x) : null), null), tot = fr.rows.reduce((s, r) => s + r.c, 0), share = l => { const r = fr.rows.find(q => String(q.label) === String(l)); return r ? r.c / tot : 0; };
-      if (b.one != null) note = this.tlBanner('info', S.depVar + ': ', h('b', null, this.fmt(100 * share(b.one), 1) + '% are ' + this.vlabel(S.depVar, b.one)), ' (' + this.fmtN(Math.round(share(b.one) * tot)) + ' rows), ' + this.fmt(100 * share(b.zero), 1) + '% are ' + this.vlabel(S.depVar, b.zero) + '. The model predicts ', h('b', null, 'the chance that ' + S.depVar + ' = ' + this.vlabel(S.depVar, b.one)), '. ', this.tlBtn('Predict “' + this.vlabel(S.depVar, b.zero) + '” instead', () => { this.clearMemo(); this.setState({ binOne: Object.assign({}, S.binOne || {}, { [S.depVar]: b.zero }) }); }));
+    if (S.depVar && det && fitsT && TM && fitsT.k !== TM.k) note = this.tlBanner('warn', det.why + '. ', h('b', null, D.models[model].t), ' is for ' + TM.gx + '; ', h('b', null, D.models[fitsT.models[0]].t), ' fits ' + S.depVar + '. ', this.tlBtn('Use ' + D.models[fitsT.models[0]].t, () => this.rgPickModel(fitsT.models[0])));
+    else if (S.depVar && now.type === 'bin') {
+      const b = this.regBin(S.depVar), cv = this.vals(S.depVar), fr = this._E.freqOf(cv.kind === 'cat' ? cv.a : Array.from(cv.a, x => isFinite(x) ? this._E.numLab(x) : null), null), tot = fr.rows.reduce((s2, r) => s2 + r.c, 0), share = l => { const r = fr.rows.find(q => String(q.label) === String(l)); return r ? r.c / tot : 0; };
+      if (b.one != null) note = this.tlBanner('info', S.depVar + ': ', h('b', null, this.fmt(100 * share(b.one), 1) + '% are ' + this.vlabel(S.depVar, b.one)), ' (' + this.fmtN(Math.round(share(b.one) * tot)) + ' rows), ' + this.fmt(100 * share(b.zero), 1) + '% are ' + this.vlabel(S.depVar, b.zero) + '. The model predicts ', h('b', null, this.vlabel(S.depVar, b.one)), '. ', this.tlBtn('Model ' + this.vlabel(S.depVar, b.zero) + ' instead', () => this.setState({ binOne: { y: S.depVar, v: String(b.zero) } })));
     } else if (S.depVar && det) note = this.tlBanner('info', det.why + '.');
-    return this.rgPanel(1, 'Outcome', 'the variable you want to explain', h('div', { className: 'rg-q' }, 'What do you want to explain? ', pick),
-      h('div', { className: 'rg-row' }, h('span', { className: 'tl-lbl' }, 'What kind of outcome is it?'), h('span', { className: 'rg-mut' }, S.depVar ? 'Detected from the data; click another card if it guessed wrong.' : 'Choose the outcome first, or a card to see its models.')),
-      h('div', { className: 'rg-cards' }, ...cards), note);
+    const other = h('p', { className: 'rg-mut rg-other' }, 'Other models: ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.asOpen('cox') }, 'survival (Cox, stcox)'), ' · ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.asRoute ? this.setState({ mfNav: 'tests' }) : null }, 'multilevel & panel (mixed, xtreg) in Tests ▾'));
+    return this.rgPanel(1, 'Model & outcome', 'choose the model, then the dependent variable — as in Stata',
+      h('div', { className: 'rg-q' }, h('span', { className: 'tl-lbl' }, 'Dependent variable'), pick),
+      h('div', { className: 'rg-models' }, ...groups), note, other);
   }
   // ---------- 2 · model ----------
   rgStep2(now) {
@@ -144,8 +145,8 @@
     const all = h('details', { className: 'rg-all', open: !T.models.includes(model) || undefined }, h('summary', { className: 'tl-lbl' }, 'All 13 models, by kind of outcome · the ones for other kinds are faded'),
       h('div', { className: 'rg-grid' }, ...D.types.map(t2 => h('div', { key: t2.k, className: 'rg-col' + (t2.k === type ? '' : ' faded') }, h('span', { className: 'tl-lbl' }, t2.t), ...t2.models.map(m => this.tlChip((model === m ? '✓ ' : '') + D.models[m].t, model === m, () => this.rgPickModel(m), { key: m }))))));
     const mismatch = !T.models.includes(model) ? this.tlBanner('warn', D.models[model].t + ' is meant for ' + (D.types.find(t2 => t2.models.includes(model)) || T).t.toLowerCase() + ' outcomes, and ' + (S.depVar || 'the outcome') + ' looks like ' + T.t.toLowerCase() + '. ', this.tlBtn('Use ' + D.models[rec].t, () => this.rgPickModel(rec))) : null;
-    return this.rgPanel(2, 'Model', 'for ' + T.t.toLowerCase() + (S.depVar ? ' · ' + S.depVar : ''), mismatch, h('div', { className: 'rg-mcards' }, card(rec, true), ...alts.map(m => card(m, false))), opts,
-      h('div', { className: 'rg-qs' }, h('span', { className: 'tl-lbl' }, 'Quick questions about your data'), q1, q2, q3), all);
+    return this.rgPanel(2, 'Options', D.models[model].t + ' · ' + D.models[model].st + (S.depVar ? ' · ' + S.depVar : ''), mismatch, h('p', { className: 'rg-mut' }, D.models[model].sub, ' ', h('button', { type: 'button', className: 'tl-link', onClick: () => this.rgGo(1) }, 'Change the model →')), opts, // GM26 .70: the model is chosen in step 1
+      h('div', { className: 'rg-qs' }, h('span', { className: 'tl-lbl' }, 'Quick questions about your data'), q1, q2, q3));
   }
   rgOutcomeStats(v, type) {
     return this.memo('rgst|' + v + '|' + type, () => {
@@ -166,10 +167,38 @@
     return rows.length ? h('div', { className: 'rg-opts' }, ...rows) : null;
   }
   // ---------- 3 · predictors (the page's own picker, plus what to show as predictions) ----------
+  // GM26 .70: rows with data on the outcome, every predictor, the weight and the cluster / PSU variable. When they are
+  // few, say which variables do not overlap — by survey wave when the file has a year or wave variable (LAPOP, ENIGH).
+  rgCoverage() {
+    const S = this.state, y = S.depVar, preds = (S.predictors || []).filter(Boolean); if (!this._raw || !y || !preds.length) return null;
+    const vce = S.regVce || 'classical', cl = vce === 'cluster' ? S.regCl : vce === 'svy' ? S.svyPsu : '';
+    const vars = [...new Set([y, ...preds, ...(S.weightVar ? [S.weightVar] : []), ...(cl ? [cl] : [])])];
+    return this.memo('rgcov|' + vars.join(',') + '|' + (S.autoScreen ? 1 : 0) + '|' + (S.missingCodes || ''), () => {
+      const n = this._raw.n, fmt = x => this.fmtN(x);
+      const has = vars.map(v => { const c = this.effMeta(v) ? (this.numVals(v) || this.vals(v)) : null; if (!c) return () => false; const a = c.a; return c.kind === 'num' ? i => a[i] === a[i] && isFinite(a[i]) : i => a[i] != null && a[i] !== ''; });
+      const cnt = vars.map(() => 0); let all = 0;
+      for (let i = 0; i < n; i++) { let ok = true; for (let k = 0; k < vars.length; k++) { if (has[k](i)) cnt[k]++; else ok = false; } if (ok) all++; }
+      const yN = cnt[0]; if (!yN) return { n: 0, yN: 0, msg: y + ' has no values here.' };
+      const okW = c => c && c.type === 'numeric' && c.distinct >= 2 && c.distinct <= 60 && !vars.includes(c.name), cs = S.cols || [];
+      const wc = ['year', 'anio', 'año', 'ano', 'yr', 'survey_year', 'surveyyear', 'wave', 'ronda', 'round', 'ola', 'periodo'].map(nm => cs.find(c => c.name.toLowerCase() === nm)).find(okW);
+      const t = wc && this.numVals(wc.name), tv = t ? t.a : null;
+      let allW = null, wOf = null;
+      if (tv) { const sets = vars.map(() => new Set()); for (let i = 0; i < n; i++) { const w = tv[i]; if (!isFinite(w)) continue; for (let k = 0; k < vars.length; k++) if (has[k](i)) sets[k].add(w); } allW = [...new Set(sets.flatMap(x => [...x]))].sort((a, b) => a - b); wOf = sets; }
+      const runs = set => { const out = []; let a = null, b = null; for (const w of allW) { if (set.has(w)) { if (a == null) a = w; b = w; } else if (a != null) { out.push(a === b ? String(a) : a + '–' + b); a = null; } } if (a != null) out.push(a === b ? String(a) : a + '–' + b); return out.join(', ') || 'none'; };
+      const sameW = k => !wOf || (wOf[k].size === wOf[0].size && [...wOf[0]].every(w => wOf[k].has(w)));
+      const lim = vars.map((v, k) => k).filter(k => k > 0 && (cnt[k] < 0.9 * yN || !sameW(k))).sort((a, b) => cnt[a] - cnt[b]).slice(0, 4);
+      if (!lim.length || all >= yN || (all >= 0.5 * yN && all >= 30)) return { n: all, yN, msg: '' };
+      const where = k => wOf ? (wOf[k].size === 1 ? ' is only in ' : ' is in ') + wc.name + ' ' + runs(wOf[k]) + ' (' + fmt(cnt[k]) + ' rows)' : ' has data in ' + fmt(cnt[k]) + ' rows';
+      const lead = all ? 'Only ' + fmt(all) + ' of the ' + fmt(yN) + ' rows with ' + y + ' have data on every variable of the model.' : 'No row has data on all of ' + vars.slice(0, -1).join(', ') + ' and ' + vars[vars.length - 1] + '.';
+      const notes = lim.map(k => vars[k] + where(k)).concat(lim.length && wOf && !sameW(0) && lim.length < 2 ? [y + where(0)] : []);
+      return { n: all, yN, msg: lead + (notes.length ? ' ' + notes.join('; ') + '.' : '') + (all < 30 && lim.length ? ' Remove ' + (lim.length > 1 ? 'one of them' : vars[lim[0]]) + ', or use a variable asked in the same ' + (wOf ? (wc.name === 'year' || /^(anio|año|ano|yr)$/i.test(wc.name) ? 'years' : 'waves') : 'rows') + '.' : '') };
+    });
+  }
   rgStep3(now) {
     const h = React.createElement, { S } = now, preds = S.predictors || [], g = this.rgMg(), opt = [['', 'none']].concat(preds.map(p => [p, p]));
-    this._rgAfter = this.rgPanel(0, 'Predictions to show (margins)', 'optional · the values and the plot are set in step 7',
-      h('div', { className: 'rg-row' }, h('span', { className: 'tl-lbl' }, 'X axis'), this.tlSelect(g.x || '', opt, v => this.rgMgSet({ x: v, by: g.by === v ? '' : g.by }), 'Margins X axis'), h('span', null, '· one line for each'), this.tlSelect(g.by || '', opt.filter(([p]) => p !== g.x), v => this.rgMgSet({ by: v }), 'Margins lines by')));
+    const cov = this.rgCoverage();
+    this._rgAfter = [cov && cov.msg ? this.tlBanner(cov.n < 30 ? 'warn' : 'info', cov.msg) : null, this.rgPanel(0, 'Predictions to show (margins)', 'optional · the values and the plot are set in step 7',
+      h('div', { className: 'rg-row' }, h('span', { className: 'tl-lbl' }, 'X axis'), this.tlSelect(g.x || '', opt, v => this.rgMgSet({ x: v, by: g.by === v ? '' : g.by }), 'Margins X axis'), h('span', null, '· one line for each'), this.tlSelect(g.by || '', opt.filter(([p]) => p === '' || p !== g.x), v => this.rgMgSet({ by: v }), 'Margins lines by')))];
     return null;
   }
   // ---------- 4 · weights and standard errors ----------

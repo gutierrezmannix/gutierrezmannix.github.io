@@ -3,7 +3,7 @@
 // coefficients with their digits, the collinearity error naming the variable, a text yes/no outcome modeled as "sí"
 // with Stata code that recodes it, [pw=] with robust SEs, the margins chart under robust SEs, the Settings → Stars
 // choice, and the correlation matrix's plot card following the variables. GM26_SHOTS=dir saves screenshots.
-const { chromium } = require('playwright'); const path = require('path'), fs = require('fs');
+const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pick.cjs'); const path = require('path'), fs = require('fs');
 (async () => {
   const shots = process.env.GM26_SHOTS || '', csv = path.resolve(__dirname, 'data/regression-numerics.csv');
   const b = await chromium.launch(); const fails = []; const check = (ok, what) => { console.log((ok ? '  ok  ' : '  FAIL') + ' ' + what); if (!ok) fails.push(what); };
@@ -38,7 +38,7 @@ const { chromium } = require('playwright'); const path = require('path'), fs = r
   await p.locator('input[aria-label="From"]').fill('-2'); await p.locator('input[aria-label="From"]').press('Enter');
   await p.locator('input[aria-label="To"]').fill('2'); await p.locator('input[aria-label="To"]').press('Enter');
   await p.locator('input[aria-label="Every"]').fill('0.5'); await p.locator('input[aria-label="Every"]').press('Enter'); await p.waitForTimeout(800);
-  await p.locator('select[aria-label="Margins lines by"]').selectOption('grupo'); await p.waitForTimeout(1500);
+  await pickBy(p, p, 'Margins lines by', 'grupo'); await p.waitForTimeout(1500);
   t = await main();
   check(/margins grupo_c, at\(x2=\(-2\(0\.5\)2\)\)/.test(t) && /The margins table · 27 rows/i.test(t) && /P>\|t\|/i.test(t), 'step 7: margins at x2 = -2(0.5)2 by grupo, 27 rows, t statistics after regress');
   check(await p.locator('svg[aria-label*="by x2"] polyline').count() === 3, 'the marginsplot draws one line per group');
@@ -59,24 +59,24 @@ const { chromium } = require('playwright'); const path = require('path'), fs = r
   for (let k = 0; k < 3; k++) { if (await clickText('Correlation matrix (Pearson and Spearman)')) break; await p.locator('button.mf-nav[data-nav="tests"]').click(); await p.waitForTimeout(700); }
   await p.waitForTimeout(800);
   if (await p.getByRole('button', { name: 'clear', exact: true }).count()) { await p.getByRole('button', { name: 'clear', exact: true }).click(); await p.waitForTimeout(300); }
-  for (const v of ['y', 'x2', 'inc']) { await p.locator('select[aria-label="Add a variable"]').first().selectOption(v); await p.waitForTimeout(400); }
+  for (const v of ['y', 'x2', 'inc']) { await pickBy(p, p, 'Add a variable', v); await p.waitForTimeout(400); }
   await p.evaluate(() => [...document.querySelectorAll('button')].find(e => e.offsetParent && /^Plots/.test(e.textContent.trim()))?.click()); await p.waitForTimeout(1200);
   const card1 = await p.evaluate(() => document.body.innerText.match(/pwcorr [^\n]*sig obs/g) || []);
-  await p.locator('select[aria-label="Add a variable"]').first().selectOption('cnt'); await p.waitForTimeout(1500);
+  await pickBy(p, p, 'Add a variable', 'cnt'); await p.waitForTimeout(1500);
   const card2 = await p.evaluate(() => document.body.innerText.match(/pwcorr [^\n]*sig obs/g) || []);
   check(card2.some(s => /pwcorr y x2 inc cnt/.test(s)), 'plot card command follows the variables (' + card1.slice(-1) + ' → ' + card2.slice(-1) + ')');
   if (shots) await p.screenshot({ path: path.join(shots, 'cor-plotcard.png'), fullPage: true });
   // from the Tests menu: Yes / No → the steps → run → results → checks
   await p.locator('button.mf-nav[data-nav="tests"]').click(); await p.waitForTimeout(400);
   await p.evaluate(() => { const d = [...document.querySelectorAll('.cs-menu details')].find(x => /Regression/.test(x.querySelector('summary').textContent)); if (d) d.open = true; }); await p.waitForTimeout(300);
-  check(await p.locator('.cs-rg-chip').count() === 5, 'the menu has one Regression entry with five outcome chips');
-  await p.evaluate(() => [...document.querySelectorAll('.cs-rg-chip')].find(x => /count/.test(x.textContent)).click()); await p.waitForTimeout(800);
-  await p.locator('select[aria-label="Outcome"]').selectOption('cnt'); await p.waitForTimeout(500);
-  t = await main(); check(/DETECTED FROM YOUR DATA/.test(t) && /cnt holds whole numbers from 0/.test(t), 'step 1 detects a count');
-  await p.getByRole('button', { name: /Next: Model/ }).click(); await p.waitForTimeout(400);
-  await p.getByRole('button', { name: /Negative binomial/ }).first().click(); await p.waitForTimeout(400);
+  check(await p.locator('.cs-rg-ms button').count() === 13 && await p.locator('.cs-rg-g').count() === 5, 'the menu lists the 13 models by name in 5 groups, as in Stata');
+  await p.locator('.cs-rg-ms button', { hasText: 'Poisson regression' }).click(); await p.waitForTimeout(800);
+  await pickBy(p, p, 'Outcome', 'cnt'); await p.waitForTimeout(500);
+  t = await main(); check(/FITS cnt/.test(t) && /cnt holds whole numbers from 0/.test(t), 'step 1: the model chosen in the menu, the dependent variable, and what fits it');
+  await p.locator('.rg-mbtn', { hasText: 'Negative binomial regression' }).click(); await p.waitForTimeout(400);
+  await p.getByRole('button', { name: /Next: Options/ }).click(); await p.waitForTimeout(400);
   await p.getByRole('button', { name: /Next: Predictors/ }).click(); await p.waitForTimeout(400);
-  t = await main(); check(/Negative binomial/.test(t), 'step 2 chose the negative binomial');
+  t = await main(); check(/Negative binomial regression/.test(t), 'step 1 chose the negative binomial regression');
   await p.locator('.rg-bar button').filter({ hasText: 'Weights' }).click(); await p.waitForTimeout(400);
   if (await p.getByRole('button', { name: 'Clear the weight' }).count()) { await p.getByRole('button', { name: 'Clear the weight' }).click(); await p.waitForTimeout(500); }
   check(!/the weight w has to be cleared/.test(await main()), 'step 4 clears the weight the engine model cannot use');

@@ -1,6 +1,6 @@
 // Edit data tab in a real browser, fully offline: NODE_PATH=$(npm root -g) node calculator/tests/data-edit-e2e.cjs [GM26_SHOTS=dir]
 // Uses every task through the page (menus, selects, buttons), saves the CSV and checks it, and fails on any console error.
-const { chromium } = require('playwright'); const path = require('path'), os = require('os'), fs = require('fs');
+const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pick.cjs'); const path = require('path'), os = require('os'), fs = require('fs');
 (async () => {
   const shots = process.env.GM26_SHOTS || ''; const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gm26-de-'));
   // a small survey: party 0/1, senator 0/1, ideology, a name, an empty column and four 1–5 items (q3 worded the other way)
@@ -31,7 +31,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   const de = p.locator('.tl.de'); check(await de.count() === 1, 'Edit data opens on Fix a variable');
   check((await de.locator('.de-task').count()) === 3, 'three jobs at the top');
   // 1 · fix a variable: words typed as new values become value labels; description; rename
-  await de.getByLabel('Variable to change').selectOption('democrat'); await p.waitForTimeout(300);
+  await pickBy(p, de, 'Variable to change', 'democrat'); await p.waitForTimeout(300);
   check(await de.getByRole('radio', { name: /^Groups/ }).getAttribute('aria-checked') === 'true', '0/1 variable reads as groups');
   await de.getByLabel('New value for 0').fill('Rep'); await de.getByLabel('New value for 1').fill('Dem'); await p.waitForTimeout(200);
   await de.getByRole('button', { name: /Keep the numbers and use the words as labels/ }).click(); await p.waitForTimeout(300);
@@ -48,7 +48,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   check(/Renamed democrat → party/.test(await de.innerText()), 'rename');
   check(await de.getByLabel('Label for 1').inputValue() === 'Dem', 'labels kept after renaming');
   // a number with many values: a summary and a way to make groups (a new variable)
-  await de.getByLabel('Variable to change').selectOption('ideology'); await p.waitForTimeout(300);
+  await pickBy(p, de, 'Variable to change', 'ideology'); await p.waitForTimeout(300);
   check(await de.getByRole('radio', { name: /^Numbers/ }).getAttribute('aria-checked') === 'true', 'ideology reads as numbers');
   await de.getByRole('button', { name: /Make groups from it/ }).click(); await p.waitForTimeout(300);
   check(await de.getByRole('radio', { name: /Groups from a number/ }).getAttribute('aria-checked') === 'true', 'opens the groups recipe');
@@ -57,10 +57,10 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   await de.getByRole('button', { name: 'Create the grouped variable' }).click(); await p.waitForTimeout(400);
   check(/ideology_q4 created: 4 groups · 80 rows grouped/.test(await de.innerText()), 'quartile groups created');
   // change values only in some rows (replace … if), folded away under Fix a variable
-  await de.getByRole('tab', { name: /Fix a variable/ }).click(); await de.getByLabel('Variable to change').selectOption('ideology'); await p.waitForTimeout(200);
+  await de.getByRole('tab', { name: /Fix a variable/ }).click(); await pickBy(p, de, 'Variable to change', 'ideology'); await p.waitForTimeout(200);
   await de.getByRole('button', { name: /Change values only in some rows/ }).click(); await p.waitForTimeout(200);
   await de.getByLabel('New value').fill('0');
-  await de.getByLabel('Condition 1 variable').selectOption('senator'); await de.getByLabel('Condition 1 value').fill('1'); await p.waitForTimeout(200);
+  await pickBy(p, de, 'Condition 1 variable', 'senator'); await de.getByLabel('Condition 1 value').fill('1'); await p.waitForTimeout(200);
   const nSen = lines.slice(1).filter(l => l.split(',')[2] === '1').length;
   check(new RegExp(nSen + ' of 80 rows match').test(await de.innerText()), 'live count of matching rows');
   await de.getByRole('button', { name: 'Replace', exact: true }).click(); await p.waitForTimeout(300);
@@ -72,8 +72,8 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   await de.getByRole('button', { name: 'Create dem_sen' }).click(); await p.waitForTimeout(300);
   check(/dem_sen created: 80 rows, every one 0/.test(await de.innerText()), 'generate dem_sen = 0');
   await de.getByLabel('New value').fill('1');
-  await de.getByLabel('Condition 1 variable').selectOption('party'); await de.getByLabel('Condition 1 value').fill('1');
-  await de.getByRole('button', { name: '+ and another condition' }).click(); await de.getByLabel('Condition 2 variable').selectOption('senator'); await de.getByLabel('Condition 2 value').fill('1'); await p.waitForTimeout(200);
+  await pickBy(p, de, 'Condition 1 variable', 'party'); await de.getByLabel('Condition 1 value').fill('1');
+  await de.getByRole('button', { name: '+ and another condition' }).click(); await pickBy(p, de, 'Condition 2 variable', 'senator'); await de.getByLabel('Condition 2 value').fill('1'); await p.waitForTimeout(200);
   const want = lines.slice(1).filter(l => { const r = l.split(','); return r[1] === '1' && r[2] === '1'; }).length;
   check(new RegExp(want + ' of 80 rows match').test(await de.innerText()), 'live count before replacing (' + want + ')');
   await shot('3-new');
@@ -85,7 +85,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   await de.getByLabel('Formula', { exact: true }).fill('ideology * 10'); await de.getByRole('button', { name: 'Create ideo10' }).click(); await p.waitForTimeout(300);
   check(/ideo10 created/.test(await de.innerText()), 'formula variable');
   // copy and recode
-  await de.getByRole('radio', { name: /Copy and recode/ }).click(); await de.getByLabel('Copy from').selectOption('q1'); await p.waitForTimeout(200);
+  await de.getByRole('radio', { name: /Copy and recode/ }).click(); await pickBy(p, de, 'Copy from', 'q1'); await p.waitForTimeout(200);
   for (const [k, g] of [['1', 'Disagree'], ['2', 'Disagree'], ['3', 'Neutral'], ['4', 'Agree'], ['5', 'Agree']]) { const box = de.getByLabel('New group for ' + k); if (await box.count()) await box.fill(g); }
   await p.waitForTimeout(200); check(/gen\(q1_r\)/.test(await de.innerText()), 'recode command shown');
   await shot('3b-copy');
@@ -93,7 +93,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   check(/q1_r created: \d groups/.test(await de.innerText()), 'copy and recode');
   // scale from several questions
   await de.getByRole('radio', { name: /Scale from several questions/ }).click(); await p.waitForTimeout(200);
-  for (const v of ['q1', 'q2', 'q3', 'q4']) { await de.getByLabel('Add an item to the scale').selectOption(v); await p.waitForTimeout(150); }
+  for (const v of ['q1', 'q2', 'q3', 'q4']) { await pickBy(p, de, 'Add an item to the scale', v); await p.waitForTimeout(150); }
   check(/q3 goes against the others/.test(await de.innerText()), 'reverse-worded item detected');
   await de.locator('.de-item', { hasText: 'q3' }).getByRole('checkbox').check(); await p.waitForTimeout(300);
   const st = await de.locator('.tl-stat').first().innerText(); const alpha = parseFloat(st.replace(/[^\d.]/g, ' ').trim().split(/\s+/)[0]);
@@ -103,7 +103,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   await shot('4-scale');
   // 3 · choose what to use: rows, then save only those rows
   await de.getByRole('tab', { name: /Choose what to use/ }).click(); await p.waitForTimeout(200);
-  await de.getByLabel('Keep rows where').selectOption('senator'); await p.waitForTimeout(200);
+  await pickBy(p, de, 'Keep rows where', 'senator'); await p.waitForTimeout(200);
   await de.locator('.de-lvls .tl-chip', { hasText: /^1/ }).click(); await de.getByRole('button', { name: /Keep rows where senator is one of these 1/ }).click(); await p.waitForTimeout(300);
   check(new RegExp('Analyses and charts use ' + nSen + ' of 80 rows').test(await de.innerText()), 'rows in use');
   check(new RegExp(nSen + ' of 80 rows').test(await de.getByRole('tab', { name: /Choose what to use/ }).innerText()), 'the tab shows the rows in use');

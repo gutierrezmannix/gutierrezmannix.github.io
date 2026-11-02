@@ -39,3 +39,21 @@
 .cb-more{align-self:flex-start;background:none;border:0;padding:2px 0;font:inherit;font-size:12.5px;font-weight:600;color:var(--c194F39,#194F39);cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-align:left}
 .cb-more:hover{color:var(--c1A1711,#1A1711)}
 .cb-more:focus-visible{outline:2px solid var(--c194F39,#194F39);outline-offset:2px;border-radius:3px}
+
+/* GM26 .70: Charts by chart type — menu with every type visible, gallery cards, page header with the type's picture */
+.cb-menu{width:min(440px,88vw)}
+.cb-menu .cb-mtop{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+.cb-menu .cb-mtop button{width:100%;text-align:left;font-weight:700}
+.cb-mgroup{display:flex;flex-direction:column;gap:6px;padding:8px 4px;border-top:1px solid #E5DECF}
+.cb-mhead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--c1A1711,#1A1711);padding-top:3px}
+.cb-mitems{display:flex;flex-wrap:wrap;gap:5px}
+.cs-menu .cb-mitems button.cb-mitem{min-height:28px;padding:4px 10px;border-radius:999px;font-size:12px;border-color:#C9C1B0}
+.cs-menu .cb-mitems button.cb-mitem:hover{border-color:var(--c194F39,#194F39);background:var(--cEDF5F0,#EDF5F0)}
+@media (max-width:640px){.cb-menu .cb-mtop{grid-template-columns:1fr}}
+.cb-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.cb-fam{background:#fff;border:1px solid var(--cD9D2C4,#D9D2C4);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.cb-famtop{display:flex;gap:12px;align-items:flex-start}
+.cb-famtop h3{margin:0;font-size:15px;color:var(--c1A1711,#1A1711)}
+.cb-famtop p{margin:3px 0 0;font-size:12.5px;color:var(--c5D5648,#5D5648);line-height:1.4}
+.cb-famkinds{display:flex;flex-wrap:wrap;gap:6px}
+.cb-top svg{flex:none}

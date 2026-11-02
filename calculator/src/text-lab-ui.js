@@ -2,7 +2,72 @@
   tlChip(label, on, onClick, extra) { return React.createElement('button', Object.assign({ type: 'button', className: 'tl-chip' + (on ? ' on' : ''), onClick, 'aria-pressed': on ? 'true' : 'false' }, extra || {}), label); }
   tlSeg(opts, cur, pick, extra) { const h = React.createElement; return h('div', Object.assign({ className: 'tl-row', role: 'group' }, extra || {}), opts.map(([v, l, tip]) => this.tlChip(l, cur === v, () => pick(v), { key: String(v), title: tip || undefined }))); }
   tlField(label, ...kids) { const h = React.createElement; return h('div', { className: 'tl-field' }, h('span', { className: 'tl-lbl' + (/[@#]/.test(String(label)) ? ' ui' : '') }, label), ...kids); }
-  tlSelect(value, options, onChange, aria, extra) { const h = React.createElement; return h('select', Object.assign({ className: 'tl-select', value: value == null ? '' : value, onChange: e => onChange(e.target.value), 'aria-label': aria }, extra || {}), options.map(([v, l]) => h('option', { key: String(v), value: v }, l))); }
+  tlSelect(value, options, onChange, aria, extra) { const h = React.createElement; if (this.tlComboWanted(options, extra)) return this.tlCombo(value, options, onChange, aria, extra); return h('select', Object.assign({ className: 'tl-select', value: value == null ? '' : value, onChange: e => onChange(e.target.value), 'aria-label': aria }, extra || {}), options.map(([v, l]) => h('option', { key: String(v), value: v }, l))); }
+  // GM26 .70: every list of variables (or any list longer than 12) is a searchable box — type part of a name or of its
+  // label (accents ignored), all variables listed with their labels; ↑ ↓ move, Enter picks, Escape closes, Tab takes an
+  // exact or only match. One box is open at a time (state.tlCombo = { id, q, hi }).
+  tlVarInfo() {
+    const S = this.state, cols = S.cols || [];
+    if (this._tlVI && this._tlVI.cols === cols) return this._tlVI;
+    const lab = new Map(), part = new Map(), n = S.nRows || 0;
+    for (const c of cols) { lab.set(c.name, String(c.label || '')); if (n && c.valid != null && c.valid < n * 0.9) part.set(c.name, c.valid); } // GM26 .70: variables with data in part of the rows say how many
+    return (this._tlVI = { cols, lab, part });
+  }
+  tlComboWanted(options, extra) {
+    if (extra && extra.native) return false;
+    if (extra && extra.combo) return true;
+    if (options.length > 12) return true;
+    const L = this.tlVarInfo().lab; let k = 0, n = 0;
+    for (const o of options) { if (o[0] === '' || o[0] == null) continue; n++; if (L.has(String(o[0]))) k++; }
+    return k > 0 && k >= n * 0.6;
+  }
+  tlNorm(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+  tlCombo(value, options, onChange, aria, extra) {
+    const h = React.createElement, S = this.state, ex = extra || {}, id = String(ex.comboId || aria || 'combo' + options.length);
+    const C = S.tlCombo && S.tlCombo.id === id ? S.tlCombo : null, L = this.tlVarInfo().lab, P = this.tlVarInfo().part, sval = value == null ? '' : String(value);
+    const items = options.map(([v, l]) => { const sv = String(v == null ? '' : v), isVar = sv !== '' && L.has(sv), ll = String(l == null ? '' : l); return isVar && (ll === sv || ll.startsWith(sv + ' ') || ll.startsWith(sv + '—')) ? { v: sv, raw: v, n: sv, sub: L.get(sv), isVar } : { v: sv, raw: v, n: ll, sub: isVar && L.get(sv) && !ll.includes(L.get(sv).slice(0, 16)) ? L.get(sv) : '', isVar }; });
+    const cur = items.find(it => it.v === sval), q = C ? C.q : '', qn = this.tlNorm(q.trim());
+    let shown = items;
+    if (qn) {
+      shown = items.filter(it => it.v !== '' && this.tlNorm(it.v + ' ' + it.n + ' ' + it.sub).includes(qn));
+      const rank = it => { const a = this.tlNorm(it.v), b = this.tlNorm(it.n); return a === qn || b === qn ? 0 : a.startsWith(qn) || b.startsWith(qn) ? 1 : this.tlNorm(it.sub).startsWith(qn) ? 2 : 3; };
+      shown = shown.map((it, i) => [rank(it), i, it]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
+    }
+    const hi = C ? Math.max(0, Math.min(C.hi || 0, shown.length - 1)) : 0, listId = 'tlc-' + id.replace(/[^A-Za-z0-9_-]+/g, '-');
+    const showCur = it => it ? (it.isVar ? it.n + (it.sub ? ' — ' + it.sub : '') : it.n) : '';
+    const ph0 = items[0] && items[0].v === '' ? items[0].n : 'Type to search…', display = cur && cur.v !== '' ? showCur(cur) : '';
+    const setC = p => this.setState(s => ({ tlCombo: Object.assign({ id, q: '', hi: 0 }, s.tlCombo && s.tlCombo.id === id ? s.tlCombo : {}, p) }));
+    const open = () => { if (!C) this.setState({ tlCombo: { id, q: '', hi: Math.max(0, items.findIndex(it => it.v === sval)) } }); };
+    const close = () => { if (this.state.tlCombo && this.state.tlCombo.id === id) this.setState({ tlCombo: null }); };
+    const pick = it => { this.setState({ tlCombo: null }); if (it && it.v !== sval) onChange(it.raw); };
+    const scrollHi = i => setTimeout(() => { const el = typeof document !== 'undefined' && document.getElementById(listId + '-' + i); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }, 0);
+    const key = e => {
+      const k = e.key;
+      if (k === 'ArrowDown' || k === 'ArrowUp') { e.preventDefault(); if (!C) return open(); const n = Math.max(0, Math.min(shown.length - 1, hi + (k === 'ArrowDown' ? 1 : -1))); setC({ hi: n }); scrollHi(n); return; }
+      if (k === 'PageDown' || k === 'PageUp') { if (!C) return; e.preventDefault(); const n = Math.max(0, Math.min(shown.length - 1, hi + (k === 'PageDown' ? 10 : -10))); setC({ hi: n }); scrollHi(n); return; }
+      if (k === 'Enter') { if (C) { e.preventDefault(); if (shown[hi]) pick(shown[hi]); } return; }
+      if (k === 'Escape') { if (C) { e.preventDefault(); e.stopPropagation(); close(); } return; }
+      if (k === 'Tab' && C) { const ex1 = qn ? shown.find(it => this.tlNorm(it.v) === qn || this.tlNorm(it.n) === qn) : null; if (ex1) pick(ex1); else if (qn && shown.length === 1) pick(shown[0]); else close(); }
+    };
+    const input = h('input', { type: 'text', className: 'tl-select tl-combo-in', role: 'combobox', 'aria-label': aria, 'aria-expanded': C ? 'true' : 'false', 'aria-controls': listId, 'aria-autocomplete': 'list', 'aria-activedescendant': C && shown[hi] ? listId + '-' + hi : undefined,
+      value: C ? q : display, placeholder: C ? (display || ph0) : ph0, title: display || ph0, autoComplete: 'off', spellCheck: false, disabled: ex.disabled,
+      onFocus: open, onMouseDown: () => { if (!C) open(); }, onChange: e => setC({ q: e.target.value, hi: 0 }), onKeyDown: key,
+      onBlur: () => setTimeout(() => { const ae = typeof document !== 'undefined' && document.activeElement; if (ae && ae.closest && ae.closest('#' + listId)) return; close(); }, 120) });
+    const list = C ? h('div', { id: listId, role: 'listbox', 'aria-label': aria, className: 'tl-combo-list' },
+      shown.length ? shown.map((it, i) => h('div', { key: it.v + '|' + i, id: listId + '-' + i, role: 'option', 'data-value': it.v, 'aria-selected': it.v === sval ? 'true' : 'false', className: 'tl-combo-opt' + (i === hi ? ' hi' : '') + (it.v === sval ? ' cur' : '') + (it.v === '' ? ' none' : ''), onMouseDown: e => { e.preventDefault(); pick(it); }, onMouseEnter: () => { if (i !== hi) setC({ hi: i }); } },
+        h('span', { className: it.isVar ? 'n mono' : 'n' }, it.n), it.sub ? h('span', { className: 's' }, it.sub) : null, it.isVar && P.has(it.v) ? h('span', { className: 'c', title: 'rows with data' }, P.get(it.v).toLocaleString('en-US') + ' rows') : null))
+        : h('div', { className: 'tl-combo-none' }, 'Nothing matches "' + q + '"'),
+      shown.length > 30 ? h('div', { className: 'tl-combo-foot' }, shown.length.toLocaleString('en-US') + (qn ? ' match · ' : ' in the list · ') + 'type to narrow, ↑ ↓ Enter') : null) : null;
+    return h('div', { className: 'tl-combo' + (ex.className ? ' ' + String(ex.className).replace(/\btl-select\b/g, '').trim() : '') + (C ? ' open' : ''), style: ex.style }, input, h('span', { className: 'tl-combo-caret', 'aria-hidden': 'true' }, '▾'), list);
+  }
+  // several variables: chips, and a searchable box to add one more
+  tlMultiVar(values, cols, onChange, aria, o) {
+    const h = React.createElement, vals = (values || []).filter(Boolean), max = (o && o.max) || 0, L = this.tlVarInfo().lab;
+    const chips = vals.map(v => h('span', { key: v, className: 'tl-mchip', title: L.get(v) || v }, h('span', { className: 'mono' }, v), h('button', { type: 'button', 'aria-label': 'Remove ' + v, onClick: () => onChange(vals.filter(x => x !== v)) }, '×')));
+    const full = max && vals.length >= max;
+    const add = full ? h('span', { className: 'tl-hint' }, 'Maximum reached (' + max + ')') : this.tlSelect('', [['', vals.length ? '+ add another variable…' : '+ add a variable…']].concat(cols.filter(c => !vals.includes(c.name)).map(c => [c.name, c.name])), v => { if (v) onChange([...vals, v]); }, aria, { combo: true, comboId: (o && o.id) || ('multi|' + aria) });
+    return h('div', { className: 'tl-multivar' }, chips, add);
+  }
   tlNum(value, onChange, o) {
     o = o || {}; const h = React.createElement;
     return h('input', { type: 'number', className: 'tl-input num', key: 'n' + value, defaultValue: value, min: o.min, max: o.max, step: o.step || 1, 'aria-label': o.aria, style: { width: (o.width || 64) + 'px' }, onBlur: e => { const x = Number(e.target.value); if (isFinite(x) && x !== value) onChange(o.min != null ? Math.max(o.min, o.max != null ? Math.min(o.max, x) : x) : x); }, onKeyDown: e => { if (e.key === 'Enter') e.target.blur(); } });

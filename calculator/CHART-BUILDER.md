@@ -1,3 +1,34 @@
+# Charts named by type — build 2026-11-02.70
+
+The Charts menu and the gallery used to group charts by question ("Compare amounts", "Change over time", …). They
+now name the chart, as Stata's `graph` menu or Excel do:
+
+| Group (`CB_FAMILIES` in `src/chart-builder.mjs`) | Charts |
+| --- | --- |
+| Bar charts | Bar chart, Grouped bars, Stacked bars, 100% stacked bars, Dot plot |
+| Timelines (line charts) | Timeline, Area chart, One panel per group |
+| Histograms & box plots | Histogram, Density curve, Box plot, Box plots by group, Violin plot |
+| Scatter plots | Scatter plot, Scatter + fitted line, Scatter + smoother, Hexbin (many points), Scatter-plot matrix |
+| Error bars: means & proportions | Means with CIs, Proportions with CIs |
+| Pie & donut charts | Pie chart, Donut chart |
+| Likert charts | Likert chart |
+| Heat maps | Correlation heat map, Heat map of a mean |
+| Before & after | Dumbbell chart, Slope chart, Paired before / after |
+| Regression results | Coefficient plot, Model comparison, Margins plot, Marginal effects plot, Interaction plot, Event-study plot, Conjoint (AMCE) |
+| Survival curves | Kaplan–Meier curves |
+| Maps | Map: countries, states, municipalities |
+
+- **Menu** (`cbMenu`): *All charts* and *Output — everything you have run* at the top; then each group as a heading
+  with an icon and its charts as buttons.
+- **Gallery** (`cbGallery`): one card per group (icon, name, one line on what it shows, its charts).
+- **Chart page**: the group's icon and name as the title; panel *1 · Variables*. Every variable box is a search box
+  (type part of the name or of the label; see [SEARCH-BOXES.md](SEARCH-BOXES.md)).
+- **Timelines** with no year in common between the outcome and the split variable say which years each one has, e.g.
+  "No year has both d5 and ur1new: d5 has data in 2004, …, 2023; ur1new in 2021. Split by another variable, or by none."
+
+Tested with the LAPOP Mexico file (3,623 rows × 1,624 variables): timeline of d5 by year split by q1, histogram of q2,
+scatter ed × q2, means of it1 by q1, Likert b1 by q1, correlation heat map with variables added by label.
+
 # Chart builder (Design A) — builds 2026-11-01.53 and .54
 
 Before this build, the Charts tab had 37 pages built at different times. Each page had its own options, and nine of

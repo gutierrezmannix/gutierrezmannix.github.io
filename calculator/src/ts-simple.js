@@ -100,7 +100,7 @@
   tsSetup(info,c,h,button,set,opt,extra){
     const S=this.state,E=this._E,cols=S.cols||[],kind=this.tsKinds()[info.id],b=this.tsBuild(info,c),f=E.TSD_FREQ[b.freq]||{};
     const field=(label,control,hint,key)=>h('label',{className:'cs-field',key:key||label},h('span',null,label),control,hint?h('small',{className:'ts-hint'},hint):null);
-    const sel=(value,onChange,options,aria)=>h('select',{'aria-label':aria,value,onChange:e=>onChange(e.target.value)},...options.map(([v,l])=>h('option',{key:v,value:v},l)));
+    const sel=(value,onChange,options,aria)=>this.tlSelect(value,options,onChange,aria); // GM26 .70: searchable when it lists variables
     const setField=(k,v)=>set({fields:{...(c.fields||{}),[k]:v}});
     const numeric=cols.filter(v=>v.type==='numeric').map(v=>v.name),tv=c.fields?.time?.[0]||'',yv=c.fields?.y?.[0]||'';
     const checks=(k,label,exclude)=>{const cur=c.fields?.[k]||[];return h('fieldset',{className:'ts-checks',key:k},h('legend',null,label),...numeric.filter(n=>!exclude.includes(n)).map(n=>h('label',{key:n,className:'cs-check'},h('input',{type:'checkbox',checked:cur.includes(n),onChange:e=>setField(k,e.target.checked?[...cur,n]:cur.filter(x=>x!==n))}),n)));};

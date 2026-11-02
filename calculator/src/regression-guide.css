@@ -67,3 +67,24 @@
 .rg .cm-check.ok>b{background:#DCEFE3;color:#194F39}.rg .cm-check.warn{background:#FFFAF2;border-color:#F5DDB5}.rg .cm-check.warn>b{background:#FBE9D2;color:#9C4A08}.rg .cm-check.ask>b{background:#E4EEF2;color:#1A5061}
 .rg .cm-check strong{color:#1A1711}
 .cs-rg-note{font-size:12.5px;color:#5D5648}
+
+/* GM26 .70: step 1 — models by name, grouped as in Stata's Statistics menu */
+.rg-models{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.rg-mgroup{border:1px solid var(--cD9D2C4,#D9D2C4);border-radius:10px;padding:10px 12px;background:#fff;display:flex;flex-direction:column;gap:6px}
+.rg-mgroup.fits{border-color:var(--c194F39,#194F39);box-shadow:inset 0 0 0 1px var(--c194F39,#194F39)}
+.rg-mg{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px}
+.rg-mg b{font-size:14px;color:var(--c1A1711,#1A1711)}
+.rg-mbtn{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;text-align:left;font:inherit;font-size:13px;background:var(--cFAF7F1,#FAF7F1);border:1px solid var(--cE3DCCE,#E3DCCE);border-radius:8px;padding:7px 10px;cursor:pointer;color:var(--c1A1711,#1A1711)}
+.rg-mbtn code{font-family:var(--fMono,'Space Mono',monospace);font-size:11px;color:var(--c5D5648,#5D5648);white-space:nowrap}
+.rg-mbtn:hover{border-color:var(--c194F39,#194F39)}
+.rg-mbtn.on{background:var(--c194F39,#194F39);border-color:var(--c194F39,#194F39);color:#fff}
+.rg-mbtn.on code{color:#CFE5D9}
+.rg-q .tl-combo{min-width:min(520px,100%)}
+.rg-other{margin:4px 0 0}
+/* the Tests menu: models by name */
+.cs-rg-group{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.cs-rg-g{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--c5D5648,#5D5648);font-weight:700}
+.cs-menu .cs-rg-ms button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;min-height:30px;padding:5px 10px}
+.cs-menu .cs-rg-ms button code{font-family:var(--fMono,'Space Mono',monospace);font-size:11px;color:var(--c5D5648,#5D5648)}
+.cs-rg-ms{display:grid;gap:4px}
+.rg-mg .rg-tag{position:static;transform:none;margin-left:auto}

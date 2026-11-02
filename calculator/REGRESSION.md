@@ -1,3 +1,40 @@
+# Model names as in Stata, and rows that do not overlap — build 2026-11-02.70
+
+**Names.** Tests ▾ → Regression lists the 13 models by their usual names, grouped by outcome as in Stata's
+*Statistics* menu, each with its command:
+
+| Group | Models (command) |
+| --- | --- |
+| Linear models | Linear regression (OLS) `regress` · Robust regression `rreg` · Quantile regression `qreg` · Linear regression with splines `mkspline + regress` · Generalized additive model (GAM) `R: mgcv::gam` |
+| Binary outcomes | Logistic regression (logit) `logit` · Probit regression `probit` |
+| Ordinal outcomes | Ordered logistic regression `ologit` |
+| Categorical outcomes | Multinomial logistic regression `mlogit` |
+| Count outcomes | Poisson regression `poisson` · Negative binomial regression `nbreg` · Zero-inflated Poisson / negative binomial `zip / zinb` · Hurdle model `logit + tnbreg` |
+
+Clicking a model opens step 1 with that model chosen. The steps are now *Model & outcome · Options · Predictors ·
+Weights · SEs · Results · Checks · Predictions · Export*. Step 1 has a search box for the outcome (name or label)
+and the same model list; the group that fits the outcome is marked **FITS**. A model that does not suit the outcome
+gets a note with a button for the one that does. A model picked first is kept when the outcome is chosen
+(`rgModelPicked`). Step 2 holds the model's options.
+
+**Search boxes.** The outcome, predictors, weight, cluster, strata, PSU and margins boxes all search names and labels.
+Accents are ignored. An exact name is listed first, so Enter picks the top row. A variable with data in fewer than 90%
+of the rows shows how many ("edad · Edad · 203 rows").
+
+**Rows that do not overlap** (`rgCoverage` in `src/regression-guide.js`). LAPOP's `edad` is only in 2025, while `ed`
+and `q1` are only in 2004–2019. A model with both used to stop with "the outcome has a single value — nothing to
+model". The engine now says there are no complete rows. The page explains why, on the Predictors step and in place of
+the error. It finds the years from a `year` / `anio` / `wave` … variable:
+
+> No row has data on all of m1, q1, edad, ed and wt. edad is only in year 2025 (203 rows); ed is in year 2004–2019
+> (2,438 rows); q1 is in year 2004–2019 (2,491 rows). Remove one of them, or use a variable asked in the same years.
+
+When fewer than half the rows are used it says so ("Only 203 of the 3,304 rows with m1 …"). It says nothing when no
+variable drops rows. Real errors (perfect prediction, collinearity) are shown as before.
+
+Checked on LAPOP in the browser: ordered logit of m1 on q1, q2 and ed weighted by wt, N = 2,403. In the node harness
+the same model gives N = 2,403 with classical, robust, clustered (upm) and survey (strata · upm) standard errors.
+
 # Regression — build 2026-11-02.64
 
 This build fixes the problems found by an audit of Tests ▾ → Regression (linear, logistic, ordinal logistic and

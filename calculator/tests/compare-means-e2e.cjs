@@ -2,7 +2,7 @@
 //   NODE_PATH=$(npm root -g) node calculator/tests/compare-means-e2e.cjs
 // GM26_SHOTS=dir saves screenshots; GM26_DATA=file.csv|dta uses another dataset for the smoke part (GM26_DATA_Y, _G).
 // Fails on any console error.
-const { chromium } = require('playwright'); const path = require('path'), os = require('os'), fs = require('fs');
+const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pick.cjs'); const path = require('path'), os = require('os'), fs = require('fs');
 (async () => {
   const shots = process.env.GM26_SHOTS || '', tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gm26-cm-'));
   const csv = path.join(tmp, 'encuesta.csv');
@@ -25,7 +25,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   const ITEM = { 't-tests': 'One-sample, independent and paired t-tests', Correlation: 'Correlation matrix (Pearson and Spearman)' };
   const clickText = label => p.evaluate(l => { const e = [...document.querySelectorAll('button')].find(x => x.offsetParent && x.textContent.trim() === l); if (e) e.click(); return !!e; }, label);
   const menu = async item => { for (let k = 0; k < 3; k++) { if (await clickText(ITEM[item])) break; await p.locator('button.mf-nav[data-nav="tests"]').click(); await p.waitForTimeout(700); } await p.waitForTimeout(700); };
-  const pick = async (aria, value) => { await p.locator('select[aria-label="' + aria + '"]').first().selectOption(value); await p.waitForTimeout(350); };
+  const pick = async (aria, value) => { await pickBy(p, p, aria, value); await p.waitForTimeout(350); };
   const btn = async (name, scope) => { await (scope || p).getByRole('button', { name, exact: true }).first().click(); await p.waitForTimeout(350); };
   const txt = sel => p.locator(sel).first().innerText();
   const clip = () => p.evaluate(() => window.__clip.slice(-1)[0] || {});
