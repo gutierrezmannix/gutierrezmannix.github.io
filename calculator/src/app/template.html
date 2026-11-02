@@ -175,13 +175,17 @@
 .cs-table-scroll {overflow:auto;max-height:400px;margin:12px 0;}.cs-table-scroll table {border-collapse:collapse;width:100%;font:12px var(--fMono,monospace);}.cs-table-scroll td,.cs-table-scroll th {border-bottom:1px solid #D8DED2;text-align:right;padding:7px;}.cs-table-scroll th {background:#E9EEE1;position:sticky;top:0;}.cs-table-scroll td:first-child,.cs-table-scroll th:first-child {text-align:left;}
 </style><!-- GM26 Stata presentation order --><style>.stata-result-table { width:100%; border-collapse:collapse; font:11.5px/1.45 var(--fMono,'Space Mono',monospace); color:var(--c2B271E,#20362F); }
 .stata-result-table th { background:var(--cF2ECE1,#E9EEE1); border-bottom:2px solid var(--c194F39,#1D5443); font-weight:700; }
-.stata-result-table th,.stata-result-table td { padding:7px 8px; text-align:right; border-bottom:1px solid var(--cE5DBCB,#D8DED2); white-space:nowrap; }
+.stata-result-table th,.stata-result-table td { padding:3px 8px; text-align:right; border-bottom:1px solid var(--cE5DBCB,#D8DED2); white-space:nowrap; }
 .stata-result-table th:first-child,.stata-result-table td:first-child { text-align:left; }
 .stata-result-scroll { overflow-x:auto; margin:8px 0 12px; }
 .stata-fit-extra { margin:9px 0 0; font-size:12px; line-height:1.5; color:var(--c6B6455,#536159); }
 .stata-tt-title { font:600 13px/1.4 var(--fUI,sans-serif); margin:0 0 8px; }
-.stata-fit-layout { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr)); gap:12px; align-items:start; }
+.stata-fit-layout { display:flex; flex-wrap:wrap; gap:6px 28px; align-items:flex-start; } .stata-fit-layout > .stata-result-scroll { flex:1 1 340px; } .stata-fit-layout > .stata-fit-cells { flex:0 0 auto; }
 .stata-fit-layout .stata-result-scroll { min-width:0; }
+.stata-fit-cells { display:flex; flex-direction:column; gap:1px; margin:8px 0 12px; font-family:var(--fMono,'Space Mono',monospace); font-size:12.5px; color:var(--c2B271E,#2B271E); }
+.stata-fit-row { display:grid; grid-template-columns:minmax(120px,max-content) 18px minmax(70px,max-content); align-items:baseline; }
+.stata-fit-row .eq { text-align:center; color:var(--c6B6455,#6B6455); }
+.stata-fit-row .v { text-align:right; color:var(--c194F39,#194F39); }
 .stata-fit-cells > div > div:last-child { overflow-wrap:anywhere; }
 </style><!-- GM26 observed scatter range hints --><style>.mf-scatter-range{margin:5px 0 8px;font-size:12px;line-height:1.5;color:var(--c5D5648,#5D5648);overflow-wrap:anywhere}</style><!-- GM26 button template repairs v1 -->
 <!DOCTYPE html>
@@ -3462,12 +3466,9 @@ code, kbd, samp { font-family: var(--font-mono); }
                     
                     <div data-screen-label="Regression results" style="font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: var(--c433D31, #433D31);">MODEL FIT</div>
                   </div>
-                  <div class="stata-fit-layout"><sc-if value="{{ stataHasAnova }}" hint-placeholder-val="{{ false }}"><div class="stata-result-scroll" tabindex="0" role="region" aria-label="Analysis of variance table">{{ stataAnovaEl }}</div></sc-if><div class="stata-fit-cells" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
+                  <div class="stata-fit-layout"><sc-if value="{{ stataHasAnova }}" hint-placeholder-val="{{ false }}"><div class="stata-result-scroll" tabindex="0" role="region" aria-label="Analysis of variance table">{{ stataAnovaEl }}</div></sc-if><div class="stata-fit-cells" role="list" aria-label="Model fit">
                     <sc-for list="{{ sumCells }}" as="s" hint-placeholder-count="5">
-                      <div title="{{ s.tip }}" style="background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 8px 10px;">
-                        <div style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; letter-spacing: 0.16em; color: var(--c6B6455, #6B6455); white-space: nowrap;">{{ s.k }}</div>
-                        <div style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 19px; color: var(--c194F39, #194F39); text-shadow: 0 0 10px rgba(46,125,88,0.4);">{{ s.v }}</div>
-                      </div>
+                      <div class="stata-fit-row" role="listitem" title="{{ s.tip }}" style="{{ s.style }}"><span class="k">{{ s.lab }}</span><span class="eq">=</span><span class="v">{{ s.v }}</span></div>
                     </sc-for>
                   </div></div>
 <!-- GM26 regression sample summary --><p data-testid="regression-estimation-sample" role="status" style="margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--c6B6455, #536159);">{{ regSampleText }}</p>
@@ -3485,7 +3486,7 @@ code, kbd, samp { font-family: var(--font-mono); }
                     <div>TERM</div><div style="text-align: right;">COEF.</div><div style="text-align: right;">STD.ERR.</div><div style="text-align: right;">{{ zHead }}</div><div style="text-align: right;">P</div><div style="text-align: right; white-space: nowrap;">[95% CI]</div><div style="text-align: right;">{{ lastHead }}</div>
                   </div>
                   <sc-for list="{{ coefRows }}" as="c" hint-placeholder-count="4">
-                    <div style="display: grid; grid-template-columns: minmax(130px, 1.4fr) 1.15fr 0.85fr 0.7fr 0.7fr 1.5fr 0.9fr; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--cF2ECE1, #F2ECE1); font-size: 12.5px; align-items: center;">
+                    <div style="display: grid; grid-template-columns: minmax(130px, 1.4fr) 1.15fr 0.85fr 0.7fr 0.7fr 1.5fr 0.9fr; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--cF2ECE1, #F2ECE1); font-size: 12px; align-items: center; line-height: 1.3;">
                       <div style="color: var(--c2B271E, #2B271E); overflow-wrap: anywhere; line-height: 1.3;" title="{{ c.raw }}">{{ c.term }}</div>
                       <div style="text-align: right; font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; color: var(--c1F6447, #1F6447);">{{ c.b }}</div>
                       <div style="text-align: right; font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; color: var(--c2B271E, #2B271E);">{{ c.se }}</div>
@@ -3740,7 +3741,7 @@ code, kbd, samp { font-family: var(--font-mono); }
                         </sc-if>
                       </div>
                   </sc-if>
-</sc-if>
+</sc-if>{{ rgEl3 }}
             </div>
           </sc-if>
         <sc-if value="{{ rgHasKeyLine }}" hint-placeholder-val="{{ false }}">
@@ -4018,7 +4019,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-02.73</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX / STATA DTA</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-02.74</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX / STATA DTA</span>
   </footer>
 </div>
 </x-dc>

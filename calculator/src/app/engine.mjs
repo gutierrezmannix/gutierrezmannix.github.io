@@ -38,7 +38,7 @@ function betai(a, b, x) {
   return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b;
 }
 export function pT(t, df) { if (!isFinite(t) || df <= 0) return NaN; return betai(df / 2, 0.5, df / (df + t * t)); }
-export function pF(F, d1, d2) { if (!isFinite(F) || F <= 0 || d1 <= 0 || d2 <= 0) return NaN; return betai(d2 / 2, d1 / 2, d2 / (d2 + d1 * F)); }
+export function pF(F, d1, d2) { if (!isFinite(F) || F < 0 || d1 <= 0 || d2 <= 0) return NaN; if (F === 0) return 1; return betai(d2 / 2, d1 / 2, d2 / (d2 + d1 * F)); }
 
 // yield to the UI without timer throttling (background tabs clamp setTimeout chains)
 export function yieldUI() { return new Promise(r => { if (typeof MessageChannel === 'undefined') return setTimeout(r, 0); const c = new MessageChannel(); c.port1.onmessage = () => { c.port1.close(); r(); }; c.port2.postMessage(0); }); }
@@ -646,6 +646,16 @@ export function sandwichV(bread, rows, vce, n, p, family) {
   const V = Array.from({ length: P }, (_, r) => { const out = new Float64Array(P); for (let c = 0; c < P; c++) { let s = 0; for (let k = 0; k < P; k++) { const brk = bread[r][k]; if (!brk) continue; const Mk = meat[k]; for (let j = 0; j < P; j++) s += brk * Mk[j] * bread[j][c]; } out[c] = s; } return out; });
   return { V, df, G, H, single };
 }
+// GM26 .74: joint Wald test of the coefficients at idx (no constant, no cut points), as Stata prints after robust,
+// clustered or survey standard errors: chi2(q) — or, with a survey design, the adjusted F(q, d − q + 1)
+function waldTest(b, V, idx, df, svyAdj) {
+  const q = idx.length; if (!q) return null;
+  const d = idx.map(r => Math.sqrt(V[r][r])); if (d.some(x => !(x > 0))) return null;
+  const Vi = gaussJordan(idx.map((r, a) => idx.map((c, e) => V[r][c] / (d[a] * d[e])))); if (!Vi) return null;
+  let W = 0; for (let r = 0; r < q; r++) for (let c = 0; c < q; c++) W += (b[idx[r]] / d[r]) * Vi[r][c] * (b[idx[c]] / d[c]);
+  if (svyAdj && df > 0) { const F = (df - q + 1) / (df * q) * W, df2 = Math.max(1, df - q + 1); return { kind: 'F', stat: F, df1: q, df2, p: pF(F, q, df2) }; }
+  return { kind: 'chi2', stat: W, df1: q, df2: 0, p: pChi2(W, q) };
+}
 function waldF(b, V, df, svyAdj) {
   const idx = []; for (let j = 1; j < b.length; j++) idx.push(j);
   const q = idx.length; if (!q) return { F: NaN, df1: 0, df2: df };
@@ -983,8 +993,9 @@ export function glm(ya, preds, w, family, vce) {
     const useT = vce.type === 'svy' && sv.df > 0;
     coefs.forEach((c, j) => { c.se = Math.sqrt(Math.max(0, sv.V[j][j])); c.t = c.b / c.se; c.p = useT ? pT(c.t, sv.df) : pZ(c.t); });
     vceInfo = { type: vce.type, df: useT ? sv.df : 0, G: sv.G, H: sv.H, single: sv.single };
+    vceInfo.wald = waldTest(fit.b, sv.V, Array.from({ length: p - 1 }, (_, j) => j + 1), sv.df, useT);
   }
-  return { vce: vceInfo, dfT: vceInfo ? vceInfo.df : 0, coefs, n, dropped: N - n, ll: fit.ll, llNull: fit0.ll, mcfadden: fit0.ll < 0 ? 1 - fit.ll / fit0.ll : NaN, converged: fit.converged, iters: fit.iters, refs, family };
+  return { vce: vceInfo, wald: vceInfo ? vceInfo.wald : null, dfT: vceInfo ? vceInfo.df : 0, coefs, n, dropped: N - n, ll: fit.ll, llNull: fit0.ll, mcfadden: fit0.ll < 0 ? 1 - fit.ll / fit0.ll : NaN, converged: fit.converged, iters: fit.iters, refs, family };
 }
 
 // ---------- formula parser (generate) ----------
@@ -1261,6 +1272,7 @@ export function ologit(ya, preds, w, vce) {
     V = tr(sv.V);
     const useT = vce.type === 'svy' && sv.df > 0;
     vceInfo = { type: vce.type, df: useT ? sv.df : 0, G: sv.G, H: sv.H, single: sv.single };
+    vceInfo.wald = waldTest(thO, V, Array.from({ length: p }, (_, r) => J - 1 + r), sv.df, useT);
   }
   const se = i2 => Math.sqrt(Math.max(0, V[i2][i2]));
   const pOf = z => vceInfo && vceInfo.df > 0 ? pT(z, vceInfo.df) : pZ(z);
@@ -1269,7 +1281,7 @@ export function ologit(ya, preds, w, vce) {
   for (let i = 0; i < n; i++) llN += wr[i] * Math.log(Math.max(1e-12, cw[yi[i]] / sw));
   const coefs = terms.map((tm, r) => { const b = thO[J - 1 + r], s = se(J - 1 + r), z = b / s; return { term: tm.label, b, se: s, t: z, p: pOf(z), or: Math.exp(b) }; });
   const cuts = levels.slice(0, J - 1).map((lv, j) => { const b = thO[j], s = se(j), z = b / s; return { term: '/cut' + (j + 1) + ' (≤ ' + numLab(lv) + ')', b, se: s, t: z, p: NaN, or: NaN }; });
-  return { th: Array.from(thO), cov: V, vce: vceInfo, dfT: vceInfo ? vceInfo.df : 0, coefs, cuts, n, dropped: N - n, ll: cur.ll, llNull: llN, mcfadden: llN < 0 ? 1 - cur.ll / llN : NaN, converged: converged && !sep, refs, levels, J };
+  return { th: Array.from(thO), cov: V, vce: vceInfo, wald: vceInfo ? vceInfo.wald : null, dfT: vceInfo ? vceInfo.df : 0, coefs, cuts, n, dropped: N - n, ll: cur.ll, llNull: llN, mcfadden: llN < 0 ? 1 - cur.ll / llN : NaN, converged: converged && !sep, refs, levels, J };
 }
 
 // ---------- one-sample / paired t ----------

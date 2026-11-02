@@ -238,7 +238,7 @@ test('the Regression steps: outcome detection, model choice, panels by step, mar
   assert.equal(seen[3], 'rgSetup'); assert.equal(seen[5], 'rgFit,rgHasModel,rgHasCoefPlot'); assert.equal(seen[6], 'rgVifShow,rgHasModel'); assert.equal(seen[8], 'rgPub,rgHasModel'); assert.equal(seen[1], '');
   // step 7: x2 from -2 to 2 every 1, one line per sexo — the table equals R's margins
   let out = fit(c, { ...base, rgStep: 7, rgMg: { x: 'x2', by: 'sexo', from: '-2', to: '2', every: '1', mode: 'step' }, rgPlot: { title: 'Chance by x2', ymin: '0', ymax: '1', ystep: '.2', xstep: '1' } });
-  const t = text(out.rgEl);
+  const t = text([out.rgEl, out.rgEl3]);
   assert.match(t, /margins sexo_c, at\(x2=\(-2\(1\)2\)\)/); assert.match(t, /marginsplot, recastci\(rarea\)[^\n]*ylabel\(0\(\.2\)1\) xlabel\(-2\(1\)2\) title\("Chance by x2"\)/);
   assert.match(t, /avg_predictions\(m, variables = list\(x2 = seq\(-2, 2, by = 1\), sexo = c\("Hombre", "Mujer"\)\)\)/);
   const rows = c._rgMgCmd && t.match(/The margins table · 10 rows/); assert.ok(rows, 'ten rows (5 values × 2 lines)');
@@ -249,9 +249,9 @@ test('the Regression steps: outcome detection, model choice, panels by step, mar
   assert.equal(c.rgGrid('x2', { mode: 'step', from: '20', to: '80', every: '5' }, Float64Array.from([18, 90])).txt, '20(5)80');
   assert.deepEqual(c.rgGrid('x2', { mode: 'list', list: '20, 35 50' }, Float64Array.from([18, 90])).vals, [20, 35, 50]);
   // step 5: average marginal effects in percentage points
-  out = fit(c, { ...base, rgStep: 5 }); assert.match(text(out.rgEl), /each \+1 of x2\+9\.94 pts/); assert.match(text(out.rgEl), /THE MODEL EXPLAINS SOMETHING/);
+  out = fit(c, { ...base, rgStep: 5 }); assert.match(text([out.rgEl, out.rgEl3]), /each \+1 of x2\+9\.94 pts/); assert.match(text([out.rgEl, out.rgEl3]), /THE MODEL EXPLAINS SOMETHING/);
   // step 6: checks; a count outcome with overdispersion offers negative binomial
-  out = fit(c, { depVar: 'cnt', predictors: ['x2', 'inc_k'], regModel: 'poisson', rgModel: '', treat: {}, rgStep: 6 }); const t6 = text(out.rgEl);
+  out = fit(c, { depVar: 'cnt', predictors: ['x2', 'inc_k'], regModel: 'poisson', rgModel: '', treat: {}, rgStep: 6 }); const t6 = text([out.rgEl, out.rgEl3]);
   assert.match(t6, /Enough cases/); assert.match(t6, /Pearson χ² \/ df = /);
   // the console runs a model and opens step 5
   c.state.tab = 'one'; c.runCmdLine('regress y x2 i.grupo'); clearTimeout(c._mfOkT); assert.equal(c.state.rgStep, 5); assert.equal(c.state.tab, 'reg');

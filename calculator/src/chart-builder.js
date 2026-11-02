@@ -231,7 +231,7 @@
     const S = this.state, E = this._E, src = c.source || 'columns';
     if (src === 'current') {
       const snap = this._csModel; if (!snap || snap.spec !== this.regSpec() || snap.dver !== (S.dver || 0) || snap.data !== this.dataSig()) throw Error('Run the current specification in Tests → Regression first.');
-      if (id === 'coefficient') { const crit = E.ttCritical(this.alpha(), snap.model.dfR || snap.model.n - 1); const rows = snap.model.coefs.filter(q => q.term !== '(constant)').map((q, i) => ({ x: this.termLab(q.term), y: q.b, lo: q.b - crit * q.se, hi: q.b + crit * q.se, g: 'Current model', w: 1, i })); return { rows, n: snap.model.n, excluded: 0, panels: new Map([['All', rows]]) }; }
+      if (id === 'coefficient') { const crit = E.ttCritical(this.alpha(), snap.model.dfR || snap.model.n - 1); const rows = snap.model.coefs.filter(q => q.term !== '(constant)').map((q, i) => ({ x: (this.regLab || this.termLab).call(this, q.term), y: q.b, lo: q.b - crit * q.se, hi: q.b + crit * q.se, g: 'Current model', w: 1, i })); return { rows, n: snap.model.n, excluded: 0, panels: new Map([['All', rows]]) }; }
       const mg = this._csMargins; if (!mg || mg.spec !== snap.spec || mg.dver !== snap.dver) throw Error('Generate predictions in Tests → Regression first, then come back here.');
       if (id === 'interaction' && !mg.by) throw Error('Pick a grouping variable in the regression predictions to show an interaction.');
       const rows = mg.result.series.flatMap(s => s.pts.map((p, i) => ({ x: p.x, y: p.y, lo: p.lo, hi: p.hi, g: s.label || 'Prediction', w: 1, i })));

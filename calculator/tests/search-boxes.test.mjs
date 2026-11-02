@@ -74,7 +74,7 @@ test('rows that do not overlap: the Predictors step and the results name the var
   out = fit({ depVar: 'y', predictors: ['edad'], weightVar: '', regModel: 'ols', rgStep: 3 });
   assert.match(text(out.rgEl2), /^Only 40 of the 160 rows with y have data on every variable of the model\. edad is only in year 2025 \(40 rows\)\./);
   out = fit({ depVar: 'y', predictors: ['q1', 'ed'], weightVar: 'wt', regModel: 'ols', rgStep: 5 });
-  assert.ok(!out.regError, 'q1 and ed overlap: the model runs'); assert.match(text(out.rgEl), /80 rows used of 160/);
+  assert.ok(!out.regError, 'q1 and ed overlap: the model runs'); assert.match(text([out.rgEl, out.rgEl3]), /80 rows used of 160/);
   out = fit({ depVar: 'y', predictors: ['q1', 'ed'], weightVar: 'wt', regModel: 'ols', rgStep: 3 });
   assert.doesNotMatch(text(out.rgEl2), /rows with y|No row/, 'no note when half or more of the rows are used');
 });

@@ -70,7 +70,7 @@ test('i.year takes its levels from the rows the model uses; the results count th
   c.setState({ depVar: 'm1', predictors: ['econ', 'year'], regModel: 'ols', rgStep: 5, weightVar: '', treat: { ...c.state.treat, m1: 'numeric' } }); c.clearMemo(); c._regRan = c.regSpec();
   const out = c.renderVals();
   assert.ok(!out.regError, 'no "year = … is a combination of the other predictors": ' + out.regError);
-  const t = text(out.rgEl);
+  const t = text([out.rgEl, out.rgEl3]);
   assert.match(t, /60 rows used of 90 in the subgroup/);
   const terms = c._rgCtx.M.coefs.map(q => q.term);
   assert.deepEqual(terms, ['(constant)', 'econ = 1', 'year = 2008'], 'one dummy: 2006 is the base, 2004 (no economy question) is not a level');
@@ -84,12 +84,12 @@ test('a scale read as categories (every code labelled) is named in the results, 
   c.setState({ depVar: 'm1', predictors: ['soct2'], regModel: 'ols', rgStep: 5, weightVar: '' }); c.clearMemo(); c._regRan = c.regSpec();
   let out = c.renderVals();
   assert.deepEqual(c._rgCtx.M.coefs.map(q => q.term), ['(constant)', 'soct2 = 2', 'soct2 = 3'], 'one row per level, as i.soct2');
-  assert.match(text(out.rgEl), /soct2 is read as categories because every code has a label, so each level gets its own row compared with the first level \(as Stata’s i\.soct2\)/);
-  const btn = find(out.rgEl, e => e.tag === 'button' && text(e) === 'Use soct2 as a number')[0]; assert.ok(btn, 'the button is there');
+  assert.match(text([out.rgEl, out.rgEl3]), /soct2 is read as categories because every code has a label, so each level gets its own row compared with the first level \(as Stata’s i\.soct2\)/);
+  const btn = find([out.rgEl, out.rgEl3], e => e.tag === 'button' && text(e) === 'Use soct2 as a number')[0]; assert.ok(btn, 'the button is there');
   btn.props.onClick(); await wait(20); out = c.renderVals();
   assert.ok(out.regRan, 'the model runs again at once');
   assert.deepEqual(c._rgCtx.M.coefs.map(q => q.term), ['(constant)', 'soct2'], 'one slope');
-  assert.doesNotMatch(text(out.rgEl), /read as categories/);
+  assert.doesNotMatch(text([out.rgEl, out.rgEl3]), /read as categories/);
   c.setState({ treat: { m1: 'numeric', soct2: 'categorical' } }); c.clearMemo(); c._regRan = c.regSpec(); out = c.renderVals();
-  assert.doesNotMatch(text(out.rgEl), /read as categories/, 'no note when the C badge was chosen on purpose');
+  assert.doesNotMatch(text([out.rgEl, out.rgEl3]), /read as categories/, 'no note when the C badge was chosen on purpose');
 });

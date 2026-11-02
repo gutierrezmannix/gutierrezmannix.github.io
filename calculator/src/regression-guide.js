@@ -89,10 +89,11 @@
     out.rgInterpOn = false; out.rgHasKeyLine = !!out.hasKeyLine && step === 5 && coreModel;
     out.rgRegEmpty = !!out.regEmpty && coreModel && step >= 5; out.rgHasRegError = !!out.hasRegError && coreModel && step >= 3; out.rgRegBusy = !!out.regBusy && step >= 3;
     const bar = this.rgBar(now, out);
-    this._rgAfter = null;
+    this._rgAfter = null; this._rgNotes = null;
     const body2 = [this.rgStep1, this.rgStep2, this.rgStep3, this.rgStep4, this.rgStep5, this.rgStep6, this.rgStep7, this.rgStep8][step - 1].call(this, now, out);
     out.rgEl = h('div', { className: 'tl rg' }, bar, ...[].concat(body2).filter(Boolean));
     out.rgEl2 = this._rgAfter ? h('div', { className: 'tl rg' }, this._rgAfter) : null;
+    out.rgEl3 = this._rgNotes ? h('div', { className: 'tl rg' }, this._rgNotes) : null;
   }
   rgBar(now, out) {
     const h = React.createElement, { S, D, step, extra, info, det } = now, ran = extra ? !!this.rgExtraResult() : !!out.regRan, preds = S.predictors || [];
@@ -222,6 +223,30 @@
     return w ? { w, st, psu } : null;
   }
   rgUseSurvey(g) { this.clearMemo(); this.setState({ weightVar: g.w, weightAuto: false, svyStrata: g.st || '', svyPsu: g.psu || '', regVce: 'svy' }); }
+  // GM26 .74: the other nine models print like the four core ones, as Stata does — a summary as "Number of obs = …" and
+  // coefficients as Coef. / Std. err. / z / P>|z| / [95% conf. interval], _cons last; other tables keep their own form
+  rgStataTab(t, i, lab) {
+    const h = React.createElement, cols = (Array.isArray(t.columns) ? t.columns : []).map(c => String(c)), rows = Array.isArray(t.rows) ? t.rows : [];
+    const num = v => typeof v === 'number' ? v : Number(v), fi = re => cols.findIndex(c => re.test(c.trim()));
+    if (cols.length === 2 && /^statistic$/i.test(cols[0]) && /^value$/i.test(cols[1])) {
+      const NM = { 'number of observations': 'Number of obs', 'log likelihood': 'Log likelihood', 'pseudo r-squared': 'Pseudo R2', 'r-squared': 'R-squared', 'adjusted r-squared': 'Adj R-squared' };
+      const fv = v => { const x = num(v); return typeof v === 'number' || (v !== '' && v != null && isFinite(x)) ? (Number.isInteger(x) && Math.abs(x) >= 1000 ? this.fmtN(x) : Number.isInteger(x) ? String(x) : this.fmt(x, Math.abs(x) >= 100 ? 2 : 4)) : String(lab(v)); };
+      return h('div', { key: 'tb' + i, className: 'rg-box' }, h('span', { className: 'tl-lbl' }, t.title), h('div', { className: 'stata-fit-cells', role: 'list', 'aria-label': t.title }, rows.map((r, k) => h('div', { key: k, className: 'stata-fit-row', role: 'listitem' }, h('span', { className: 'k' }, NM[String(r[0]).toLowerCase()] || lab(r[0])), h('span', { className: 'eq' }, '='), h('span', { className: 'v' }, fv(r[1]))))));
+    }
+    const iB = fi(/^(estimate|value|coef\.?|coefficient)$/i), iS = fi(/^std\.? ?err(or|\.)?$/i), iZ = fi(/^(t|z)( value)?$/i), iP = fi(/^(pr\(>\|(t|z)\|\)|p|p-value|p>\|(t|z)\|)$/i), iL = fi(/^lower( ci)?$/i), iU = fi(/^upper( ci)?$/i);
+    if (iB < 1 || iS < 1 || iB === iS) return null;
+    const st = iZ >= 0 && /^t/i.test(cols[iZ]) ? 't' : 'z', lead = cols.slice(0, iB).length > 1 ? cols.slice(0, iB - 1) : [];
+    const body = rows.map(r => ({ r, cons: /^\(intercept\)$|^_cons$/i.test(String(r[iB - 1])) })), ordered = body.filter(x => !x.cons).concat(body.filter(x => x.cons));
+    const cell = (v, f) => { const x = num(v); return v == null || v === '' || !isFinite(x) ? '.' : f(x); };
+    const head = [...lead, 'Term', 'Coef.', 'Std. err.', st, 'P>|' + st + '|', iL >= 0 && iU >= 0 ? '[95% conf. interval]' : null].filter(x => x != null);
+    return h('div', { key: 'tb' + i, className: 'rg-box' }, h('span', { className: 'tl-lbl' }, t.title),
+      h('div', { className: 'stata-result-scroll', tabIndex: 0, role: 'region', 'aria-label': t.title }, h('table', { className: 'stata-result-table' },
+        h('thead', null, h('tr', null, head.map((c, j) => h('th', { key: j, scope: 'col' }, c)))),
+        h('tbody', null, ordered.slice(0, 300).map(({ r, cons }, k) => h('tr', { key: k }, ...lead.map((_, j) => h('td', { key: 'l' + j }, String(lab(r[j])))),
+          h('th', { key: 't', scope: 'row' }, cons ? '_cons' : String(lab(r[iB - 1]))), h('td', { key: 'b' }, cell(r[iB], x => this.fmtCoef(x))), h('td', { key: 's' }, cell(r[iS], x => this.fmtCoef(x))),
+          h('td', { key: 'z' }, iZ >= 0 ? cell(r[iZ], x => this.fmt(x, 2)) : '.'), h('td', { key: 'p' }, iP >= 0 ? cell(r[iP], x => this.fmtP(x)) : '.'),
+          iL >= 0 && iU >= 0 ? h('td', { key: 'ci' }, '[' + cell(r[iL], x => this.fmtCoef(x)) + ', ' + cell(r[iU], x => this.fmtCoef(x)) + ']') : null))))));
+  }
   rgAsNumber(p) { this.clearMemo(); this.setState(s => ({ treat: Object.assign({}, s.treat, { [p]: 'numeric' }) }), () => { this._regRan = this.regSpec(); this.forceUpdate(); }); }
   // GM26 .71: the rows the model could use — the subgroup's rows when a subgroup is on, not the whole file
   rgPoolN(M) { const tot = M.n + (M.dropped || 0); if (!this.conds().length) return tot; const mk = this.mask(); if (!mk) return tot; let k = 0; for (let i = 0; i < mk.length; i++) k += mk[i]; return Math.min(tot, k); }
@@ -231,7 +256,7 @@
     if (extra) return this.rgExtraView(now, 'results');
     if (!out.regRan) return this.rgPanel(5, 'Results', '', this.tlBanner('info', S.depVar && (S.predictors || []).length ? 'Run the model to see the results.' : 'Choose the outcome (step 1) and at least one predictor (step 3), then run the model.', ' ', S.depVar && (S.predictors || []).length ? this.tlBtn('▶ Run the model', () => this.rgRun(out), 'primary') : null));
     const ctx = this._rgCtx, M = ctx && ctx.M; if (!M || M.error) return null;
-    const sig = model === 'ols' ? M.pModel < this.alpha() : this._E.pChi2(2 * (M.ll - M.llNull), Math.max(1, M.coefs.length - (model === 'ologit' ? 0 : 1))) < this.alpha();
+    const sig = model === 'ols' ? M.pModel < this.alpha() : (M.wald ? M.wald.p : this._E.pChi2(2 * (M.ll - M.llNull), Math.max(1, M.coefs.length - (model === 'ologit' ? 0 : 1)))) < this.alpha(); // GM26 .74: Wald test with robust / clustered / survey SEs, as Stata
     const vce = M.vce ? { robust: 'robust (HC1) SEs', cluster: 'SEs clustered by ' + S.regCl + ' (' + M.vce.G + ' groups)', svy: 'survey-design SEs' }[M.vce.type] : 'classical SEs';
     const head = h('div', { className: 'rg-row' }, h('span', { className: 'cm-pill ' + (sig ? 'sig' : 'ns') }, sig ? 'THE MODEL EXPLAINS SOMETHING' : 'NO CLEAR RELATIONSHIP'), h('span', { className: 'rg-mut mono' }, this.rgDefs().models[model].t + ' · ' + this.fmtN(M.n) + ' rows used' + (M.dropped ? ' of ' + this.fmtN(this.rgPoolN(M)) + (this.conds().length ? ' in the subgroup' : '') : '') + ' · ' + vce + (S.weightVar ? ' · weighted by ' + S.weightVar : '')));
     const parts = String(out.regInterp || '').split(/(?<=\.) (?=Each b|For a numeric|An odds ratio|For a category|With an interaction)/);
@@ -241,8 +266,10 @@
     // per level, as Stata's i.var; say so, with one click to use them as a number (one slope per step) instead
     const tr = S.treat || {}, asCat = (S.predictors || []).filter(p => { const m = this.effMeta(p); return m && m.type === 'numeric' && m.treatAs === 'categorical' && !tr[p] && (m.distinct || 0) >= 3; });
     if (asCat.length) kids.splice(1, 0, this.tlBanner('info', h('b', null, asCat.join(' and ') + (asCat.length > 1 ? ' are' : ' is') + ' read as categories'), ' because every code has a label, so each level gets its own row compared with the first level (as Stata’s i.' + asCat[0] + '). For one slope per step, e.g. per education level, use ' + (asCat.length > 1 ? 'them' : 'it') + ' as a number: ', ...asCat.map(p => this.tlBtn('Use ' + p + ' as a number', () => this.rgAsNumber(p))), h('span', { className: 'rg-mut' }, ' The N / C badge in step 3 switches it back.')));
-    if (model === 'logistic' || model === 'poisson') kids.push(this.rgAmeView(now, ctx));
-    return this.rgPanel(5, 'Results', 'the answer first; the full table, coefficient plot and Stata output below', ...kids);
+    // GM26 .74: the output first, compact as in Stata (fit, coefficients, plot); what it means goes below it (rgEl3)
+    const line = kids.shift(), ame = model === 'logistic' || model === 'poisson' ? this.rgAmeView(now, ctx) : null;
+    this._rgNotes = [ame, this.rgPanel(0, 'What the results say', 'the output above in words', line, ...kids)];
+    return this.rgPanel(5, 'Results', 'the output first, as in Stata; what it means is below', h('div', { className: 'rg-row' }, h('span', { className: 'rg-mut mono' }, this.rgDefs().models[model].t + ' · ' + this.rgDefs().models[model].st + ' ' + S.depVar + ' ' + (S.predictors || []).join(' '))));
   }
   // Average marginal effects: percentage points (logit) or expected counts (Poisson), with the model's variance.
   rgAme(now, ctx) {
@@ -473,14 +500,15 @@
     const status = S.analysisBusy ? this.tlBanner('info', S.analysisStatus || 'Computing…') : S.analysisError && S.analysisId === extra ? this.tlBanner('warn', S.analysisError, S.weightVar ? [' ', this.tlBtn('Clear the weight and run', () => { this.clearMemo(); this.setState({ weightVar: '', weightAuto: false }, () => this.rgRun(null)); }, 'primary', { key: 'cw' })] : null) : null;
     if (!r) return this.rgPanel(n, { results: 'Results', checks: 'Checks', predictions: 'Predictions', export: 'Export' }[part], M.t, status || this.tlBanner('info', 'Run the model to see the results. ', this.tlBtn('▶ Run ' + M.t, () => this.rgRun(null), 'primary')));
     const arr = v => v == null ? [] : Array.isArray(v) ? v : [v], lab = v => typeof v === 'string' ? this.asRelabel(v, r.labels || {}) : v, fmt = v => v == null ? '—' : typeof v === 'number' ? Number.isInteger(v) ? String(v) : Math.abs(v) > 0 && Math.abs(v) < 1e-4 ? v.toExponential(3) : Number(v.toPrecision(6)).toString() : String(lab(v));
-    const table = (t, i) => {
+    const table = (t, i) => this.rgStataTab(t, i, lab) || plainTable(t, i);
+    const plainTable = (t, i) => {
       const head = h('thead', null, h('tr', null, ...arr(t.columns).map((c, j) => h('th', { key: j }, lab(c)))));
       const body = h('tbody', null, ...arr(t.rows).slice(0, 300).map((row, k) => h('tr', { key: k }, ...arr(row).map((v, j) => h('td', { key: j, className: typeof v === 'number' ? 'mono' : '' }, fmt(v))))));
       return h('div', { key: 'tb' + i, className: 'rg-box' }, h('span', { className: 'tl-lbl' }, t.title), h('div', { className: 'rg-scroll', tabIndex: 0, role: 'region', 'aria-label': t.title }, h('table', { className: 'rg-tbl' }, head, body)));
     };
     const plots = re => arr(r.plots).filter(p => re.test(p.title)).map((p, i) => h('div', { key: 'pl' + i, className: 'rg-box' }, h('span', { className: 'tl-lbl' }, p.title), h('div', { className: 'as-plot', dangerouslySetInnerHTML: { __html: p.svg } })));
     const tabs = arr(r.tables), isPred = t => /^Predictions|^Predicted/.test(t.title);
-    if (part === 'results') return this.rgPanel(5, 'Results', M.t + ' · Analysis N = ' + r.analysisN + ' · input rows ' + r.inputN + ' · ' + (r.runtime || ''), status, ...arr(r.notes).map((t, i) => h('p', { key: 'n' + i, className: 'rg-lead small' }, lab(t))), ...tabs.filter(t => !isPred(t)).map(table), ...plots(/coef|effect|partial|smooth|spline/i));
+    if (part === 'results') return this.rgPanel(5, 'Results', M.t + ' · Analysis N = ' + r.analysisN + ' · input rows ' + r.inputN + ' · ' + (r.runtime || ''), status, ...tabs.filter(t => !isPred(t)).map(table), ...plots(/coef|effect|partial|smooth|spline/i), arr(r.notes).length ? h('div', { key: 'notes', className: 'rg-box' }, h('span', { className: 'tl-lbl' }, 'What the results say'), ...arr(r.notes).map((t, i) => h('p', { key: 'n' + i, className: 'rg-lead small' }, lab(t)))) : null); // GM26 .74: output first, notes below
     if (part === 'checks') return this.rgPanel(6, 'Checks', M.t, h('pre', { className: 'rg-code' }, arr(r.diagnostics).map(lab).join('\n') || 'This model has no additional diagnostic output.'), ...plots(/resid|fit|diagn|qq|root/i));
     if (part === 'predictions') { const pt = tabs.filter(isPred); return this.rgPanel(7, 'Predictions', M.t, pt.length ? null : this.tlBanner('info', 'Margins plots with chosen values are available for linear, logit, ordinal and Poisson regression; this model reports its own predictions where it has them.'), ...pt.map(table)); }
     let cm = null; try { const info = this.asCatalog().find(q => q.id === extra), c = (S.analysisPages || {})[extra] || {}; const x = this.asCommands(info, this.asPacket(info, c)); cm = { st: x.stata ?? x[0], r: x.r ?? x[1] }; } catch (e) { }

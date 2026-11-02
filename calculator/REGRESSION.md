@@ -1,3 +1,30 @@
+# Output first, compact as in Stata; interpretations checked against R — build 2026-11-02.74
+
+**Layout, the same for all 13 models.** Step 5 shows the output first, then "What the results say" (the verdict, the
+sentence, the categories note, Keep in mind, APA), then the key result.
+- Linear, logit, ordered logit and Poisson: the ANOVA table with Stata's fit list beside it ("Number of obs =",
+  "F(3, 12,570) =", "Prob > F", "R-squared", "Adj R-squared", "Root MSE"; for the others "LR chi2(k)" or "Wald
+  chi2(k)", "Pseudo R2", "Log likelihood"). Coefficient rows are tighter.
+- The coefficient table, the sentences, the reference note and the coefficient plot use variable names, as Stata
+  does. The Labels button switches them to labels.
+- The other nine models: their summary prints as "Number of obs = …" and their coefficients as Coef. / Std. err. / z /
+  P>|z| / [95% conf. interval], with `_cons` last. Their notes come after the tables.
+
+**Interpretation fixes** (`tests/regression-interp.test.mjs`, 7 tests). Every number in the sentences is checked
+against R (lm, glm, MASS::polr) on `tests/data/regression-interp.csv`, made by `tests/regression-interp-reference.R`.
+- More than four significant predictors: the sentence ends "; and N more (see the table)". It used to list four as if
+  they were all.
+- A numeric predictor coded in even steps (0 / 50 / 100; a 1–7 scale as 0–100) is also read per step: "idio2 (+, b =
+  0.127, i.e. 6.372 per +50)", and "OR 1.97 per +50" for the ratio models.
+- A tiny per-unit effect is read per +10, +100 …, never beyond the variable's range: age gives "OR 0.96 per +10", not
+  "per +100".
+- "Keep in mind" follows the model. A linear model whose F test had no p-value used to get the odds-ratio note.
+- An F of exactly 0 now has p = 1 (`pF`); it had no p-value, which read as "could easily be chance".
+- Robust, clustered or survey standard errors with logit, ordered logit or Poisson: a joint Wald test, as Stata
+  reports — chi2(k), or the adjusted F(k, d − k + 1) with a survey design. It appears in the fit list and decides the
+  verdict, instead of the LR test, which is not valid with sampling weights or clusters. Clustered logit Wald chi2(5)
+  = 112.28, as in R.
+
 # Scales read as categories — build 2026-11-02.73
 
 A numeric variable whose every code has a value label (0 = Peor, 50 = Igual, 100 = Mejor; 0 = Ninguno … 3 = Superior)
