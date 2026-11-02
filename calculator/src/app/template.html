@@ -1220,6 +1220,14 @@ code, kbd, samp { font-family: var(--font-mono); }
             </sc-for>
           </div>
         </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 10.5px; letter-spacing: 0.12em; color: var(--c5D5648, #5D5648);" title="Significance stars in every table: * ** *** at p below these levels">STARS * ** ***</div>
+          <div style="display: flex; gap: 5px;">
+            <sc-for list="{{ starBtns }}" as="t" hint-placeholder-count="2">
+              <button sc-camel-on-click="{{ t.click }}" style="{{ t.style }}">{{ t.label }}</button>
+            </sc-for>
+          </div>
+        </div>
         </div>
         <div class="mf-settings-view">
           <div class="mf-set-col"><div class="mf-eyebrow">Font</div><div class="mf-row"><sc-for list="{{ mfViewFont }}" as="t" hint-placeholder-count="2"><button sc-camel-on-click="{{ t.click }}" style="{{ t.style }}">{{ t.label }}</button></sc-for></div></div>
@@ -3960,7 +3968,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-02.63</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX / STATA DTA</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-02.64</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX / STATA DTA</span>
   </footer>
 </div>
 </x-dc>

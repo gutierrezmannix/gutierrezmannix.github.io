@@ -86,7 +86,7 @@ test('correlation page: variables, settings, cells, the pair panel and the expor
   const T=c.corTable(L);assert.match(T.title,/^Means, standard deviations, and correlations/);assert.equal(T.rows.length,3);
   c.corDocx(L);assert.equal(saved.name,'correlation-table.docx');assert.ok(saved.b.size>1000);
   // Spearman, the selected pair and the console
-  out=render(c,{corRows:'pairwise',corMethod:'spearman',corSel:[2,0]});const s=text(out.corEl);assert.match(s,/SPEARMAN ρ/);assert.match(s,/y × z|z × y/);
+  out=render(c,{corRows:'pairwise',corMethod:'spearman',corSel:[2,0]});const s=text(out.corEl);assert.match(s,/SPEARMAN RHO/);assert.match(s,/y × z|z × y/);
   const d=c.corDesc();assert.equal(d.t,'cx');assert.match(d.stata,/^spearman y y2 z@IF@, stats\(rho p obs\) pw/);assert.match(d.r,/method = "spearman"/);
   render(c,{corMethod:'pearson'});assert.match(c.corDesc().stata,/^pwcorr y y2 z@IF@, sig obs/);assert.match(c.corDesc().tbl,/before|y2/);
   render(c,{corRows:'listwise'});assert.match(c.corDesc().stata,/^correlate y y2 z@IF@/);

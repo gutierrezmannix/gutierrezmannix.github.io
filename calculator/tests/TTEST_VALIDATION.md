@@ -1,4 +1,4 @@
-# T-tests — validation (build 2026-11-01.62)
+# T-tests — validation (build 2026-11-02.64)
 
 Tests ▾ → T-tests has four designs: two independent groups, paired measurements, one sample against a value, and
 summary numbers. Build .62 redesigned the page (see `COMPARE-MEANS.md`): one sentence sets up the test, and it adds
@@ -28,7 +28,7 @@ one-sided tests and Word exports. The statistics below are unchanged.
 | `ttest y == 50`, `ttest a == b` | one sample, paired (opens the page) |
 | `t.test(y ~ g, data = df, var.equal = TRUE)` | Student’s |
 
-`level(#)` and R’s `conf.level` apply to that command only, as an `if` does: the next command is back at the
+Other options are refused, as in Stata (`ttest y, by(g) foo(3)`: option foo() not allowed). `level(#)` and R’s `conf.level` apply to that command only, as an `if` does: the next command is back at the
 confidence level set in Settings (or with `set level`).
 
 ## Validation
@@ -51,3 +51,6 @@ The page is `src/compare-means.js` (validated against SciPy by `tests/compare-me
 reuses lives in `src/app/component.js` (`ttRecord`, `ttCommands`, `ttGroups`, `stataTtestSummary`,
 `ttStataText`, `ttRText`) and `src/app/engine.mjs` (`ttDetails`, `oneSampleT`, `pairedT`, `ttCritical`); the console
 printouts for `by()` and `welch` are in `src/console-stata.js` (`cxTtestPooled`).
+
+Build .64: a one-sided test after ⇄ swap (or with groups picked high-to-low) exports R's alternative in R's own order
+("first > second" on the page is `alternative = "less"` in R), checked in `tests/regression-numerics.test.mjs`.

@@ -10,7 +10,7 @@ class Component extends DCLogic {
     fileName: '', nRows: 0, cols: [], treat: {},
     tab: 'one', search: '',
     weightVar: '', weightAuto: false, missingCodes: '', missingDraft: '', pk: null, pq: '', autoScreen: true,
-    exploreVar: '', xVar: '', yVar: '', depVar: '', predictors: [], regModel: 'ols', alphaSel: '', chartColor: '',
+    exploreVar: '', xVar: '', yVar: '', depVar: '', predictors: [], regModel: 'ols', alphaSel: '', starSet: 'apa', chartColor: '',
     guideOn: true, dhOpen: false, dhQ1: '', dhQ2: '',
     tsInputMode: '', tsFreq: '', tsPart: '', tsTarget: 'same', tsAggregate: 'none', tsSource: '', tsSourceValue: '', tsCount: '', tsPop: '', tsScale: '100000',
     tsT: null, tsU: null, tsY: '', tsSel: [], tsSelQ: '', tsAvg: false, tsTr: 'level', tsT0: '', tsT1: '', tsEvName: 'event', tsEv: '', tsEvU: {}, tsType: 'both', tsAr1: false, tsAdd: { post: true, since: true }, tsApply: 'sel', tsMsg: '', tsAll: false, tsEvVar: '',
@@ -1939,7 +1939,7 @@ class Component extends DCLogic {
     // Categorical predictors: Stata factor variables (text variables encoded first, as Stata requires numbers;
     // encode numbers levels alphabetically, so the base level is the same as R's) and factor() for coded numbers in R.
     const dv=k=>packet.data?.[k]||{},cat=k=>dv(k).type==='categorical',str=k=>cat(k)&&((this.effMeta?.(nm(k))||{}).type!=='numeric'),pk=f.predictors||[];
-    const stPre=pk.filter(str).map(k=>'encode '+nm(k)+' generate('+nm(k)+'_c)'),stX=pk.map(k=>str(k)?'i.'+nm(k)+'_c':cat(k)?'i.'+nm(k):nm(k)).join(' '),rX=pk.map(k=>cat(k)&&!str(k)?'factor('+q(nm(k))+')':q(nm(k))).join(' + ');
+    const stPre=pk.filter(str).map(k=>'encode '+nm(k)+', generate('+nm(k)+'_c)'),stX=pk.map(k=>str(k)?'i.'+nm(k)+'_c':cat(k)?'i.'+nm(k):nm(k)).join(' '),rX=pk.map(k=>cat(k)&&!str(k)?'factor('+q(nm(k))+')':q(nm(k))).join(' + ');
     const pen=id=>{const fam=o.family==='binomial'?'binomial':'gaussian',alpha=Number(num('penalty')??(id==='ridge'?0:id==='lasso'?1:.5)),K=Number(num('folds')??5),fr=Number(num('trainFraction')??.8),seed=Number(num('seed')??1729),vars=[Y,...X];
       const st=['* GM26 fits glmnet with R random numbers; Stata draws its own split and folds so estimates differ slightly',...stPre,'gen byte gm_ok = 1','markout gm_ok '+[Y,...pk.map(k=>nm(k))].join(' '),'splitsample if gm_ok, generate(gm_split) split('+fr+' '+Math.round((1-fr)*100)/100+') rseed('+seed+')',(alpha===1?'lasso '+(fam==='binomial'?'logit':'linear'):'elasticnet '+(fam==='binomial'?'logit':'linear'))+' '+Y+' '+stX+' if gm_split == 1, '+(alpha===1?'':'alpha('+alpha+') ')+'selection(cv, folds('+K+') serule) rseed('+seed+')','lassocoef, display(coef, penalized)'].join('\n');
       const r=['library(glmnet)','d <- na.omit(df[c('+vars.map(x=>JSON.stringify(x)).join(', ')+')])','set.seed('+seed+'); tr <- sort(sample.int(nrow(d), floor(nrow(d) * '+fr+')))','X <- model.matrix(~ '+rX+', d)[, -1, drop = FALSE]','m <- cv.glmnet(X[tr, , drop = FALSE], d[["'+Y+'"]][tr], family = "'+fam+'", alpha = '+alpha+', nfolds = '+K+')','coef(m, s = "lambda.1se")'].join('\n');
@@ -1969,7 +1969,7 @@ class Component extends DCLogic {
       robustreg:()=>[null,'MASS::rlm('+q(Y)+' ~ '+rx+', data = df, maxit = 200)'],zeroinfl:()=>[null,'pscl::zeroinfl('+q(Y)+' ~ '+rx+', data = df, dist = "'+(o.countFamily||'negbin')+'")'],hurdle:()=>[null,'pscl::hurdle('+q(Y)+' ~ '+rX+(one('offset')?' + offset(log('+q(one('offset'))+'))':'')+', data = df, dist = "'+(o.countFamily||'negbin')+'")'],
       // Difference GMM (plm::pgmm, two-step, collapsed instruments, Windmeijer SEs) = xtabond2 … noleveleq twostep robust
       panel_dynamic:()=>{const Lg=Number(num('lags')??2),subStr=(this.effMeta?.(S)||{}).type!=='numeric',sid=subStr?S+'_c':S,xs=pk.map(k=>str(k)?'i.'+nm(k)+'_c':cat(k)?'i.'+nm(k):nm(k)).join(' ');
-        const st=['* xtabond2 is user-written: ssc install xtabond2',...stPre,...(subStr?['encode '+S+' generate('+S+'_c)']:[]),'xtset '+sid+' '+T,'xtabond2 '+Y+' L.'+Y+' '+xs+', gmm(L.'+Y+', laglimits(1 '+(Lg-1)+') collapse) iv('+xs+') noleveleq twostep robust'].join('\n');
+        const st=['* xtabond2 is user-written: ssc install xtabond2',...stPre,...(subStr?['encode '+S+', generate('+S+'_c)']:[]),'xtset '+sid+' '+T,'xtabond2 '+Y+' L.'+Y+' '+xs+', gmm(L.'+Y+', laglimits(1 '+(Lg-1)+') collapse) iv('+xs+') noleveleq twostep robust'].join('\n');
         const r=['library(plm)','d <- na.omit(df[c('+[Y,...pk.map(k=>nm(k)),S,T].map(x=>JSON.stringify(x)).join(', ')+')])','X <- model.matrix(~ '+rX+', d)[, -1, drop = FALSE]; colnames(X) <- make.names(colnames(X), unique = TRUE)','pd <- pdata.frame(cbind(d, X), index = c('+JSON.stringify(S)+', '+JSON.stringify(T)+'))','m <- pgmm(as.formula(paste('+JSON.stringify(Y+' ~ lag('+Y+', 1) +')+', paste(colnames(X), collapse = " + "), '+JSON.stringify('| lag('+Y+', 2:'+Lg+')')+')), data = pd, effect = "individual", model = "twosteps", transformation = "d", collapse = TRUE)','summary(m, robust = TRUE)'].join('\n');return [st,r];},
       mixed:()=>['mixed '+Y+' '+sx+' || '+S+':'+(o.randomSlope?' '+nm(o.randomSlope):'')+(o.reml===false?', mle':', reml'),'lme4::lmer('+q(Y)+' ~ '+rx+' + (1'+(o.randomSlope?' + '+q(nm(o.randomSlope)):'')+' | '+q(S)+'), data = df)'],
       glmm:()=>[({binomial:'melogit',poisson:'mepoisson',negbin:'menbreg'})[o.family||'binomial']+' '+Y+' '+sx+' || '+S+':',null],
@@ -1984,10 +1984,11 @@ class Component extends DCLogic {
         return ['bootstrap r('+({mean:'mean',median:'p50',sd:'sd'})[st]+'), reps('+B+') seed('+seed+'): summarize '+Y+(st==='median'?', detail':'')+'\nestat bootstrap, percentile','set.seed('+seed+')\nb <- boot::boot(na.omit(df$'+q(Y)+'), function(a, i) '+fn+'(a[i]), R = '+B+')\nboot::boot.ci(b, conf = '+lv+', type = c("perc", "bca"))'];},
       survey_desc:()=>['svyset '+(one('psu')||'_n')+' [pweight = '+W+']'+(one('strata')?', strata('+one('strata')+')':'')+'\nsvy: '+((o.surveyStat||'mean')==='total'?'total':'mean')+' '+V.join(' '),'survey::svy'+((o.surveyStat||'mean')==='total'?'total':'mean')+'(~'+V.map(q).join(' + ')+', design = survey::svydesign(ids = ~'+(one('psu')?q(one('psu')):'1')+(one('strata')?', strata = ~'+q(one('strata')):'')+', weights = ~'+q(W)+', data = df, nest = TRUE))'],
       impute:()=>{const A=v('auxiliary').filter(x=>x!==Y&&!X.includes(x)),all=[Y,...X,...A],keys=[...(f.y||[]).slice(0,1),...(f.predictors||[]),...(f.auxiliary||[]).filter(k=>!(f.y||[]).includes(k)&&!(f.predictors||[]).includes(k))],m=Number(num('imputations')??20),it=Number(num('iterations')??10),seed=Number(num('seed')??1729),fam=o.family||'gaussian';
-        const miss=k=>(dv(k).values||[]).some(x=>x==null),sv=k=>str(k)?nm(k)+'_c':nm(k),lv=k=>new Set((dv(k).values||[]).filter(x=>x!=null)).size,meth=k=>!cat(k)?'pmm, knn(5)':lv(k)===2?'logit':'mlogit',groups={};
+        const lvls=k=>{const u=[...new Set((dv(k).values||[]).filter(x=>x!=null).map(String))];return u.sort((a,b)=>str(k)?a.localeCompare(b):Number(a)-Number(b));},recode=k=>{const L=lvls(k);return cat(k)&&L.length===2&&(str(k)||!(Number(L[0])===0&&Number(L[1])===1));};
+        const miss=k=>(dv(k).values||[]).some(x=>x==null),sv=k=>str(k)||recode(k)?nm(k)+'_c':nm(k),lv=k=>new Set((dv(k).values||[]).filter(x=>x!=null)).size,meth=k=>!cat(k)?'pmm, knn(5)':lv(k)===2?'logit':'mlogit',groups={};
         keys.filter(miss).forEach(k=>{(groups[meth(k)]=groups[meth(k)]||[]).push(sv(k));});
         const full=keys.filter(k=>!miss(k)).map(k=>cat(k)?'i.'+sv(k):sv(k)),est=fam==='binomial'?'logit':fam==='poisson'?'poisson':'regress';
-        const st=['* GM26 runs R\'s mice; Stata draws its own imputations, so estimates differ slightly',...keys.filter(str).map(k=>'encode '+nm(k)+' generate('+nm(k)+'_c)'),'mi set wide','mi register imputed '+keys.filter(miss).map(sv).join(' '),'mi impute chained '+Object.entries(groups).map(([mm,vs])=>'('+mm+') '+vs.join(' ')).join(' ')+(full.length?' = '+full.join(' '):'')+', add('+m+') burnin('+it+') rseed('+seed+')','mi estimate: '+est+' '+sv(keys[0])+' '+(f.predictors||[]).map(k=>cat(k)?'i.'+sv(k):sv(k)).join(' ')].join('\n');
+        const st=['* GM26 runs R\'s mice; Stata draws its own imputations, so estimates differ slightly',...keys.filter(k=>str(k)||recode(k)).map(k=>recode(k)?'generate byte '+nm(k)+'_c = ('+nm(k)+' == '+(str(k)?JSON.stringify(lvls(k)[1]):lvls(k)[1])+') if !missing('+nm(k)+')':'encode '+nm(k)+', generate('+nm(k)+'_c)'),'mi set wide','mi register imputed '+keys.filter(miss).map(sv).join(' '),'mi impute chained '+Object.entries(groups).map(([mm,vs])=>'('+mm+') '+vs.join(' ')).join(' ')+(full.length?' = '+full.join(' '):'')+', add('+m+') burnin('+it+') rseed('+seed+')','mi estimate: '+est+' '+sv(keys[0])+' '+(f.predictors||[]).map(k=>cat(k)?'i.'+sv(k):sv(k)).join(' ')].join('\n');
         const r=['library(mice)','d <- df[c('+all.map(x=>JSON.stringify(x)).join(', ')+')]','d[] <- lapply(d, function(v) if (is.character(v)) factor(v) else v)','imp <- mice(d, m = '+m+', maxit = '+it+', seed = '+seed+', printFlag = FALSE)','fit <- with(imp, glm('+q(Y)+' ~ '+rx+', family = '+fam+'()))','summary(pool(fit), conf.int = TRUE)','pool(fit)$pooled[, c("term", "riv", "lambda", "fmi")]'].join('\n');
         return [st,r];},
       missing:()=>['misstable summarize '+V.join(' '),'colSums(is.na(df[c('+V.map(x=>JSON.stringify(x)).join(', ')+')]))'],
@@ -2072,7 +2073,7 @@ class Component extends DCLogic {
       L.push(H(title,'Number of obs',n));if(!rob)L.push(H('','LR chi2('+k+')',lr.toFixed(2)),H('','Prob > chi2',f4(E.pChi2(lr,k))));L.push(H((rob?'Log pseudolikelihood = ':'Log likelihood = ')+Number(Mo.ll.toPrecision(8)),'Pseudo R2',f4(Mo.mcfadden)),'');}
     if(cl){const G0=this.groupLab(d.vce.cl)||[],mk=this.mask();const set=new Set();G0.forEach((g,i)=>{if(g!=null&&g!==''&&(!mk||mk[i]))set.add(g);});L.push(('(Std. err. adjusted for '+set.size+' clusters in '+d.vce.cl+')').padStart(78));}
     const row=(lab,c)=>lab+' |'+R(G(c.b),11)+R(G(c.se),11)+R(Number.isFinite(c.t)?c.t.toFixed(2):'.',9)+R(Number.isFinite(c.p)?c.p.toFixed(3):'.',8)+R(G(c.b-crit*c.se),13)+R(G(c.b+crit*c.se),12);
-    L.push('------------------------------------------------------------------------------');if(rob)L.push('             |               Robust');L.push(R(this.abbr(d.y,12),12)+' | Coefficient  '+(rob?'std. err.':'Std. err.')+'      '+zc+'    P>|'+zc+'|     [95% conf. interval]','-------------+----------------------------------------------------------------');
+    L.push('------------------------------------------------------------------------------');if(rob)L.push('             |               Robust');L.push(R(this.abbr(d.m==='logistic'&&d.yOne?d.y.slice(0,30)+'_1':d.y,12),12)+' | Coefficient  '+(rob?'std. err.':'Std. err.')+'      '+zc+'    P>|'+zc+'|     [95% conf. interval]','-------------+----------------------------------------------------------------');
     const {out,cons}=this.regRows(d,Mo);out.forEach(r=>{if(r.kind==='x')L.push(row(R(this.abbr(r.v,12),12),r.c));else{if(L[L.length-1]!=='             |')L.push('             |');L.push(R(this.abbr(r.v,12),12)+' |');r.levels.forEach(q=>{if(q.c)L.push(row(R(String(q.l).slice(0,10),11)+' ',q.c));});L.push('             |');}});
     if(cons)L.push(row(R('_cons',12),cons));
     if(Mo.cuts&&Mo.cuts.length){L.push('-------------+----------------------------------------------------------------');Mo.cuts.forEach((c,i)=>L.push(R('/cut'+(i+1),12)+' |'+R(G(c.b),11)+R(G(c.se),11)+R('',17)+R(G(c.b-crit*c.se),13)+R(G(c.b+crit*c.se),12)));}
@@ -2097,8 +2098,15 @@ class Component extends DCLogic {
   // Stata needs numbers for factor variables (text variables are encoded first); R's clustered vcov needs rows
   // with an observed cluster; classical lm / glm print the coeftest() table.
   regFix(s,d,dial){if(d.t!=='reg'||!s)return s;
-    if(dial==='stata'){const str=[...d.xs.filter(x=>x.c).map(x=>x.n),...(d.ix||[]).flatMap(p=>[p.ca?p.a:null,p.cb?p.b:null]).filter(Boolean)].filter((v,i,a)=>a.indexOf(v)===i&&(this.effMeta(v)||{}).type!=='numeric');if(!str.length)return s;
-      return str.map(v=>'encode '+v+', generate('+v+'_c)').join('\n')+'\n'+str.reduce((t,v)=>t.replace(new RegExp('\\bi\\.'+v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','g'),'i.'+v+'_c'),s);}
+    // A logistic outcome that is not coded 0/1 (text such as "sí"/"no", or codes such as 1/2) is recoded so the value the
+    // page models is 1: Stata's logit needs 0/1 and R's glm(binomial) rejects text and 1/2.
+    const esc=v=>String(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),one=d.m==='logistic'&&d.yOne?d.yOne:null,lit=one?(one.num?String(one.v):'"'+String(one.v).replace(/"/g,'\\"')+'"'):'';
+    if(dial==='stata'){const pre=[];
+      if(one){const nv=d.y.slice(0,30)+'_1';pre.push('capture drop '+nv,'generate byte '+nv+' = ('+d.y+' == '+lit+') if !missing('+d.y+')');s=s.replace(new RegExp('\\blogit '+esc(d.y)+'(?![\\w])','g'),'logit '+nv);}
+      const str=[...d.xs.filter(x=>x.c).map(x=>x.n),...(d.ix||[]).flatMap(p=>[p.ca?p.a:null,p.cb?p.b:null]).filter(Boolean)].filter((v,i,a)=>a.indexOf(v)===i&&(this.effMeta(v)||{}).type!=='numeric');
+      if(str.length){str.forEach(v=>pre.push('encode '+v+', generate('+v+'_c)'));s=str.reduce((t,v)=>t.replace(new RegExp('\\bi\\.'+esc(v)+'\\b','g'),'i.'+v+'_c'),s);}
+      return pre.length?pre.join('\n')+'\n'+s:s;}
+    if(one)s=s.replace(new RegExp('\\(\\s*'+esc(d.y)+' ~','g'),'(I('+d.y+' == '+lit+') ~');
     if(d.vce&&d.vce.type==='cluster')s=s.replace(/data = (df|sub)\b/,(m,x)=>'data = subset('+x+', !is.na('+d.vce.cl+'))');
     if(!d.vce&&d.m!=='ologit'){const lines=s.split('\n'),last=lines.pop(),mm=last.match(/^summary\(((?:lm|glm)\([\s\S]*\))\)\s*$/);if(mm)return [...lines,'library(lmtest)','m <- '+mm[1],'coeftest(m)'].join('\n');}
     return s;}
@@ -6075,7 +6083,7 @@ class Component extends DCLogic {
     const conds = [...(d.sg || []), ...(d.ifc || [])];
     if (dial !== 'stata') return this.withIf(d.r, conds, 'r');
     const ex = conds.map(c => this.condExpr(c, 'stata')).filter(Boolean).join(' & ');
-    return String(d.stata).replace('@IF@', ex ? ' if ' + ex : '');
+    return String(d.stata).replace('@IF@', ex ? ' if ' + ex : '').replace(/@AND@/g, ex ? ' & ' + ex : '');
   }
   cxSplit(s) {
     // "verb varlist [if exp] [weight] [, options]" → parts (Stata's order)
@@ -6914,7 +6922,12 @@ class Component extends DCLogic {
       else {
         const N = this.cmName(D), pct = Math.round(100 * (1 - r.alpha)), ciTxt = (Number.isFinite(r.lo) ? this.cmSigned(r.lo) : '−∞') + ' to ' + (Number.isFinite(r.hi) ? this.cmSigned(r.hi) : '∞');
         if (D.summary) this._ttLast = this.cmSummaryLog(D, r);
-        else if (this._ttLast && r.alt !== 'two') { const L = this._ttLast; this._ttLast = Object.assign({}, L, { r: String(L.r).replace(/\)$/, ', alternative = "' + (r.alt === 'gt' ? 'greater' : 'less') + '")'), res: L.res + ' (one-sided p ' + this.apaP(r.p).replace(/^p /, '') + ')' }); }
+        else if (this._ttLast && r.alt !== 'two') {
+          // R's t.test(y ~ g) subtracts in its own order (lower code first). When the page's order is the reverse (swapped,
+          // or the groups picked high-to-low), "first > second" on the page is "less" in R.
+          const L = this._ttLast, flip = mode === 'groups' && this.ttGroups().flip, rAlt = (r.alt === 'gt') !== flip ? 'greater' : 'less';
+          this._ttLast = Object.assign({}, L, { r: String(L.r).replace(/\)$/, ', alternative = "' + rAlt + '")') + (flip ? '\n# R subtracts ' + this.ttGroups().lo + ' minus ' + this.ttGroups().hi + ', the reverse of the page, so the one-sided alternative is reversed too' : ''), res: L.res + ' (one-sided p ' + this.apaP(r.p).replace(/^p /, '') + ')' });
+        }
         const L = this._ttLast, used = N.mode === 'paired' ? r.groups[0].n : r.groups.reduce((t, g) => t + g.n, 0);
         const pill = h('span', { className: 'cm-pill ' + (r.sig ? 'sig' : 'ns') }, (r.sig ? 'SIGNIFICANT · ' : 'NOT SIGNIFICANT · ') + this.apaP(r.p) + (r.alt === 'two' ? '' : ' one-sided'));
         const meta = h('span', { className: 'cm-meta' }, N.test + (D.summary ? ' · from summary numbers' : ' · ' + this.fmtN(used) + (N.mode === 'paired' ? ' complete pairs' : ' cases used') + ' of ' + this.fmtN(this.keptN())));
@@ -6944,7 +6957,9 @@ class Component extends DCLogic {
     if (Array.isArray(S.corVars)) return S.corVars.filter(ok);
     const seed = [S.xVar, S.yVar].filter((v, i, a) => v && ok(v) && a.indexOf(v) === i);
     if (seed.length === 2) return seed;
-    return (S.cols || []).filter(c => ok(c.name) && (this.effMeta(c.name).treatAs || 'numeric') === 'numeric' && c.distinct > 2 && c.distinct < (S.nRows || Infinity)).slice(0, 5).map(c => c.name);
+    // the first five numeric variables, leaving out yes/no codes and identifiers (whole numbers, a different one on every
+    // row); a continuous measure whose values never repeat (income, height) is kept
+    return (S.cols || []).filter(c => ok(c.name) && (this.effMeta(c.name).treatAs || 'numeric') === 'numeric' && c.distinct > 2 && !(c.allInt && c.distinct >= (c.valid || S.nRows || Infinity))).slice(0, 5).map(c => c.name);
   }
   corShowNow() { return Object.assign({ stars: true, n: true, p: false, ci: false }, this.state.corShow || {}); }
   corCompute(vars) {
@@ -6974,7 +6989,7 @@ class Component extends DCLogic {
     return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
   }
   corR(v) { return Number.isFinite(v) ? v.toFixed(2).replace(/^(-?)0\./, '$1.').replace(/^-/, '−') : '—'; }
-  corStars(p) { return !Number.isFinite(p) ? '' : p < 0.001 ? '***' : p < 0.01 ? '**' : p < 0.05 ? '*' : ''; }
+  corStars(p) { return this.starsOf(p); }
   // two bands so the text always has 4.5:1 contrast: light tints with dark text up to |r| = .35, then solid tones with white text
   corColor(r) {
     if (!Number.isFinite(r)) return '#F4F1EA';
@@ -6988,8 +7003,23 @@ class Component extends DCLogic {
   corDesc() {
     const S = this.state, vars = this.corVarsNow(); if (vars.length < 2 || S.screen !== 'work') return null;
     const M = this.corCompute(vars), sp = M.method === 'spearman', wv = S.weightVar, vl = vars.join(' '), rv = 'df[, c(' + vars.map(v => '"' + v + '"').join(', ') + ')]';
-    const stata = sp ? 'spearman ' + vl + '@IF@, stats(rho p obs)' + (M.listwise ? '' : ' pw') : M.listwise ? 'correlate ' + vl + '@IF@' + (wv ? ' [aw=' + wv + ']' : '') : 'pwcorr ' + vl + '@IF@' + (wv ? ' [aw=' + wv + ']' : '') + ', sig obs';
-    const r = sp ? 'psych::corr.test(' + rv + ', method = "spearman", use = "' + (M.listwise ? 'complete' : 'pairwise') + '", adjust = "none")' : M.listwise ? 'cor(' + rv + ', use = "complete.obs")' : 'psych::corr.test(' + rv + ', use = "pairwise", adjust = "none")';
+    let stata = sp ? 'spearman ' + vl + '@IF@, stats(rho p obs)' + (M.listwise ? '' : ' pw') : M.listwise ? 'correlate ' + vl + '@IF@' + (wv && M.w ? ' [aw=' + wv + ']' : '') : 'pwcorr ' + vl + '@IF@' + (wv && M.w ? ' [aw=' + wv + ']' : '') + ', sig obs';
+    let r = sp ? 'psych::corr.test(' + rv + ', method = "spearman", use = "' + (M.listwise ? 'complete' : 'pairwise') + '", adjust = "none")' : M.listwise ? 'cor(' + rv + ', use = "complete.obs")' : 'psych::corr.test(' + rv + ', use = "pairwise", adjust = "none")';
+    if (wv && M.w) {
+      // Weighted: R's cor() and psych ignore weights, and Stata's spearman takes none, so the commands compute what the
+      // page does — the weighted (analytic-weight) correlation, of the values (Pearson) or of their ranks (Spearman),
+      // each pair on its complete rows or all on the rows complete on every variable.
+      const vv = 'v <- c(' + vars.map(v => '"' + v + '"').join(', ') + ')', rk = x => sp ? 'rank(' + x + ')' : x;
+      r = M.listwise
+        ? vv + '\nd <- na.omit(df[c(v, "' + wv + '")])\ncov.wt(' + (sp ? 'sapply(d[v], rank)' : 'd[v]') + ', wt = d$' + wv + ', cor = TRUE)$cor'
+        : vv + '\nw <- df$' + wv + '\nsapply(v, function(i) sapply(v, function(j) { ok <- complete.cases(df[[i]], df[[j]], w); cov.wt(cbind(' + rk('df[[i]][ok]') + ', ' + rk('df[[j]][ok]') + '), wt = w[ok], cor = TRUE)$cor[1, 2] }))';
+      if (sp) {
+        const nm = v => ('_r' + v).slice(0, 32), cmpl = 'if !missing(' + [...vars, wv].join(', ') + ')@AND@';
+        stata = M.listwise
+          ? ['* Stata\'s spearman takes no weights: the weighted Spearman is the weighted correlation of the ranks', ...vars.map(v => 'capture drop ' + nm(v) + '\negen ' + nm(v) + ' = rank(' + v + ') ' + cmpl), 'pwcorr ' + vars.map(nm).join(' ') + ' [aw=' + wv + '], sig obs'].join('\n')
+          : ['* Stata\'s spearman takes no weights: the weighted Spearman is the weighted correlation of the ranks,', '* each pair ranked on its own complete rows', 'local v ' + vl, 'local n : word count `v\'', 'forvalues i = 1/`n\' {', '  forvalues j = `=`i\'+1\'/`n\' {', '    local a : word `i\' of `v\'', '    local b : word `j\' of `v\'', '    capture drop _ra _rb', '    egen _ra = rank(`a\') if !missing(`a\', `b\', ' + wv + ')@AND@', '    egen _rb = rank(`b\') if !missing(`a\', `b\', ' + wv + ')@AND@', '    display "`a\' and `b\'"', '    pwcorr _ra _rb [aw=' + wv + '], sig obs', '  }', '}'].join('\n');
+      }
+    }
     return this.memo('corD|' + vars.join(',') + '|' + M.method + '|' + M.listwise + '|' + (wv || ''), () => {
       let tbl = '';
       try { const mk = this.mask(), w = M.w; tbl = sp ? this.corText(M) : M.listwise ? this.cxCorrelate(vars, mk, w).tbl : this.cxPwcorr(vars, mk, w, { sig: true, obs: true }).tbl; } catch (e) { tbl = this.corText(M); }
@@ -7037,7 +7067,7 @@ class Component extends DCLogic {
     const rows = V.map((v, i) => [(i + 1) + '. ' + v, f2(M.desc[i].mean), f2(M.desc[i].sd), ...V.slice(0, -1).map((_, j) => j < i ? this.corR(M.cells[i][j].r) + this.corStars(M.cells[i][j].p) + (show.ci ? ' [' + this.corR(M.cells[i][j].lo) + ', ' + this.corR(M.cells[i][j].hi) + ']' : '') : '')]);
     const ns = []; V.forEach((_, i) => V.forEach((__, j) => { if (j < i && M.cells[i][j].n) ns.push(M.cells[i][j].n); }));
     const nTxt = M.listwise ? 'n = ' + this.fmtN(M.nAll) + ' (rows complete on every variable)' : 'pairwise deletion, n = ' + (Math.min(...ns) === Math.max(...ns) ? this.fmtN(ns[0]) : this.fmtN(Math.min(...ns)) + '–' + this.fmtN(Math.max(...ns)));
-    return { title: 'Means, standard deviations, and ' + (M.method === 'spearman' ? 'Spearman ' : '') + 'correlations' + (show.ci ? ' with confidence intervals' : ''), head, rows, note: 'Note. M and SD are the mean and standard deviation. ' + (M.method === 'spearman' ? 'Spearman’s ρ' : 'Pearson’s r') + '; ' + nTxt + '.' + (show.ci ? ' Brackets: ' + Math.round((1 - this.alpha()) * 100) + '% confidence intervals.' : '') + ' * p < .05. ** p < .01. *** p < .001.' };
+    return { title: 'Means, standard deviations, and ' + (M.method === 'spearman' ? 'Spearman ' : '') + 'correlations' + (show.ci ? ' with confidence intervals' : ''), head, rows, note: 'Note. M and SD are the mean and standard deviation. ' + (M.method === 'spearman' ? 'Spearman’s ρ' : 'Pearson’s r') + '; ' + nTxt + '.' + (show.ci ? ' Brackets: ' + Math.round((1 - this.alpha()) * 100) + '% confidence intervals.' : '') + ' ' + this.starNote().replace(/, /g, '. ') + '.' };
   }
   corDocx(M) { const T = this.corTable(M); this.dlBlob(this.docxBlob([{ k: 'table', title: T.title, head: T.head, rows: T.rows, note: T.note }]), 'correlation-table.docx'); this.flash('Downloaded a Word file (.docx)'); }
   async corCopyWord(M) {
@@ -7067,7 +7097,7 @@ class Component extends DCLogic {
       return h('td', { key: u }, h('button', { type: 'button', className: 'cr-cell' + (on ? ' on' : ''), style: { background: this.corColor(c.r), color: dark ? '#fff' : '#2B271E' }, 'aria-pressed': on ? 'true' : 'false', 'aria-label': v + ' and ' + u + ': ' + sym + ' = ' + this.corR(c.r) + ', p ' + this.fmtP(c.p) + ', n ' + c.n, title: c.err || (sym + ' = ' + this.corR(c.r) + ' · p ' + this.fmtP(c.p) + ' · n ' + c.n + (Number.isFinite(c.lo) ? ' · ' + Math.round((1 - this.alpha()) * 100) + '% CI ' + this.corR(c.lo) + ' to ' + this.corR(c.hi) : '')), onClick: () => this.setState({ corSel: [i, j] }) },
         h('span', { className: 'r' }, this.corR(c.r) + (show.stars ? this.corStars(c.p) : '')), show.p ? h('span', { className: 's' }, 'p ' + this.fmtP(c.p)) : null, show.n ? h('span', { className: 's' }, 'n ' + this.fmtN(c.n)) : null, show.ci && Number.isFinite(c.lo) ? h('span', { className: 's' }, '[' + this.corR(c.lo) + ', ' + this.corR(c.hi) + ']') : null));
     })); });
-    const legend = h('div', { className: 'cr-legend' }, h('div', { className: 'cr-scale', 'aria-hidden': 'true' }), h('div', { className: 'mono', style: { display: 'flex', justifyContent: 'space-between', width: '72px', fontSize: '10px' } }, '−.6', h('span', null, '0'), '+.6'), h('br'), '* p < .05', h('br'), '** p < .01', h('br'), '*** p < .001', h('br'), h('br'), h('b', null, 'Click a cell'), h('br'), 'to see the pair');
+    const legend = h('div', { className: 'cr-legend' }, h('div', { className: 'cr-scale', 'aria-hidden': 'true' }), h('div', { className: 'mono', style: { display: 'flex', justifyContent: 'space-between', width: '72px', fontSize: '10px' } }, '−.6', h('span', null, '0'), '+.6'), h('br'), ...this.starNote().split(', ').flatMap((x, i) => i ? [h('br'), x] : [x]), h('br'), h('br'), h('b', null, 'Click a cell'), h('br'), 'to see the pair');
     const exportsRow = h('div', { className: 'tl-row cm-actions' }, this.tlBtn('Copy matrix (numbers)', () => this.corCopyMatrix(M)), this.tlBtn('Download CSV (r, p, n)', () => this.corCsv(M)), this.tlBtn('Word table (.docx)', () => this.corDocx(M), 'primary'), this.tlBtn('Copy table for Word', () => this.corCopyWord(M)), this.tlBtn('Pin to report', () => this.pinTab()));
     const matrix = h('section', { className: 'tl-panel cm-answer' }, h('div', { className: 'cm-body' },
       h('div', { className: 'tl-row cm-top' }, h('span', { className: 'cm-meta' }, (M.method === 'spearman' ? 'Spearman’s ρ' : 'Pearson’s r') + ' · ' + (M.listwise ? this.fmtN(M.nAll) + ' rows complete on all ' + k + ' variables' : 'each pair on its complete rows') + ' · ' + (this.stampText() || ''))),
@@ -7076,11 +7106,11 @@ class Component extends DCLogic {
     const c = M.cells[sel[0]][sel[1]], a = vars[sel[0]], b = vars[sel[1]], cc = Object.assign({ a, b }, c);
     let pair = null;
     if (Number.isFinite(c.r)) {
-      const sym2 = M.method === 'spearman' ? 'PEARSON r' : 'SPEARMAN ρ', other = M.method === 'spearman' ? c.rP : c.rS, otherP = M.method === 'spearman' ? c.pP : c.pS, apa = (M.method === 'spearman' ? 'rₛ' : 'r') + '(' + (c.n - 2) + ') = ' + this.corR(c.r) + ', ' + this.apaP(c.p);
+      const sym2 = M.method === 'spearman' ? 'PEARSON r' : 'SPEARMAN RHO', other = M.method === 'spearman' ? c.rP : c.rS, otherP = M.method === 'spearman' ? c.pP : c.pS, apa = (M.method === 'spearman' ? 'rₛ' : 'r') + '(' + (c.n - 2) + ') = ' + this.corR(c.r) + ', ' + this.apaP(c.p);
       const dir = c.r >= 0 ? 'as ' + b + ' goes up, ' + a + ' tends to go up' : 'as ' + b + ' goes up, ' + a + ' tends to go down';
       pair = h('section', { className: 'tl-panel' }, h('div', { className: 'tl-ptitle' }, h('h3', null, 'Selected pair'), h('span', { className: 'mono' }, b + ' × ' + a), h('div', { className: 'tl-pr' }, h('span', { className: 'cm-meta' }, 'click another cell'))),
         h('div', { className: 'cm-body cr-pair' }, h('figure', { style: { margin: 0 } }, this.corScatter(M, cc)),
-          h('div', { className: 'tl-col' }, h('div', { className: 'cm-stats' }, this.tlStat((M.method === 'spearman' ? 'SPEARMAN ρ' : 'PEARSON r') + ' · ' + Math.round((1 - this.alpha()) * 100) + '% CI', this.corR(c.r), this.corR(c.lo) + ' to ' + this.corR(c.hi)), this.tlStat(sym2, this.corR(other), 'p ' + this.fmtP(otherP)), this.tlStat('N (PAIRS)', this.fmtN(c.n), M.listwise ? 'complete on all' : this.fmtN(this.keptN() - c.n) + ' rows left out'), this.tlStat('SLOPE', (c.fit && c.fit.slope >= 0 ? '+' : '') + this.cmFmt(c.fit ? c.fit.slope : NaN), a + ' per unit of ' + b)),
+          h('div', { className: 'tl-col' }, h('div', { className: 'cm-stats' }, this.tlStat((M.method === 'spearman' ? 'SPEARMAN RHO' : 'PEARSON r') + ' · ' + Math.round((1 - this.alpha()) * 100) + '% CI', this.corR(c.r), this.corR(c.lo) + ' to ' + this.corR(c.hi)), this.tlStat(sym2, this.corR(other), 'p ' + this.fmtP(otherP)), this.tlStat('N (PAIRS)', this.fmtN(c.n), M.listwise ? 'complete on all' : this.fmtN(this.keptN() - c.n) + ' rows left out'), this.tlStat('SLOPE', (c.fit && c.fit.slope >= 0 ? '+' : '') + this.cmFmt(c.fit ? c.fit.slope : NaN), a + ' per unit of ' + b)),
             h('p', { className: 'cm-hint', style: { fontSize: '13px', color: '#433D31' } }, sym + ' = ' + this.corR(c.r) + ': a ' + this.strength(c.r) + ' ' + (c.r >= 0 ? 'positive' : 'negative') + ' relationship — ' + dir + '. ' + (c.p < this.alpha() ? 'Statistically significant (' + this.apaP(c.p) + ').' : 'Not statistically significant (' + this.apaP(c.p) + ').') + ' Correlation is not causation.'),
             h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, apa)),
             h('div', { className: 'tl-row' }, this.tlBtn('Copy APA', () => { try { navigator.clipboard.writeText(apa).then(() => this.flash('APA line copied')); } catch (e) {} }), this.tlBtn('Regression →', () => this.setState({ tab: 'reg', regModel: 'ols', depVar: a, predictors: [b] })), this.tlBtn('Pair page →', () => this.setState({ tab: 'two', twoMode: 'corr', xVar: b, yVar: a }))))));
@@ -7107,7 +7137,7 @@ class Component extends DCLogic {
       return { t: TS.nG === 2 ? 'ttest' : 'anova', y: TS.o, g: TS.g, w };
     }
     if (S.tab === 'reg' && S.depVar && S.predictors.length && this._regRan === this.regSpec()) {
-      const isC = p => !!(this.effMeta(p) && this.effMeta(p).treatAs === 'categorical'); return { t: 'reg', m: S.regModel, y: S.depVar, xs: S.predictors.map(p => ({ n: p, c: isC(p) })), ix: this.ixValid().map(([a1, b1]) => ({ a: a1, b: b1, ca: isC(a1), cb: isC(b1) })), w, vce: (S.regVce && S.regVce !== 'classical' && !(S.regVce === 'cluster' && !S.regCl)) ? { type: S.regVce, cl: S.regCl, st: S.svyStrata, psu: S.svyPsu } : undefined };
+      const isC = p => !!(this.effMeta(p) && this.effMeta(p).treatAs === 'categorical'); const bin = S.regModel === 'logistic' ? this.regBin(S.depVar) : null; return { t: 'reg', m: S.regModel, y: S.depVar, yOne: bin && bin.one != null && !bin.is01 ? { v: bin.one, num: bin.num } : undefined, xs: S.predictors.map(p => ({ n: p, c: isC(p) })), ix: this.ixValid().map(([a1, b1]) => ({ a: a1, b: b1, ca: isC(a1), cb: isC(b1) })), w, vce: (S.regVce && S.regVce !== 'classical' && !(S.regVce === 'cluster' && !S.regCl)) ? { type: S.regVce, cl: S.regCl, st: S.svyStrata, psu: S.svyPsu } : undefined };
     }
     if (S.tab === 'ts') return this._tsLast || null;
     if (S.tab === 'plots' && this._E.csInfo(S.plotKind)?.legacy && S.pX && S.plotKind !== 'matrix') {
@@ -7116,17 +7146,27 @@ class Component extends DCLogic {
     }
     return null;
   }
+  // A logistic outcome's two values and the one modeled as 1: 1 for 0/1 data, otherwise the higher code or the second
+  // value in sorted order (what R's factor() and a Stata 0/1 recode give), never which value happens to be rarer.
+  regBin(v) {
+    const E = this._E, oc = this.vals(v); if (!oc) return { labs: [] };
+    const col = this._raw.cols[this._raw.names.indexOf(v)], num = !!(col && col.k === 'n'); // stored as numbers (codes) or as text
+    const fr = E.freqOf(oc.kind === 'cat' ? oc.a : Array.from(oc.a, x => isFinite(x) ? E.numLab(x) : null), null), labs = fr.rows.map(r => String(r.label));
+    if (labs.length !== 2) return { labs };
+    const sorted = labs.slice().sort((a, b) => num ? Number(a) - Number(b) : a.localeCompare(b));
+    return { labs, zero: sorted[0], one: sorted[1], num, is01: num && Number(sorted[0]) === 0 && Number(sorted[1]) === 1 };
+  }
   cmdText(d, dial) { /* GM26 console output v3 */ if (d.t === 'cx') return this.cxCmd(d, dial); if (d.cxStata) return this.cxCmd({ stata: d.cxStata, r: d.cxR, sg: d.sg }, dial); if (d.t === 'ttestx') return this.withIf(dial === 'r' ? d.r : d.stata, d.sg, dial); if (d.t === 'asx') return /^survey_/.test(d.id) ? (dial === 'stata' ? d.stata : d.r) : (dial === 'stata' && d.stataIfDone ? d.stata : this.withIf(dial === 'stata' ? d.stata : d.r, d.sg, dial)); if (d.t === 'ts') return (d.short && (dial === 'stata' ? d.short.stata : d.short.r)) || (dial === 'stata' ? d.stata : d.r); const s = this.withIf(this.cmdCore(d, dial), d.sg, dial); return this.regFix(d.t === 'reg' && d.vce ? this.vceCmd(s, d, dial) : s, d, dial); }
   vceCmd(s, d, dial) {
     const v = d.vce;
     if (dial === 'stata') {
       if (v.type === 'robust' || v.type === 'cluster') { const opt = v.type === 'robust' ? 'vce(robust)' : 'vce(cluster ' + v.cl + ')'; return /, [a-z]/.test(s.split('\n').pop()) ? s + ' ' + opt : s + ', ' + opt; }
-      let body = s.replace(/ \[[ap]w=[^\]]+\]/, ''), ifp = '';
+      let body = s.replace(/ \[[api]w=[^\]]+\]/, ''), ifp = '';
       const m = body.match(/ if (.+?)(?=, |$)/); if (m) { ifp = m[1]; body = body.replace(m[0], ''); }
       return 'svyset ' + (v.psu || '_n') + (d.w ? ' [pw=' + d.w + ']' : '') + (v.st ? ', strata(' + v.st + ')' : '') + '\nsvy' + (ifp ? ', subpop(if ' + ifp + ')' : '') + ': ' + body;
     }
     const lines = s.split('\n'), last = lines.pop(), inner = last.replace(/^summary\(([\s\S]*)\)\s*$/, '$1');
-    if (v.type === 'robust' || v.type === 'cluster') return [...lines, 'library(sandwich); library(lmtest)', 'm <- ' + inner, 'coeftest(m, vcov = ' + (v.type === 'robust' ? (d.m === 'ologit' ? 'vcovCL(m)' : 'vcovHC(m, type = "HC1")') : 'vcovCL(m, cluster = ~' + v.cl + ')') + ')'].join('\n');
+    if (v.type === 'robust' || v.type === 'cluster') return [...lines, 'library(sandwich); library(lmtest)', 'm <- ' + inner, 'coeftest(m, vcov = ' + (v.type === 'robust' ? (d.m === 'ols' ? 'vcovHC(m, type = "HC1")' : 'vcovCL(m, type = "HC0")') : 'vcovCL(m, cluster = ~' + v.cl + (d.m === 'ols' ? '' : ', type = "HC0"') + ')') + ')'].join('\n');
     const f = (inner.match(/^(?:lm|glm)\(([^,]+),/) || [0, d.y + ' ~ 1'])[1], fam = d.m === 'logistic' ? ', family = quasibinomial()' : d.m === 'poisson' ? ', family = quasipoisson()' : '';
     const dat = /\bsub\b/.test(s) ? 'sub' : 'df';
     return [...lines.filter(l => !/^m <- /.test(l)), 'library(survey)', 'des <- svydesign(ids = ~' + (v.psu || '1') + ', strata = ' + (v.st ? '~' + v.st : 'NULL') + ', weights = ' + (d.w ? '~' + d.w : 'NULL') + ', data = ' + dat + ', nest = TRUE)', (d.m === 'ologit' ? 'summary(svyolr(' + (inner.match(/^MASS::polr\(([^,]+),/) || [0, 'factor(' + d.y + ') ~ 1'])[1] + ', design = des))' : 'summary(svyglm(' + f + ', design = des' + fam + '))')].join('\n');
@@ -7203,7 +7243,7 @@ class Component extends DCLogic {
       if (d.t === 'anova') return 'oneway ' + d.y + ' ' + d.g + aw;
       if (d.t === 'reg') {
         const verb = d.m === 'ols' ? 'regress' : d.m === 'logistic' ? 'logit' : d.m === 'ologit' ? 'ologit' : 'poisson';
-        return verb + ' ' + d.y + ' ' + d.xs.map(x => x.c ? 'i.' + x.n : x.n).join(' ') + (d.ix && d.ix.length ? ' ' + d.ix.map(p => (p.ca ? 'i.' : 'c.') + p.a + '#' + (p.cb ? 'i.' : 'c.') + p.b).join(' ') : '') + (d.w ? ' [pw=' + d.w + ']' : '');
+        return verb + ' ' + d.y + ' ' + d.xs.map(x => x.c ? 'i.' + x.n : x.n).join(' ') + (d.ix && d.ix.length ? ' ' + d.ix.map(p => (p.ca ? 'i.' : 'c.') + p.a + '#' + (p.cb ? 'i.' : 'c.') + p.b).join(' ') : '') + (d.w ? ' [' + (d.vce ? 'pw' : d.m === 'ols' ? 'aw' : 'iw') + '=' + d.w + ']' : '');
       }
     } else {
       const wp = d.w ? ', weights = ' + d.w : '';
@@ -7608,6 +7648,15 @@ class Component extends DCLogic {
   // ---- helpers ----
   dec() { const d = this.props.decimals; return (d === 0 || d) ? Math.max(0, Math.min(4, +d)) : 2; }
   alpha() { if (this.state.alphaSel) return parseFloat(this.state.alphaSel); return parseFloat(this.props.alpha ?? '0.05') || 0.05; }
+  // significance stars, one convention on every page (Settings → Stars): * .05 ** .01 *** .001 (APA, the default, so a
+  // star always means significant at the usual .05) or * .10 ** .05 *** .01 (common in economics tables)
+  starsOf(p) { if (!Number.isFinite(p)) return ''; const t = this.state.starSet === 'econ' ? [0.01, 0.05, 0.10] : [0.001, 0.01, 0.05]; return p < t[0] ? '***' : p < t[1] ? '**' : p < t[2] ? '*' : ''; }
+  starNote() { return this.state.starSet === 'econ' ? '* p < .10, ** p < .05, *** p < .01' : '* p < .05, ** p < .01, *** p < .001'; }
+  // a coefficient, standard error or CI limit: 3 decimals, but values too small for that (income in pesos) keep 3
+  // significant digits (0.0000234, 3.72e-6) instead of showing 0.000
+  fmtCoef(x) { if (!isFinite(x)) return '—'; const a = Math.abs(x); if (a === 0 || a >= 0.0005) return this.fmt(x, 3); return x.toPrecision(3).replace(/e([+-])(\d+)$/, (m, sg, d) => 'e' + (sg === '-' ? '−' : '') + d).replace(/^-/, '−'); }
+  // an odds / rate ratio: 3 decimals, more when it is within 0.0005 of 1 (so 1.0000234 is not shown as 1.000)
+  fmtRatio(r) { if (!isFinite(r)) return '—'; const d = Math.abs(r - 1); if (d === 0 || d >= 0.0005) return this.fmt(r, 3); return r.toFixed(Math.min(12, 2 - Math.floor(Math.log10(d)))); }
   fmt(x, d) { if (!isFinite(x)) return '—'; if (Math.abs(x) >= 100000) return Math.round(x).toLocaleString('en-US'); const s = x.toFixed(d === undefined ? this.dec() : d); return /^-0(\.0+)?$/.test(s) ? s.slice(1) : s; }
   fmtN(x) { return isFinite(x) ? Math.round(x).toLocaleString('en-US') : '—'; }
   fmtP(p) { if (!isFinite(p)) return '—'; if (p < 0.001) return '<.001'; return Math.min(p, 0.999).toFixed(3).slice(1); }
@@ -7735,7 +7784,7 @@ class Component extends DCLogic {
     if (!ex) return base;
     if (dial === 'stata') {
       if (/ if /.test(base)) return base.replace(/ if /, ' if ' + ex + ' & ');
-      const m = base.match(/ \[[ap]w=|, |  \/\//);
+      const m = base.match(/ \[[api]w=|, |  \/\//);
       return m ? base.slice(0, m.index) + ' if ' + ex + base.slice(m.index) : base + ' if ' + ex;
     }
     return 'sub <- subset(df, ' + ex + ')\n' + base.replace(/\bdf\b/g, 'sub');
@@ -8120,7 +8169,7 @@ class Component extends DCLogic {
   saveSession() {
     const raw = this._raw; if (!raw) return;
     const S = this.state, st = {};
-    ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","ttAlt","ttSum","ttY2","corVars","corMethod","corRows","corShow","corSel","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
+    ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","starSet","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","ttAlt","ttSum","ttY2","corVars","corMethod","corRows","corShow","corSel","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
     const vl = {}; if (raw.vlabs) Object.keys(raw.vlabs).forEach(k => { const m = raw.vlabs[k]; vl[k] = m instanceof Map ? [...m.entries()] : m; });
     const cols = raw.cols.map(c => c.k === 'n' ? { k: 'n', a: Array.from(c.a, v => isFinite(v) ? v : null) } : { k: 's', a: Array.from(c.a) });
     const obj = { magic: 'digimi-session', version: 1, app: 'GM26.1', plots: (this._plots || []).map(p => { const q = Object.assign({}, p); delete q.thumb; return q; }), saved: new Date().toISOString(), fileName: S.fileName, data: { n: raw.n, names: raw.names, labels: raw.labels, vlabs: vl, cols }, state: st };
@@ -8249,7 +8298,7 @@ class Component extends DCLogic {
   }
   pubBuild(models) {
     const d = this.dec(), f = v => this.cxNum2(v, d);
-    const st = p => !Number.isFinite(p) ? '' : p < 0.01 ? '***' : p < 0.05 ? '**' : p < 0.10 ? '*' : '';
+    const st = p => this.starsOf(p);
     const MODN = { ols: 'OLS', logistic: 'Logit', ologit: 'Ordered logit', poisson: 'Poisson' };
     const main = [], tail = [];
     models.forEach(m => m.rows.forEach(r => { const L = r.tail ? tail : main; if (!L.includes(r.term)) L.push(r.term); }));
@@ -8264,7 +8313,7 @@ class Component extends DCLogic {
     const what = kinds.length === 1 ? ({ ols: 'OLS regression coefficients', logistic: 'logit coefficients (log-odds)', ologit: 'ordered logit coefficients (log-odds)', poisson: 'Poisson coefficients (log counts)' })[kinds[0]] : 'unstandardized coefficients';
     const refs = [...new Set(models.flatMap(m => m.refs))], ws = [...new Set(models.map(m => m.w).filter(Boolean))], sgs = [...new Set(models.map(m => m.sg).filter(Boolean))];
     const vcs = [...new Set(models.map(m => m.vce || 'Classical'))];
-    const note = 'Note: Entries are ' + what + ' with ' + (vcs.length === 1 && vcs[0] !== 'Classical' ? vcs[0].toLowerCase() + ' ' : '') + 'standard errors in parentheses.' + (vcs.length > 1 ? ' Standard errors: ' + models.map((m, i) => '(' + (i + 1) + ') ' + (m.vce || 'classical').toLowerCase()).join(', ') + '.' : '') + (refs.length ? ' Reference categories: ' + refs.map(r => this.termLab(r)).join('; ') + '.' : '') + (ws.length ? ' Estimates weighted by ' + ws.join(', ') + '.' : '') + (sgs.length ? ' Sample restricted to ' + sgs.join('; ') + '.' : '') + ' * p < 0.1, ** p < 0.05, *** p < 0.01 (two-tailed).';
+    const note = 'Note: Entries are ' + what + ' with ' + (vcs.length === 1 && vcs[0] !== 'Classical' ? vcs[0].toLowerCase() + ' ' : '') + 'standard errors in parentheses.' + (vcs.length > 1 ? ' Standard errors: ' + models.map((m, i) => '(' + (i + 1) + ') ' + (m.vce || 'classical').toLowerCase()).join(', ') + '.' : '') + (refs.length ? ' Reference categories: ' + refs.map(r => this.termLab(r)).join('; ') + '.' : '') + (ws.length ? ' Estimates weighted by ' + ws.join(', ') + '.' : '') + (sgs.length ? ' Sample restricted to ' + sgs.join('; ') + '.' : '') + ' ' + this.starNote() + ' (two-tailed).';
     const head = models.map((m, i) => ({ num: '(' + (i + 1) + ')', dep: this.termLab(m.dep), kind: MODN[m.mdl] || m.mdl }));
     return { head, body, stats, note, multiDep: new Set(models.map(m => m.dep)).size > 1 || models.length === 1 };
   }
@@ -8573,13 +8622,15 @@ class Component extends DCLogic {
       if (!el.isConnected) return;
       let xml = ''; try { xml = new XMLSerializer().serializeToString(el); } catch (e) { return; }
       if (xml.length > 2500000) return;
-      if (this._plotLast[key] === xml) return;
-      this._plotLast[key] = xml;
-      const vb = el.viewBox && el.viewBox.baseVal, w = (vb && vb.width) || 600, h = (vb && vb.height) || 400;
       const S = this.state, TL = { ttest: 't-tests', corr: 'Correlation matrix', one: 'Univariate Descriptive Analysis', two: 'Correlation', reg: 'Regression', plots: 'Charts', sem: 'SEM', ergm: 'Networks', text: 'Text analysis', ts: 'Time series' };
-      const name = (this._plotName || {})[key] || key;
       let cmd = ''; try { const d = this.descFor(); cmd = d ? this.cmdText(this.tagSg(d), S.dialect) : ''; } catch (e) {}
       let sg = ''; try { const cs = this.conds(); sg = cs.length ? cs.map(c => this.condLabel(c)).join(' & ') : ''; } catch (e) {}
+      // the same picture under a different command (e.g. the selected pair stays while the matrix's variables change):
+      // keep the plot, but show the command that is now current
+      if (this._plotLast[key] === xml) { const last = this._plots.slice().reverse().find(p => p.key === key); if (last && (last.cmd !== cmd || last.sg !== sg)) { last.cmd = cmd; last.sg = sg; this.setState({ plotN: this._plots.length }); } return; }
+      this._plotLast[key] = xml;
+      const vb = el.viewBox && el.viewBox.baseVal, w = (vb && vb.width) || 600, h = (vb && vb.height) || 400;
+      const name = (this._plotName || {})[key] || key;
       const now = Date.now(), prev = this._plots[this._plots.length - 1];
       const entry = { id: now + ':' + key, key, name, title: this.plotTitle(key, name), tab: TL[S.tab] || S.tab, cmd, sg, w, h, xml, thumb: this.plotThumb(xml), at: now };
       if (prev && prev.key === key && (/^cb-/.test(key) || (prev.name === name && now - prev.at < 2500))) this._plots[this._plots.length - 1] = entry; else this._plots.push(entry);
@@ -8970,7 +9021,7 @@ class Component extends DCLogic {
     } else {
       let body = s, m;
       if ((m = body.match(/^svy\s*:\s*/))) { opts.svy = true; body = body.slice(m[0].length); }
-      if ((m = body.match(/\[\s*(pw|aw|fw|iw)\s*=\s*([^\]]+)\]/))) { opts.w = m[2].trim(); body = body.replace(m[0], ' '); }
+      if ((m = body.match(/\[\s*(pw|aw|fw|iw|pweight|aweight|fweight|iweight)\s*=\s*([^\]]+)\]/i))) { opts.w = m[2].trim(); opts.wt = m[1].slice(0, 1).toLowerCase() + 'w'; body = body.replace(m[0], ' '); }
       let optStr = ''; const ci = body.indexOf(','); if (ci >= 0) { optStr = body.slice(ci + 1); body = body.slice(0, ci); }
       if ((m = body.match(/\s+if\s+(.+)$/))) { opts.if = m[1].trim(); body = body.slice(0, m.index); }
       const toks = body.trim().split(/\s+/).filter(Boolean);
@@ -8989,7 +9040,7 @@ class Component extends DCLogic {
       else if (vb === 'tabulate') { if (!toks.length) return fail('tab1 needs a variable'); if (toks.length > 1) return this.cxRun('tab1', s, { done, fail }); verb = 'tabulate'; vars = [toks[0]]; }
       else if (vb === 'crosstab') { if (toks.length < 2) return fail('tab2 needs two variables'); if (toks.length > 2) return this.cxRun('tab2', s, { done, fail }); verb = 'crosstab'; vars = [toks[0], toks[1]]; this.cxPend('ct', toks, s); }
       else if (vb === 'correlate') return this.cxRun(v0 === 'pwcorr' ? 'pwcorr' : 'correlate', s, { done, fail });
-      else if (vb === 'ttest') { const em = body.match(/^\S+\s+([A-Za-z_]\w*)\s*==?\s*(\S+)/); if (O.level !== undefined) { const lv = Number(O.level); if (!(lv >= 10 && lv <= 99.99)) return fail('level() takes a confidence level between 10 and 99.99, e.g. level(90)'); opts.ttAlpha = +(1 - lv / 100).toFixed(8); } if (opts.by) { if (!toks.length) return fail('ttest needs a variable'); if (O.welch) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by, welch: true }); if (!O.unequal && !O.une && !O.uneq) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by }); verb = 'ttest'; vars = [toks[0], opts.by]; } else if (em && V(em[2])) { verb = 'ttestp'; vars = [em[1], em[2]]; } else if (em) { verb = 'ttest1'; vars = [em[1]]; opts.mu = em[2]; } else return fail(toks.length >= 2 ? 'In Stata the group goes inside by():   ttest ' + toks[0] + ', by(' + toks[1] + ')' : 'ttest: use  ttest y, by(group)   or   ttest y == 50'); }
+      else if (vb === 'ttest') { const badO = Object.keys(O).filter(k => !(k === 'by' || k === 'level' || k === 'welch' || /^une(q(u(a(l)?)?)?)?$/.test(k))); if (badO.length) return fail('option ' + badO[0] + (O[badO[0]] === true ? '' : '()') + ' not allowed — ttest takes by(), unequal, welch and level(#), as in Stata'); const em = body.match(/^\S+\s+([A-Za-z_]\w*)\s*==?\s*(\S+)/); if (O.level !== undefined) { const lv = Number(O.level); if (!(lv >= 10 && lv <= 99.99)) return fail('level() takes a confidence level between 10 and 99.99, e.g. level(90)'); opts.ttAlpha = +(1 - lv / 100).toFixed(8); } if (opts.by) { if (!toks.length) return fail('ttest needs a variable'); if (O.welch) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by, welch: true }); if (!O.unequal && !O.une && !O.uneq) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by }); verb = 'ttest'; vars = [toks[0], opts.by]; } else if (em && V(em[2])) { verb = 'ttestp'; vars = [em[1], em[2]]; } else if (em) { verb = 'ttest1'; vars = [em[1]]; opts.mu = em[2]; } else return fail(toks.length >= 2 ? 'In Stata the group goes inside by():   ttest ' + toks[0] + ', by(' + toks[1] + ')' : 'ttest: use  ttest y, by(group)   or   ttest y == 50'); }
       else if (vb === 'oneway') { if (toks.length < 2) return fail('oneway needs  oneway y group'); verb = 'oneway'; vars = [toks[0], toks[1]]; }
       else if (['regress', 'logit', 'ologit', 'poisson'].includes(vb)) { if (toks.length < 2) return fail(vb + ' needs an outcome and at least one predictor'); verb = vb; vars = [toks[0]]; opts.terms = toks.slice(1); }
       else if (vb === 'hist' || vb === 'box') { if (!toks.length) return fail(v0 + ' needs a variable'); verb = 'plot'; const grouped = vb === 'box' && opts.over; opts.kind = grouped ? 'gbox' : vb; vars = grouped ? [opts.over, toks[0]] : [toks[0]]; }
@@ -9041,8 +9092,11 @@ class Component extends DCLogic {
     if (['regress', 'logit', 'ologit', 'poisson'].includes(verb)) {
       const preds = terms.map(q => q.n).filter(n => n !== vars[0]);
       if (!preds.length) return fail('add at least one predictor after the outcome');
+      if (opts.wt === 'fw') return fail('frequency weights [fw=] are not supported in regression here — use [pw=] (sampling weights, robust standard errors)' + (verb === 'regress' ? ' or [aw=]' : ' or [iw=]'));
+      if (opts.wt === 'iw' && verb === 'regress') return fail('regress here takes [aw=] (analytic weights) or [pw=] (sampling weights, robust standard errors)');
+      if (opts.wt === 'aw' && verb !== 'regress') return fail(verb + ' does not allow aweights — use [iw=] (ordinary standard errors) or [pw=] (robust standard errors), as in Stata');
       this._regRunNext = true;
-      return done(label, Object.assign(patch, { tab: 'reg', regModel: verb === 'regress' ? 'ols' : verb === 'logit' ? 'logistic' : verb, depVar: vars[0], predictors: preds, regIx: ix, regVce: opts.svy ? 'svy' : (opts.vce || 'classical'), regCl: opts.cl || '' }));
+      return done(label, Object.assign(patch, { tab: 'reg', regModel: verb === 'regress' ? 'ols' : verb === 'logit' ? 'logistic' : verb, depVar: vars[0], predictors: preds, regIx: ix, regVce: opts.svy ? 'svy' : (opts.vce || (opts.wt === 'pw' ? 'robust' : 'classical')), regCl: opts.cl || '' }));
     }
     if (verb === 'plot') { const needY = ['scatter', 'gbox', 'stack', 'line', 'map'].includes(opts.kind); return done(label, Object.assign(patch, { tab: 'plots', plotKind: opts.kind, pX: vars[0], pY: needY ? (vars[1] || '') : '' })); }
     return fail('Could not run that command');
@@ -9433,7 +9487,7 @@ class Component extends DCLogic {
     if (this._asBusy) { this._asAgain = true; return; }
     this._asBusy = true;
     try {
-      const st = {}; ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","ttAlt","ttSum","ttY2","corVars","corMethod","corRows","corShow","corSel","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
+      const st = {}; ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","starSet","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","ttAlt","ttSum","ttY2","corVars","corMethod","corRows","corShow","corSel","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
       const origN = new Set(this._asOrigNames || []);
       const sum = { nNew: raw.names.filter(n => !origN.has(n)).length, nLog: (S.conLog || []).length, nPins: (S.pins || []).length, nPlots: (this._plots || []).length };
       if (!sum.nNew && !sum.nPins && !sum.nLog && !this._dataRev) return;
@@ -9469,7 +9523,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-02.63') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-02.64') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -9672,6 +9726,7 @@ class Component extends DCLogic {
     out.hasMissing = !!S.missingCodes.trim(); out.missingApplied = S.missingCodes.trim();
     const pillOn = 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: 11px; border-radius: 9px; padding: 7px 11px; cursor: pointer; white-space: nowrap; color: var(--cFFFFFF, #FFFFFF); background: var(--cC4681E, #C4681E); border: 1px solid var(--cA3540F, #A3540F);';
     const pillOff = 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: 11px; border-radius: 9px; padding: 7px 11px; cursor: pointer; white-space: nowrap; color: var(--c2B271E, #2B271E); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF);';
+    out.starBtns = [['apa', '.05 .01 .001'], ['econ', '.10 .05 .01']].map(([k, label]) => ({ label, style: (S.starSet === 'econ' ? 'econ' : 'apa') === k ? pillOn : pillOff, click: () => this.setState({ starSet: k }) }));
     out.alphaBtns = ['0.001', '0.01', '0.05', '0.10'].map(v => ({
       label: v.slice(1), style: Math.abs(parseFloat(v) - a) < 1e-9 ? pillOn : pillOff,
       click: () => this.setState({ alphaSel: v })
@@ -11337,9 +11392,10 @@ class Component extends DCLogic {
       out.vceBtns = VCES.map(([id, label, tip]) => ({ label, tip, style: vceSel === id ? pillOn : pillOff, click: () => this.setState({ regVce: id }) }));
       out.vceNeedCl = vceSel === 'cluster';
       out.vceClPk = mkPicker('vcecl', S.regCl, n => this.setState({ regCl: n }), c => c.name !== S.depVar);
-      out.hasVceNote = vceSel !== 'classical';
+      out.hasVceNote = vceSel !== 'classical' || !!(S.weightVar && this.wArr());
       out.vceNote = vceSel === 'robust' ? 'Robust (Huber–White HC1) standard errors — safe when the spread of the errors differs across cases. Coefficients do not change.'
         : vceSel === 'cluster' ? (S.regCl ? 'Standard errors clustered by ' + S.regCl + ' — use when rows in the same ' + S.regCl + ' are not independent (e.g. repeated years of one country). Needs roughly 30+ clusters.' : 'Pick the grouping variable to cluster by.')
+        : vceSel === 'classical' ? 'Weighted by ' + S.weightVar + ' with ordinary standard errors (Stata [' + (S.regModel === 'ols' ? 'aw' : 'iw') + '=' + S.weightVar + ']; R weights =). For survey or sampling weights choose Robust or Survey design: Stata’s [pw=] always uses robust standard errors.'
         : (hasDesign ? 'Survey design: ' + [S.weightVar ? 'weight ' + S.weightVar : 'no weight', S.svyStrata ? 'strata ' + S.svyStrata : 'no strata', S.svyPsu ? 'PSU ' + S.svyPsu : 'each row its own PSU'].join(' · ') + ' — Taylor linearization, as in Stata svy: / R survey. Set strata and PSU in the top bar.' : 'Set the weight, and the strata / PSU variables, in the top bar (from the survey codebook — for ESS: anweight, stratum, psu).');
       const vceObj = vceSel === 'robust' ? { type: 'robust' } : vceSel === 'cluster' && S.regCl && this.effMeta(S.regCl) ? { type: 'cluster', cl: this.vals(S.regCl).a } : vceSel === 'svy' ? { type: 'svy', cl: S.svyPsu && this.effMeta(S.svyPsu) ? this.vals(S.svyPsu).a : null, st: S.svyStrata && this.effMeta(S.svyStrata) ? this.vals(S.svyStrata).a : null } : null;
       const vceSig = vceObj ? vceObj.type + ':' + (vceSel === 'cluster' ? S.regCl : S.svyPsu + '/' + S.svyStrata) : 'c';
@@ -11436,15 +11492,14 @@ class Component extends DCLogic {
             const oc = this.vals(S.depVar);
             const fr = E.freqOf(oc.kind === 'cat' ? oc.a : Array.from(oc.a, v => isFinite(v) ? E.numLab(v) : null), null);
             if (fr.rows.length !== 2) return { error: '"' + S.depVar + '" has ' + fr.rows.length + ' distinct values — logistic needs exactly 2.' };
-            const labs = fr.rows.map(r2 => String(r2.label));
-            const one = (labs.includes('0') && labs.includes('1')) ? '1' : String(fr.rows[1].label);
+            const one = this.regBin(S.depVar).one;
             const n2 = oc.a.length, yb = new Float64Array(n2);
             if (oc.kind === 'cat') { for (let i = 0; i < n2; i++) { const v = oc.a[i]; yb[i] = v == null ? NaN : (String(v) === one ? 1 : 0); } }
             else { const oneNum = Number(one); for (let i = 0; i < n2; i++) { const v = oc.a[i]; yb[i] = isFinite(v) ? (v === oneNum ? 1 : 0) : NaN; } }
             return { ya: yb, one };
           });
           if (built.error) { out.hasRegError = true; out.regError = built.error; }
-          else { oneLabel = built.one; M = this.jobMemo('reg|logit|' + S.depVar + '|' + S.predictors.join(',') + '|' + ixSig + '|' + this._vceSig, () => ({ __work: 'glm', args: [built.ya, buildPreds(), w, 'logistic', this._vceObj] }), 'Fitting the logistic regression'); }
+          else { { const lb = String(this.vlabel(S.depVar, built.one)); oneLabel = lb !== built.one ? built.one + ' (' + lb + ')' : built.one; } M = this.jobMemo('reg|logit|' + S.depVar + '|' + S.predictors.join(',') + '|' + ixSig + '|' + this._vceSig, () => ({ __work: 'glm', args: [built.ya, buildPreds(), w, 'logistic', this._vceObj] }), 'Fitting the logistic regression'); }
         } else if (mdl === 'ologit') {
           if (!dm || dm.type !== 'numeric') { out.hasRegError = true; out.regError = 'ORDINAL OUTCOME MUST BE NUMERIC WITH ORDERED LEVELS — "' + S.depVar + '" is not numeric.'; }
           else {
@@ -11502,7 +11557,7 @@ class Component extends DCLogic {
             }
           }
           const ixIdx = ixList.map(([a1, b1]) => [preds.indexOf(a1), preds.indexOf(b1)]);
-          let mg = yM ? this.jobMemo('mg|' + mdl + '|' + S.depVar + '|' + preds.join(',') + '|' + ixSig + '|' + fi + '|' + bi + '|' + at + '|' + cat + '|' + a, () => ({ __work: 'marginsGen', args: [{ family: mdl, y: yM, w, vars: bp, ix: ixIdx, focus: fi, by: bi, at, cat, alpha: a }] }), 'Computing the margins plot') : { error: 'outcome not available' };
+          let mg = yM ? this.jobMemo('mg|' + mdl + '|' + S.depVar + '|' + preds.join(',') + '|' + ixSig + '|' + fi + '|' + bi + '|' + at + '|' + cat + '|' + a + '|' + this._vceSig, () => ({ __work: 'marginsGen', args: [{ family: mdl, y: yM, w, vars: bp, ix: ixIdx, focus: fi, by: bi, at, cat, alpha: a, vce: this._vceObj }] }), 'Computing the margins plot') : { error: 'outcome not available' };
           if (mg && mg.pending) { out.mgBusy = true; out.mgBusyInfo = busyOf(mg); mg = { error: '' }; }
           const what = mdl === 'ols' ? 'VALUE' : mdl === 'poisson' ? 'COUNT' : 'PROBABILITY';
           out.mgWhat = what;
@@ -11582,9 +11637,9 @@ class Component extends DCLogic {
             out.rtLatex = () => { try { navigator.clipboard.writeText(this.pubLatex(T, title)).then(() => flash('l', 'LaTeX copied (needs \\usepackage{booktabs}).'), () => flash('l', 'Copy failed.')); } catch (e3) { flash('l', 'Copy failed.'); } };
             out.hasRtMsg = !!S.rtMsg; out.rtMsg = S.rtMsg || '';
           }
-          const stars = p => !isFinite(p) ? '' : p < 0.01 ? '***' : p < 0.05 ? '**' : p < 0.10 ? '*' : '';
+          const stars = p => this.starsOf(p);
           const crit = E.critInv(0.05, M.dfT != null ? M.dfT : (isOls ? M.df2 : 0));
-          const ciOf = c => '[' + this.fmt(c.b - crit * c.se, 3) + ', ' + this.fmt(c.b + crit * c.se, 3) + ']';
+          const ciOf = c => '[' + this.fmtCoef(c.b - crit * c.se) + ', ' + this.fmtCoef(c.b + crit * c.se) + ']';
           out.hasApaReg = true;
           out.apaReg = isOls
             ? 'R\u00b2 = ' + this.fmt(M.R2, 2) + ', F(' + M.df1 + ', ' + M.df2 + ') = ' + this.fmt(M.F, 2) + ', ' + this.apaP(M.pModel)
@@ -11593,11 +11648,11 @@ class Component extends DCLogic {
           out.copyApaReg = () => this.copyTSV('apaR', out.apaReg);
           if (isOls) {
             out.sumCells = [['R²', this.fmt(M.R2, 3)], ['ADJ R²', this.fmt(M.adjR2, 3)], ['F', this.fmt(M.F)], ['DF', M.df1 + ', ' + M.df2], ['P (MODEL)', this.fmtP(M.pModel)], ['N', this.fmtN(M.n)]].map(([k, v]) => ({ k, v }));
-            out.coefRows = this.stataTerms(M.coefs).map(c => ({ term: this.termLab(c.term), raw: c.term, b: this.fmt(c.b, 3) + stars(c.p), se: this.fmt(c.se, 3), t: this.fmt(c.t), p: this.fmtP(c.p), pStyle: this.pStyle(c.p), beta: isFinite(c.beta) ? this.fmt(c.beta, 3) : '—', ci: ciOf(c) }));
+            out.coefRows = this.stataTerms(M.coefs).map(c => ({ term: this.termLab(c.term), raw: c.term, b: this.fmtCoef(c.b) + stars(c.p), se: this.fmtCoef(c.se), t: this.fmt(c.t), p: this.fmtP(c.p), pStyle: this.pStyle(c.p), beta: isFinite(c.beta) ? this.fmt(c.beta, 3) : '—', ci: ciOf(c) }));
           } else {
             out.sumCells = [['PSEUDO R²', this.fmt(M.mcfadden, 3)], ['LOG-LIK', this.fmt(M.ll, 1)], ['NULL LOG-LIK', this.fmt(M.llNull, 1)], ['N', this.fmtN(M.n)], ['CONVERGED', M.converged ? 'YES' : 'NO']].map(([k, v]) => ({ k, v }));
             const allRows = [...M.coefs, ...(M.cuts || [])];
-            out.coefRows = allRows.map(c => ({ term: this.termLab(c.term), raw: c.term, b: this.fmt(c.b, 3) + stars(c.p), se: this.fmt(c.se, 3), t: this.fmt(c.t), p: this.fmtP(c.p), pStyle: this.pStyle(c.p), beta: this.fmt(c.or, 3), ci: ciOf(c) }));
+            out.coefRows = allRows.map(c => ({ term: this.termLab(c.term), raw: c.term, b: this.fmtCoef(c.b) + stars(c.p), se: this.fmtCoef(c.se), t: this.fmt(c.t), p: this.fmtP(c.p), pStyle: this.pStyle(c.p), beta: this.fmtRatio(c.or), ci: ciOf(c) }));
           }
           this.regressionSampleVals(out, M);
           this.stataRegressionVals(out, M, mdl);
@@ -11606,25 +11661,49 @@ class Component extends DCLogic {
           out.hasRegNotes = M.dropped > 0 || M.refs.length > 0 || !!mapNote || !!convNote;
           out.hasRegNotes = true;
           const vceTxt = M.vce ? ({ robust: 'ROBUST (HC1) SEs', cluster: 'SEs CLUSTERED BY ' + String(S.regCl).toUpperCase() + ' (' + M.vce.G + ' CLUSTERS' + (M.vce.G < 30 ? ' — FEWER THAN ~30 CLUSTERS: THESE SEs CAN BE TOO SMALL AND p-VALUES TOO OPTIMISTIC; TREAT SIGNIFICANCE AS APPROXIMATE' : '') + ')', svy: 'SURVEY-DESIGN SEs (' + M.vce.G + ' PSUs, ' + M.vce.H + ' STRATA, DF ' + M.vce.df + (M.vce.single ? '; ' + M.vce.single + ' SINGLE-PSU STRATA SKIPPED' : '') + ')' })[M.vce.type] + ' · ' : '';
-          out.regNotes = vceTxt + '* p<.10  ** p<.05  *** p<.01 · CI ON THE ' + (isOls ? 'COEFFICIENT' : 'LOG scale — EXPONENTIATE FOR ' + (mdl === 'poisson' ? 'IRR' : 'OR') + ' BOUNDS') + '. ' + convNote + mapNote + (M.dropped > 0 ? this.fmtN(M.dropped) + ' ROWS DROPPED (MISSING ON A MODEL VARIABLE). ' : '') + (M.refs.length ? 'REFERENCE CATEGORIES: ' + M.refs.map(r => this.termLab(r)).join('; ') + '.' : '');
-          const sig = M.coefs.filter(c => c.term !== '(constant)').filter(c => isFinite(c.p) && c.p < a).sort((x2, y2) => Math.abs(isOls ? y2.beta : y2.b) - Math.abs(isOls ? x2.beta : x2.b));
+          out.regNotes = vceTxt + this.starNote().replace(/, /g, '  ') + ' · CI ON THE ' + (isOls ? 'COEFFICIENT' : 'LOG scale — EXPONENTIATE FOR ' + (mdl === 'poisson' ? 'IRR' : 'OR') + ' BOUNDS') + '. ' + convNote + mapNote + (M.dropped > 0 ? this.fmtN(M.dropped) + ' ROWS DROPPED (MISSING ON A MODEL VARIABLE). ' : '') + (M.refs.length ? 'REFERENCE CATEGORIES: ' + M.refs.map(r => this.termLab(r)).join('; ') + '.' : '');
+          // Plain-language reading of the coefficients. A category is compared with its reference category; a main effect
+          // inside an interaction holds only where the other variable is at its reference (or 0); a +1 step too small to
+          // matter (income in pesos) is described per +10, +100, … units.
+          const ixPairs = this.ixValid(), refOf = nm => (M.refs || []).find(r => r.startsWith(nm + ' = ')) || '';
+          const predOf = t => { const k = t.indexOf(' = '); return k < 0 ? t : t.slice(0, k); }, isIx = t => / × /.test(t);
+          const catRef = t => !isIx(t) && t.includes(' = ') ? refOf(predOf(t)) : '';
+          const condOf = t => { if (isIx(t)) return ''; const nm = predOf(t), others = ixPairs.filter(q => q.includes(nm)).map(q => q[0] === nm ? q[1] : q[0]); return others.length ? 'when ' + others.map(o => refOf(o) ? this.termLab(refOf(o)) : this.termLab(o) + ' = 0').join(' and ') : ''; };
+          const ixParts = t => { const [A, B] = t.split(' × '); return B.includes(' = ') ? [A, 'when ' + this.termLab(B)] : A.includes(' = ') ? [B, 'when ' + this.termLab(A)] : [A, 'per +1 of ' + this.termLab(B)]; };
+          const stepOf = b => { const v = Math.abs(b); return !(v > 0) || v >= 0.005 ? 1 : Math.pow(10, Math.ceil(Math.log10(0.05 / v))); };
+          const per = st => '+' + st.toLocaleString('en-US');
+          const sig = M.coefs.filter(c => c.term !== '(constant)').filter(c => isFinite(c.p) && c.p < a).sort((x2, y2) => isOls && !ixPairs.length ? Math.abs(y2.beta) - Math.abs(x2.beta) : Math.abs(y2.t) - Math.abs(x2.t));
+          const hasCat = M.coefs.some(c => catRef(c.term)), hasNum = M.coefs.some(c => c.term !== '(constant)' && !catRef(c.term) && !isIx(c.term));
+          const ixNote = ixPairs.length ? ' With an interaction, the main effect of a variable holds only where the other variable is at its reference category (or 0), and the interaction term is how much that effect changes; the margins chart shows the effect in each group.' : '';
+          const olsItem = c => { const t = c.term, ref = catRef(t), cond = condOf(t), st = ref || isIx(t) ? 1 : stepOf(c.b);
+            return this.termLab(t) + ' (' + (c.b >= 0 ? '+' : '−') + ', b = ' + this.cxNum2(c.b, 3) + (ref ? ' compared with ' + this.termLab(ref) : '') + (st > 1 ? ', i.e. ' + this.cxNum2(c.b * st, 3) + ' per ' + per(st) : '') + (cond ? ', ' + cond : '')
+              + (isIx(t) ? ': how much the effect of ' + this.termLab(ixParts(t)[0]) + ' changes ' + ixParts(t)[1] : '') + (Number.isFinite(c.beta) && !ixPairs.length ? ', β = ' + this.fmt(c.beta, 2) : '') + ')'; };
+          const ratioItem = (c, kind) => { const t = c.term, ref = catRef(t), cond = condOf(t), st = ref || isIx(t) ? 1 : stepOf(c.b), r = Math.exp(c.b * st), rr = this.fmt(r, 2);
+            const lab = kind === 'count' ? 'IRR' : 'OR', noun = kind === 'count' ? 'the expected count' : kind === 'ord' ? 'the odds of a higher category' : 'the odds';
+            const body = isIx(t) ? 'how much the ' + lab + ' of ' + this.termLab(ixParts(t)[0]) + ' is multiplied ' + ixParts(t)[1]
+              : ref ? noun + (kind === 'count' ? ' is ' : ' are ') + rr + '× ' + (kind === 'count' ? 'that' : 'those') + ' of ' + this.termLab(ref)
+              : 'each ' + per(st) + ' ' + (r >= 1 ? 'multiplies ' + noun + ' by ' + rr + '×' : 'cuts ' + noun + ' to ' + rr + '× as much');
+            return this.termLab(t) + ' (' + lab + ' ' + rr + (st > 1 ? ' per ' + per(st) : '') + ' — ' + body + (cond ? ', ' + cond : '') + ')'; };
+          const catNote = kind => hasCat ? ' For a category, the ' + (kind === 'count' ? 'IRR' : 'OR') + ' compares it with the reference category.' : '';
           out.iRegSig = sig.length; out.iRegP = isOls ? M.pModel : NaN;
           if (isOls) {
             out.regInterp = 'The model explains ' + (100 * M.R2).toFixed(1) + '% of the variation in ' + this.termLab(S.depVar) + ' (adj. R² ' + this.fmt(M.adjR2, 3) + '), and is overall ' + this.sigTxt(M.pModel) + '. ' + (sig.length
-              ? 'Significant predictors, largest standardized effect first: ' + sig.slice(0, 4).map(c => this.termLab(c.term) + ' (' + (c.b >= 0 ? '+' : '−') + ', b = ' + this.cxNum2(c.b, 3) + (Number.isFinite(c.beta) ? ', β = ' + this.fmt(c.beta, 2) : '') + ')').join('; ') + '. Each b is the expected change in ' + S.depVar + ' per one-unit increase, holding the others constant; β (the standardized coefficient) puts every predictor on the same scale, so it is what “largest effect” compares.'
-              : 'No individual predictor reaches significance at alpha ' + a + '.') + wTag;
+              ? 'Significant predictors' + (ixPairs.length ? ', strongest evidence first: ' : ', largest standardized effect first: ') + sig.slice(0, 4).map(olsItem).join('; ') + '. '
+                + [hasNum ? 'For a numeric predictor, b is the expected change in ' + S.depVar + ' per one-unit increase, holding the others constant' : '', hasCat ? (hasNum ? 'for' : 'For') + ' a category, b is the difference from its reference category' : ''].filter(Boolean).join('; ')
+                + (ixPairs.length ? '.' + ixNote : '; β (the standardized coefficient) puts every predictor on the same scale, so it is what “largest effect” compares.')
+              : 'No individual predictor reaches significance at alpha ' + a + '.' + ixNote) + wTag;
           } else if (mdl === 'ologit') {
             out.regInterp = 'This ordinal model predicts where ' + this.termLab(S.depVar) + ' falls among its ' + M.J + ' ordered levels (McFadden pseudo R² ' + this.fmt(M.mcfadden, 3) + '). ' + (sig.length
-              ? 'Significant predictors: ' + sig.slice(0, 4).map(c => this.termLab(c.term) + ' (OR ' + this.fmt(c.or, 2) + ' — each +1 ' + (c.or >= 1 ? 'raises' : 'lowers') + ' the odds of a higher category)').join('; ') + '.'
-              : 'No predictor reaches significance at alpha ' + a + '.') + (M.converged ? '' : ' WARNING: the model did not fully converge — treat estimates with caution.') + wTag;
+              ? 'Significant predictors: ' + sig.slice(0, 4).map(c => ratioItem(c, 'ord')).join('; ') + '.' + catNote('ord') + ixNote
+              : 'No predictor reaches significance at alpha ' + a + '.' + ixNote) + (M.converged ? '' : ' WARNING: the model did not fully converge — treat estimates with caution.') + wTag;
           } else if (mdl === 'logistic') {
             out.regInterp = 'This logistic model predicts the odds that ' + this.termLab(S.depVar) + ' = "' + oneLabel + '" (McFadden pseudo R² ' + this.fmt(M.mcfadden, 3) + '). ' + (sig.length
-              ? 'Significant predictors: ' + sig.slice(0, 4).map(c => this.termLab(c.term) + ' (OR ' + this.fmt(c.or, 2) + ' — each +1 ' + (c.or >= 1 ? 'multiplies' : 'cuts') + ' the odds ' + (c.or >= 1 ? 'by ' + this.fmt(c.or, 2) + '×' : 'to ' + this.fmt(c.or, 2) + '× as much') + ')').join('; ') + '.'
-              : 'No predictor reaches significance at alpha ' + a + '.') + ' An odds ratio above 1 raises the odds, below 1 lowers them.' + wTag;
+              ? 'Significant predictors: ' + sig.slice(0, 4).map(c => ratioItem(c, 'odds')).join('; ') + '.'
+              : 'No predictor reaches significance at alpha ' + a + '.') + ' An odds ratio above 1 raises the odds, below 1 lowers them.' + (sig.length ? catNote('odds') : '') + ixNote + wTag;
           } else {
             out.regInterp = 'This Poisson model predicts the expected count of ' + this.termLab(S.depVar) + ' (McFadden pseudo R² ' + this.fmt(M.mcfadden, 3) + '). ' + (sig.length
-              ? 'Significant predictors: ' + sig.slice(0, 4).map(c => this.termLab(c.term) + ' (IRR ' + this.fmt(c.or, 2) + ' — each +1 multiplies the expected count by ' + this.fmt(c.or, 2) + '×)').join('; ') + '.'
-              : 'No predictor reaches significance at alpha ' + a + '.') + wTag;
+              ? 'Significant predictors: ' + sig.slice(0, 4).map(c => ratioItem(c, 'count')).join('; ') + '.' + catNote('count') + ixNote
+              : 'No predictor reaches significance at alpha ' + a + '.' + ixNote) + wTag;
           }
           out.hasCoefPlot = M.coefs.some(c => c.term !== '(constant)');
           out.coefPlotEl = E.coefPlot(R, M.coefs.filter(c => c.term !== '(constant)').map(c => ({ term: this.termLab(c.term), b: c.b, lo: c.b - crit * c.se, hi: c.b + crit * c.se, sig: isFinite(c.p) && c.p < a })), { key: 'cp|' + mdl + '|' + S.depVar + '|' + S.predictors.join(',') + '|' + a , refCb: this.svgRef('coef'), ax: this.axUI('coef', [mdl, S.depVar, S.predictors.join(',')], { x: true, xName: 'Coefficient' }) }); out.dlCoef = this.dl('coef', 'coefficient-plot-' + S.depVar);

@@ -307,7 +307,7 @@ export function profileCol(raw, idx, screen) {
     distinct, valid: Math.round(nonblank * scale), miss: Math.round((seenN - nonblank) * scale),
     approx: step > 1, mean: numc > 1 ? s / numc : NaN,
     sd: numc > 1 ? Math.sqrt(Math.max(0, (s2 - s * s / numc) / (numc - 1))) : NaN,
-    mn, mx, top, nonblank, overflow
+    mn, mx, top, nonblank, overflow, allInt: type === 'numeric' && allInt
   };
 }
 
@@ -390,7 +390,8 @@ export function descNum(a, w) {
   let n = 0, sw = 0, sx = 0, mn = Infinity, mx = -Infinity, allInt = true;
   for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; n++; sw += wi; sx += wi * x; if (x < mn) mn = x; if (x > mx) mx = x; if (!Number.isInteger(x)) allInt = false; }
   if (n < 1) return { n: 0, missing: N };
-  const mean = sx / sw;
+  let mean = sx / sw;
+  { let c = 0; for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; c += wi * (x - mean); } mean += c / sw; }
   let ss = 0, j = 0;
   const xs = new Float64Array(n), ws = new Float64Array(n);
   for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; ss += wi * (x - mean) * (x - mean); xs[j] = x; ws[j] = wi; j++; }
@@ -544,6 +545,77 @@ function gaussJordan(A) {
   }
   return M.map(row => row.slice(p));
 }
+// ---- weighted least squares by Householder QR (as R's lm, LINPACK dqrdc2) ----
+// Rows are folded, a block at a time, into a (p+1)×(p+1) upper triangle [R z; 0 rss] of the weighted design and
+// outcome, so memory stays small for millions of rows and nothing is squared (X'X is never formed). Collinearity is
+// then checked without regard to units, with R's rule: once the columns before it are removed, a column with less
+// than tol (1e-7) of its own length left is a combination of them ("aliased").
+export function lsqQR(p) {
+  const P1 = p + 1, B = 256, M = new Float64Array((P1 + B) * P1), lo = new Float64Array(p).fill(Infinity), hi = new Float64Array(p).fill(-Infinity);
+  let nb = 0;
+  const flush = () => {
+    const m = P1 + nb;
+    for (let k = 0; k < P1; k++) {
+      let sc = 0; for (let i = k; i < m; i++) { const a = Math.abs(M[i * P1 + k]); if (a > sc) sc = a; }
+      if (sc === 0) continue;
+      let sb = 0; for (let i = k + 1; i < m; i++) { const v = M[i * P1 + k] / sc; sb += v * v; }
+      if (sb === 0) continue;
+      const akk = M[k * P1 + k], a0 = akk / sc, nrm = sc * Math.sqrt(a0 * a0 + sb), alpha = akk > 0 ? -nrm : nrm, v0 = akk - alpha, vtv = v0 * v0 + sc * sc * sb;
+      for (let j = k + 1; j < P1; j++) {
+        let s = v0 * M[k * P1 + j]; for (let i = k + 1; i < m; i++) s += M[i * P1 + k] * M[i * P1 + j];
+        const f = 2 * s / vtv; if (f === 0) continue;
+        M[k * P1 + j] -= f * v0; for (let i = k + 1; i < m; i++) M[i * P1 + j] -= f * M[i * P1 + k];
+      }
+      M[k * P1 + k] = alpha; for (let i = k + 1; i < m; i++) M[i * P1 + k] = 0;
+    }
+    nb = 0;
+  };
+  return {
+    add(x, y, w) {
+      const s = Math.sqrt(w > 0 ? w : 0), r = (P1 + nb) * P1;
+      for (let j = 0; j < p; j++) { const v = x[j]; M[r + j] = s * v; if (w > 0) { if (v < lo[j]) lo[j] = v; if (v > hi[j]) hi[j] = v; } }
+      M[r + p] = s * y; nb++; if (nb === B) flush();
+    },
+    // b, (X'WX)^-1, the residual sum of squares, and the aliased columns (none when the design has full rank)
+    solve(tol = 1e-7) {
+      flush();
+      const A = Array.from({ length: p }, (_, i) => Array.from({ length: p }, (_, j) => j >= i ? M[i * P1 + j] : 0)), z = Array.from({ length: p }, (_, i) => M[i * P1 + p]);
+      const rss = M[p * P1 + p] * M[p * P1 + p], cols = Array.from({ length: p }, (_, j) => j);
+      const norm0 = cols.map(j => { let s = 0; for (let i = 0; i <= j; i++) s += A[i][j] * A[i][j]; return Math.sqrt(s); });
+      let k = p;
+      for (let l = 0; l < k;) {
+        let sc = 0; for (let i = l; i < p; i++) sc = Math.max(sc, Math.abs(A[i][l]));
+        let s2 = 0; if (sc > 0) for (let i = l; i < p; i++) { const v = A[i][l] / sc; s2 += v * v; }
+        const nr = sc * Math.sqrt(s2);
+        if (!(nr > tol * norm0[cols[l]])) { for (const row of A) { const t = row[l]; row.splice(l, 1); row.push(t); } cols.push(cols.splice(l, 1)[0]); k--; continue; }
+        let sb = 0; for (let i = l + 1; i < p; i++) { const v = A[i][l] / sc; sb += v * v; }
+        if (sb > 0) {
+          const akk = A[l][l], alpha = akk > 0 ? -nr : nr, v0 = akk - alpha, vtv = v0 * v0 + sc * sc * sb;
+          const apply = get => { let s = v0 * get(l); for (let i = l + 1; i < p; i++) s += A[i][l] * get(i); return 2 * s / vtv; };
+          for (let j = l + 1; j < p; j++) { const f = apply(i => A[i][j]); A[l][j] -= f * v0; for (let i = l + 1; i < p; i++) A[i][j] -= f * A[i][l]; }
+          { const f = apply(i => z[i]); z[l] -= f * v0; for (let i = l + 1; i < p; i++) z[i] -= f * A[i][l]; }
+          A[l][l] = alpha; for (let i = l + 1; i < p; i++) A[i][l] = 0;
+        }
+        l++;
+      }
+      const constant = cols.map((_, j) => j).filter(j => !(hi[j] > lo[j]));
+      if (k < p) return { aliased: cols.slice(k), constant, rank: k };
+      const bp = new Float64Array(p);
+      for (let i = p - 1; i >= 0; i--) { let s = z[i]; for (let j = i + 1; j < p; j++) s -= A[i][j] * bp[j]; bp[i] = s / A[i][i]; }
+      const Ri = Array.from({ length: p }, () => new Float64Array(p));
+      for (let j = 0; j < p; j++) { Ri[j][j] = 1 / A[j][j]; for (let i = j - 1; i >= 0; i--) { let s = 0; for (let q = i + 1; q <= j; q++) s += A[i][q] * Ri[q][j]; Ri[i][j] = -s / A[i][i]; } }
+      const b = new Float64Array(p), inv = Array.from({ length: p }, () => new Array(p).fill(0));
+      for (let a = 0; a < p; a++) { b[cols[a]] = bp[a]; for (let c = a; c < p; c++) { let s = 0; for (let q = c; q < p; q++) s += Ri[a][q] * Ri[c][q]; inv[cols[a]][cols[c]] = s; inv[cols[c]][cols[a]] = s; } }
+      return { b, inv, rss, aliased: [], constant, rank: p };
+    }
+  };
+}
+// a readable message naming the collinear terms (labels[j] is the name of column j; column 0 may be the constant)
+export function aliasMessage(sol, labels) {
+  const names = sol.aliased.map(j => labels[j]).filter(Boolean), con = sol.aliased.filter(j => sol.constant.includes(j) && labels[j] !== '(constant)');
+  if (con.length === sol.aliased.length) return names.map(n => '“' + n + '”').join(', ') + (names.length > 1 ? ' do' : ' does') + ' not vary in the rows used (or a category has no rows there) — remove ' + (names.length > 1 ? 'them' : 'it') + ' and refit.';
+  return 'predictors are collinear: ' + names.map(n => '“' + n + '”').join(', ') + (names.length > 1 ? ' are combinations' : ' is a combination') + ' of the other predictors (for example the same variable in different units, or dummies that add up to another) — remove ' + (names.length > 1 ? 'them' : 'it') + ' and refit.';
+}
 // sandwich variance: robust (HC1), clustered, or survey linearization (strata + PSU, Stata svy:)
 export function sandwichV(bread, rows, vce, n, p, family) {
   const kind = vce.type, P = p;
@@ -571,8 +643,9 @@ export function sandwichV(bread, rows, vce, n, p, family) {
 function waldF(b, V, df, svyAdj) {
   const idx = []; for (let j = 1; j < b.length; j++) idx.push(j);
   const q = idx.length; if (!q) return { F: NaN, df1: 0, df2: df };
-  const Vs = idx.map(r => idx.map(c => V[r][c])), Vi = gaussJordan(Vs); if (!Vi) return { F: NaN, df1: q, df2: df };
-  let W = 0; for (let r = 0; r < q; r++) for (let c = 0; c < q; c++) W += b[idx[r]] * Vi[r][c] * b[idx[c]];
+  const d = idx.map(r => Math.sqrt(V[r][r])); if (d.some(x => !(x > 0))) return { F: NaN, df1: q, df2: df };
+  const Vs = idx.map((r, a) => idx.map((c, e) => V[r][c] / (d[a] * d[e]))), Vi = gaussJordan(Vs); if (!Vi) return { F: NaN, df1: q, df2: df };
+  let W = 0; for (let r = 0; r < q; r++) for (let c = 0; c < q; c++) W += (b[idx[r]] / d[r]) * Vi[r][c] * (b[idx[c]] / d[c]);
   if (svyAdj && df > 0) { const F = (df - q + 1) / (df * q) * W; return { F, df1: q, df2: Math.max(1, df - q + 1) }; }
   return { F: W / q, df1: q, df2: df };
 }
@@ -621,76 +694,64 @@ export function regress(ya, preds, w, vce) {
   }
   const p = terms.length;
   const N = ya.length;
-  const A = Array.from({ length: p }, () => new Float64Array(p));
-  const Xy = new Float64Array(p);
-  const sX = new Float64Array(p), sX2 = new Float64Array(p);
-  let sw = 0, swy = 0, swy2 = 0, cnt = 0;
   const xrow = new Float64Array(p);
-  for (let i = 0; i < N; i++) {
+  // the estimation rows: complete on the outcome, every predictor, the weight and (when clustering) the cluster
+  const rowOf = i => {
     const y = ya[i], wi = w ? w[i] : 1;
-    if (!isFinite(y) || !isFinite(wi)) continue;
-    let ok = true;
+    if (!isFinite(y) || !isFinite(wi)) return false;
     xrow[0] = 1;
     for (let t = 1; t < p; t++) {
       const tm = terms[t], pr = tm.pred;
-      if (pr.kind === 'num') { const v = pr.a[i]; if (!isFinite(v)) { ok = false; break; } xrow[t] = v; }
-      else { const lab = pr.a[i]; if (lab == null) { ok = false; break; } xrow[t] = lab === tm.level ? 1 : 0; }
+      if (pr.kind === 'num') { const v = pr.a[i]; if (!isFinite(v)) return false; xrow[t] = v; }
+      else { const lab = pr.a[i]; if (lab == null) return false; xrow[t] = lab === tm.level ? 1 : 0; }
     }
-    if (!ok) continue;
-    if (vce && vce.cl && (vce.cl[i] == null || vce.cl[i] !== vce.cl[i])) continue;
-    cnt++; sw += wi; swy += wi * y; swy2 += wi * y * y;
-    for (let r = 0; r < p; r++) {
-      const xr = xrow[r] * wi;
-      Xy[r] += xr * y; sX[r] += xr; sX2[r] += xr * xrow[r];
-      const Ar = A[r];
-      for (let c = r; c < p; c++) Ar[c] += xr * xrow[c];
-    }
+    if (vce && vce.cl && (vce.cl[i] == null || vce.cl[i] !== vce.cl[i])) return false;
+    return true;
+  };
+  // pass 1: the QR factorization (accurate whatever the units), the weighted means, and the range of the outcome
+  const qr = lsqQR(p), sX = new Float64Array(p);
+  let sw = 0, swy = 0, cnt = 0, ylo = Infinity, yhi = -Infinity;
+  for (let i = 0; i < N; i++) {
+    if (!rowOf(i)) continue;
+    const y = ya[i], wi = w ? w[i] : 1;
+    cnt++; sw += wi; swy += wi * y; if (y < ylo) ylo = y; if (y > yhi) yhi = y;
+    for (let r = 0; r < p; r++) sX[r] += wi * xrow[r];
+    qr.add(xrow, y, wi);
   }
   if (cnt < p + 2) return { error: 'not enough complete rows (' + cnt + ') for ' + p + ' parameters.' };
-  for (let r = 0; r < p; r++) for (let c = 0; c < r; c++) A[r][c] = A[c][r];
-  const inv = gaussJordan(A.map(row => Array.from(row)));
-  if (!inv) return { error: 'predictors are collinear (one is a combination of the others) — remove one and refit.' };
-  const b = new Float64Array(p);
-  for (let r = 0; r < p; r++) { let s = 0; for (let c = 0; c < p; c++) s += inv[r][c] * Xy[c]; b[r] = s; }
-  let bXy = 0; for (let r = 0; r < p; r++) bXy += b[r] * Xy[r];
-  const SST = swy2 - swy * swy / sw;
-  if (!(SST > 1e-12 * Math.max(1, swy2))) return { error: 'the outcome has the same value in every complete row — nothing to explain.' };
-  const SSE = Math.max(0, swy2 - bXy);
-  const dfE = cnt - p;
-  const sigma2 = SSE / dfE;
-  const sdy = Math.sqrt(SST / (sw - 1));
-  const coefs = terms.map((tm, j) => {
-    const se = Math.sqrt(Math.max(0, inv[j][j] * sigma2));
-    const t = b[j] / se;
-    const sdx = j === 0 ? NaN : Math.sqrt(Math.max(0, (sX2[j] - sX[j] * sX[j] / sw) / (sw - 1)));
-    return { term: tm.label, b: b[j], se, t, p: pT(t, dfE), beta: j === 0 ? NaN : b[j] * sdx / sdy };
-  });
-  const R2 = SST > 0 ? 1 - SSE / SST : NaN;
-  const adjR2 = 1 - (1 - R2) * (cnt - 1) / dfE;
-  const F = ((SST - SSE) / (p - 1)) / sigma2;
-  // diagnostics: second pass for residuals (plot sample), heteroscedasticity and skew
+  const sol = qr.solve();
+  if (sol.aliased.length) return { error: aliasMessage(sol, terms.map(t => t.label)), aliased: sol.aliased.map(j => terms[j].label) };
+  if (!(yhi > ylo)) return { error: 'the outcome has the same value in every complete row — nothing to explain.' };
+  const b = sol.b, inv = sol.inv, ybar = swy / sw, xbar = Array.from(sX, v => v / sw);
+  // pass 2: residuals (SSE from the residuals themselves), centered sums of squares, diagnostics
   const dstep = Math.max(1, Math.floor(cnt / 1500));
-  const fitted = [], resid = [];
-  let rs1 = 0, rs2 = 0, rs3 = 0, rn = 0, hxy = 0, hx = 0, hy = 0, hx2 = 0, hy2 = 0, seen = 0;
+  const fitted = [], resid = [], sXc = new Float64Array(p);
+  let SSE = 0, SST = 0, rs1 = 0, rs2 = 0, rs3 = 0, rn = 0, hxy = 0, hx = 0, hy = 0, hx2 = 0, hy2 = 0, seen = 0;
   for (let i = 0; i < N; i++) {
+    if (!rowOf(i)) continue;
     const y = ya[i], wi = w ? w[i] : 1;
-    if (!isFinite(y) || !isFinite(wi)) continue;
-    let ok = true;
-    xrow[0] = 1;
-    for (let t = 1; t < p; t++) {
-      const tm = terms[t], pr = tm.pred;
-      if (pr.kind === 'num') { const v = pr.a[i]; if (!isFinite(v)) { ok = false; break; } xrow[t] = v; }
-      else { const lab = pr.a[i]; if (lab == null) { ok = false; break; } xrow[t] = lab === tm.level ? 1 : 0; }
-    }
-    if (!ok) continue;
     let fh = 0; for (let r = 0; r < p; r++) fh += b[r] * xrow[r];
-    const e = y - fh;
+    const e = y - fh, dy = y - ybar;
+    SSE += wi * e * e; SST += wi * dy * dy;
+    for (let r = 1; r < p; r++) { const d = xrow[r] - xbar[r]; sXc[r] += wi * d * d; }
     rn++; rs1 += e; rs2 += e * e; rs3 += e * e * e;
     const ae = Math.abs(e);
     hxy += fh * ae; hx += fh; hy += ae; hx2 += fh * fh; hy2 += ae * ae;
     if (seen % dstep === 0 && fitted.length < 1600) { fitted.push(fh); resid.push(e); }
     seen++;
   }
+  const dfE = cnt - p;
+  const sigma2 = SSE / dfE;
+  const sdy = Math.sqrt(SST / (sw - 1));
+  const coefs = terms.map((tm, j) => {
+    const se = Math.sqrt(Math.max(0, inv[j][j] * sigma2));
+    const t = b[j] / se;
+    const sdx = j === 0 ? NaN : Math.sqrt(sXc[j] / (sw - 1));
+    return { term: tm.label, b: b[j], se, t, p: pT(t, dfE), beta: j === 0 ? NaN : b[j] * sdx / sdy };
+  });
+  const R2 = SST > 0 ? Math.max(0, Math.min(1, 1 - SSE / SST)) : NaN;
+  const adjR2 = 1 - (1 - R2) * (cnt - 1) / dfE;
+  const F = ((SST - SSE) / (p - 1)) / sigma2;
   const rmean = rs1 / rn, rvar = Math.max(0, rs2 / rn - rmean * rmean), rsd = Math.sqrt(rvar);
   const skew = rsd > 0 ? (rs3 / rn - 3 * rmean * rvar - rmean * rmean * rmean) / (rsd * rsd * rsd) : 0;
   const hden = Math.sqrt(Math.max(0, hx2 - hx * hx / rn) * Math.max(0, hy2 - hy * hy / rn));
@@ -699,12 +760,8 @@ export function regress(ya, preds, w, vce) {
   if (vce && vce.type && vce.type !== 'classical') {
     const rows = [];
     for (let i = 0; i < N; i++) {
+      if (!rowOf(i)) continue;
       const y = ya[i], wi = w ? w[i] : 1;
-      if (!isFinite(y) || !isFinite(wi)) continue;
-      let ok = true; xrow[0] = 1;
-      for (let t = 1; t < p; t++) { const tm = terms[t], pr = tm.pred; if (pr.kind === 'num') { const v = pr.a[i]; if (!isFinite(v)) { ok = false; break; } xrow[t] = v; } else { const lab = pr.a[i]; if (lab == null) { ok = false; break; } xrow[t] = lab === tm.level ? 1 : 0; } }
-      if (!ok) continue;
-      if (vce.cl && (vce.cl[i] == null || vce.cl[i] !== vce.cl[i])) continue;
       let fh = 0; for (let r = 0; r < p; r++) fh += b[r] * xrow[r];
       const ee = (y - fh) * wi, s = new Float64Array(p); for (let r = 0; r < p; r++) s[r] = xrow[r] * ee;
       rows.push({ i, s, cl: vce.cl ? vce.cl[i] : null, st: vce.st ? vce.st[i] : null });
@@ -787,40 +844,33 @@ function irls(X, y, w, p, family) {
   for (let i = 0; i < n; i++) { sw += w[i]; sy += w[i] * y[i]; }
   if (family === 'logistic') { const pr = Math.min(0.999, Math.max(0.001, sy / sw)); b[0] = Math.log(pr / (1 - pr)); }
   else b[0] = Math.log(Math.max(1e-6, sy / sw));
-  let converged = false, it = 0, ll = NaN, inv = null;
-  for (it = 0; it < 30; it++) {
-    const A = Array.from({ length: p }, () => new Float64Array(p));
-    const Az = new Float64Array(p);
-    ll = 0;
+  const llAt = bb => { let s = 0; for (let i = 0; i < n; i++) { const xi = X[i]; let et = 0; for (let j = 0; j < p; j++) et += xi[j] * bb[j]; et = Math.max(-30, Math.min(30, et)); if (family === 'logistic') { const m2 = 1 / (1 + Math.exp(-et)); s += w[i] * (y[i] * Math.log(Math.max(1e-12, m2)) + (1 - y[i]) * Math.log(Math.max(1e-12, 1 - m2))); } else s += w[i] * (y[i] * et - Math.exp(et) - gammln(y[i] + 1)); } return s; };
+  let converged = false, it = 0, ll = llAt(b), inv = null;
+  // each step is a weighted least-squares fit by QR (lsqQR), so tiny or huge units neither fake nor hide collinearity
+  for (it = 0; it < 50; it++) {
+    const qr = lsqQR(p);
     for (let i = 0; i < n; i++) {
       const xi = X[i];
       let eta = 0;
       for (let j = 0; j < p; j++) eta += xi[j] * b[j];
       eta = Math.max(-30, Math.min(30, eta));
       let mu, wI;
-      if (family === 'logistic') {
-        mu = 1 / (1 + Math.exp(-eta)); wI = Math.max(1e-10, mu * (1 - mu));
-        ll += w[i] * (y[i] * Math.log(Math.max(1e-12, mu)) + (1 - y[i]) * Math.log(Math.max(1e-12, 1 - mu)));
-      } else {
-        mu = Math.exp(eta); wI = Math.max(1e-10, mu);
-        ll += w[i] * (y[i] * eta - mu - gammln(y[i] + 1));
-      }
-      const z = eta + (y[i] - mu) / wI;
-      const wi = w[i] * wI;
-      for (let r = 0; r < p; r++) { const xr = xi[r] * wi; Az[r] += xr * z; const Ar = A[r]; for (let c = r; c < p; c++) Ar[c] += xr * xi[c]; }
+      if (family === 'logistic') { mu = 1 / (1 + Math.exp(-eta)); wI = Math.max(1e-10, mu * (1 - mu)); }
+      else { mu = Math.exp(eta); wI = Math.max(1e-10, mu); }
+      qr.add(xi, eta + (y[i] - mu) / wI, w[i] * wI);
     }
-    for (let r = 0; r < p; r++) for (let c = 0; c < r; c++) A[r][c] = A[c][r];
-    inv = gaussJordan(A.map(r => Array.from(r)));
-    if (!inv) return { error: 'predictors are collinear or the model is unstable — remove one and refit.' };
-    let maxd = 0;
-    const nb = new Float64Array(p);
-    for (let r = 0; r < p; r++) { let s = 0; for (let c = 0; c < p; c++) s += inv[r][c] * Az[c]; nb[r] = s; maxd = Math.max(maxd, Math.abs(s - b[r])); }
-    const llAt = bb => { let s = 0; for (let i = 0; i < n; i++) { const xi = X[i]; let et = 0; for (let j = 0; j < p; j++) et += xi[j] * bb[j]; et = Math.max(-30, Math.min(30, et)); if (family === 'logistic') { const m2 = 1 / (1 + Math.exp(-et)); s += w[i] * (y[i] * Math.log(Math.max(1e-12, m2)) + (1 - y[i]) * Math.log(Math.max(1e-12, 1 - m2))); } else s += w[i] * (y[i] * et - Math.exp(et) - gammln(y[i] + 1)); } return s; };
+    const sol = qr.solve();
+    if (sol.aliased.length) return { error: 'predictors are collinear or the model is unstable — remove one and refit.', aliasSol: sol };
+    inv = sol.inv;
+    const nb = Float64Array.from(sol.b);
     let llN = llAt(nb), hv = 0;
     while (!(llN >= ll - 1e-9) && hv < 30) { for (let r = 0; r < p; r++) nb[r] = (nb[r] + b[r]) / 2; llN = llAt(nb); hv++; }
-    maxd = 0; for (let r = 0; r < p; r++) maxd = Math.max(maxd, Math.abs(nb[r] - b[r]));
-    b = nb;
-    if (maxd < 1e-8) { converged = true; break; }
+    // converged when no coefficient moves by more than 1e-10 of its size or standard error (unit-free), or the
+    // log likelihood stops changing
+    let rel = 0; for (let r = 0; r < p; r++) rel = Math.max(rel, Math.abs(nb[r] - b[r]) / (Math.abs(nb[r]) + Math.sqrt(Math.max(0, inv[r][r])) + 1e-300));
+    const dl = Math.abs(llN - ll) / (Math.abs(llN) + 0.1);
+    b = nb; ll = llN;
+    if (rel < 1e-10 || (it > 0 && dl < 1e-14)) { converged = true; break; }
   }
   const se = new Float64Array(p);
   for (let j = 0; j < p; j++) se[j] = Math.sqrt(Math.max(0, inv[j][j]));
@@ -910,6 +960,7 @@ export function glm(ya, preds, w, family, vce) {
   if (yr.every(v => v === yr[0])) return { error: 'the outcome is ' + yr[0] + ' in every complete row — nothing to model.' };
   if (family === 'logistic') { const separation = logitPredictionCheck(X, yr, ri, preds, terms); if (separation) return logitPredictionError(separation, n, N - n); }
   const fit = irls(X, yr, wr, p, family);
+  if (fit.aliasSol) return { error: aliasMessage(fit.aliasSol, terms.map(t => t.label)) };
   if (fit.error) return fit;
   if (family === 'logistic' && logitDirectionSeparates(X, yr, fit.b)) return logitPredictionError({ term: 'predictor combination', count: n, description: 'a linear combination of the predictors separates all complete observations' }, n, N - n);
   if (family === 'logistic' && !fit.converged) return { error: 'Logistic regression did not converge. Coefficients, p-values, confidence intervals and predictions are not reported. Check for separation, collinear predictors and poorly scaled variables before refitting.', errorCode: 'logit_nonconvergence', completeN: n, dropped: N - n };
@@ -1056,6 +1107,24 @@ export function cronbach(items) {
 }
 
 // ---------- ordinal logistic (proportional odds) ----------
+// symmetric positive-definite helpers (Cholesky) with a relative pivot test
+function cholFactor(A) {
+  const P = A.length, L = Array.from({ length: P }, () => new Float64Array(P));
+  for (let j = 0; j < P; j++) {
+    let d = A[j][j]; for (let k = 0; k < j; k++) d -= L[j][k] * L[j][k];
+    if (!(d > 1e-13 * Math.abs(A[j][j])) || !(A[j][j] > 0)) return null;
+    L[j][j] = Math.sqrt(d);
+    for (let i = j + 1; i < P; i++) { let s = A[i][j]; for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k]; L[i][j] = s / L[j][j]; }
+  }
+  return L;
+}
+function cholSolve(L, b) {
+  const P = L.length, y = new Float64Array(P), x = new Float64Array(P);
+  for (let i = 0; i < P; i++) { let s = b[i]; for (let k = 0; k < i; k++) s -= L[i][k] * y[k]; y[i] = s / L[i][i]; }
+  for (let i = P - 1; i >= 0; i--) { let s = y[i]; for (let k = i + 1; k < P; k++) s -= L[k][i] * x[k]; x[i] = s / L[i][i]; }
+  return x;
+}
+function cholInverse(A) { const L = cholFactor(A); if (!L) return null; const P = A.length; return Array.from({ length: P }, (_, j) => { const e = new Float64Array(P); e[j] = 1; return cholSolve(L, e); }).map((col, j, cols) => Array.from({ length: P }, (_, i) => cols[i][j])); }
 export function ologit(ya, preds, w, vce) {
   const terms = []; const refs = [];
   for (const pr of preds) {
@@ -1089,86 +1158,100 @@ export function ologit(ya, preds, w, vce) {
   if (J < 2) return { error: 'the outcome has a single value — nothing to model.' };
   if (J > 10) return { error: 'outcome has ' + J + ' distinct values — ordinal logit needs 2–10 ordered levels.' };
   if (n < p + J + 2) return { error: 'not enough complete rows (' + n + ').' };
+  // collinearity and predictors that do not vary, checked as in regress (the cutpoints play the constant's part)
+  { const qr = lsqQR(p + 1), row = new Float64Array(p + 1); row[0] = 1; for (let i = 0; i < n; i++) { for (let r = 0; r < p; r++) row[r + 1] = X[i][r]; qr.add(row, 0, wr[i]); } const sol = qr.solve(); if (sol.aliased.length) return { error: aliasMessage(sol, ['(constant)', ...terms.map(t => t.label)]) }; }
   const lvIdx = new Map(levels.map((v, i) => [v, i]));
   const yi = yr.map(v => lvIdx.get(v));
   const P = J - 1 + p;
-  // init: cutpoints from weighted cumulative proportions
+  // The fit runs on centred, standardized predictors (z = (x − mean) / sd), so incomes in pesos, timestamps or rates of
+  // 0.001 converge alike; cutpoints, coefficients and their covariance are transformed back exactly afterwards.
   let sw = 0; const cw = new Float64Array(J);
   for (let i = 0; i < n; i++) { sw += wr[i]; cw[yi[i]] += wr[i]; }
+  const mu = new Float64Array(p), sd = new Float64Array(p), rng = new Float64Array(p);
+  for (let r = 0; r < p; r++) {
+    let s = 0, lo = Infinity, hi = -Infinity; for (let i = 0; i < n; i++) { s += wr[i] * X[i][r]; if (X[i][r] < lo) lo = X[i][r]; if (X[i][r] > hi) hi = X[i][r]; }
+    mu[r] = s / sw; let v = 0; for (let i = 0; i < n; i++) { const d = X[i][r] - mu[r]; v += wr[i] * d * d; } sd[r] = Math.sqrt(v / sw) || 1; rng[r] = hi - lo;
+  }
+  const Z = X.map(x => Float64Array.from(x, (v, r) => (v - mu[r]) / sd[r]));
   const th = new Float64Array(P);
   let acc = 0;
   for (let j = 0; j < J - 1; j++) { acc += cw[j]; const pr = Math.min(0.999, Math.max(0.001, acc / sw)); th[j] = Math.log(pr / (1 - pr)); }
-  const sig = z => 1 / (1 + Math.exp(-Math.max(-30, Math.min(30, z))));
-  const llGrad = (t, wantG) => {
-    const g = wantG ? new Float64Array(P) : null; let ll = 0;
-    for (let i = 0; i < n; i++) {
-      const xi = X[i], j = yi[i], wi = wr[i];
-      let eta = 0; for (let r = 0; r < p; r++) eta += xi[r] * t[J - 1 + r];
-      const FU = j < J - 1 ? sig(t[j] - eta) : 1, FL = j > 0 ? sig(t[j - 1] - eta) : 0;
-      const L = Math.max(1e-12, FU - FL);
-      ll += wi * Math.log(L);
-      if (g) {
-        const fU = j < J - 1 ? FU * (1 - FU) : 0, fL = j > 0 ? FL * (1 - FL) : 0;
-        if (j < J - 1) g[j] += wi * fU / L;
-        if (j > 0) g[j - 1] -= wi * fL / L;
-        const gb = -wi * (fU - fL) / L;
-        for (let r = 0; r < p; r++) g[J - 1 + r] += gb * xi[r];
+  const sig = z => 1 / (1 + Math.exp(-z));
+  // one row's probability and the first and second derivatives of its log, in closed form
+  const rowTerms = (t, k) => {
+    const zi = Z[k], j = yi[k];
+    let eta = 0; for (let r = 0; r < p; r++) eta += zi[r] * t[J - 1 + r];
+    const U = j < J - 1 ? t[j] - eta : Infinity, Lw = j > 0 ? t[j - 1] - eta : -Infinity;
+    const FU = j < J - 1 ? sig(U) : 1, FL = j > 0 ? sig(Lw) : 0;
+    let Pr = j === J - 1 ? sig(-Lw) : j === 0 ? sig(U) : Lw > 0 ? sig(-Lw) - sig(-U) : FU - FL; Pr = Math.max(1e-300, Pr);
+    const a = j < J - 1 ? FU * (1 - FU) : 0, bl = j > 0 ? FL * (1 - FL) : 0, a1 = a * (1 - 2 * FU), b1 = bl * (1 - 2 * FL);
+    return { zi, j, Pr, a, bl, a1, b1 };
+  };
+  const evalAt = (t, want) => {
+    let ll = 0; const g = want ? new Float64Array(P) : null, H = want ? Array.from({ length: P }, () => new Float64Array(P)) : null;
+    for (let k = 0; k < n; k++) {
+      const q = rowTerms(t, k), wi = wr[k];
+      ll += wi * Math.log(q.Pr);
+      if (!want) continue;
+      const { zi, j, Pr, a, bl, a1, b1 } = q, P2 = Pr * Pr, gb = -(a - bl) / Pr;
+      if (j < J - 1) { g[j] += wi * a / Pr; H[j][j] += wi * (a1 / Pr - a * a / P2); }
+      if (j > 0) { g[j - 1] -= wi * bl / Pr; H[j - 1][j - 1] += wi * (-b1 / Pr - bl * bl / P2); }
+      if (j > 0 && j < J - 1) { const v = wi * a * bl / P2; H[j][j - 1] += v; H[j - 1][j] += v; }
+      const hU = j < J - 1 ? -a1 / Pr + a * (a - bl) / P2 : 0, hL = j > 0 ? b1 / Pr - bl * (a - bl) / P2 : 0, hB = (a1 - b1) / Pr - (a - bl) * (a - bl) / P2;
+      for (let r = 0; r < p; r++) {
+        const zr = zi[r], R = J - 1 + r; g[R] += wi * gb * zr;
+        if (j < J - 1) { const v = wi * zr * hU; H[j][R] += v; H[R][j] += v; }
+        if (j > 0) { const v = wi * zr * hL; H[j - 1][R] += v; H[R][j - 1] += v; }
+        for (let s = r; s < p; s++) { const v = wi * zr * zi[s] * hB; H[R][J - 1 + s] += v; if (s !== r) H[J - 1 + s][R] += v; }
       }
     }
-    return { ll, g };
+    return { ll, g, H };
   };
-  let cur = llGrad(th, true), converged = false, H = null, sawStep = false;
-  for (let it = 0; it < 40; it++) {
-    // numeric Hessian from analytic gradient (central differences)
-    H = Array.from({ length: P }, () => new Float64Array(P));
-    for (let m = 0; m < P; m++) {
-      const eps = 1e-5 * (1 + Math.abs(th[m]));
-      const tp = Float64Array.from(th); tp[m] += eps;
-      const tn = Float64Array.from(th); tn[m] -= eps;
-      const gp = llGrad(tp, true).g, gn = llGrad(tn, true).g;
-      for (let r = 0; r < P; r++) H[m][r] = (gp[r] - gn[r]) / (2 * eps);
+  let cur = evalAt(th, true), converged = false;
+  for (let it = 0; it < 100; it++) {
+    const negH = cur.H.map(row => Array.from(row, v => -v));
+    let L = cholFactor(negH), ridge = 0;
+    while (!L && ridge < 1e6) { ridge = ridge ? ridge * 10 : 1e-8 * Math.max(...negH.map((r, i) => Math.abs(r[i])), 1); L = cholFactor(negH.map((r, i) => r.map((v, c) => c === i ? v + ridge : v))); }
+    if (!L) break;
+    const step = cholSolve(L, cur.g);
+    let maxd = 0; for (let r = 0; r < P; r++) maxd = Math.max(maxd, Math.abs(step[r]));
+    let lam = 1, nxt = null;
+    for (let hh = 0; hh < 40; hh++) {
+      const tn = Float64Array.from(th, (v, r) => v + lam * step[r]);
+      let mono = true; for (let j = 1; j < J - 1; j++) if (tn[j] <= tn[j - 1]) { mono = false; break; }
+      if (mono) { const e = evalAt(tn, false); if (e.ll >= cur.ll - 1e-12 * Math.abs(cur.ll)) { th.set(tn); nxt = evalAt(th, true); break; } }
+      lam /= 2;
     }
-    for (let r = 0; r < P; r++) for (let c = r + 1; c < P; c++) { const v = (H[r][c] + H[c][r]) / 2; H[r][c] = v; H[c][r] = v; }
-    const negH = H.map(row => Array.from(row, v => -v));
-    const inv = gaussJordan(negH);
-    if (!inv) { if (!sawStep) return { error: 'model is unstable (collinear predictors or empty categories) — simplify and refit.' }; break; }
-    const step = new Float64Array(P);
-    let maxd = 0;
-    for (let r = 0; r < P; r++) { let s = 0; for (let c = 0; c < P; c++) s += inv[r][c] * cur.g[c]; step[r] = s; maxd = Math.max(maxd, Math.abs(s)); }
-    let lam = 1, nxt = null, tn2 = null;
-    for (let hh = 0; hh < 6; hh++) {
-      tn2 = Float64Array.from(th); for (let r = 0; r < P; r++) tn2[r] += lam * step[r];
-      let mono = true; for (let j = 1; j < J - 1; j++) if (tn2[j] <= tn2[j - 1]) { mono = false; break; }
-      if (mono) { nxt = llGrad(tn2, true); if (nxt.ll >= cur.ll - 1e-9) break; }
-      nxt = null; lam /= 2;
-    }
-    if (!nxt) break;
-    th.set(tn2); cur = nxt; sawStep = true;
-    if (maxd * lam < 1e-7) { converged = true; break; }
+    if (!nxt) { converged = maxd < 1e-6; break; }
+    const dl = Math.abs(nxt.ll - cur.ll) / (Math.abs(nxt.ll) + 0.1);
+    cur = nxt;
+    if (maxd * lam < 1e-10 || dl < 1e-15) { converged = true; break; }
   }
-  const negH = H.map(row => Array.from(row, v => -v));
-  const cov = gaussJordan(negH);
-  if (!cov) return { error: 'could not compute standard errors — the model may be separated (a predictor perfectly predicts the outcome).' };
-  const sep = th.some((v, i2) => i2 >= J - 1 && Math.abs(v) > 15);
-  // robust / clustered / survey SEs: sandwich around the ML covariance, with each row's score at the estimate (as in glm)
-  let V = cov, vceInfo = null;
+  const covZ = cholInverse(cur.H.map(row => Array.from(row, v => -v)));
+  if (!covZ) return { error: 'could not compute standard errors — the model may be separated (a predictor perfectly predicts the outcome).' };
+  // back to the original units: theta_j = theta'_j + sum_r gamma_r mu_r / sd_r, b_r = gamma_r / sd_r
+  const A = Array.from({ length: P }, (_, i) => new Float64Array(P));
+  for (let j = 0; j < J - 1; j++) { A[j][j] = 1; for (let r = 0; r < p; r++) A[j][J - 1 + r] = mu[r] / sd[r]; }
+  for (let r = 0; r < p; r++) A[J - 1 + r][J - 1 + r] = 1 / sd[r];
+  const tr = M => { const T = A.map(row => Array.from({ length: P }, (_, c) => { let s = 0; for (let k = 0; k < P; k++) s += row[k] * M[k][c]; return s; })); return T.map(row => Array.from({ length: P }, (_, c) => { let s = 0; for (let k = 0; k < P; k++) s += row[k] * A[c][k]; return s; })); };
+  const thO = Float64Array.from(A.map(row => row.reduce((s, v, k) => s + v * th[k], 0)));
+  // a coefficient that moves the log odds by more than 25 across the observed range of its predictor signals separation
+  const sep = terms.some((_, r) => Math.abs(thO[J - 1 + r]) * rng[r] > 25);
+  let V = tr(covZ), vceInfo = null;
   if (vce && vce.type && vce.type !== 'classical') {
     const rows = [];
     for (let k = 0; k < n; k++) {
-      const xi = X[k], j = yi[k], wi = wr[k], s = new Float64Array(P);
-      let eta = 0; for (let r = 0; r < p; r++) eta += xi[r] * th[J - 1 + r];
-      const FU = j < J - 1 ? sig(th[j] - eta) : 1, FL = j > 0 ? sig(th[j - 1] - eta) : 0;
-      const L = Math.max(1e-12, FU - FL), fU = j < J - 1 ? FU * (1 - FU) : 0, fL = j > 0 ? FL * (1 - FL) : 0;
-      if (j < J - 1) s[j] = wi * fU / L;
-      if (j > 0) s[j - 1] = -wi * fL / L;
-      const gb = -wi * (fU - fL) / L;
-      for (let r = 0; r < p; r++) s[J - 1 + r] = gb * xi[r];
+      const { zi, j, Pr, a, bl } = rowTerms(th, k), wi = wr[k], s = new Float64Array(P);
+      if (j < J - 1) s[j] = wi * a / Pr;
+      if (j > 0) s[j - 1] = -wi * bl / Pr;
+      const gb = -wi * (a - bl) / Pr;
+      for (let r = 0; r < p; r++) s[J - 1 + r] = gb * zi[r];
       const i = ri[k];
       rows.push({ i, s, cl: vce.cl ? vce.cl[i] : null, st: vce.st ? vce.st[i] : null });
     }
-    const sv = sandwichV(cov, rows, vce, n, P, 'ologit');
+    const sv = sandwichV(covZ, rows, vce, n, P, 'ologit');
     if (sv.error) return sv;
-    V = sv.V;
+    V = tr(sv.V);
     const useT = vce.type === 'svy' && sv.df > 0;
     vceInfo = { type: vce.type, df: useT ? sv.df : 0, G: sv.G, H: sv.H, single: sv.single };
   }
@@ -1177,9 +1260,9 @@ export function ologit(ya, preds, w, vce) {
   // null model: weighted marginal proportions
   let llN = 0;
   for (let i = 0; i < n; i++) llN += wr[i] * Math.log(Math.max(1e-12, cw[yi[i]] / sw));
-  const coefs = terms.map((tm, r) => { const b = th[J - 1 + r], s = se(J - 1 + r), z = b / s; return { term: tm.label, b, se: s, t: z, p: pOf(z), or: Math.exp(b) }; });
-  const cuts = levels.slice(0, J - 1).map((lv, j) => { const b = th[j], s = se(j), z = b / s; return { term: '/cut' + (j + 1) + ' (≤ ' + numLab(lv) + ')', b, se: s, t: z, p: NaN, or: NaN }; });
-  return { th: Array.from(th), cov: V, vce: vceInfo, dfT: vceInfo ? vceInfo.df : 0, coefs, cuts, n, dropped: N - n, ll: cur.ll, llNull: llN, mcfadden: llN < 0 ? 1 - cur.ll / llN : NaN, converged: converged && !sep, refs, levels, J };
+  const coefs = terms.map((tm, r) => { const b = thO[J - 1 + r], s = se(J - 1 + r), z = b / s; return { term: tm.label, b, se: s, t: z, p: pOf(z), or: Math.exp(b) }; });
+  const cuts = levels.slice(0, J - 1).map((lv, j) => { const b = thO[j], s = se(j), z = b / s; return { term: '/cut' + (j + 1) + ' (≤ ' + numLab(lv) + ')', b, se: s, t: z, p: NaN, or: NaN }; });
+  return { th: Array.from(thO), cov: V, vce: vceInfo, dfT: vceInfo ? vceInfo.df : 0, coefs, cuts, n, dropped: N - n, ll: cur.ll, llNull: llN, mcfadden: llN < 0 ? 1 - cur.ll / llN : NaN, converged: converged && !sep, refs, levels, J };
 }
 
 // ---------- one-sample / paired t ----------
@@ -2136,6 +2219,7 @@ export function* marginsGen(o) {
   for (let i = 0; i < N0; i++) {
     const y = o.y[i]; if (!isFinite(y)) continue;
     if (w && !(w[i] > 0)) continue;
+    if (o.vce && o.vce.cl && (o.vce.cl[i] == null || o.vce.cl[i] !== o.vce.cl[i])) continue;
     let ok = true; for (const v of V) { const x = v.a[i]; if (v.kind === 'num' ? !isFinite(x) : (x == null || !v.levels.includes(x))) { ok = false; break; } }
     if (ok) rowsOk.push(i);
   }
@@ -2147,20 +2231,23 @@ export function* marginsGen(o) {
   if (n < p + 3) return { error: 'not enough complete rows for the margins plot' };
   const yv = rowsOk.map(i => o.y[i]), wv = rowsOk.map(i => w ? w[i] : 1);
   let b, Vc, cuts = null, J = 0;
+  // the model's own variance: classical, or robust / clustered / survey (the sandwich used by the results table)
+  const sandwich = (bread, scoreOf, family) => { if (!(o.vce && o.vce.type && o.vce.type !== 'classical')) return null; const rows = X.map((x, k) => { const i = rowsOk[k]; return { i, s: scoreOf(x, k), cl: o.vce.cl ? o.vce.cl[i] : null, st: o.vce.st ? o.vce.st[i] : null }; }); return sandwichV(bread, rows, o.vce, n, p, family); };
   if (fam === 'ols') {
-    const mw = wv.reduce((s, x) => s + x, 0) / n, wn = wv.map(x => x / mw);
-    const A = Array.from({ length: p }, () => new Array(p).fill(0)), bz = new Array(p).fill(0);
-    for (let i = 0; i < n; i++) { const xi = X[i], wi = wn[i]; for (let r = 0; r < p; r++) { bz[r] += wi * xi[r] * yv[i]; for (let c = 0; c < p; c++) A[r][c] += wi * xi[r] * xi[c]; } }
-    const Ai = gaussJordan(A); if (!Ai) return { error: 'predictors are collinear' };
-    b = Ai.map(row => row.reduce((s, v, c) => s + v * bz[c], 0));
-    let sse = 0; for (let i = 0; i < n; i++) { let et = 0; for (let r = 0; r < p; r++) et += X[i][r] * b[r]; sse += wn[i] * (yv[i] - et) ** 2; }
-    const s2 = sse / Math.max(1, n - p); Vc = Ai.map(row => row.map(v => v * s2));
+    const qr = lsqQR(p); for (let i = 0; i < n; i++) qr.add(X[i], yv[i], wv[i]);
+    const sol = qr.solve(); if (sol.aliased.length) return { error: 'predictors are collinear' };
+    b = Array.from(sol.b);
+    const res = X.map((x, i) => { let et = 0; for (let r = 0; r < p; r++) et += x[r] * b[r]; return yv[i] - et; });
+    let sse = 0; for (let i = 0; i < n; i++) sse += wv[i] * res[i] * res[i];
+    const s2 = sse / Math.max(1, n - p); Vc = sol.inv.map(row => row.map(v => v * s2));
+    const sv = sandwich(sol.inv, (x, k) => x.map(v => v * wv[k] * res[k]), null); if (sv && sv.error) return sv; if (sv) Vc = sv.V;
   } else if (fam === 'logistic' || fam === 'poisson') {
     const f = irls(X, yv, wv, p, fam); if (f.error) return f; b = Array.from(f.b); Vc = f.inv;
+    const sv = sandwich(f.inv, (x, k) => { let et = 0; for (let r = 0; r < p; r++) et += x[r] * b[r]; et = Math.max(-30, Math.min(30, et)); const m = fam === 'logistic' ? 1 / (1 + Math.exp(-et)) : Math.exp(et); return x.map(v => v * wv[k] * (yv[k] - m)); }, fam); if (sv && sv.error) return sv; if (sv) Vc = sv.V;
   } else {
     const preds = V.map(v => v.kind === 'num' ? { name: v.name, kind: 'num', a: v.a } : { name: v.name, kind: 'cat', a: v.a, levels: v.levels });
     IX.forEach(([ai, bi], k) => { const A2 = V[ai], B2 = V[bi]; const ea = A2.kind === 'num' ? [x => x] : A2.levels.slice(1).map(L => x => x == null ? NaN : (x === L ? 1 : 0)); const eb = B2.kind === 'num' ? [x => x] : B2.levels.slice(1).map(L => x => x == null ? NaN : (x === L ? 1 : 0)); ea.forEach((fa, q) => eb.forEach((fb, r2) => { const col = new Float64Array(N0); for (let i = 0; i < N0; i++) col[i] = fa(A2.a[i]) * fb(B2.a[i]); preds.push({ name: 'ix' + k + '_' + q + '_' + r2, kind: 'num', a: col }); })); });
-    const fit = ologit(o.y, preds, w); if (fit.error) return fit;
+    const fit = ologit(o.y, preds, w, o.vce); if (fit.error) return fit;
     J = fit.J; cuts = fit.th.slice(0, J - 1); b = fit.th.slice(J - 1); Vc = fit.cov;
   }
   const P = (cuts ? cuts.length : 0) + b.length, off = cuts ? cuts.length : 0;

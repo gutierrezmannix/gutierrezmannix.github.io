@@ -8,7 +8,9 @@
     if (Array.isArray(S.corVars)) return S.corVars.filter(ok);
     const seed = [S.xVar, S.yVar].filter((v, i, a) => v && ok(v) && a.indexOf(v) === i);
     if (seed.length === 2) return seed;
-    return (S.cols || []).filter(c => ok(c.name) && (this.effMeta(c.name).treatAs || 'numeric') === 'numeric' && c.distinct > 2 && c.distinct < (S.nRows || Infinity)).slice(0, 5).map(c => c.name);
+    // the first five numeric variables, leaving out yes/no codes and identifiers (whole numbers, a different one on every
+    // row); a continuous measure whose values never repeat (income, height) is kept
+    return (S.cols || []).filter(c => ok(c.name) && (this.effMeta(c.name).treatAs || 'numeric') === 'numeric' && c.distinct > 2 && !(c.allInt && c.distinct >= (c.valid || S.nRows || Infinity))).slice(0, 5).map(c => c.name);
   }
   corShowNow() { return Object.assign({ stars: true, n: true, p: false, ci: false }, this.state.corShow || {}); }
   corCompute(vars) {
@@ -38,7 +40,7 @@
     return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
   }
   corR(v) { return Number.isFinite(v) ? v.toFixed(2).replace(/^(-?)0\./, '$1.').replace(/^-/, '−') : '—'; }
-  corStars(p) { return !Number.isFinite(p) ? '' : p < 0.001 ? '***' : p < 0.01 ? '**' : p < 0.05 ? '*' : ''; }
+  corStars(p) { return this.starsOf(p); }
   // two bands so the text always has 4.5:1 contrast: light tints with dark text up to |r| = .35, then solid tones with white text
   corColor(r) {
     if (!Number.isFinite(r)) return '#F4F1EA';
@@ -52,8 +54,23 @@
   corDesc() {
     const S = this.state, vars = this.corVarsNow(); if (vars.length < 2 || S.screen !== 'work') return null;
     const M = this.corCompute(vars), sp = M.method === 'spearman', wv = S.weightVar, vl = vars.join(' '), rv = 'df[, c(' + vars.map(v => '"' + v + '"').join(', ') + ')]';
-    const stata = sp ? 'spearman ' + vl + '@IF@, stats(rho p obs)' + (M.listwise ? '' : ' pw') : M.listwise ? 'correlate ' + vl + '@IF@' + (wv ? ' [aw=' + wv + ']' : '') : 'pwcorr ' + vl + '@IF@' + (wv ? ' [aw=' + wv + ']' : '') + ', sig obs';
-    const r = sp ? 'psych::corr.test(' + rv + ', method = "spearman", use = "' + (M.listwise ? 'complete' : 'pairwise') + '", adjust = "none")' : M.listwise ? 'cor(' + rv + ', use = "complete.obs")' : 'psych::corr.test(' + rv + ', use = "pairwise", adjust = "none")';
+    let stata = sp ? 'spearman ' + vl + '@IF@, stats(rho p obs)' + (M.listwise ? '' : ' pw') : M.listwise ? 'correlate ' + vl + '@IF@' + (wv && M.w ? ' [aw=' + wv + ']' : '') : 'pwcorr ' + vl + '@IF@' + (wv && M.w ? ' [aw=' + wv + ']' : '') + ', sig obs';
+    let r = sp ? 'psych::corr.test(' + rv + ', method = "spearman", use = "' + (M.listwise ? 'complete' : 'pairwise') + '", adjust = "none")' : M.listwise ? 'cor(' + rv + ', use = "complete.obs")' : 'psych::corr.test(' + rv + ', use = "pairwise", adjust = "none")';
+    if (wv && M.w) {
+      // Weighted: R's cor() and psych ignore weights, and Stata's spearman takes none, so the commands compute what the
+      // page does — the weighted (analytic-weight) correlation, of the values (Pearson) or of their ranks (Spearman),
+      // each pair on its complete rows or all on the rows complete on every variable.
+      const vv = 'v <- c(' + vars.map(v => '"' + v + '"').join(', ') + ')', rk = x => sp ? 'rank(' + x + ')' : x;
+      r = M.listwise
+        ? vv + '\nd <- na.omit(df[c(v, "' + wv + '")])\ncov.wt(' + (sp ? 'sapply(d[v], rank)' : 'd[v]') + ', wt = d$' + wv + ', cor = TRUE)$cor'
+        : vv + '\nw <- df$' + wv + '\nsapply(v, function(i) sapply(v, function(j) { ok <- complete.cases(df[[i]], df[[j]], w); cov.wt(cbind(' + rk('df[[i]][ok]') + ', ' + rk('df[[j]][ok]') + '), wt = w[ok], cor = TRUE)$cor[1, 2] }))';
+      if (sp) {
+        const nm = v => ('_r' + v).slice(0, 32), cmpl = 'if !missing(' + [...vars, wv].join(', ') + ')@AND@';
+        stata = M.listwise
+          ? ['* Stata\'s spearman takes no weights: the weighted Spearman is the weighted correlation of the ranks', ...vars.map(v => 'capture drop ' + nm(v) + '\negen ' + nm(v) + ' = rank(' + v + ') ' + cmpl), 'pwcorr ' + vars.map(nm).join(' ') + ' [aw=' + wv + '], sig obs'].join('\n')
+          : ['* Stata\'s spearman takes no weights: the weighted Spearman is the weighted correlation of the ranks,', '* each pair ranked on its own complete rows', 'local v ' + vl, 'local n : word count `v\'', 'forvalues i = 1/`n\' {', '  forvalues j = `=`i\'+1\'/`n\' {', '    local a : word `i\' of `v\'', '    local b : word `j\' of `v\'', '    capture drop _ra _rb', '    egen _ra = rank(`a\') if !missing(`a\', `b\', ' + wv + ')@AND@', '    egen _rb = rank(`b\') if !missing(`a\', `b\', ' + wv + ')@AND@', '    display "`a\' and `b\'"', '    pwcorr _ra _rb [aw=' + wv + '], sig obs', '  }', '}'].join('\n');
+      }
+    }
     return this.memo('corD|' + vars.join(',') + '|' + M.method + '|' + M.listwise + '|' + (wv || ''), () => {
       let tbl = '';
       try { const mk = this.mask(), w = M.w; tbl = sp ? this.corText(M) : M.listwise ? this.cxCorrelate(vars, mk, w).tbl : this.cxPwcorr(vars, mk, w, { sig: true, obs: true }).tbl; } catch (e) { tbl = this.corText(M); }
@@ -101,7 +118,7 @@
     const rows = V.map((v, i) => [(i + 1) + '. ' + v, f2(M.desc[i].mean), f2(M.desc[i].sd), ...V.slice(0, -1).map((_, j) => j < i ? this.corR(M.cells[i][j].r) + this.corStars(M.cells[i][j].p) + (show.ci ? ' [' + this.corR(M.cells[i][j].lo) + ', ' + this.corR(M.cells[i][j].hi) + ']' : '') : '')]);
     const ns = []; V.forEach((_, i) => V.forEach((__, j) => { if (j < i && M.cells[i][j].n) ns.push(M.cells[i][j].n); }));
     const nTxt = M.listwise ? 'n = ' + this.fmtN(M.nAll) + ' (rows complete on every variable)' : 'pairwise deletion, n = ' + (Math.min(...ns) === Math.max(...ns) ? this.fmtN(ns[0]) : this.fmtN(Math.min(...ns)) + '–' + this.fmtN(Math.max(...ns)));
-    return { title: 'Means, standard deviations, and ' + (M.method === 'spearman' ? 'Spearman ' : '') + 'correlations' + (show.ci ? ' with confidence intervals' : ''), head, rows, note: 'Note. M and SD are the mean and standard deviation. ' + (M.method === 'spearman' ? 'Spearman’s ρ' : 'Pearson’s r') + '; ' + nTxt + '.' + (show.ci ? ' Brackets: ' + Math.round((1 - this.alpha()) * 100) + '% confidence intervals.' : '') + ' * p < .05. ** p < .01. *** p < .001.' };
+    return { title: 'Means, standard deviations, and ' + (M.method === 'spearman' ? 'Spearman ' : '') + 'correlations' + (show.ci ? ' with confidence intervals' : ''), head, rows, note: 'Note. M and SD are the mean and standard deviation. ' + (M.method === 'spearman' ? 'Spearman’s ρ' : 'Pearson’s r') + '; ' + nTxt + '.' + (show.ci ? ' Brackets: ' + Math.round((1 - this.alpha()) * 100) + '% confidence intervals.' : '') + ' ' + this.starNote().replace(/, /g, '. ') + '.' };
   }
   corDocx(M) { const T = this.corTable(M); this.dlBlob(this.docxBlob([{ k: 'table', title: T.title, head: T.head, rows: T.rows, note: T.note }]), 'correlation-table.docx'); this.flash('Downloaded a Word file (.docx)'); }
   async corCopyWord(M) {
@@ -131,7 +148,7 @@
       return h('td', { key: u }, h('button', { type: 'button', className: 'cr-cell' + (on ? ' on' : ''), style: { background: this.corColor(c.r), color: dark ? '#fff' : '#2B271E' }, 'aria-pressed': on ? 'true' : 'false', 'aria-label': v + ' and ' + u + ': ' + sym + ' = ' + this.corR(c.r) + ', p ' + this.fmtP(c.p) + ', n ' + c.n, title: c.err || (sym + ' = ' + this.corR(c.r) + ' · p ' + this.fmtP(c.p) + ' · n ' + c.n + (Number.isFinite(c.lo) ? ' · ' + Math.round((1 - this.alpha()) * 100) + '% CI ' + this.corR(c.lo) + ' to ' + this.corR(c.hi) : '')), onClick: () => this.setState({ corSel: [i, j] }) },
         h('span', { className: 'r' }, this.corR(c.r) + (show.stars ? this.corStars(c.p) : '')), show.p ? h('span', { className: 's' }, 'p ' + this.fmtP(c.p)) : null, show.n ? h('span', { className: 's' }, 'n ' + this.fmtN(c.n)) : null, show.ci && Number.isFinite(c.lo) ? h('span', { className: 's' }, '[' + this.corR(c.lo) + ', ' + this.corR(c.hi) + ']') : null));
     })); });
-    const legend = h('div', { className: 'cr-legend' }, h('div', { className: 'cr-scale', 'aria-hidden': 'true' }), h('div', { className: 'mono', style: { display: 'flex', justifyContent: 'space-between', width: '72px', fontSize: '10px' } }, '−.6', h('span', null, '0'), '+.6'), h('br'), '* p < .05', h('br'), '** p < .01', h('br'), '*** p < .001', h('br'), h('br'), h('b', null, 'Click a cell'), h('br'), 'to see the pair');
+    const legend = h('div', { className: 'cr-legend' }, h('div', { className: 'cr-scale', 'aria-hidden': 'true' }), h('div', { className: 'mono', style: { display: 'flex', justifyContent: 'space-between', width: '72px', fontSize: '10px' } }, '−.6', h('span', null, '0'), '+.6'), h('br'), ...this.starNote().split(', ').flatMap((x, i) => i ? [h('br'), x] : [x]), h('br'), h('br'), h('b', null, 'Click a cell'), h('br'), 'to see the pair');
     const exportsRow = h('div', { className: 'tl-row cm-actions' }, this.tlBtn('Copy matrix (numbers)', () => this.corCopyMatrix(M)), this.tlBtn('Download CSV (r, p, n)', () => this.corCsv(M)), this.tlBtn('Word table (.docx)', () => this.corDocx(M), 'primary'), this.tlBtn('Copy table for Word', () => this.corCopyWord(M)), this.tlBtn('Pin to report', () => this.pinTab()));
     const matrix = h('section', { className: 'tl-panel cm-answer' }, h('div', { className: 'cm-body' },
       h('div', { className: 'tl-row cm-top' }, h('span', { className: 'cm-meta' }, (M.method === 'spearman' ? 'Spearman’s ρ' : 'Pearson’s r') + ' · ' + (M.listwise ? this.fmtN(M.nAll) + ' rows complete on all ' + k + ' variables' : 'each pair on its complete rows') + ' · ' + (this.stampText() || ''))),
@@ -140,11 +157,11 @@
     const c = M.cells[sel[0]][sel[1]], a = vars[sel[0]], b = vars[sel[1]], cc = Object.assign({ a, b }, c);
     let pair = null;
     if (Number.isFinite(c.r)) {
-      const sym2 = M.method === 'spearman' ? 'PEARSON r' : 'SPEARMAN ρ', other = M.method === 'spearman' ? c.rP : c.rS, otherP = M.method === 'spearman' ? c.pP : c.pS, apa = (M.method === 'spearman' ? 'rₛ' : 'r') + '(' + (c.n - 2) + ') = ' + this.corR(c.r) + ', ' + this.apaP(c.p);
+      const sym2 = M.method === 'spearman' ? 'PEARSON r' : 'SPEARMAN RHO', other = M.method === 'spearman' ? c.rP : c.rS, otherP = M.method === 'spearman' ? c.pP : c.pS, apa = (M.method === 'spearman' ? 'rₛ' : 'r') + '(' + (c.n - 2) + ') = ' + this.corR(c.r) + ', ' + this.apaP(c.p);
       const dir = c.r >= 0 ? 'as ' + b + ' goes up, ' + a + ' tends to go up' : 'as ' + b + ' goes up, ' + a + ' tends to go down';
       pair = h('section', { className: 'tl-panel' }, h('div', { className: 'tl-ptitle' }, h('h3', null, 'Selected pair'), h('span', { className: 'mono' }, b + ' × ' + a), h('div', { className: 'tl-pr' }, h('span', { className: 'cm-meta' }, 'click another cell'))),
         h('div', { className: 'cm-body cr-pair' }, h('figure', { style: { margin: 0 } }, this.corScatter(M, cc)),
-          h('div', { className: 'tl-col' }, h('div', { className: 'cm-stats' }, this.tlStat((M.method === 'spearman' ? 'SPEARMAN ρ' : 'PEARSON r') + ' · ' + Math.round((1 - this.alpha()) * 100) + '% CI', this.corR(c.r), this.corR(c.lo) + ' to ' + this.corR(c.hi)), this.tlStat(sym2, this.corR(other), 'p ' + this.fmtP(otherP)), this.tlStat('N (PAIRS)', this.fmtN(c.n), M.listwise ? 'complete on all' : this.fmtN(this.keptN() - c.n) + ' rows left out'), this.tlStat('SLOPE', (c.fit && c.fit.slope >= 0 ? '+' : '') + this.cmFmt(c.fit ? c.fit.slope : NaN), a + ' per unit of ' + b)),
+          h('div', { className: 'tl-col' }, h('div', { className: 'cm-stats' }, this.tlStat((M.method === 'spearman' ? 'SPEARMAN RHO' : 'PEARSON r') + ' · ' + Math.round((1 - this.alpha()) * 100) + '% CI', this.corR(c.r), this.corR(c.lo) + ' to ' + this.corR(c.hi)), this.tlStat(sym2, this.corR(other), 'p ' + this.fmtP(otherP)), this.tlStat('N (PAIRS)', this.fmtN(c.n), M.listwise ? 'complete on all' : this.fmtN(this.keptN() - c.n) + ' rows left out'), this.tlStat('SLOPE', (c.fit && c.fit.slope >= 0 ? '+' : '') + this.cmFmt(c.fit ? c.fit.slope : NaN), a + ' per unit of ' + b)),
             h('p', { className: 'cm-hint', style: { fontSize: '13px', color: '#433D31' } }, sym + ' = ' + this.corR(c.r) + ': a ' + this.strength(c.r) + ' ' + (c.r >= 0 ? 'positive' : 'negative') + ' relationship — ' + dir + '. ' + (c.p < this.alpha() ? 'Statistically significant (' + this.apaP(c.p) + ').' : 'Not statistically significant (' + this.apaP(c.p) + ').') + ' Correlation is not causation.'),
             h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, apa)),
             h('div', { className: 'tl-row' }, this.tlBtn('Copy APA', () => { try { navigator.clipboard.writeText(apa).then(() => this.flash('APA line copied')); } catch (e) {} }), this.tlBtn('Regression →', () => this.setState({ tab: 'reg', regModel: 'ols', depVar: a, predictors: [b] })), this.tlBtn('Pair page →', () => this.setState({ tab: 'two', twoMode: 'corr', xVar: b, yVar: a }))))));

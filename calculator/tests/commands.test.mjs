@@ -14,7 +14,7 @@ assert.equal(c.asRelabel('v31',{v3:'majority'}),'majority1');assert.equal(c.asRe
 const meta={majority:'numeric',party:'text',cabinet_type:'text'};c.effMeta=n=>({type:meta[n]==='text'?'string':'numeric'});
 const data={v1:{name:'months',type:'numeric'},v2:{name:'ended',type:'numeric'},v3:{name:'majority',type:'categorical'},v4:{name:'ideol_range',type:'numeric'},v6:{name:'cabinet_type',type:'categorical'}};
 const cox=c.asCommands({id:'cox',title:'Cox'},{id:'cox',alpha:.05,fields:{time:['v1'],event:['v2'],predictors:['v3','v4','v6']},options:{},data});
-assert.equal(cox.stata,'encode cabinet_type generate(cabinet_type_c)\nstset months, failure(ended)\nstcox i.majority ideol_range i.cabinet_type_c, efron');
+assert.equal(cox.stata,'encode cabinet_type, generate(cabinet_type_c)\nstset months, failure(ended)\nstcox i.majority ideol_range i.cabinet_type_c, efron');
 assert.equal(cox.r,'survival::coxph(survival::Surv(months, ended) ~ factor(majority) + ideol_range + cabinet_type, data = df)');
 const las=c.asCommands({id:'lasso',title:'Lasso'},{id:'lasso',alpha:.05,fields:{y:['v1'],predictors:['v4','v6']},options:{family:'binomial',folds:10,trainFraction:.7,seed:42},data});
 assert.match(las.stata,/lasso logit months ideol_range i\.cabinet_type_c if gm_split == 1, selection\(cv, folds\(10\) serule\) rseed\(42\)/);assert.match(las.stata,/split\(0\.7 0\.3\)/);
@@ -33,7 +33,7 @@ assert.equal(c.fltText({v:'a',op:'==',val:'1',more:[{v:'b',op:'!=',val:'0'}]}),'
  const dg=[].concat(r.diagnostics);for(const l of ['Autocorrelation test (1): normal = -4.9523 (p-value = 7.3341e-07)','Autocorrelation test (2): normal = -0.8188011 (p-value = 0.4129)','Wald test for coefficients: chisq(3) = 115.4183 (p-value = < 2.22e-16)'])assert.ok(dg.includes(l),l);
  assert.match([].concat(r.notes).join(' '),/exactly identified/);}
 const dp=c.asCommands({id:'panel_dynamic',title:'Dynamic'},{id:'panel_dynamic',alpha:.05,fields:{y:['v1'],predictors:['v4','v3'],subject:['v6'],time:['v2']},options:{lags:3},data:{v1:{name:'democracy'},v2:{name:'year'},v3:{name:'majority',type:'categorical'},v4:{name:'ideol_range'},v6:{name:'cabinet_type',type:'categorical'}}});
-assert.match(dp.stata,/xtabond2 democracy L\.democracy ideol_range i\.majority, gmm\(L\.democracy, laglimits\(1 2\) collapse\) iv\(ideol_range i\.majority\) noleveleq twostep robust/);assert.match(dp.stata,/encode cabinet_type generate\(cabinet_type_c\)\nxtset cabinet_type_c year/);assert.match(dp.r,/lag\(democracy, 2:3\)/);
+assert.match(dp.stata,/xtabond2 democracy L\.democracy ideol_range i\.majority, gmm\(L\.democracy, laglimits\(1 2\) collapse\) iv\(ideol_range i\.majority\) noleveleq twostep robust/);assert.match(dp.stata,/encode cabinet_type, generate\(cabinet_type_c\)\nxtset cabinet_type_c year/);assert.match(dp.r,/lag\(democracy, 2:3\)/);
 const hu=c.asCommands({id:'hurdle',title:'Hurdle'},{id:'hurdle',alpha:.05,fields:{y:['v1'],predictors:['v3','v4'],offset:['v2']},options:{},data:{v1:{name:'protests'},v2:{name:'population_m'},v3:{name:'majority',type:'categorical'},v4:{name:'ideol_range'}}});
 assert.equal(hu.r,'pscl::hurdle(protests ~ factor(majority) + ideol_range + offset(log(population_m)), data = df, dist = "negbin")');
 // Paired chart: lines coloured by direction, a bold line through the means, and the summary of change.

@@ -67,7 +67,7 @@
     const conds = [...(d.sg || []), ...(d.ifc || [])];
     if (dial !== 'stata') return this.withIf(d.r, conds, 'r');
     const ex = conds.map(c => this.condExpr(c, 'stata')).filter(Boolean).join(' & ');
-    return String(d.stata).replace('@IF@', ex ? ' if ' + ex : '');
+    return String(d.stata).replace('@IF@', ex ? ' if ' + ex : '').replace(/@AND@/g, ex ? ' & ' + ex : '');
   }
   cxSplit(s) {
     // "verb varlist [if exp] [weight] [, options]" → parts (Stata's order)

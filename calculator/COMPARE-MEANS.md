@@ -65,3 +65,15 @@ Settings.
   5 variables, clicking a cell, Spearman, complete rows and the CIs. It downloads the .docx and CSV files,
   checks the clipboard copies and the console lines, and checks that a phone-width screen has no sideways
   scroll and that the console has no errors.
+
+## Build .64
+
+- A one-sided test after ⇄ swap now exports R's alternative in R's own order.
+- Weighted correlation: the R code computes the weighted correlation (`cov.wt`, on values or on ranks). For Spearman,
+  the Stata code ranks with `egen` and runs `pwcorr … [aw=]`, because `spearman` takes no weights.
+- Default variables: whole-number identifiers are left out, and continuous measures whose values never repeat are
+  kept.
+- "SPEARMAN RHO" in the tiles, because ρ in capitals reads as P.
+- Stars follow Settings → Stars (`* .05 ** .01 *** .001` by default).
+
+See `REGRESSION.md`.

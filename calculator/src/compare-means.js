@@ -226,7 +226,12 @@
       else {
         const N = this.cmName(D), pct = Math.round(100 * (1 - r.alpha)), ciTxt = (Number.isFinite(r.lo) ? this.cmSigned(r.lo) : '−∞') + ' to ' + (Number.isFinite(r.hi) ? this.cmSigned(r.hi) : '∞');
         if (D.summary) this._ttLast = this.cmSummaryLog(D, r);
-        else if (this._ttLast && r.alt !== 'two') { const L = this._ttLast; this._ttLast = Object.assign({}, L, { r: String(L.r).replace(/\)$/, ', alternative = "' + (r.alt === 'gt' ? 'greater' : 'less') + '")'), res: L.res + ' (one-sided p ' + this.apaP(r.p).replace(/^p /, '') + ')' }); }
+        else if (this._ttLast && r.alt !== 'two') {
+          // R's t.test(y ~ g) subtracts in its own order (lower code first). When the page's order is the reverse (swapped,
+          // or the groups picked high-to-low), "first > second" on the page is "less" in R.
+          const L = this._ttLast, flip = mode === 'groups' && this.ttGroups().flip, rAlt = (r.alt === 'gt') !== flip ? 'greater' : 'less';
+          this._ttLast = Object.assign({}, L, { r: String(L.r).replace(/\)$/, ', alternative = "' + rAlt + '")') + (flip ? '\n# R subtracts ' + this.ttGroups().lo + ' minus ' + this.ttGroups().hi + ', the reverse of the page, so the one-sided alternative is reversed too' : ''), res: L.res + ' (one-sided p ' + this.apaP(r.p).replace(/^p /, '') + ')' });
+        }
         const L = this._ttLast, used = N.mode === 'paired' ? r.groups[0].n : r.groups.reduce((t, g) => t + g.n, 0);
         const pill = h('span', { className: 'cm-pill ' + (r.sig ? 'sig' : 'ns') }, (r.sig ? 'SIGNIFICANT · ' : 'NOT SIGNIFICANT · ') + this.apaP(r.p) + (r.alt === 'two' ? '' : ' one-sided'));
         const meta = h('span', { className: 'cm-meta' }, N.test + (D.summary ? ' · from summary numbers' : ' · ' + this.fmtN(used) + (N.mode === 'paired' ? ' complete pairs' : ' cases used') + ' of ' + this.fmtN(this.keptN())));

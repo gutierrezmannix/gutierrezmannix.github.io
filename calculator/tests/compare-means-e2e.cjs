@@ -88,7 +88,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   const labels = await p.locator('button.cr-cell').evaluateAll(es => es.map(e => e.getAttribute('aria-label')));
   console.log('      ' + labels.join('\n      '));
   await p.locator('button.cr-cell').nth(0).click(); await p.waitForTimeout(400);
-  t = await txt('.cr-pair'); console.log('      PAIR ' + t.replace(/\n+/g, ' | ').slice(0, 400)); check(/PEARSON r/i.test(t) && /SPEARMAN ρ/i.test(t) && /SLOPE/i.test(t), 'click a cell: the pair panel');
+  t = await txt('.cr-pair'); console.log('      PAIR ' + t.replace(/\n+/g, ' | ').slice(0, 400)); check(/PEARSON r/i.test(t) && /SPEARMAN RHO/i.test(t) && /SLOPE/i.test(t), 'click a cell: the pair panel');
   const slope = Number((t.match(/SLOPE\s*\|?\s*([+−-]?[\d.,]+)/i) || [])[1]?.replace(/,/g, '').replace('−', '-')); check(slope > 100 && slope < 200, 'slope of ingreso on edad ≈ 150 per year (' + slope + ')');
   await p.locator('[aria-label="Method"] button').filter({ hasText: 'Spearman' }).click(); await p.waitForTimeout(400);
   check(/Spearman’s ρ/.test(await txt('.cm')), 'Spearman: the page says Spearman’s ρ');
