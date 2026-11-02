@@ -115,9 +115,9 @@ def integrate_component(c):
     const raw = this._raw, hid = new Set(this.state.hiddenVars || []);""", """  saveCsv(withHidden) {
     this._dirty = false; this.setState({ dirty: false });
     const raw = this._raw, hid = new Set(withHidden === true ? [] : (this.state.hiddenVars || []).filter(v => raw.names.includes(v)));""", 'saveCsv hidden')
-    c = _one(c, """    a.download = (this.state.fileName || 'my-dataset').replace(/\\.(csv|dta|tsv|txt)$/i, '') + '.csv'; a.click();
+    c = _one(c, """    a.download = (this.state.fileName || 'my-dataset').replace(/\\.(csv|dta|tsv|txt|tab|xlsx|xlsm|xls|json)$/i, '').replace(/\\.gm26$/i, '') + '.csv'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  }""", """    a.download = (this.state.fileName || 'my-dataset').replace(/\\.(csv|dta|tsv|txt)$/i, '') + '.csv'; a.click();
+  }""", """    a.download = (this.state.fileName || 'my-dataset').replace(/\\.(csv|dta|tsv|txt|tab|xlsx|xlsm|xls|json)$/i, '').replace(/\\.gm26$/i, '') + '.csv'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     this.setState({ undoMsg: 'Saved ' + a.download + ' · ' + this.fmtN(raw.n) + ' rows × ' + idx.length + ' variables' + (hid.size ? ' (' + hid.size + ' hidden left out)' : '') });
     clearTimeout(this._umT); this._umT = setTimeout(() => this.setState({ undoMsg: '' }), 4000);

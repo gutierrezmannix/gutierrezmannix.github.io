@@ -98,6 +98,9 @@
   }
   deTaskVar(D) {
     const h = React.createElement, S = this.state, v = D.v && this.colIdx(D.v) >= 0 ? D.v : '';
+    if (!this._raw.names.length) return this.tlPanel('Fix a variable', 'this dataset has no variables yet', null, // GM26 .66: a new, empty dataset
+      h('p', { className: 'de-hint' }, 'Start with a variable to type values into: Make a new variable → Blank. Then type the values in Browse.'),
+      h('div', { className: 'tl-row' }, this.tlBtn('Make a new variable →', () => this.deGo('new', { recipe: 'blank' }), 'primary')));
     if (!v) return this.tlPanel('Fix a variable', 'pick the variable you want to work on', null,
       h('div', { className: 'tl-row wide' }, this.tlField('Variable', this.deVarSelect('', n => this.dePickVar(n), { aria: 'Variable to change' })), h('span', { className: 'tl-hint' }, 'Tip: in Browse, click a column name to open it here.')),
       h('p', { className: 'de-hint' }, 'Rename it, say what it measures, choose whether it holds groups or numbers, write what each code means, change or merge values, or delete it — all on one page.'));
@@ -610,7 +613,7 @@
     for (let r = 0; r < raw.n; r++) { if (mk && !mk[r]) continue; nOut++; lines.push(idx.map(i => { const c = raw.cols[i], v = c.a[r]; return c.k === 'n' ? this.numberText(v) : q(String(v == null ? '' : v)); }).join(',')); }
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = (this.state.fileName || 'my-dataset').replace(/\.(csv|dta|tsv|txt)$/i, '') + '.csv'; a.click();
+    a.download = (this.state.fileName || 'my-dataset').replace(/\.(csv|dta|tsv|txt|tab|xlsx|xlsm|xls|json)$/i, '').replace(/\.gm26$/i, '') + '.csv'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     this.setState({ undoMsg: 'Saved ' + a.download + ' · ' + this.fmtN(nOut) + ' rows' + (mk ? ' in use' : '') + ' × ' + idx.length + ' variables' + (hid.size ? ' (' + hid.size + ' hidden left out)' : '') });
     clearTimeout(this._umT); this._umT = setTimeout(() => this.setState({ undoMsg: '' }), 4000);

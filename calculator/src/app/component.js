@@ -4927,6 +4927,9 @@ class Component extends DCLogic {
   }
   deTaskVar(D) {
     const h = React.createElement, S = this.state, v = D.v && this.colIdx(D.v) >= 0 ? D.v : '';
+    if (!this._raw.names.length) return this.tlPanel('Fix a variable', 'this dataset has no variables yet', null, // GM26 .66: a new, empty dataset
+      h('p', { className: 'de-hint' }, 'Start with a variable to type values into: Make a new variable → Blank. Then type the values in Browse.'),
+      h('div', { className: 'tl-row' }, this.tlBtn('Make a new variable →', () => this.deGo('new', { recipe: 'blank' }), 'primary')));
     if (!v) return this.tlPanel('Fix a variable', 'pick the variable you want to work on', null,
       h('div', { className: 'tl-row wide' }, this.tlField('Variable', this.deVarSelect('', n => this.dePickVar(n), { aria: 'Variable to change' })), h('span', { className: 'tl-hint' }, 'Tip: in Browse, click a column name to open it here.')),
       h('p', { className: 'de-hint' }, 'Rename it, say what it measures, choose whether it holds groups or numbers, write what each code means, change or merge values, or delete it — all on one page.'));
@@ -5439,7 +5442,7 @@ class Component extends DCLogic {
     for (let r = 0; r < raw.n; r++) { if (mk && !mk[r]) continue; nOut++; lines.push(idx.map(i => { const c = raw.cols[i], v = c.a[r]; return c.k === 'n' ? this.numberText(v) : q(String(v == null ? '' : v)); }).join(',')); }
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = (this.state.fileName || 'my-dataset').replace(/\.(csv|dta|tsv|txt)$/i, '') + '.csv'; a.click();
+    a.download = (this.state.fileName || 'my-dataset').replace(/\.(csv|dta|tsv|txt|tab|xlsx|xlsm|xls|json)$/i, '').replace(/\.gm26$/i, '') + '.csv'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     this.setState({ undoMsg: 'Saved ' + a.download + ' · ' + this.fmtN(nOut) + ' rows' + (mk ? ' in use' : '') + ' × ' + idx.length + ' variables' + (hid.size ? ' (' + hid.size + ' hidden left out)' : '') });
     clearTimeout(this._umT); this._umT = setTimeout(() => this.setState({ undoMsg: '' }), 4000);
@@ -8107,7 +8110,7 @@ class Component extends DCLogic {
     if (d.t === 'plot' && d.kind === 'map') return 'World map shading each country by the ' + (d.stat === 'median' ? 'median' : 'mean') + ' of ' + d.y + ' (grouped by ' + d.x + ')' + (d.yv && d.yr !== '' ? ' for ' + d.yv + ' ' + d.yr : '');
     if (d.t === 'plot') return 'Draws a ' + ({ hist: 'histogram', bar: 'bar chart', box: 'box plot', scatter: 'scatterplot with fit line', gbox: 'box plot per group', stack: 'stacked composition chart' })[d.kind] + ' of ' + d.x + (d.y ? ' and ' + d.y : '');
     const wt = d.w ? ', weighted by ' + d.w : '';
-    if (d.t === 'sum') return 'Summary statistics (mean, SD, min, max) for ' + d.x + wt;
+    if (d.t === 'sum') return 'Summary statistics (percentiles, mean, SD, skewness, kurtosis and the CI of the mean) for ' + d.x + wt;
     if (d.t === 'tab1') return 'Frequency table of ' + d.x + wt;
     if (d.t === 'ct') return 'Crosstab of ' + d.y + ' by ' + d.x + ' with column percentages' + wt;
     if (d.t === 'corr') return 'Correlation between ' + d.x + ' and ' + d.y + ' with p-value and n' + wt;
@@ -8536,9 +8539,26 @@ class Component extends DCLogic {
 
   // The shared toolbar wraps at small widths without hiding controls.
   navFit() {}
+  notDataReason(name, buf) {
+    const ext = (String(name).match(/\.([A-Za-z0-9]+)$/) || [])[1], e = ext ? ext.toLowerCase() : '';
+    const formats = 'Open a CSV or TSV text file, an Excel workbook (.xlsx), a Stata file (.dta) or a saved session (.json).';
+    if (/^(sav|zsav|por)$/.test(e)) return '"' + name + '" is an SPSS file, which this calculator cannot read. In SPSS use File → Export → CSV (or Stata .dta), then open that file.';
+    if (/^(sas7bdat|xpt|sas7bcat)$/.test(e)) return '"' + name + '" is a SAS file, which this calculator cannot read. Export it to CSV (PROC EXPORT … DBMS=CSV) or Stata, then open that file.';
+    if (/^(rds|rdata|rda)$/.test(e)) return '"' + name + '" is an R file, which this calculator cannot read. In R: write.csv(df, "data.csv", row.names = FALSE), then open data.csv.';
+    if (/^(ods|numbers)$/.test(e)) return '"' + name + '" is a ' + (e === 'ods' ? 'LibreOffice' : 'Numbers') + ' spreadsheet. Save it as Excel (.xlsx) or CSV, then open that file.';
+    if (/^(pdf|docx?|odt|rtf|pptx?|key|png|jpe?g|gif|webp|bmp|tiff?|heic|svg|mp3|mp4|mov|zip|rar|7z|gz|tar|exe|dmg|html?|parquet|feather|sqlite|db|mdb|accdb)$/.test(e)) return '"' + name + '" is not a data file this calculator can read. ' + formats;
+    if (!buf) return '';
+    { const b = new Uint8Array(buf, 0, Math.min(2, buf.byteLength)); if ((b[0] === 0xFF && b[1] === 0xFE) || (b[0] === 0xFE && b[1] === 0xFF)) return ''; } // UTF-16 text (Excel's Unicode text)
+    // content: text data has no NUL bytes and few control characters in its first 4 KB (only for files read as CSV / TSV)
+    const u8 = new Uint8Array(buf, 0, Math.min(4096, buf.byteLength)); let bad = 0;
+    for (let i = 0; i < u8.length; i++) { const c = u8[i]; if (c === 0) return '"' + name + '" is not a text data file. ' + formats; if (c < 9 || (c > 13 && c < 32 && c !== 27)) bad++; }
+    if (u8.length && bad / u8.length > 0.05) return '"' + name + '" is not a text data file. ' + formats;
+    return '';
+  }
+  openFileDialog() { if (this._file) this._file.click(); }
   newDataset() {
     const data = { n: 20, names: [], labels: [], cols: [], vlabs: {} };
-    this.ingest(null, 'my-dataset', { tab: 'data', nvTab: 'build' }, data);
+    this.ingest(null, 'my-dataset', { tab: 'data', nvTab: 'build', deTask: 'new', de: { task: 'new', recipe: 'blank' } }, data); // GM26 .66: start with Make a new variable → Blank
   }
   reprofile(idxs) {
     const raw = this._raw, E = this._E, set = new Set(idxs);
@@ -8693,7 +8713,7 @@ class Component extends DCLogic {
     for (let r = 0; r < raw.n; r++) lines.push(idx.map(i => { const c = raw.cols[i], v = c.a[r]; return c.k === 'n' ? this.numberText(v) : q(String(v == null ? '' : v)); }).join(','));
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = (this.state.fileName || 'my-dataset').replace(/\.(csv|dta|tsv|txt)$/i, '') + '.csv'; a.click();
+    a.download = (this.state.fileName || 'my-dataset').replace(/\.(csv|dta|tsv|txt|tab|xlsx|xlsm|xls|json)$/i, '').replace(/\.gm26$/i, '') + '.csv'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     this.setState({ undoMsg: 'Saved ' + a.download + ' · ' + this.fmtN(raw.n) + ' rows × ' + idx.length + ' variables' + (hid.size ? ' (' + hid.size + ' hidden left out)' : '') });
     clearTimeout(this._umT); this._umT = setTimeout(() => this.setState({ undoMsg: '' }), 4000);
@@ -8702,8 +8722,10 @@ class Component extends DCLogic {
   // ---- ingest ----
   async ingest(fileOrBuf, name, extra, preData) {
     this._ingestCancel = false;
-    if (!preData) { this._plots = []; this._plotLast = {}; }
-    this.setState({ parsing: true, parsingName: name, progress: 3, error: '' });
+    // GM26 .66: a dataset that is open stays loaded until the new file has been read; meanwhile the start screen shows
+    // the progress, and on an error or Cancel the open dataset comes back with the message.
+    const prevRaw = this._raw, hadData = !!(prevRaw && this.state.screen === 'work');
+    this.setState(Object.assign({ parsing: true, parsingName: name, progress: 3, error: '' }, hadData && !preData ? { screen: 'upload', mfFile: false, mfNav: '' } : {}));
     try {
       const E = await this._engineP;
       let data = preData;
@@ -8723,7 +8745,11 @@ class Component extends DCLogic {
         let obj = null; try { obj = JSON.parse(new TextDecoder().decode(buf)); } catch (e0) {}
         if (obj && (obj.magic === 'digimi-session' || obj.magic === 'cidigimi-session') && obj.data) { this._undo = []; this.setState({ undoN: 0 }); this._plots = (obj.plots || []).map(p => Object.assign({}, p, { thumb: this.plotThumb(p.xml) })); this._plotLast = {}; const nP = this._plots.length; return this.ingest(null, obj.fileName || name, Object.assign({}, obj.state || {}, { dirty: false, plotN: nP, plotCur: nP - 1, mfSettings: false, mfFile: false, mfNav: '', mfDl: false, mfCmd: '', mfCmdErr: '', mfCmdOk: '' }), this.sessionData(obj)); }
       }
+      const userErr = m => Object.assign(new Error(m), { userFacing: true }); // shown on the page, not logged as a fault
+      if (head.startsWith('{') && /\.json$/i.test(name)) throw userErr('"' + name + '" is a .json file but not a saved GM 26 session. Open a session saved with File → Save session, or a data file (CSV, TSV, Excel .xlsx, Stata .dta).');
+      { const why = this.notDataReason(name, null); if (why) throw userErr(why); } // GM26 .66: PDFs, images, SPSS … get a clear message (by extension)
       const isDta = head.startsWith('<stata_dta>') || (/\.dta$/i.test(name) && u8[0] >= 102 && u8[0] <= 119);
+      { const zip = u8[0] === 0x50 && u8[1] === 0x4B, ole = u8[0] === 0xD0 && u8[1] === 0xCF; if (!isDta && !zip && !ole && !/\.(xlsx|xlsm|xltx|xltm|xls)$/i.test(name)) { const why = this.notDataReason(name, buf); if (why) throw userErr(why); } } // GM26 .66: binary content is not text data (files read as CSV / TSV)
       this.setState({ progress: 35, parseStage: 'reading rows and columns' });
       const prog = p => this._ingestCancel ? (() => { throw new Error('__cancelled'); })() : this.setState({ progress: Math.round(35 + 0.55 * Math.max(0, Math.min(93, p)) / 0.93), parseStage: p < 75 ? 'reading rows · ' + Math.round(100 * p / 75) + '%' : 'sorting values into columns' });
       // GM26 xlsx ingest
@@ -8732,6 +8758,7 @@ class Component extends DCLogic {
       if (isZip || isOle || /\.(xlsx|xlsm|xltx|xltm|xls)$/i.test(name)) { this.setState({ parseStage: 'reading the Excel workbook' }); data = await E.parseXLSX(buf, prog, { sheet: extra && extra.xlSheetPick != null ? extra.xlSheetPick : undefined }); if (data.xlsx && data.xlsx.sheets.length > 1) { this._xlsx = { buf, name, sheets: data.xlsx.sheets, sheet: data.xlsx.sheet }; setTimeout(() => this.flash('This workbook has ' + data.xlsx.sheets.length + ' sheets — showing “' + data.xlsx.sheet + '”. Pick another under Data information.'), 900); } }
       else data = isDta ? await E.parseDTA(buf, prog) : await E.parseCSV(buf, prog);
       }
+      if (!preData) { this._plots = []; this._plotLast = {}; } // GM26 .66: cleared once the new file is read (a failed load keeps them)
       if (!preData) { try { this._autoLab = this.autoLabels(data, name); } catch (e) { this._autoLab = null; } }
       this.setState({ progress: 90, parseStage: 'checking ' + (data.names ? data.names.length : 0) + ' variables' });
       await new Promise(r => setTimeout(r, 10));
@@ -8768,7 +8795,13 @@ class Component extends DCLogic {
         pins: [], plotN: 0, plotCur: -1, mfSettings: false, mfFile: false, mfNav: '', mfDl: false, mfCmd: '', mfCmdErr: '', mfCmdOk: '', mfRepTitle: ''
       }, extra || {}));
       this.afterIngest(data, name, extra, preData);
-    } catch (e) { if (e && e.message === '__cancelled') { this._restoring = false; this._ingestCancel = false; this.setState({ parsing: false, error: '' }); this.flash('Loading cancelled'); return; } console.error(e); this._restoring = false; this.setState({ parsing: false, error: (e.message || String(e)) }); }
+    } catch (e) {
+      const back = prevRaw && this._raw === prevRaw && Array.isArray(prevRaw.cols) ? { screen: 'work' } : {}; // the dataset that was open is still loaded
+      if (e && e.message === '__cancelled') { this._restoring = false; this._ingestCancel = false; this.setState(Object.assign({ parsing: false, error: '' }, back)); this.flash('Loading cancelled'); return; }
+      if (!(e && e.userFacing)) console.error(e); this._restoring = false; const msg = e.message || String(e);
+      if (back.screen) { this.setState({ parsing: false, error: '', screen: 'work', undoMsg: 'Could not open ' + name + ': ' + msg }); clearTimeout(this._umT); this._umT = setTimeout(() => this.setState({ undoMsg: '' }), 9000); }
+      else this.setState({ parsing: false, error: msg });
+    }
   }
 
   // ---- summaries ----
@@ -10025,7 +10058,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-02.66') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-02.67') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -10051,9 +10084,9 @@ class Component extends DCLogic {
       fileRef: el => { this._file = el; },
       pickFile: () => this._file && this._file.click(),
       cancelLoad: () => { this._ingestCancel = true; },
-      onFileChange: e => { const f = e.target.files && e.target.files[0]; if (f) this.ingest(f, f.name); e.target.value = ''; },
+      onFileChange: e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; if (this._raw && this.state.screen === 'work' && this._dirty && !window.confirm('Open "' + f.name + '"? It replaces the current dataset, which has unsaved changes.\n\nCancel, then use File → Save session, to keep them.')) return; this.ingest(f, f.name); },
       onDragOver: e => { e.preventDefault(); if (!S.dragging) this.setState({ dragging: true }); },
-      onDragLeave: () => this.setState({ dragging: false }),
+      onDragLeave: e => { const rt = e && e.relatedTarget, ct = e && e.currentTarget; if (rt && ct && ct.contains && ct.contains(rt)) return; this.setState({ dragging: false }); },
       onDrop: e => { e.preventDefault(); this.setState({ dragging: false }); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.ingest(f, f.name); },
       loadDemo: e => { e.stopPropagation(); this._engineP.then(En => this.ingest(new TextEncoder().encode(En.demoCSV()).buffer, 'city-districts-demo.csv')); },
       newDatasetLink: e => { e.preventDefault(); e.stopPropagation(); this._engineP.then(() => this.newDataset()); },
@@ -10389,13 +10422,13 @@ class Component extends DCLogic {
     if (curSec === 'stats' && ['one', 'two', 'reg', 'sem', 'ergm', 'text', 'ts'].includes(S.tab)) this._lastStat = S.tab;
     const SECTIONS = [
       ['File', null, 'Open, create or save a dataset', [
-        ['Open another dataset…', () => { this.setState(closeMenu); out.resetAll(); }],
-        ['Create a new dataset', () => { this.setState(closeMenu); this.newDataset(); }],
+        ['Open another dataset…', () => { this.setState(closeMenu); this.openFileDialog(); }],
+        ['Create a new dataset', () => { this.setState(closeMenu); if (this._raw && this._dirty && !window.confirm('Start a new, empty dataset? It replaces the current one, which has unsaved changes.\n\nCancel, then use File → Save session, to keep them.')) return; this.newDataset(); }],
         ['Save data as CSV', () => { this.setState(closeMenu); this.saveCsv(); }],
         ['Save session (data + settings + log)', () => { this.setState(closeMenu); this.saveSession(); }],
-        ['Open a saved session…', () => { this.setState(closeMenu); out.resetAll(); }],
+        ['Open a saved session…', () => { this.setState(closeMenu); this.openFileDialog(); }],
         SEP,
-        ['Copy session log', () => { this.setState(closeMenu); if (out.copyLog) out.copyLog(); }],
+        ['Copy session log', () => { this.setState(closeMenu); if (!(S.conLog || []).length) { this.flash('The session log is empty — run a command or an analysis first.'); return; } if (out.copyLog) out.copyLog(); }],
         ['Print lab report…', go({ reportMode: true })]
       ]],
       ['Data', { tab: 'data' }, 'Create, replace, recode and rename variables', [

@@ -42,8 +42,20 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   if (rc) { await p.locator('.gi-rcard').first().getByRole('button', { name: 'Continue' }).click(); await loaded(p).catch(() => {}); check(await p.locator('.mf-main').count() === 1, 'Continue restores the work'); }
   await p.close();
   // create a dataset by hand
-  p = await page(); await p.getByRole('link', { name: 'Create your own dataset' }).click(); await loaded(p).catch(() => {});
-  check(await p.locator('.mf-main').count() === 1, 'Create your own dataset → an empty table'); await p.close();
+  p = await page(); await p.getByRole('button', { name: 'Create your own dataset' }).click(); await loaded(p).catch(() => {});
+  check(await p.locator('.mf-main').count() === 1, 'Create your own dataset → an empty table');
+  check(/Blank variable/i.test(await p.locator('.mf-main').innerText()), 'it opens Make a new variable → Blank (build .67)'); await p.close();
+  // build .67: Create is a button (Space works, no file dialog); files that are not data get a clear reason
+  p = await page(); await p.locator('.gi-new').focus();
+  const fcSpace = p.waitForEvent('filechooser', { timeout: 2000 }).then(() => true).catch(() => false); await p.keyboard.press('Space');
+  check(!(await fcSpace) && await p.waitForSelector('.mf-main', { timeout: 20000 }).then(() => true).catch(() => false), 'Space on Create your own dataset opens the new dataset, not the file dialog'); await p.close();
+  p = await page();
+  for (const [f, body, re] of [['informe.pdf', '%PDF-1.4 x', /"informe\.pdf" is not a data file this calculator can read/], ['encuesta.sav', '$FL2@(#) SPSS', /"encuesta\.sav" is an SPSS file/], ['bytes.dat', Buffer.from([0, 1, 2, 3, 0, 200, 4, 0]), /"bytes\.dat" is not a text data file/]]) {
+    const fp = path.join(tmp, f); fs.writeFileSync(fp, body);
+    const [fc] = await Promise.all([p.waitForEvent('filechooser', { timeout: 10000 }), p.locator('.gi-browse').click()]); await fc.setFiles(fp); await p.waitForTimeout(1200);
+    check(re.test(await p.locator('.gi').innerText()), f + ': a clear reason instead of "found a header but no data rows"');
+  }
+  await p.close();
   // phone
   const ph = await b.newContext({ viewport: { width: 390, height: 860 } }); p = await ph.newPage(); p.on('pageerror', e => errs.push('PAGEERROR ' + String(e).slice(0, 300)));
   await p.route('**/*', r => /^(file|data|blob):/.test(r.request().url()) ? r.continue() : r.abort());

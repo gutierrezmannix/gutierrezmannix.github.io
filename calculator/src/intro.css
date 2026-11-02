@@ -8,7 +8,7 @@
 .gi-drop .tl-formats{text-align:center;font-family:var(--fUI,'Hanken Grotesk',sans-serif);font-size:15px;letter-spacing:0;color:var(--c3D3629,#3D3629);margin-top:-6px}
 .gi-browse{font-family:var(--fUI,'Hanken Grotesk',sans-serif);font-weight:700;font-size:17px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;color:#FFFFFF;background:var(--cC4681E,#C4681E);border:1px solid var(--cA3540F,#A3540F);border-bottom-color:var(--c8F4A0E,#8F4A0E);border-radius:12px;padding:15px 38px;cursor:pointer}
 .gi-browse:active{transform:translateY(2px)}
-.gi-new{display:inline-flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:var(--c194F39,#194F39);text-decoration:none;background:#FFFFFF;border:1px solid var(--cD9D2C4,#D9D2C4);border-radius:999px;padding:12px 24px;min-height:44px;box-sizing:border-box}
+.gi-new{display:inline-flex;align-items:center;gap:10px;font-family:inherit;cursor:pointer;font-size:16px;font-weight:700;color:var(--c194F39,#194F39);text-decoration:none;background:#FFFFFF;border:1px solid var(--cD9D2C4,#D9D2C4);border-radius:999px;padding:12px 24px;min-height:44px;box-sizing:border-box}
 .gi-new:hover{border-color:var(--c194F39,#194F39)}
 .gi-release{position:absolute;inset:0;border-radius:10px;background:rgba(250,247,241,.95);border:2px solid var(--c194F39,#194F39);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;letter-spacing:.14em;color:var(--c194F39,#194F39);pointer-events:none;animation:lcdBlink .9s steps(2) infinite}
 .gi-sec{display:flex;flex-direction:column;gap:12px}

@@ -115,7 +115,7 @@
 .gi-drop .tl-formats{text-align:center;font-family:var(--fUI,'Hanken Grotesk',sans-serif);font-size:15px;letter-spacing:0;color:var(--c3D3629,#3D3629);margin-top:-6px}
 .gi-browse{font-family:var(--fUI,'Hanken Grotesk',sans-serif);font-weight:700;font-size:17px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;color:#FFFFFF;background:var(--cC4681E,#C4681E);border:1px solid var(--cA3540F,#A3540F);border-bottom-color:var(--c8F4A0E,#8F4A0E);border-radius:12px;padding:15px 38px;cursor:pointer}
 .gi-browse:active{transform:translateY(2px)}
-.gi-new{display:inline-flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:var(--c194F39,#194F39);text-decoration:none;background:#FFFFFF;border:1px solid var(--cD9D2C4,#D9D2C4);border-radius:999px;padding:12px 24px;min-height:44px;box-sizing:border-box}
+.gi-new{display:inline-flex;align-items:center;gap:10px;font-family:inherit;cursor:pointer;font-size:16px;font-weight:700;color:var(--c194F39,#194F39);text-decoration:none;background:#FFFFFF;border:1px solid var(--cD9D2C4,#D9D2C4);border-radius:999px;padding:12px 24px;min-height:44px;box-sizing:border-box}
 .gi-new:hover{border-color:var(--c194F39,#194F39)}
 .gi-release{position:absolute;inset:0;border-radius:10px;background:rgba(250,247,241,.95);border:2px solid var(--c194F39,#194F39);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;letter-spacing:.14em;color:var(--c194F39,#194F39);pointer-events:none;animation:lcdBlink .9s steps(2) infinite}
 .gi-sec{display:flex;flex-direction:column;gap:12px}
@@ -1010,6 +1010,8 @@ code, kbd, samp { font-family: var(--font-mono); }
     </div>
   </sc-if>
 
+  <!-- GM26 .66: one file input for Browse files, drag and drop and File → Open, kept mounted so File can open the dialog directly -->
+  <input type="file" class="gm-file" sc-camel-on-change="{{ onFileChange }}" ref="{{ fileRef }}" style="display: none;" aria-hidden="true" tabindex="-1">
   <sc-if value="{{ showUpload }}" hint-placeholder-val="{{ true }}">
     <!-- GM26 intro begin -->
 <section data-screen-label="Load bay" class="gi">
@@ -1018,12 +1020,11 @@ code, kbd, samp { font-family: var(--font-mono); }
           <div class="gi-dropicon"><svg width="26" height="26" sc-camel-view-box="0 0 24 24" fill="none" stroke="#2E7D58" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m8 11 4 4 4-4"></path><path d="M4 21h16"></path></svg></div>
           <div class="gi-droptitle">Drag a data file here</div><div class="tl-formats">CSV · TSV · Excel (.xlsx) · Stata (.dta)</div>
           <button type="button" class="gi-browse">Browse files</button>
-          <a href="#" class="gi-new" sc-camel-on-click="{{ newDatasetLink }}"><svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#2E7D58" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10 H21 M9 4 V20"></path></svg>Create your own dataset</a>
+          <button type="button" class="gi-new" sc-camel-on-click="{{ newDatasetLink }}"><svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#2E7D58" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10 H21 M9 4 V20"></path></svg>Create your own dataset</button>
           <sc-if value="{{ dragging }}" hint-placeholder-val="{{ false }}">
             <div class="gi-release">RELEASE TO LOAD</div>
           </sc-if>
         </div>
-        <input type="file" sc-camel-on-change="{{ onFileChange }}" ref="{{ fileRef }}" style="display: none;">
 
         <sc-if value="{{ parsing }}" hint-placeholder-val="{{ false }}">
           <div style="background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 10px 14px; box-shadow: inset 0 1px 2px rgba(43,39,30,0.06); display: flex; flex-direction: column; gap: 8px;">
@@ -3970,7 +3971,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-02.66</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX / STATA DTA</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-02.67</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX / STATA DTA</span>
   </footer>
 </div>
 </x-dc>
