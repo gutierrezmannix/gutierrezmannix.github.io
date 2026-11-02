@@ -105,6 +105,7 @@ class Component extends DCLogic {
   componentDidMount() {
     this._onDocDown = e => { const st = this.state; if (!(st.mfFile || st.mfNav || st.mfDl || st.ntOpen)) return; const tg = e.target; if (tg && tg.closest && tg.closest('.mf-menuwrap, .mf-navwrap')) return; this.setState({ mfFile: false, mfNav: '', mfDl: false, ntOpen: false }); }; document.addEventListener('mousedown', this._onDocDown);
     this._onKey = e => { if (e.key === 'Escape' && (this.state.mfFile || this.state.mfNav || this.state.mfDl || this.state.ntOpen)) { this.setState({ mfFile: false, mfNav: '', mfDl: false, ntOpen: false }); return; }
+      if (e.key === 'Escape' && this.state.mfSettings && !this.state.pk) { this.setState({ mfSettings: false }); return; } // GM26 .69: Escape closes Settings (after a picker list)
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { const b = this._mainEl && this._mainEl.querySelector('[data-mf-run]'); if (b) { e.preventDefault(); b.click(); } return; }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === 'k' || e.key === 'K') && this.state.screen === 'work') { e.preventDefault(); this.setState({ mfPane: 'output', mfDock: true, mfBrowseDock: this.state.tab === 'browse' ? true : this.state.mfBrowseDock, mfMobile: 'dock' }, () => { const i = document.querySelector('input.mf-cmdin'); if (i) i.focus(); }); return; }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) { const t = e.target, tg = t && t.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || (t && t.isContentEditable)) return; if ((this._undo || []).length) { e.preventDefault(); this.undo(); } } };
@@ -8245,6 +8246,22 @@ class Component extends DCLogic {
   memo(k, fn) { if (!/^(v\||vn\||vnf\||mask\||vf\||w\||opt|sgLv\||txc\|)/.test(k)) k = k + '#' + this.filterSig(); if (!(k in this._memo)) this._memo[k] = fn(); return this._memo[k]; }
   effMeta(name) { const m = this.state.cols.find(c => c.name === name); if (!m) return null; const ov = this.state.treat[name]; return ov ? Object.assign({}, m, { treatAs: ov }) : m; }
   toks() { return this.memo('toks', () => this._E.missTokens(this.state.missingCodes)); }
+  // GM26 .69: after a pick from a list, the keyboard focus goes back to the picker's box (the list row is gone)
+  pkRefocus() { if (typeof document === 'undefined' || !this._kbPick) return; setTimeout(() => { const ae = document.activeElement, inp = this._pkInput; if ((!ae || ae === document.body) && inp && inp.isConnected) { this._pkNoOpen = true; inp.focus(); setTimeout(() => { this._pkNoOpen = false; }, 0); } }, 0); }
+  // GM26 .69: how many values of a variable the Settings missing codes remove (rows, and distinct codes present)
+  missAdj(m) {
+    const t = this.toks(); if (!t.any || !this._raw) return { n: 0, lv: 0 };
+    return this.memo('missAdj|' + m.name + '|' + (this.state.autoScreen ? (m.autoCodes || []).join(',') : ''), () => {
+      const col = this._raw.cols[m.idx]; if (!col) return { n: 0, lv: 0 };
+      const skip = new Set(this.state.autoScreen && m.autoCodes ? m.autoCodes : []), hit = new Set(); let n = 0;
+      for (let i = 0; i < this._raw.n; i++) {
+        const v = col.a[i];
+        if (col.k === 'n') { if (isFinite(v) && t.nums.has(v) && !skip.has(v)) { n++; hit.add(v); } }
+        else if (v != null) { const x = String(v).trim(); if (x === '') continue; const num = Number(x); if (t.strs.has(x.toLowerCase()) || (isFinite(num) && t.nums.has(num) && !skip.has(num))) { n++; hit.add(x); } }
+      }
+      return { n, lv: hit.size };
+    });
+  }
   valsCore(name) {
     const m = this.effMeta(name); if (!m) return null;
     const ac = (this.state.autoScreen && m.autoCodes && m.autoCodes.length) ? m.autoCodes : null;
@@ -8455,7 +8472,14 @@ class Component extends DCLogic {
       const t = e.target, typing = !!(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
       if (e.key === '?' && !typing && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); this.setState(s => ({ kbHelp: !s.kbHelp })); return; }
       if (e.key === 'Escape') { if (this.state.kbHelp) this.setState({ kbHelp: false }); if (cur) hide(); }
-      if ((e.key === 'Enter' || e.key === ' ') && t && t.hasAttribute && t.hasAttribute('data-kb')) { e.preventDefault(); t.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); t.click(); }
+      if (t && t.closest && t.closest('[data-pk-list]') && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Escape')) { // GM26 .69: move in a picker list
+        e.preventDefault(); e.stopPropagation(); const list = t.closest('[data-pk-list]'), rows = [...list.querySelectorAll('[data-kb]')], i = rows.indexOf(t.closest('[data-kb]')), inp = list.parentElement && list.parentElement.querySelector('input[data-pk-input]');
+        if (e.key === 'ArrowDown') { if (rows[i + 1]) rows[i + 1].focus(); }
+        else if (e.key === 'ArrowUp' && i > 0) rows[i - 1].focus();
+        else { if (e.key === 'Escape') this.setState({ pk: null, pq: '' }); if (inp) { this._pkNoOpen = e.key === 'Escape'; inp.focus(); setTimeout(() => { this._pkNoOpen = false; }, 0); } }
+        return;
+      }
+      if ((e.key === 'Enter' || e.key === ' ') && t && t.hasAttribute && t.hasAttribute('data-kb')) { e.preventDefault(); this._kbPick = true; setTimeout(() => { this._kbPick = false; }, 0); t.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); t.click(); }
     });
     document.addEventListener('click', e => { const b = e.target && e.target.closest && e.target.closest('[data-mf-run]'); if (b) this.jumpArm(); }, true);
   }
@@ -10083,7 +10107,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-02.68') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-02.69') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -10187,19 +10211,33 @@ class Component extends DCLogic {
         const cap = 600;   // every picker lists (up to) 600 variables; typing narrows the list
         rows = (extraRows || []).concat(pool.slice(0, cap).map(c => ({
           name: c.name, sub: c.label || (this.effMeta(c.name).treatAs === 'numeric' ? 'numeric' : 'categorical'),
-          pick: () => { setFn(c.name); this.setState({ pk: null, pq: '' }); }
+          pick: () => { setFn(c.name); this.setState({ pk: null, pq: '' }); this.pkRefocus(); }
         })));
+        rows = rows.map((r, k) => k < (extraRows || []).length ? Object.assign({}, r, { pick: () => { r.pick(); this.pkRefocus(); } }) : r);
         if (pool.length > cap) rows.push({ name: '\u2026', sub: (pool.length - cap) + ' more \u2014 type part of a name to narrow the list', pick: () => {} });
       }
       return {
         text: open ? (S.pq || '') : (current || ''),
         open: open && rows.length > 0, rows,
-        focus: () => this.setState({ pk: id, pq: '' }),
-        blur: () => setTimeout(() => { if (this.state.pk !== id) return; const q = String(this.state.pq || '').trim().toLowerCase(), hit = q ? visAll.find(c => c.name.toLowerCase() === q && (!filterFn || filterFn(c))) : null; this.setState({ pk: null, pq: '' }); if (hit && hit.name !== current) setFn(hit.name); }, 260),
-        type: e => this.setState({ pq: e.target.value })
+        focus: e => { if (e && e.target) this._pkInput = e.target; if (this._pkNoOpen) { this._pkNoOpen = false; return; } this.setState({ pk: id, pq: '' }); },
+        // GM26 .69: keyboard as a combobox — Tab or Enter take a name typed exactly and close the list (Tab then moves
+        // on); ↓ goes into the list (↑ ↓ move, Enter picks and comes back here); Escape closes the list
+        key: e => {
+          const k = e.key;
+          if (k === 'ArrowDown') { e.preventDefault(); if (this.state.pk !== id) { this.setState({ pk: id, pq: '' }); return; } const row = e.target.parentElement && e.target.parentElement.querySelector('[data-pk-list] [data-kb]'); if (row) row.focus(); return; }
+          if (k === 'Escape') { if (this.state.pk === id) { e.stopPropagation(); this.setState({ pk: null, pq: '' }); } return; }
+          if (k === 'Enter' || (k === 'Tab' && !e.shiftKey)) {
+            const q = String(this.state.pq || '').trim().toLowerCase(), hit = q ? visAll.find(c => c.name.toLowerCase() === q && (!filterFn || filterFn(c))) : null;
+            if (k === 'Enter') e.preventDefault();
+            if (this.state.pk === id) this.setState({ pk: null, pq: '' });
+            if (hit && hit.name !== current) setFn(hit.name);
+          }
+        },
+        blur: () => { const q = this.state.pk === id ? String(this.state.pq || '').trim().toLowerCase() : ''; setTimeout(() => { const ae = typeof document !== 'undefined' && document.activeElement; if (ae && ae.closest && ae.closest('[data-pk-list]')) return; const hit = q ? visAll.find(c => c.name.toLowerCase() === q && (!filterFn || filterFn(c))) : null; if (this.state.pk === id) this.setState({ pk: null, pq: '' }); if (hit && hit.name !== current) { const ae = typeof document !== 'undefined' && document.activeElement, lab = ae && ae.getAttribute && ae.getAttribute('aria-label'); setFn(hit.name); if (lab) setTimeout(() => { if (document.activeElement === document.body) { const el = document.querySelector('[aria-label="' + lab + '"]'); if (el) el.focus(); } }, 0); } }, 260); }, // GM26 .69: the typed name counts even when Tab opens the next picker, and the focus stays there
+        type: e => this.setState({ pk: id, pq: e.target.value }) // GM26 .69: typing (re)opens the list
       };
     };
-    out.wPk = mkPicker('w', S.weightVar, n => { this.clearMemo(); this.setState({ weightVar: n, weightAuto: false }); }, null,
+    out.wPk = mkPicker('w', S.weightVar, n => { this.clearMemo(); this.setState({ weightVar: n, weightAuto: false }); }, c => c.type === 'numeric', // GM26 .69: numbers only
       [{ name: 'UNWEIGHTED', sub: 'no weight', pick: () => { this.clearMemo(); this.setState({ weightVar: '', weightAuto: false, pk: null, pq: '' }); } }]);
     { const nU = (this._undo || []).length;
       out.doUndo = () => this.undo(); out.doSaveSession = () => this.saveSession();
@@ -10286,14 +10324,14 @@ class Component extends DCLogic {
     out.hasMissing = !!S.missingCodes.trim(); out.missingApplied = S.missingCodes.trim();
     const pillOn = 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: 11px; border-radius: 9px; padding: 7px 11px; cursor: pointer; white-space: nowrap; color: var(--cFFFFFF, #FFFFFF); background: var(--cC4681E, #C4681E); border: 1px solid var(--cA3540F, #A3540F);';
     const pillOff = 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: 11px; border-radius: 9px; padding: 7px 11px; cursor: pointer; white-space: nowrap; color: var(--c2B271E, #2B271E); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF);';
-    out.starBtns = [['apa', '.05 .01 .001'], ['econ', '.10 .05 .01']].map(([k, label]) => ({ label, style: (S.starSet === 'econ' ? 'econ' : 'apa') === k ? pillOn : pillOff, click: () => this.setState({ starSet: k }) }));
+    out.starBtns = [['apa', '.05 .01 .001'], ['econ', '.10 .05 .01']].map(([k, label]) => ({ label, pressed: String((S.starSet === 'econ' ? 'econ' : 'apa') === k), style: (S.starSet === 'econ' ? 'econ' : 'apa') === k ? pillOn : pillOff, click: () => this.setState({ starSet: k }) }));
     out.alphaBtns = ['0.001', '0.01', '0.05', '0.10'].map(v => ({
-      label: v.slice(1), style: Math.abs(parseFloat(v) - a) < 1e-9 ? pillOn : pillOff,
+      label: v.slice(1), pressed: String(Math.abs(parseFloat(v) - a) < 1e-9), style: Math.abs(parseFloat(v) - a) < 1e-9 ? pillOn : pillOff,
       click: () => this.setState({ alphaSel: v })
     }));
     const nAutoVars = S.cols.filter(c => c.autoCodes && c.autoCodes.length).length;
     out.autoScreenBtns = [['ON', true], ['OFF', false]].map(([label, on]) => ({
-      label, style: S.autoScreen === on ? pillOn : pillOff,
+      label, pressed: String(S.autoScreen === on), style: S.autoScreen === on ? pillOn : pillOff,
       click: () => {
         if (S.autoScreen === on) return;
         this.clearMemo();
@@ -10328,7 +10366,7 @@ class Component extends DCLogic {
       two: c => c.distinct === 2
     };
     out.dialectBtns = [['stata', 'STATA'], ['r', 'R']].map(([id, label]) => ({
-      label, style: (S.dialect === id ? pillOn : pillOff).replace('padding: 7px 11px', 'padding: 4px 10px'),
+      label, pressed: String(S.dialect === id), style: (S.dialect === id ? pillOn : pillOff).replace('padding: 7px 11px', 'padding: 4px 10px'),
       click: () => this.setState({ dialect: id })
     }));
     out.dialectName = S.dialect === 'stata' ? 'Stata' : 'R';
@@ -10542,7 +10580,7 @@ class Component extends DCLogic {
       const sel = S.exploreVar === m.name && ['one','ttest'].includes(S.tab);
       const tag = (S.genTags || {})[m.name];
       return {
-        name: m.name + (tag ? ' •' : ''), sub: (tag ? '[' + tag + '] ' : '') + (m.label || (this.fmtN(m.valid) + ' valid · ' + (m.distinct > 1200 ? '>1200' : m.distinct) + ' lvls')),
+        name: m.name + (tag ? ' •' : ''), sub: (tag ? '[' + tag + '] ' : '') + (m.label || (() => { const adj = this.missAdj(m); return this.fmtN(Math.max(0, m.valid - adj.n)) + ' valid · ' + (m.distinct > 1200 ? '>1200' : Math.max(0, m.distinct - adj.lv)) + ' lvls'; })()),
         chip: eff.treatAs === 'numeric' ? 'NUM' : 'CAT', chipStyle: chipStyleOf(eff),
         title: m.label || m.name,
         rowStyle: 'display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 9px; cursor: pointer;' + (sel ? ' background: rgba(46,125,88,0.14); box-shadow: inset 0 0 0 1px rgba(46,125,88,0.45);' : ''),
@@ -11752,7 +11790,7 @@ class Component extends DCLogic {
           const ciHalf = (dEff.n > 1 && isFinite(seM)) ? E.critInv(a, dEff.n - 1) * seM : NaN;
           const f2 = v => { if (!isFinite(v)) return '—'; const t = v.toFixed(2); return /^-0\.00$/.test(t) ? '0.00' : t; };
           out.descCells = this.descTiles([['N VALID', this.fmtN(dEff.n)], ['MISSING', this.fmtN(this.conds().length ? Math.max(0, this.keptN() - dEff.n) : missEff)], ['MEAN', F(dEff.mean)], ['SD', F(dEff.sd)], [ciPct + '% CI LO', F(dEff.mean - ciHalf)], [ciPct + '% CI HI', F(dEff.mean + ciHalf)], ['MEDIAN', F(dEff.med)], ['MIN', F(dEff.mn)], ['Q1', F(dEff.q1)], ['Q3', F(dEff.q3)], ['MAX', F(dEff.mx)], ['SKEWNESS', f2(dEff.sk)], ['KURTOSIS', f2(dEff.ku)]]);
-          out.hasDescNote = !!w; out.descNote = w ? 'WEIGHTED BY ' + S.weightVar.toUpperCase() + ': MEAN, SD, MEDIAN AND QUARTILES USE THE WEIGHTS (STATA SUMMARIZE [AW=]); THE ' + ciPct + '% CI TREATS THEM AS SAMPLING WEIGHTS (STATA MEAN [PW=]). N IS THE NUMBER OF OBSERVATIONS.' : '';
+          out.hasDescNote = !!w; out.descNote = w ? 'WEIGHTED BY ' + S.weightVar.toUpperCase() + ': MEAN, SD, MEDIAN AND QUARTILES USE THE WEIGHTS (STATA SUMMARIZE [AW=]); THE ' + ciPct + '% CI TREATS THEM AS SAMPLING WEIGHTS (STATA MEAN [PW=]). N IS THE NUMBER OF OBSERVATIONS.' + (S.svyStrata || S.svyPsu ? ' THE STRATA / PSU IN SETTINGS ARE USED BY REGRESSION (SURVEY SEs) AND THE SURVEY ANALYSES, NOT BY THIS CI.' : '') : '';
           const sk = dEff.sk, skT = !isFinite(sk) || dEff.n < 3 ? '' : Math.abs(sk) > 1 ? ' The distribution is strongly skewed (skewness ' + sk.toFixed(2) + '): a few ' + (sk > 0 ? 'very high' : 'very low') + ' values pull the mean ' + (sk > 0 ? 'above' : 'below') + ' the median, so the median describes a typical case better.' : Math.abs(sk) > 0.5 ? ' The distribution is moderately skewed (skewness ' + sk.toFixed(2) + '), with a longer tail of ' + (sk > 0 ? 'high' : 'low') + ' values.' : '';
           out.exInterp = (this._cxConst = dEff.n > 0 && dEff.mn === dEff.mx) ? 'Every valid value of ' + name + ' is ' + F(dEff.mn) + ' (n = ' + this.fmtN(dEff.n) + '), so it does not vary here: it cannot show differences between groups or an association with anything.' + (cc ? ' Codes ' + cc.codes.join(', ') + ' are excluded here.' : '') + wTag : 'A typical ' + name + ' is around ' + F(dEff.mean) + ' (median ' + F(dEff.med) + '). Values spread about ' + F(dEff.sd) + ' on average, ranging ' + F(dEff.mn) + ' to ' + F(dEff.mx) + '.' + skT + (cc ? ' Codes ' + cc.codes.join(', ') + ' are excluded here.' : '') + wTag;
           out.histChart = E.histChart(R, dEff, { key: 'h|' + name + (cc ? '|cc' : '') + cSel, xlab: name, ylab: w ? 'Frequency (weighted by ' + S.weightVar + ')' : 'Frequency', color: cSel, refCb: this.svgRef('hist'), ax: this.axUI('hist', [name], { x: true, xName: name }) });
@@ -12363,17 +12401,17 @@ class Component extends DCLogic {
       out.mfFileItems = (fileSec ? fileSec[3] : []).map(([l2, fn]) => fn ? { label: l2, isItem: true, sep: false, click: () => { this.setState(closeAll); fn(); } } : { label: '', isItem: false, sep: true, click: null });
       // settings chips
       const chipStyle = on => on ? 'color: var(--c194F39, #194F39); background: var(--cEDF5F0, #EDF5F0); border-color: var(--cAFD2BF, #AFD2BF);' : '';
-      const openSet = () => this.setState({ mfSettings: true, mfFile: false, mfNav: '' });
+      const openSet = sel => this.setState({ mfSettings: true, mfFile: false, mfNav: '' }, () => { if (typeof sel === 'string') setTimeout(() => { const el = document.querySelector(sel); if (el && el.focus) el.focus(); }, 30); }); // GM26 .69: a chip takes you to its control
       const chips = [];
-      chips.push({ label: S.weightVar ? 'Weight: ' + S.weightVar + (wBad ? ' (not numeric — ignored)' : S.weightAuto ? ' (auto)' : '') : 'Unweighted', on: !!S.weightVar, title: 'Weight variable — click to change', click: openSet });
-      if (S.svyStrata || S.svyPsu) chips.push({ label: 'Survey design: ' + [S.svyStrata ? 'strata ' + S.svyStrata : '', S.svyPsu ? 'PSU ' + S.svyPsu : ''].filter(Boolean).join(' · '), on: true, title: 'Survey design (strata · PSU) — click to change', click: openSet });
-      if (S.missingCodes) chips.push({ label: 'Missing codes: ' + S.missingCodes, on: true, title: 'Values treated as missing — click to change', click: openSet });
-      chips.push({ label: 'α = ' + a, on: false, title: 'Significance level — click to change', click: openSet });
+      chips.push({ label: S.weightVar ? 'Weight: ' + S.weightVar + (wBad ? ' (not numeric — ignored)' : S.weightAuto ? ' (auto)' : '') : 'Unweighted', on: !!S.weightVar, title: 'Weight variable — click to change', click: () => openSet('input[aria-label="Weight variable"]') });
+      if (S.svyStrata || S.svyPsu) chips.push({ label: 'Survey design: ' + [S.svyStrata ? 'strata ' + S.svyStrata : '', S.svyPsu ? 'PSU ' + S.svyPsu : ''].filter(Boolean).join(' · '), on: true, title: 'Survey design (strata · PSU) — click to change', click: () => openSet('input[aria-label="Survey strata"]') });
+      if (S.missingCodes) chips.push({ label: 'Missing codes: ' + S.missingCodes, on: true, title: 'Values treated as missing — click to change', click: () => openSet('input[aria-label="Missing codes"]') });
+      chips.push({ label: 'α = ' + (a >= 0.01 ? a.toFixed(2) : a.toFixed(3)), on: false, title: 'Significance level — click to change', click: () => openSet('[aria-label="Significance level (alpha)"] [aria-pressed="true"]') });
       const csAll = this.conds();
       if (csAll.length) chips.push({ label: 'Subgroup: ' + csAll.map(c => this.condLabel(c)).join(' & '), on: true, title: 'Rows used by every analysis — click to edit', click: () => { if (!this.sgTab()) return this.deGo('rows'); this.setState({ mfMobile: 'analysis', mfFile: false, mfNav: '' }); this.scrollToLabel('Subgroup (if)'); } });
       chips.push({ label: S.dialect === 'stata' ? 'Commands: Stata' : 'Commands: R', on: false, title: 'Every result shows its command in this language — click to switch', click: () => this.setState({ dialect: S.dialect === 'stata' ? 'r' : 'stata' }) });
       out.mfChips = chips.map(c => ({ label: c.label, title: c.title, click: c.click, style: chipStyle(c.on) }));
-      const vrow = (cur, list, key) => list.map(([k, l]) => ({ label: l, click: () => this.setView({ [key]: k }), style: (cur === k ? pillOn : pillOff).replace('padding: 7px 11px', 'padding: 4px 10px') }));
+      const vrow = (cur, list, key) => list.map(([k, l]) => ({ label: l, pressed: String(cur === k), click: () => this.setView({ [key]: k }), style: (cur === k ? pillOn : pillOff).replace('padding: 7px 11px', 'padding: 4px 10px') }));
       const vw2 = S.view || {};
       out.mfViewFont = vrow(vw2.font || 'sendero', [['sendero', 'Sendero'], ['system', 'System'], ['serif', 'Serif'], ['easy', 'Easy-read']], 'font');
       out.mfViewSize = vrow(vw2.size || 'm', [['s', 'Small'], ['m', 'Normal'], ['l', 'Large'], ['xl', 'Extra large']], 'size');
