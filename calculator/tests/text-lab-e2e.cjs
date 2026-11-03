@@ -31,9 +31,11 @@ const waitIdle = async (p, ms) => { await p.waitForFunction(() => !document.quer
   await step('Clean'); await p.waitForTimeout(4000); await snap('2-clean');
   const sugg = p.locator('.tl-chip.add'); if (await sugg.count()) { const t = await sugg.first().innerText(); await sugg.first().click(); log('joined phrase', t.replace(/\s+/g, ' ')); }
   await step('Explore'); await snap('3-words');
-  await p.getByLabel('Split word cloud by').selectOption({ index: 1 }); await snap('3b-split');
+  // build .70: lists of variables are searchable boxes (a native <select> only for short fixed lists); pick the i-th option
+  const pickAt = async (label, i) => { const sel = p.locator('select[aria-label="' + label + '"]'); if (await sel.count()) return sel.first().selectOption({ index: i }); const box = p.getByRole('combobox', { name: label, exact: true }).first(); await box.click(); await p.waitForTimeout(200); await p.locator('.tl-combo-list [role=option]').nth(i).dispatchEvent('mousedown'); await p.waitForTimeout(300); };
+  await pickAt('Split word cloud by', 1); await snap('3b-split');
   await p.getByRole('button', { name: 'One comparison cloud' }).click(); await snap('3c-compare-cloud');
-  await p.getByLabel('Split word cloud by').selectOption(''); await p.getByRole('button', { name: 'Bar chart' }).click(); await snap('3d-bars'); await p.getByRole('button', { name: 'Cloud', exact: true }).click();
+  await pickAt('Split word cloud by', 0); await p.getByRole('button', { name: 'Bar chart' }).click(); await snap('3d-bars'); await p.getByRole('button', { name: 'Cloud', exact: true }).click();
   await tab('Phrases'); await snap('4-phrases');
   await tab('Compare groups'); await snap('5-keyness');
   await tab('In context'); const q = p.getByLabel('Search words'); await q.fill(tag === 'csv' ? 'corrup*' : 'seguridad, violen*'); await q.press('Enter'); await snap('6-kwic');
@@ -54,7 +56,7 @@ const waitIdle = async (p, ms) => { await p.waitForFunction(() => !document.quer
   await p.getByRole('button', { name: 'Run', exact: true }).click(); await p.waitForTimeout(1500); await snap('12-topics');
   await tab('Sentiment'); await snap('13-sentiment');
   await tab('Classify'); await snap('14-classify');
-  await tab('Scale'); await p.getByLabel('Group column').selectOption({ index: 1 }).catch(() => {}); await snap('15-scale');
+  await tab('Scale'); await pickAt('Group column', 1).catch(() => {}); await snap('15-scale');
   await step('Save'); await p.getByRole('button', { name: 'Main topic', exact: true }).click(); await snap('16-save');
   const add = p.getByRole('button', { name: /^Add \d+ variable/ }); log('add button:', await add.innerText(), 'enabled', await add.isEnabled());
   await add.click(); await p.waitForTimeout(1500); await snap('17-saved');
