@@ -1,3 +1,60 @@
+# Random audit against R; omitted terms as in Stata — build 2026-11-02.76
+
+**The audit.** 370 random models on MexicoLapop_Class1.dta, checked against R (`lm`, `glm`, `MASS::polr`, and
+sandwich SEs written out by hand). The specs were random draws of:
+- the outcome and 1–4 predictors;
+- numbers or `i.` categories, with an interaction 15–40% of the time;
+- OLS, logit, ordered logit and Poisson;
+- classical, robust, clustered (estado) or survey SEs (PSU upm, strata estratopri);
+- with or without `weight1500`, and the whole file or one survey year.
+
+Every number was compared: N, R² / F or the log likelihood, each coefficient and SE. The written interpretation was
+checked on about 350 of them, and the exported R code was run for 31.
+
+**Two bugs, fixed.**
+- *Weights in logit, ordered logit and Poisson.* These models used the weights rescaled to mean 1, as linear models
+  do. Stata's `[iw=]` / `[pw=]` and R's `weights =` use them as given. Coefficients and robust / survey SEs were
+  unaffected. The log likelihood and the LR chi² were divided by the weights' mean, and the classical SEs multiplied
+  by its square root. For `weight1500` (mean 0.91 in the class file) that made the log likelihood and LR chi² about
+  10% too large in size and the classical SEs about 5% too small. With other weights the error grows with how far
+  their mean is from 1. They now match R to 7 digits.
+- *Which value a yes/no outcome models.* With a value label on each code (0 = "Ninguna", 1 = "Alguna"), the two
+  values were sorted by their labels. The model could then be P(code 0) instead of P(code 1). It now orders them by
+  code, as Stata's `logit` (y ≠ 0).
+
+**Omitted terms, as Stata.** A predictor can be an exact combination of the others in the rows used. Examples:
+`year` inside a one-year subgroup, the same income in pesos and in thousands, or an interaction cell with no rows.
+The page used to stop with an error. Stata, like R, leaves the term out and fits the rest. The page now does the same:
+- the table keeps the term in its place with `0  (omitted)`, or `0  (empty)` for an interaction cell with no rows;
+- Stata's line `note: x omitted because of collinearity.` appears under the results, in the console printout above
+  the table, and in a note that explains why in plain words;
+- a categorical predictor with a single level in the rows used is left out too. Stata shows only its base level;
+  R refuses it with "contrasts can be applied only to factors with 2 or more levels";
+- the rows used do not change: a row missing a variable that was left out stays out, as in Stata;
+- F(df1, df2), the LR test, margins, `estat vif`, the checks and the console use the model that was fitted. Margins
+  give the left-out columns a zero coefficient.
+
+All four models do this (`regress`, `glm`, `ologit` in `engine.mjs`).
+
+**Results.**
+- Batch 1, 150 specs: 150 of 150 agree with R. Two of them, where R refuses a one-level `factor(year)`, agree once
+  year is removed in R.
+- Batch 2, 220 specs with more categories and interactions: 214 agree. Of the other 6:
+  - 2 are R refusing a one-level factor (same as above);
+  - 1 is a logit with perfect separation. The page stops and says so; Stata drops the variable and the rows it
+    predicts perfectly;
+  - 3 are ordered logits with `year` as a number. R's `polr` takes its SEs from a numerical Hessian, which is
+    imprecise when a predictor is in the thousands (year SE 0.0024 here, 0.0000195 in R). With year centered, R gives
+    the page's numbers exactly.
+- The written interpretation was correct in every model checked.
+- The exported R code reproduces the page. For ordered logit it now adds `control = list(reltol = 1e-12)` (polr stops
+  early by default) and a comment to center predictors in large units.
+
+Tests: `tests/regression-audit.test.mjs` (weights as given, the modeled value, omitted and empty terms, one-level
+categories, the rows used; all five fail on build .75), with R references in `tests/regression-audit-reference.R` and
+`tests/data/regression-audit.csv`. `tests/regression-numerics.test.mjs` and `tests/regression-e2e.cjs` now expect
+"0 (omitted)" in place of the old error.
+
 # Predictors as Stata enters them; the table printed as Stata prints it — build 2026-11-02.75
 
 **Numbers by default, categories by choice.** `regress pn4 idio2 soct2 q2 educ_nivel` in Stata enters every

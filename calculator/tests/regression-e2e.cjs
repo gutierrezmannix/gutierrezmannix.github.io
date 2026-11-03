@@ -24,7 +24,7 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
   check(/0\.396 per \+10,000/.test(t), 'the text gives the effect per +10,000');
   if (shots) await p.screenshot({ path: path.join(shots, 'reg-ols.png'), fullPage: true });
   await cmd('regress y inc inc_k x2');
-  t = await main(); check(/collinear: “inc_k” is a combination/.test(t) && !/R-SQUARED\s*-/.test(t), 'income in pesos and thousands: an error naming inc_k, no impossible R²');
+  t = await main(); check(/note: inc_k omitted because of collinearity\./.test(t) && /inc_k\s*\n?\s*0\s*\n?\s*\(omitted\)/.test(t) && !/R-SQUARED\s*-/.test(t), 'income in pesos and thousands: inc_k left out as Stata (0 (omitted) and its note), no impossible R²');
   await cmd('logit esi x2 i.grupo');
   t = await main(); check(/P\(ESI = "sí"\)/.test(t) && /those of grupo = A/.test(t), 'text outcome: models "sí"; categories compared with grupo = A');
   await p.locator('summary', { hasText: /Stata output/ }).first().click().catch(() => {}); await p.waitForTimeout(300);

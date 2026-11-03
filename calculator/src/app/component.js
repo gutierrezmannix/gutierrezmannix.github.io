@@ -2069,20 +2069,21 @@ class Component extends DCLogic {
   // variables as blocks with their levels, %9.0g numbers. R: coeftest() tables (printCoefmat rules) and
   // summary(polr) for ordered logit. Numbers are the page's estimates.
   regModelFor(d){const M=this.memoView(),key=d.m==='ols'?'reg|ols|':d.m==='logistic'?'reg|logit|':d.m==='ologit'?'reg|olog|':'reg|pois|';const Mo=M[key+d.y+'|'+d.xs.map(x=>x.n).join(',')+'|'+(d.ix||[]).map(p=>p.a+'*'+p.b).join(',')+'|'+(d.vce?d.vce.type+':'+(d.vce.type==='cluster'?d.vce.cl:(d.vce.psu||'')+'/'+(d.vce.st||'')):'c')];return Mo&&!Mo.error?Mo:null;}
-  regRows(d,Mo){const lvOrder=(v,nm)=>this.descOrder(nm,v.map(l=>({label:l}))).map(r=>r.label);const out=[],used=new Set();
-    for(const x of d.xs){if(!x.c){const c=Mo.coefs.find(q=>q.term===x.n);if(c){out.push({kind:'x',v:x.n,c});used.add(c);}continue;}
-      const pre=x.n+' = ',cs=Mo.coefs.filter(q=>q.term.startsWith(pre)),lv=lvOrder(cs.map(q=>q.term.slice(pre.length)),x.n);if(cs.length)out.push({kind:'f',v:x.n,levels:lv.map(l=>({l,c:cs.find(q=>q.term===pre+l)}))});cs.forEach(q=>used.add(q));}
-    for(const c of Mo.coefs)if(!used.has(c)&&c.term!=='(constant)')out.push({kind:'x',v:c.term,c});const cons=Mo.coefs.find(q=>q.term==='(constant)');return {out,cons};}
+  regRows(d,Mo){const lvOrder=(v,nm)=>this.descOrder(nm,v.map(l=>({label:l}))).map(r=>r.label);const out=[],used=new Set(),CO=this.coefsWithOmitted(Mo);// GM26 .76: left-out terms keep their place (0 (omitted))
+    for(const x of d.xs){if(!x.c){const c=CO.find(q=>q.term===x.n);if(c){out.push({kind:'x',v:x.n,c});used.add(c);}continue;}
+      const pre=x.n+' = ',cs=CO.filter(q=>q.term.startsWith(pre)),lv=lvOrder(cs.map(q=>q.term.slice(pre.length)),x.n);if(cs.length)out.push({kind:'f',v:x.n,levels:lv.map(l=>({l,c:cs.find(q=>q.term===pre+l)}))});cs.forEach(q=>used.add(q));}
+    for(const c of CO)if(!used.has(c)&&c.term!=='(constant)')out.push({kind:'x',v:c.term,c});const cons=Mo.coefs.find(q=>q.term==='(constant)');return {out,cons};}
   regStataText(d){const Mo=this.regModelFor(d);if(!Mo)return '';const E=this._E,R=(v,w)=>String(v).padStart(w),G=v=>this.stataG(v),ols=d.m==='ols',rob=d.vce&&(d.vce.type==='robust'||d.vce.type==='cluster'),cl=d.vce&&d.vce.type==='cluster';
     if(d.vce&&!rob)return '';
     const dfT=ols?(Mo.dfT!=null&&Mo.dfT>0?Mo.dfT:Mo.df2):Infinity,crit=Number.isFinite(dfT)?E.critInv(.05,dfT):1.959963984540054,zc=ols?'t':'z',L=[],n=this.fmtN(Mo.n),f4=v=>Number.isFinite(v)?v.toFixed(4):'.',ss=v=>{let t=v.toPrecision(9);if(t.length>10)t=v.toPrecision(8);return t.includes('e')?G(v):t;};
+    L.push(...this.omitNotes(Mo));if(L.length)L.push('');// GM26 .76: Stata prints its omission notes above the output
     if(ols&&!rob){const R2=(l,k,v)=>l+'   '+k.padEnd(16)+'='+R(v,10),ssm=Mo.sst-Mo.sse,top='-------------+----------------------------------';
       L.push(R2('      Source |       SS           df       MS   ','Number of obs',n),R2(top,'F('+Mo.df1+', '+Mo.df2+')',Mo.F.toFixed(2)),R2('       Model |'+R(ss(ssm),12)+R(Mo.df1,10)+R(ss(ssm/Mo.df1),12),'Prob > F',f4(Mo.pModel)),R2('    Residual |'+R(ss(Mo.sse),12)+R(Mo.df2,10)+R(ss(Mo.sse/Mo.df2),12),'R-squared',f4(Mo.R2)),R2(top,'Adj R-squared',f4(Mo.adjR2)),R2('       Total |'+R(ss(Mo.sst),12)+R(Mo.df1+Mo.df2,10)+R(ss(Mo.sst/(Mo.df1+Mo.df2)),12),'Root MSE',String(Number(Mo.rmse.toPrecision(5)))),'');}
     else if(ols){const H=(l,k,v)=>l.padEnd(48)+k.padEnd(18)+'='+R(v,11);L.push(H('Linear regression','Number of obs',n),H('','F('+Mo.df1+', '+Mo.df2+')',Number.isFinite(Mo.F)?Mo.F.toFixed(2):'.'),H('','Prob > F',f4(Mo.pModel)),H('','R-squared',f4(Mo.R2)),H('','Root MSE',String(Number(Mo.rmse.toPrecision(5)))),'');}
     else{const title={logistic:'Logistic regression',ologit:'Ordered logistic regression',poisson:'Poisson regression'}[d.m],H=(l,k,v)=>l.padEnd(56)+k.padEnd(14)+'= '+R(v,6),lr=2*(Mo.ll-Mo.llNull),k=Mo.coefs.filter(q=>q.term!=='(constant)').length;
       L.push(H(title,'Number of obs',n));if(!rob)L.push(H('','LR chi2('+k+')',lr.toFixed(2)),H('','Prob > chi2',f4(E.pChi2(lr,k))));L.push(H((rob?'Log pseudolikelihood = ':'Log likelihood = ')+Number(Mo.ll.toPrecision(8)),'Pseudo R2',f4(Mo.mcfadden)),'');}
     if(cl){const G0=this.groupLab(d.vce.cl)||[],mk=this.mask();const set=new Set();G0.forEach((g,i)=>{if(g!=null&&g!==''&&(!mk||mk[i]))set.add(g);});L.push(('(Std. err. adjusted for '+set.size+' clusters in '+d.vce.cl+')').padStart(78));}
-    const row=(lab,c)=>lab+' |'+R(G(c.b),11)+R(G(c.se),11)+R(Number.isFinite(c.t)?c.t.toFixed(2):'.',9)+R(Number.isFinite(c.p)?c.p.toFixed(3):'.',8)+R(G(c.b-crit*c.se),13)+R(G(c.b+crit*c.se),12);
+    const row=(lab,c)=>c.omitted?lab+' |'+R('0',11)+'  '+(c.omitted==='empty'?'(empty)':'(omitted)'):lab+' |'+R(G(c.b),11)+R(G(c.se),11)+R(Number.isFinite(c.t)?c.t.toFixed(2):'.',9)+R(Number.isFinite(c.p)?c.p.toFixed(3):'.',8)+R(G(c.b-crit*c.se),13)+R(G(c.b+crit*c.se),12);
     L.push('------------------------------------------------------------------------------');if(rob)L.push('             |               Robust');L.push(R(this.abbr(d.m==='logistic'&&d.yOne?d.y.slice(0,30)+'_1':d.y,12),12)+' | Coefficient  '+(rob?'std. err.':'Std. err.')+'      '+zc+'    P>|'+zc+'|     [95% conf. interval]','-------------+----------------------------------------------------------------');
     const {out,cons}=this.regRows(d,Mo);out.forEach(r=>{if(r.kind==='x')L.push(row(R(this.abbr(r.v,12),12),r.c));else{if(L[L.length-1]!=='             |')L.push('             |');L.push(R(this.abbr(r.v,12),12)+' |');r.levels.forEach(q=>{if(q.c)L.push(row(R(String(q.l).slice(0,10),11)+' ',q.c));});L.push('             |');}});
     if(cons)L.push(row(R('_cons',12),cons));
@@ -7526,6 +7527,14 @@ class Component extends DCLogic {
     if (asCat.length) kids.splice(1, 0, h('div', { className: 'tl-row rg-cats' }, h('span', null, h('b', null, 'As categories: '), asCat.map(p => 'i.' + p).join(' ') + ' — one row per level, compared with ' + asCat.map(p => { const r = (M.refs || []).find(x => x.startsWith(p + ' = ')); return r ? r.slice(p.length + 3) : '?'; }).join(' / ') + '. '),
       ...asCat.map(p => this.tlBtn('marginsplot of ' + p, () => { this.rgMgSet({ x: p, by: '' }); this.setState({ rgStep: 7 }); }, 'primary', { title: 'Predicted ' + S.depVar + ' for each level of ' + p + ' (Stata: margins ' + p + ' · marginsplot)' })),
       ...asCat.filter(p => { const m = this.effMeta(p); return m.type === 'numeric'; }).map(p => this.tlBtn('Use ' + p + ' as a number', () => { this.clearMemo(); this.setState(s2 => ({ treat: Object.assign({}, s2.treat, { [p]: 'numeric' }) }), () => { this._regRan = this.regSpec(); this.forceUpdate(); }); }))));
+    // GM26 .76: terms left out as Stata does — an exact combination of the other predictors in the rows used, the same
+    // value in every row, or an interaction cell with no rows — shown as 0 (omitted) / 0 (empty) in the table
+    const omAll = M.omitted || [], omN = this.omitNotes(M), emp = omAll.filter(o => o.why === 'empty');
+    if (omN.length || emp.length) kids.splice(1, 0, this.tlBanner('warn', h('b', null, 'Left out of the model, as in Stata: '), omN.join(' ') + ' ',
+      omAll.some(o => o.why === 'collinear') ? 'In the rows used, an omitted term is an exact combination of the other predictors (for example the only year in a subgroup, or dummies that add up to another variable), so its own effect cannot be separated from theirs. ' : '',
+      omAll.some(o => o.why === 'constant') ? 'A predictor with the same value in every row used has nothing to compare. ' : '',
+      emp.length ? 'No row has ' + emp.map(o => this.regLab(o.term).replace(/ \u00d7 /g, ' and ')).join('; ') + ' at the same time, so ' + (emp.length > 1 ? 'those interaction cells are' : 'that interaction cell is') + ' empty: 0 (empty) in the table. ' : '',
+      'The other coefficients are estimated without ' + (omAll.length + (M.oneLevel || []).length > 1 ? 'them' : 'it') + '; remove ' + (omAll.length + (M.oneLevel || []).length > 1 ? 'them' : 'it') + ' to get the same model without the note.'));
     // GM26 .74: the output first, compact as in Stata (fit, coefficients, plot); what it means goes below it (rgEl3)
     const line = kids.shift(), ame = model === 'logistic' || model === 'poisson' ? this.rgAmeView(now, ctx) : null;
     this._rgNotes = [ame, this.rgPanel(0, 'What the results say', 'the output above in words', line, ...kids)];
@@ -7578,7 +7587,7 @@ class Component extends DCLogic {
     const M = ctx.M, b = M.coefs.map(c => c.b), names = M.coefs.map(c => c.term), V = ctx.bp, y = ctx.yM, w = ctx.w, rows = [], ys = [];
     const N = y.length, col = names.map(t => { if (t === '(constant)') return () => 1; const ix = t.split(' × '); const one = s => { const k = s.indexOf(' = '), nm = k < 0 ? s : s.slice(0, k), lv = k < 0 ? null : s.slice(k + 3), v = V.find(q => q.name === nm); if (!v) return null; return v.kind === 'num' ? i => v.a[i] : i => (v.a[i] == null ? NaN : String(v.a[i]) === lv ? 1 : 0); }; const fs = ix.map(one); return fs.some(f => !f) ? null : i => fs.reduce((p, f) => p * f(i), 1); });
     if (col.some(f => !f)) return null;
-    for (let i = 0; i < N; i++) { if (!Number.isFinite(y[i]) || (w && !(w[i] > 0))) continue; const x = col.map(f => f(i)); if (x.some(v => !Number.isFinite(v))) continue; rows.push(x); ys.push(y[i]); }
+    for (let i = 0; i < N; i++) { if (!Number.isFinite(y[i]) || (w && !(w[i] > 0))) continue; const x = col.map(f => f(i)); if (x.some(v => !Number.isFinite(v)) || !V.every(q => q.kind === 'num' ? Number.isFinite(q.a[i]) : q.a[i] != null)) continue; rows.push(x); ys.push(y[i]); } // GM26 .76: the model's rows, also when a term was left out
     return { rows, y: ys, b };
   }
   // numeric predictors whose squared term clearly improves the fit (p < .01), linear / logit / Poisson
@@ -7809,9 +7818,12 @@ class Component extends DCLogic {
     const col = this._raw.cols[this._raw.names.indexOf(v)], num = !!(col && col.k === 'n'); // stored as numbers (codes) or as text
     const fr = E.freqOf(oc.kind === 'cat' ? oc.a : Array.from(oc.a, x => isFinite(x) ? E.numLab(x) : null), null), labs = fr.rows.map(r => String(r.label));
     if (labs.length !== 2) return { labs };
-    const sorted = labs.slice().sort((a, b) => num ? Number(a) - Number(b) : a.localeCompare(b));
+    // GM26 .76: order by code (labelled numbers: 0 = No, 1 = Sí → Sí is modeled, as Stata's logit models y ≠ 0); text by name
+    const vm = this._raw.vlabs && this._raw.vlabs[v], rev = vm ? new Map([...vm.entries()].map(([k, l]) => [String(l), Number(k)])) : null;
+    const codeOf = l => rev && rev.has(l) ? rev.get(l) : (String(l).trim() !== '' && isFinite(Number(l)) ? Number(l) : NaN);
+    const sorted = labs.slice().sort((a, b) => num && labs.every(l => isFinite(codeOf(l))) ? codeOf(a) - codeOf(b) : a.localeCompare(b));
     const ov = (this.state.binOne || {})[v]; if (ov != null && sorted.includes(String(ov)) && String(ov) !== sorted[1]) sorted.reverse(); // the value chosen to predict (Regression step 1)
-    return { labs, zero: sorted[0], one: sorted[1], num, is01: num && Number(sorted[0]) === 0 && Number(sorted[1]) === 1 };
+    return { labs, zero: sorted[0], one: sorted[1], num, is01: num && codeOf(sorted[0]) === 0 && codeOf(sorted[1]) === 1 };
   }
   cmdText(d, dial) { /* GM26 console output v3 */ if (d.t === 'cx') return this.cxCmd(d, dial); if (d.cxStata) return this.cxCmd({ stata: d.cxStata, r: d.cxR, sg: d.sg }, dial); if (d.t === 'ttestx') return this.withIf(dial === 'r' ? d.r : d.stata, d.sg, dial); if (d.t === 'asx') return /^survey_/.test(d.id) ? (dial === 'stata' ? d.stata : d.r) : (dial === 'stata' && d.stataIfDone ? d.stata : this.withIf(dial === 'stata' ? d.stata : d.r, d.sg, dial)); if (d.t === 'ts') return (d.short && (dial === 'stata' ? d.short.stata : d.short.r)) || (dial === 'stata' ? d.stata : d.r); const s = this.withIf(this.cmdCore(d, dial), d.sg, dial); return this.regFix(d.t === 'reg' && d.vce ? this.vceCmd(s, d, dial) : s, d, dial); }
   vceCmd(s, d, dial) {
@@ -7917,7 +7929,7 @@ class Component extends DCLogic {
       if (d.t === 'reg') {
         const f = d.y + ' ~ ' + d.xs.map(x => x.c ? 'factor(' + x.n + ')' : x.n).join(' + ') + (d.ix && d.ix.length ? ' + ' + d.ix.map(p => (p.ca ? 'factor(' + p.a + ')' : p.a) + ':' + (p.cb ? 'factor(' + p.b + ')' : p.b)).join(' + ') : '');
         if (d.m === 'ols') return 'summary(lm(' + f + ', data = df' + wp + '))';
-        if (d.m === 'ologit') return 'summary(MASS::polr(factor(' + d.y + ')' + f.slice(d.y.length) + ', data = df' + wp + ', Hess = TRUE))';
+        if (d.m === 'ologit') return 'summary(MASS::polr(factor(' + d.y + ')' + f.slice(d.y.length) + ', data = df' + wp + ', Hess = TRUE, control = list(reltol = 1e-12)))   # tight tolerance: polr stops early by default, and its SEs come from a numerical Hessian (center predictors measured in large units)'; // GM26 .76
         return 'summary(glm(' + f + ', family = ' + (d.m === 'logistic' ? 'binomial' : 'poisson') + ', data = df' + wp + '))';
       }
     }
@@ -8227,7 +8239,8 @@ class Component extends DCLogic {
       out += '------------------------------------------------------------------------------\n' +
         R(this.abbr(d.y, 12), 12) + ' | Coefficient  Std. err.      ' + zc + '    P>|' + zc + '|    [' + pct + '% conf. interval]\n' +
         '-------------+----------------------------------------------------------------\n';
-      this.stataTerms([...Mo.coefs, ...(Mo.cuts || [])]).forEach(c => {
+      this.stataTerms([...this.coefsWithOmitted(Mo), ...(Mo.cuts || [])]).forEach(c => {
+        if (c.omitted) { out += R(this.abbr(c.term, 12), 12) + ' |' + R('0', 12) + '  ' + (c.omitted === 'empty' ? '(empty)' : '(omitted)') + '\n'; return; } // GM26 .76
         out += R(this.abbr(c.term === '(constant)' ? '_cons' : c.term, 12), 12) + ' |' + R(f(c.b, 3), 12) + R(f(c.se, 3), 11) + R(f(c.t, 2), 8) + R(this.fmtP(c.p), 8) + R(f(c.b - crit * c.se, 3), 12) + R(f(c.b + crit * c.se, 3), 11) + '\n';
       });
       out += '------------------------------------------------------------------------------';
@@ -9036,6 +9049,16 @@ class Component extends DCLogic {
   }
   // GM26 .75: a factor variable as Stata prints it after i.var — a row with its name, then each level indented beneath
   // (the base level is left out, as Stata does by default); interactions and numbers stay one row each
+  // GM26 .76: the model's terms in their order, with the ones left out (Stata's "0 (omitted)" / "0 (empty)") in place
+  coefsWithOmitted(M) {
+    if (!M || !M.termsAll || !(M.omitted || []).length) return M ? M.coefs : [];
+    const by = new Map(M.coefs.map(c => [c.term, c])), om = new Map(M.omitted.map(o => [o.term, o.why]));
+    return M.termsAll.map(t => by.get(t) || (om.has(t) ? { term: t, omitted: om.get(t), b: 0, se: NaN, t: NaN, p: NaN } : null)).filter(Boolean);
+  }
+  omitRow(c) { return { term: this.coefLab(c.term), raw: c.term, b: '0', se: c.omitted === 'empty' ? '(empty)' : '(omitted)', t: '', p: '', pStyle: '', beta: '', ci: '' }; }
+  omitNotes(M) { // Stata prints these above the table: "note: x omitted because of collinearity."
+    return (M.omitted || []).filter(o => o.why !== 'empty').map(o => 'note: ' + this.regLab(o.term) + ' omitted because of collinearity.').concat((M.oneLevel || []).map(v => 'note: ' + this.regLab(v) + ' has one category in the rows used and was left out.'));
+  }
   coefGroup(rows) {
     const base = 'color: var(--c2B271E, #2B271E); overflow-wrap: anywhere; line-height: 1.3;', out = []; let cur = null;
     for (const r of rows) {
@@ -10295,7 +10318,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-02.75') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-02.76') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -12309,6 +12332,9 @@ class Component extends DCLogic {
           return base.concat(extra);
         };
         let M = null, oneLabel = '';
+        // GM26 .76: logit, ordered logit and Poisson use the weights as given, as Stata's [iw=] / [pw=] (the log likelihood,
+        // LR test and classical SEs depend on their scale); the mean-1 weights stay for linear models and descriptives
+        const wML = w ? this.memo('wML|' + S.weightVar, () => { const f = this.obWScale(); return f === 1 ? w : Float64Array.from(w, x => x * f); }) : w;
         if (mdl === 'ols') {
           if (!dm || !this.numVals(S.depVar)) { out.hasRegError = true; out.regError = 'OLS OUTCOME MUST BE NUMERIC — "' + S.depVar + '" is text. Pick a variable stored as numbers (codes such as 0/1 or 1–5 are fine; a 0/1 outcome gives a linear probability model), or switch to LOGISTIC for a 2-value outcome.'; }
           else M = this.jobMemo('reg|ols|' + S.depVar + '|' + S.predictors.join(',') + '|' + ixSig + '|' + this._vceSig, () => ({ __work: 'regress', args: [this.numVals(S.depVar).a, buildPreds(), w, this._vceObj] }), 'Fitting the OLS regression');
@@ -12324,17 +12350,17 @@ class Component extends DCLogic {
             return { ya: yb, one };
           });
           if (built.error) { out.hasRegError = true; out.regError = built.error; }
-          else { { const lb = String(this.vlabel(S.depVar, built.one)); oneLabel = lb !== built.one ? built.one + ' (' + lb + ')' : built.one; } M = this.jobMemo('reg|logit|' + S.depVar + '|' + S.predictors.join(',') + '|' + ixSig + '|' + this._vceSig, () => ({ __work: 'glm', args: [built.ya, buildPreds(), w, 'logistic', this._vceObj] }), 'Fitting the logistic regression'); }
+          else { { const lb = String(this.vlabel(S.depVar, built.one)); oneLabel = lb !== built.one ? built.one + ' (' + lb + ')' : built.one; } M = this.jobMemo('reg|logit|' + S.depVar + '|' + S.predictors.join(',') + '|' + ixSig + '|' + this._vceSig, () => ({ __work: 'glm', args: [built.ya, buildPreds(), wML, 'logistic', this._vceObj] }), 'Fitting the logistic regression'); }
         } else if (mdl === 'ologit') {
           if (!dm || dm.type !== 'numeric') { out.hasRegError = true; out.regError = 'ORDINAL OUTCOME MUST BE NUMERIC WITH ORDERED LEVELS — "' + S.depVar + '" is not numeric.'; }
           else {
             const cv = this.numVals(S.depVar) || this.vals(S.depVar);
             const ynum = cv.kind === 'num' ? cv.a : Float64Array.from(cv.a, v => { const x2 = Number(v); return v == null || !isFinite(x2) ? NaN : x2; });
-            M = this.jobMemo('reg|olog|' + S.depVar + '|' + S.predictors.join(',') + '|' + ixSig + '|' + this._vceSig, () => ({ __work: 'ologit', args: [ynum, buildPreds(), w, this._vceObj] }), 'Fitting the ordinal logistic regression');
+            M = this.jobMemo('reg|olog|' + S.depVar + '|' + S.predictors.join(',') + '|' + ixSig + '|' + this._vceSig, () => ({ __work: 'ologit', args: [ynum, buildPreds(), wML, this._vceObj] }), 'Fitting the ordinal logistic regression');
           }
         } else {
           if (!dm || !this.numVals(S.depVar)) { out.hasRegError = true; out.regError = 'POISSON OUTCOME MUST BE A NUMERIC COUNT — "' + S.depVar + '" is text. Pick a variable stored as numbers.'; }
-          else M = this.jobMemo('reg|pois|' + S.depVar + '|' + S.predictors.join(',') + '|' + ixSig + '|' + this._vceSig, () => ({ __work: 'glm', args: [this.numVals(S.depVar).a, buildPreds(), w, 'poisson', this._vceObj] }), 'Fitting the Poisson regression');
+          else M = this.jobMemo('reg|pois|' + S.depVar + '|' + S.predictors.join(',') + '|' + ixSig + '|' + this._vceSig, () => ({ __work: 'glm', args: [this.numVals(S.depVar).a, buildPreds(), wML, 'poisson', this._vceObj] }), 'Fitting the Poisson regression');
         }
         out.regBusy = false;
         const busyOf = jb => ({ id: jb.id, cancel: () => this.cancelJob(jb.id), label: jb.label + '…', pct: jb.indet ? 'in the background' : Math.round(100 * Math.max(0.03, jb.p || 0)) + '%', w: jb.indet ? '100%' : Math.max(3, Math.round(100 * (jb.p || 0))) + '%', secs: jb.secs > 1 ? ' · ' + jb.secs.toFixed(0) + ' s' : '', note: 'n = ' + this.fmtN(this._raw ? this._raw.n : 0) + ' rows' });
@@ -12364,7 +12390,7 @@ class Component extends DCLogic {
           // ---- VIF (Stata: estat vif), on the model's estimation rows and weights
           out.vifShow = false;
           if (yM) {
-            const V = this.jobMemo('vif|' + mdl + '|' + S.depVar + '|' + preds.join(',') + '|' + ixSig + '|' + (S.weightVar || ''), () => ({ __work: 'vifOf', args: [yM, buildPreds(), w] }), 'Computing the VIF');
+            const V = this.jobMemo('vif|' + mdl + '|' + S.depVar + '|' + preds.join(',') + '|' + ixSig + '|' + (S.weightVar || ''), () => ({ __work: 'vifOf', args: M.termsAll ? (r2 => [r2.ya, r2.preds, w])(E.omitReduce(yM, buildPreds(), (M.omitted || []).map(o2 => o2.term))) : [yM, buildPreds(), w] }), 'Computing the VIF');
             if (V && !V.error && !V.pending) {
               const f2 = v => isFinite(v) ? v.toFixed(2) : '∞', mono = "font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; flex: 0 0 80px; text-align: right; ";
               out.vifShow = true;
@@ -12382,7 +12408,7 @@ class Component extends DCLogic {
             }
           }
           const ixIdx = ixList.map(([a1, b1]) => [preds.indexOf(a1), preds.indexOf(b1)]);
-          this._rgCtx = { mdl, bp, preds, ixIdx, yM, w, a, M, oneLabel, olLv, ixSig };
+          this._rgCtx = { mdl, bp, preds, ixIdx, yM, w: mdl === 'ols' ? w : wML, a, M, oneLabel, olLv, ixSig };
           let mg = yM ? this.jobMemo('mg|' + mdl + '|' + S.depVar + '|' + preds.join(',') + '|' + ixSig + '|' + fi + '|' + bi + '|' + at + '|' + cat + '|' + a + '|' + this._vceSig, () => ({ __work: 'marginsGen', args: [{ family: mdl, y: yM, w, vars: bp, ix: ixIdx, focus: fi, by: bi, at, cat, alpha: a, vce: this._vceObj }] }), 'Computing the margins plot') : { error: 'outcome not available' };
           if (mg && mg.pending) { out.mgBusy = true; out.mgBusyInfo = busyOf(mg); mg = { error: '' }; }
           const what = mdl === 'ols' ? 'VALUE' : mdl === 'poisson' ? 'COUNT' : 'PROBABILITY';
@@ -12474,11 +12500,11 @@ class Component extends DCLogic {
           out.copyApaReg = () => this.copyTSV('apaR', out.apaReg);
           if (isOls) {
             out.sumCells = [['R²', this.fmt(M.R2, 3)], ['ADJ R²', this.fmt(M.adjR2, 3)], ['F', this.fmt(M.F)], ['DF', M.df1 + ', ' + M.df2], ['P (MODEL)', this.fmtP(M.pModel)], ['N', this.fmtN(M.n)]].map(([k, v]) => ({ k, v }));
-            out.coefRows = this.coefGroup(this.stataTerms(M.coefs).map(c => ({ term: this.coefLab(c.term), raw: c.term, b: this.stataCoef(c.b), se: this.stataCoef(c.se), t: this.fmt(c.t), p: isFinite(c.p) ? c.p.toFixed(3) : '.', pStyle: this.pStyle(c.p), beta: isFinite(c.beta) ? this.fmt(c.beta, 3) : '—', ci: ciOf(c) })));
+            out.coefRows = this.coefGroup(this.stataTerms(this.coefsWithOmitted(M)).map(c => c.omitted ? this.omitRow(c) : ({ term: this.coefLab(c.term), raw: c.term, b: this.stataCoef(c.b), se: this.stataCoef(c.se), t: this.fmt(c.t), p: isFinite(c.p) ? c.p.toFixed(3) : '.', pStyle: this.pStyle(c.p), beta: isFinite(c.beta) ? this.fmt(c.beta, 3) : '—', ci: ciOf(c) })));
           } else {
             out.sumCells = [['PSEUDO R²', this.fmt(M.mcfadden, 3)], ['LOG-LIK', this.fmt(M.ll, 1)], ['NULL LOG-LIK', this.fmt(M.llNull, 1)], ['N', this.fmtN(M.n)], ['CONVERGED', M.converged ? 'YES' : 'NO']].map(([k, v]) => ({ k, v }));
-            const allRows = [...M.coefs, ...(M.cuts || [])];
-            out.coefRows = this.coefGroup(allRows.map(c => ({ term: this.coefLab(c.term), raw: c.term, b: this.stataCoef(c.b), se: this.stataCoef(c.se), t: this.fmt(c.t), p: isFinite(c.p) ? c.p.toFixed(3) : '.', pStyle: this.pStyle(c.p), beta: this.fmtRatio(c.or), ci: ciOf(c) })));
+            const allRows = [...this.coefsWithOmitted(M), ...(M.cuts || [])];
+            out.coefRows = this.coefGroup(allRows.map(c => c.omitted ? this.omitRow(c) : ({ term: this.coefLab(c.term), raw: c.term, b: this.stataCoef(c.b), se: this.stataCoef(c.se), t: this.fmt(c.t), p: isFinite(c.p) ? c.p.toFixed(3) : '.', pStyle: this.pStyle(c.p), beta: this.fmtRatio(c.or), ci: ciOf(c) })));
           }
           this.regressionSampleVals(out, M);
           this.stataRegressionVals(out, M, mdl);
@@ -12487,7 +12513,7 @@ class Component extends DCLogic {
           out.hasRegNotes = M.dropped > 0 || M.refs.length > 0 || !!mapNote || !!convNote;
           out.hasRegNotes = true;
           const vceTxt = M.vce ? ({ robust: 'ROBUST (HC1) SEs', cluster: 'SEs CLUSTERED BY ' + String(S.regCl).toUpperCase() + ' (' + M.vce.G + ' CLUSTERS' + (M.vce.G < 30 ? ' — FEWER THAN ~30 CLUSTERS: THESE SEs CAN BE TOO SMALL AND p-VALUES TOO OPTIMISTIC; TREAT SIGNIFICANCE AS APPROXIMATE' : '') + ')', svy: 'SURVEY-DESIGN SEs (' + M.vce.G + ' PSUs, ' + M.vce.H + ' STRATA, DF ' + M.vce.df + (M.vce.single ? '; ' + M.vce.single + ' SINGLE-PSU STRATA SKIPPED' : '') + ')' })[M.vce.type] + ' · ' : '';
-          out.regNotes = vceTxt + 'CI ON THE ' + (isOls ? 'COEFFICIENT' : 'LOG scale — EXPONENTIATE FOR ' + (mdl === 'poisson' ? 'IRR' : 'OR') + ' BOUNDS') + '. ' + convNote + mapNote + (M.dropped > 0 ? this.fmtN(M.dropped) + ' ROWS DROPPED (MISSING ON A MODEL VARIABLE). ' : '') + (M.refs.length ? 'REFERENCE CATEGORIES: ' + M.refs.map(r => this.regLab(r)).join('; ') + '.' : '');
+          out.regNotes = vceTxt + 'CI ON THE ' + (isOls ? 'COEFFICIENT' : 'LOG scale — EXPONENTIATE FOR ' + (mdl === 'poisson' ? 'IRR' : 'OR') + ' BOUNDS') + '. ' + convNote + mapNote + (M.dropped > 0 ? this.fmtN(M.dropped) + ' ROWS DROPPED (MISSING ON A MODEL VARIABLE). ' : '') + (M.refs.length ? 'REFERENCE CATEGORIES: ' + M.refs.map(r => this.regLab(r)).join('; ') + '.' : '') + this.omitNotes(M).map(t => ' ' + t.toUpperCase()).join('');
           // Plain-language reading of the coefficients. A category is compared with its reference category; a main effect
           // inside an interaction holds only where the other variable is at its reference (or 0); a +1 step too small to
           // matter (income in pesos) is described per +10, +100, … units.

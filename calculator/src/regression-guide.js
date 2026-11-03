@@ -271,6 +271,14 @@
     if (asCat.length) kids.splice(1, 0, h('div', { className: 'tl-row rg-cats' }, h('span', null, h('b', null, 'As categories: '), asCat.map(p => 'i.' + p).join(' ') + ' — one row per level, compared with ' + asCat.map(p => { const r = (M.refs || []).find(x => x.startsWith(p + ' = ')); return r ? r.slice(p.length + 3) : '?'; }).join(' / ') + '. '),
       ...asCat.map(p => this.tlBtn('marginsplot of ' + p, () => { this.rgMgSet({ x: p, by: '' }); this.setState({ rgStep: 7 }); }, 'primary', { title: 'Predicted ' + S.depVar + ' for each level of ' + p + ' (Stata: margins ' + p + ' · marginsplot)' })),
       ...asCat.filter(p => { const m = this.effMeta(p); return m.type === 'numeric'; }).map(p => this.tlBtn('Use ' + p + ' as a number', () => { this.clearMemo(); this.setState(s2 => ({ treat: Object.assign({}, s2.treat, { [p]: 'numeric' }) }), () => { this._regRan = this.regSpec(); this.forceUpdate(); }); }))));
+    // GM26 .76: terms left out as Stata does — an exact combination of the other predictors in the rows used, the same
+    // value in every row, or an interaction cell with no rows — shown as 0 (omitted) / 0 (empty) in the table
+    const omAll = M.omitted || [], omN = this.omitNotes(M), emp = omAll.filter(o => o.why === 'empty');
+    if (omN.length || emp.length) kids.splice(1, 0, this.tlBanner('warn', h('b', null, 'Left out of the model, as in Stata: '), omN.join(' ') + ' ',
+      omAll.some(o => o.why === 'collinear') ? 'In the rows used, an omitted term is an exact combination of the other predictors (for example the only year in a subgroup, or dummies that add up to another variable), so its own effect cannot be separated from theirs. ' : '',
+      omAll.some(o => o.why === 'constant') ? 'A predictor with the same value in every row used has nothing to compare. ' : '',
+      emp.length ? 'No row has ' + emp.map(o => this.regLab(o.term).replace(/ \u00d7 /g, ' and ')).join('; ') + ' at the same time, so ' + (emp.length > 1 ? 'those interaction cells are' : 'that interaction cell is') + ' empty: 0 (empty) in the table. ' : '',
+      'The other coefficients are estimated without ' + (omAll.length + (M.oneLevel || []).length > 1 ? 'them' : 'it') + '; remove ' + (omAll.length + (M.oneLevel || []).length > 1 ? 'them' : 'it') + ' to get the same model without the note.'));
     // GM26 .74: the output first, compact as in Stata (fit, coefficients, plot); what it means goes below it (rgEl3)
     const line = kids.shift(), ame = model === 'logistic' || model === 'poisson' ? this.rgAmeView(now, ctx) : null;
     this._rgNotes = [ame, this.rgPanel(0, 'What the results say', 'the output above in words', line, ...kids)];
@@ -323,7 +331,7 @@
     const M = ctx.M, b = M.coefs.map(c => c.b), names = M.coefs.map(c => c.term), V = ctx.bp, y = ctx.yM, w = ctx.w, rows = [], ys = [];
     const N = y.length, col = names.map(t => { if (t === '(constant)') return () => 1; const ix = t.split(' × '); const one = s => { const k = s.indexOf(' = '), nm = k < 0 ? s : s.slice(0, k), lv = k < 0 ? null : s.slice(k + 3), v = V.find(q => q.name === nm); if (!v) return null; return v.kind === 'num' ? i => v.a[i] : i => (v.a[i] == null ? NaN : String(v.a[i]) === lv ? 1 : 0); }; const fs = ix.map(one); return fs.some(f => !f) ? null : i => fs.reduce((p, f) => p * f(i), 1); });
     if (col.some(f => !f)) return null;
-    for (let i = 0; i < N; i++) { if (!Number.isFinite(y[i]) || (w && !(w[i] > 0))) continue; const x = col.map(f => f(i)); if (x.some(v => !Number.isFinite(v))) continue; rows.push(x); ys.push(y[i]); }
+    for (let i = 0; i < N; i++) { if (!Number.isFinite(y[i]) || (w && !(w[i] > 0))) continue; const x = col.map(f => f(i)); if (x.some(v => !Number.isFinite(v)) || !V.every(q => q.kind === 'num' ? Number.isFinite(q.a[i]) : q.a[i] != null)) continue; rows.push(x); ys.push(y[i]); } // GM26 .76: the model's rows, also when a term was left out
     return { rows, y: ys, b };
   }
   // numeric predictors whose squared term clearly improves the fit (p < .01), linear / logit / Poisson

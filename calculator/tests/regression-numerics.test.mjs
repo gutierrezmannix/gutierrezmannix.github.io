@@ -54,7 +54,7 @@ test('NIST StRD Longley: coefficients, standard errors, R² and residual SD to t
   }
 });
 
-test('OLS agrees with R, does not depend on units, and names collinear predictors instead of an impossible fit', () => {
+test('OLS agrees with R, does not depend on units, and leaves out collinear predictors as R (NA) and Stata (omitted)', () => {
   const m = E.regress(Y('y'), [num('inc'), num('x2')], null, null);
   m.coefs.forEach((c, j) => { rel(c.b, REF.ols_b[j], 1e-10, 'b'); rel(c.se, REF.ols_se[j], 1e-10, 'se'); });
   rel(m.R2, REF.ols_r2[0], 1e-12, 'R²'); rel(m.rmse, REF.ols_rmse[0], 1e-12, 'root MSE');
@@ -62,10 +62,12 @@ test('OLS agrees with R, does not depend on units, and names collinear predictor
   rel(k.coefs[1].b, 1000 * m.coefs[1].b, 1e-10, 'thousands'); rel(k.coefs[1].t, m.coefs[1].t, 1e-10, 't'); rel(k.R2, m.R2, 1e-12, 'R²');
   for (const v of ['inc_k', 'inc_m', 'inc3', 'inc10', 'stamp']) {
     assert.equal(REF['alias_' + v][0], 1, 'R also drops ' + v);
+    // GM26 .76: the collinear term is left out and the model refit, as Stata ("note: v omitted because of collinearity")
     const r = E.regress(Y('y'), [num('inc'), num(v), num('x2')], null, null);
-    assert.match(r.error || '', new RegExp('collinear: “' + v + '”'), v + ': ' + (r.error || 'R² ' + r.R2));
-    for (const fam of ['logistic', 'poisson']) assert.match(E.glm(Y(fam === 'logistic' ? 'e' : 'cnt'), [num('inc'), num(v), num('x2')], null, fam).error || '', new RegExp('“' + v + '”'), fam + ' ' + v);
-    assert.match(E.ologit(Y('o'), [num('inc'), num(v), num('x2')], null, null).error || '', new RegExp('“' + v + '”'), 'ologit ' + v);
+    assert.ok(!r.error, v + ': ' + r.error); assert.deepEqual(r.omitted, [{ term: v, why: 'collinear' }], v);
+    rel(r.R2, m.R2, 1e-9, v + ' R²'); rel(r.coefs[1].b, m.coefs[1].b, 1e-8, v + ' b of inc as without ' + v);
+    for (const fam of ['logistic', 'poisson']) { const g = E.glm(Y(fam === 'logistic' ? 'e' : 'cnt'), [num('inc'), num(v), num('x2')], null, fam); assert.deepEqual((g.omitted || []).map(o => o.term), [v], fam + ' ' + v + ': ' + g.error); }
+    const o = E.ologit(Y('o'), [num('inc'), num(v), num('x2')], null, null); assert.deepEqual((o.omitted || []).map(q => q.term), [v], 'ologit ' + v + ': ' + o.error);
   }
   // nearly but not exactly collinear (thousands rounded to 3 decimals): R keeps both, and so does the page
   const n = E.regress(Y('y'), [num('inc'), num('inc_r'), num('x2')], null, null);
@@ -73,8 +75,9 @@ test('OLS agrees with R, does not depend on units, and names collinear predictor
   assert.ok(n.R2 >= 0 && n.R2 <= 1); rel(n.R2, REF.near_r2[0], 1e-10, 'near R²');
   // a predictor that does not vary, and a category with no rows in the sample
   const flat = Float64Array.from(Y('y'), () => 5);
-  assert.match(E.regress(Y('y'), [num('x2'), { name: 'flat', kind: 'num', a: flat }], null, null).error, /“flat” does not vary/);
-  assert.match(E.regress(Y('y'), [num('x2'), cat('grupo', ['A', 'B', 'C', 'D'])], null, null).error, /“grupo = D” does not vary/);
+  // (build .76: left out as Stata, "0 (omitted)", and the rest fitted without them)
+  assert.deepEqual(E.regress(Y('y'), [num('x2'), { name: 'flat', kind: 'num', a: flat }], null, null).omitted, [{ term: 'flat', why: 'constant' }]);
+  assert.deepEqual(E.regress(Y('y'), [num('x2'), cat('grupo', ['A', 'B', 'C', 'D'])], null, null).omitted, [{ term: 'grupo = D', why: 'constant' }]);
 });
 
 test('weights and clusters as in Stata: [pw=] robust, [aw=] ordinary, clustered G/(G-1)(n-1)/(n-k)', () => {
@@ -150,9 +153,10 @@ test('the regression page: modeled value, exported code, weights, display, wordi
   assert.ok(out.coefRows.every(r => !/\*/.test(r.b)) && !/\* p </.test(out.regNotes), 'no stars in the Stata-style table');
   out = fit(c, { starSet: 'econ', regIx: [] }); assert.ok(out.coefRows.every(r => /^(\d\.\d{3}|\.|)$/.test(r.p)) && out.coefRows.some(r => /^\d\.\d{3}$/.test(r.p)), "P>|t| as 0.000 (a factor variable's name row has none)");
   assert.equal(c.starsOf(0.07), '*'); c.setState({ starSet: 'apa' }); assert.equal(c.starsOf(0.07), ''); assert.equal(c.starsOf(0.0005), '***');
-  // a collinear pair is an error on the page, naming the variable
+  // a collinear pair: the second is left out, as Stata (0 (omitted) and its note), and the model runs (build .76)
   out = fit(c, { depVar: 'y', predictors: ['inc', 'inc_k', 'x2'], regModel: 'ols', treat: {} });
-  assert.ok(out.hasRegError); assert.match(out.regError, /“inc_k” is a combination of the other predictors/);
+  assert.ok(!out.hasRegError, out.regError); assert.ok(out.coefRows.some(r => r.term === 'inc_k' && r.b === '0' && r.se === '(omitted)'));
+  assert.match(out.regNotes, /NOTE: INC_K OMITTED BECAUSE OF COLLINEARITY\./);
 });
 
 test('console weights follow Stata: [pw=] robust, [aweight=] ordinary, wrong weight types refused', async () => {

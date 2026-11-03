@@ -696,7 +696,42 @@ export function vifOf(ya, preds, w) {
   const fin = terms.filter(t => isFinite(t.vif));
   return { n, terms: terms.slice().sort((a, b) => b.vif - a.vif), mean: fin.length ? fin.reduce((s, t) => s + t.vif, 0) / fin.length : NaN, singular: !inv };
 }
-export function regress(ya, preds, w, vce) {
+// GM26 .76: terms that are collinear with the others, do not vary, or are empty interaction cells are left out and
+// the model is refit, as Stata does ("note: x omitted because of collinearity"; the table shows "0 (omitted)"). A
+// categorical predictor with a single level in the rows used is left out as well (Stata shows only its base). The
+// estimation rows stay the same: a row missing a left-out variable stays out of the sample.
+export function termLabelsOf(preds, cons) { const L = cons ? ['(constant)'] : []; for (const pr of preds) { if (pr.kind === 'num') L.push(pr.name); else for (let l = 1; l < pr.levels.length; l++) L.push(pr.name + ' = ' + pr.levels[l]); } return L; }
+export function omitReduce(ya, preds, labels) {
+  const set = new Set(labels || []); let y = ya; const keep = [];
+  const mask = pr => { if (y === ya) y = Float64Array.from(ya); for (let i = 0; i < y.length; i++) { const v = pr.a[i]; if (pr.kind === 'num' ? !isFinite(v) : v == null) y[i] = NaN; } };
+  for (const pr of preds) {
+    if (pr.kind === 'num') { if (set.has(pr.name)) mask(pr); else keep.push(pr); continue; }
+    const lv = pr.levels.filter((L, l) => l === 0 || !set.has(pr.name + ' = ' + L));
+    if (lv.length < 2) mask(pr); else keep.push(lv.length === pr.levels.length ? pr : Object.assign({}, pr, { levels: lv }));
+  }
+  return { ya: y, preds: keep };
+}
+function fitOmitting(ya, preds, cons, fit) {
+  const all = termLabelsOf(preds, cons), omitted = [];
+  const one = preds.filter(pr => pr.kind !== 'num' && pr.levels.length < 2).map(pr => pr.name);
+  let cur = one.length ? omitReduce(ya, preds, []) : { ya, preds };
+  for (let k = 0; k < 6; k++) {
+    const r = fit(cur.ya, cur.preds);
+    if (r && r.error && r.aliased && r.aliased.length && !r.aliased.includes('(constant)')) {
+      const cs = new Set(r.constTerms || []);
+      r.aliased.forEach(t => omitted.push({ term: t, why: cs.has(t) ? (/ × /.test(t) ? 'empty' : 'constant') : 'collinear' }));
+      cur = omitReduce(cur.ya, cur.preds, r.aliased); continue;
+    }
+    if (r && !r.error && (omitted.length || one.length)) { r.omitted = omitted; r.oneLevel = one; r.termsAll = all; }
+    if (r && r.error && (omitted.length || one.length)) r.error += ' (after leaving out ' + omitted.map(o => o.term).concat(one).map(t => '“' + t + '”').join(', ') + ')';
+    return r;
+  }
+  return { error: 'the predictors are collinear in a way that could not be resolved — remove some of them and refit.' };
+}
+export function regress(ya, preds, w, vce) { return fitOmitting(ya, preds, true, (y, P) => regressCore(y, P, w, vce)); }
+export function glm(ya, preds, w, family, vce) { return fitOmitting(ya, preds, true, (y, P) => glmCore(y, P, w, family, vce)); }
+export function ologit(ya, preds, w, vce) { return fitOmitting(ya, preds, false, (y, P) => ologitCore(y, P, w, vce)); }
+function regressCore(ya, preds, w, vce) {
   const terms = [{ label: '(constant)', get: null }];
   const refs = [];
   for (const pr of preds) {
@@ -736,7 +771,7 @@ export function regress(ya, preds, w, vce) {
   }
   if (cnt < p + 2) return { error: 'not enough complete rows (' + cnt + ') for ' + p + ' parameters.' };
   const sol = qr.solve();
-  if (sol.aliased.length) return { error: aliasMessage(sol, terms.map(t => t.label)), aliased: sol.aliased.map(j => terms[j].label) };
+  if (sol.aliased.length) return { error: aliasMessage(sol, terms.map(t => t.label)), aliased: sol.aliased.map(j => terms[j].label), constTerms: sol.aliased.filter(j => sol.constant.includes(j)).map(j => terms[j].label) };
   if (!(yhi > ylo)) return { error: 'the outcome has the same value in every complete row — nothing to explain.' };
   const b = sol.b, inv = sol.inv, ybar = swy / sw, xbar = Array.from(sX, v => v / sw);
   // pass 2: residuals (SSE from the residuals themselves), centered sums of squares, diagnostics
@@ -942,7 +977,7 @@ function logitDirectionSeparates(X, y, direction) {
   return strict;
 }
 // GM26 logistic validation end
-export function glm(ya, preds, w, family, vce) {
+function glmCore(ya, preds, w, family, vce) {
   const terms = [{ label: '(constant)' }]; const refs = [];
   for (const pr of preds) {
     if (pr.kind === 'num') terms.push({ label: pr.name, pred: pr, level: null });
@@ -976,7 +1011,7 @@ export function glm(ya, preds, w, family, vce) {
   if (yr.every(v => v === yr[0])) return { error: 'the outcome is ' + yr[0] + ' in every complete row — nothing to model.' };
   if (family === 'logistic') { const separation = logitPredictionCheck(X, yr, ri, preds, terms); if (separation) return logitPredictionError(separation, n, N - n); }
   const fit = irls(X, yr, wr, p, family);
-  if (fit.aliasSol) return { error: aliasMessage(fit.aliasSol, terms.map(t => t.label)) };
+  if (fit.aliasSol) { const so = fit.aliasSol; return { error: aliasMessage(so, terms.map(t => t.label)), aliased: so.aliased.map(j => terms[j].label), constTerms: so.aliased.filter(j => (so.constant || []).includes(j)).map(j => terms[j].label) }; }
   if (fit.error) return fit;
   if (family === 'logistic' && logitDirectionSeparates(X, yr, fit.b)) return logitPredictionError({ term: 'predictor combination', count: n, description: 'a linear combination of the predictors separates all complete observations' }, n, N - n);
   if (family === 'logistic' && !fit.converged) return { error: 'Logistic regression did not converge. Coefficients, p-values, confidence intervals and predictions are not reported. Check for separation, collinear predictors and poorly scaled variables before refitting.', errorCode: 'logit_nonconvergence', completeN: n, dropped: N - n };
@@ -1142,7 +1177,7 @@ function cholSolve(L, b) {
   return x;
 }
 function cholInverse(A) { const L = cholFactor(A); if (!L) return null; const P = A.length; return Array.from({ length: P }, (_, j) => { const e = new Float64Array(P); e[j] = 1; return cholSolve(L, e); }).map((col, j, cols) => Array.from({ length: P }, (_, i) => cols[i][j])); }
-export function ologit(ya, preds, w, vce) {
+function ologitCore(ya, preds, w, vce) {
   const terms = []; const refs = [];
   for (const pr of preds) {
     if (pr.kind === 'num') terms.push({ label: pr.name, pred: pr, level: null });
@@ -1177,7 +1212,7 @@ export function ologit(ya, preds, w, vce) {
   if (J > 10) return { error: 'outcome has ' + J + ' distinct values — ordinal logit needs 2–10 ordered levels.' };
   if (n < p + J + 2) return { error: 'not enough complete rows (' + n + ').' };
   // collinearity and predictors that do not vary, checked as in regress (the cutpoints play the constant's part)
-  { const qr = lsqQR(p + 1), row = new Float64Array(p + 1); row[0] = 1; for (let i = 0; i < n; i++) { for (let r = 0; r < p; r++) row[r + 1] = X[i][r]; qr.add(row, 0, wr[i]); } const sol = qr.solve(); if (sol.aliased.length) return { error: aliasMessage(sol, ['(constant)', ...terms.map(t => t.label)]) }; }
+  { const qr = lsqQR(p + 1), row = new Float64Array(p + 1); row[0] = 1; for (let i = 0; i < n; i++) { for (let r = 0; r < p; r++) row[r + 1] = X[i][r]; qr.add(row, 0, wr[i]); } const sol = qr.solve(); if (sol.aliased.length) { const L = ['(constant)', ...terms.map(t => t.label)]; return { error: aliasMessage(sol, L), aliased: sol.aliased.map(j => L[j]), constTerms: sol.aliased.filter(j => sol.constant.includes(j)).map(j => L[j]) }; } }
   const lvIdx = new Map(levels.map((v, i) => [v, i]));
   const yi = yr.map(v => lvIdx.get(v));
   const P = J - 1 + p;
@@ -2269,10 +2304,14 @@ export function* marginsGen(o) {
   const icpt = fam !== 'ologit';
   const buildRow = encs => { const r = icpt ? [1] : []; encs.forEach(e2 => { for (const x of e2) r.push(x); }); IX.forEach(([a, b]) => { for (const xa of encs[a]) for (const xb of encs[b]) r.push(xa * xb); }); return r; };
   const dataEnc = i => V.map((v, vi) => encOf(vi, v.a[i]));
-  const X = rowsOk.map(i => buildRow(dataEnc(i))), p = X[0] ? X[0].length : 0;
+  let X = rowsOk.map(i => buildRow(dataEnc(i))), p = X[0] ? X[0].length : 0;
   if (n < p + 3) return { error: 'not enough complete rows for the margins plot' };
   const yv = rowsOk.map(i => o.y[i]), wv = rowsOk.map(i => w ? w[i] : 1);
   let b, Vc, cuts = null, J = 0;
+  // GM26 .76: columns the model leaves out (collinear, constant, empty interaction cells) keep a zero coefficient and
+  // zero variance here, so the margins are those of the model in the table (Stata does the same)
+  let keep = null; const X0 = X, p0 = p;
+  if (icpt) { const qr0 = lsqQR(p); for (let i = 0; i < n; i++) qr0.add(X[i], 0, wv[i]); const s0 = qr0.solve(); if (s0.aliased.length && !s0.aliased.includes(0)) { const gone = new Set(s0.aliased); keep = []; for (let r = 0; r < p; r++) if (!gone.has(r)) keep.push(r); X = X.map(x => keep.map(j => x[j])); p = keep.length; } }
   // the model's own variance: classical, or robust / clustered / survey (the sandwich used by the results table)
   const sandwich = (bread, scoreOf, family) => { if (!(o.vce && o.vce.type && o.vce.type !== 'classical')) return null; const rows = X.map((x, k) => { const i = rowsOk[k]; return { i, s: scoreOf(x, k), cl: o.vce.cl ? o.vce.cl[i] : null, st: o.vce.st ? o.vce.st[i] : null }; }); return sandwichV(bread, rows, o.vce, n, p, family); };
   if (fam === 'ols') {
@@ -2286,11 +2325,17 @@ export function* marginsGen(o) {
   } else if (fam === 'logistic' || fam === 'poisson') {
     const f = irls(X, yv, wv, p, fam); if (f.error) return f; b = Array.from(f.b); Vc = f.inv;
     const sv = sandwich(f.inv, (x, k) => { let et = 0; for (let r = 0; r < p; r++) et += x[r] * b[r]; et = Math.max(-30, Math.min(30, et)); const m = fam === 'logistic' ? 1 / (1 + Math.exp(-et)) : Math.exp(et); return x.map(v => v * wv[k] * (yv[k] - m)); }, fam); if (sv && sv.error) return sv; if (sv) Vc = sv.V;
-  } else {
+  }
+  if (keep) { const bF = new Array(p0).fill(0), VF = Array.from({ length: p0 }, () => new Array(p0).fill(0)); keep.forEach((j, a2) => { bF[j] = b[a2]; keep.forEach((k2, c2) => { VF[j][k2] = Vc[a2][c2]; }); }); b = bF; Vc = VF; X = X0; p = p0; }
+  if (fam === 'ologit') {
     const preds = V.map(v => v.kind === 'num' ? { name: v.name, kind: 'num', a: v.a } : { name: v.name, kind: 'cat', a: v.a, levels: v.levels });
     IX.forEach(([ai, bi], k) => { const A2 = V[ai], B2 = V[bi]; const ea = A2.kind === 'num' ? [x => x] : A2.levels.slice(1).map(L => x => x == null ? NaN : (x === L ? 1 : 0)); const eb = B2.kind === 'num' ? [x => x] : B2.levels.slice(1).map(L => x => x == null ? NaN : (x === L ? 1 : 0)); ea.forEach((fa, q) => eb.forEach((fb, r2) => { const col = new Float64Array(N0); for (let i = 0; i < N0; i++) col[i] = fa(A2.a[i]) * fb(B2.a[i]); preds.push({ name: 'ix' + k + '_' + q + '_' + r2, kind: 'num', a: col }); })); });
     const fit = ologit(o.y, preds, w, o.vce); if (fit.error) return fit;
     J = fit.J; cuts = fit.th.slice(0, J - 1); b = fit.th.slice(J - 1); Vc = fit.cov;
+    if (fit.termsAll) { // left-out terms: zero slope and variance, in the full column order of buildRow
+      const at = new Map(fit.coefs.map((c, a2) => [c.term, a2])), map = fit.termsAll.map(t => at.has(t) ? at.get(t) : -1), K = J - 1, ix = f2 => f2 < K ? f2 : map[f2 - K] < 0 ? -1 : K + map[f2 - K];
+      b = map.map(a2 => a2 < 0 ? 0 : b[a2]); const PF = K + map.length; Vc = Array.from({ length: PF }, (_, r) => Array.from({ length: PF }, (_, c2) => { const r2 = ix(r), c3 = ix(c2); return r2 < 0 || c3 < 0 ? 0 : fit.cov[r2][c3]; }));
+    }
   }
   const P = (cuts ? cuts.length : 0) + b.length, off = cuts ? cuts.length : 0;
   const sig = z => 1 / (1 + Math.exp(-Math.max(-30, Math.min(30, z))));
@@ -2696,7 +2741,7 @@ export function ergmFit(net, terms) {
     else if (t.t === 'absdiff') { const at = net.attrs[t.a]; for (let d = 0; d < D; d++) a[d] = Math.abs(at.x[I[d]] - at.x[J[d]]); preds.push({ name: 'difference in ' + t.a, kind: 'num', a }); }
   }
   { let e1 = 0; for (let d = 0; d < D; d++) e1 += y[d]; if (e1 === 0 || e1 === D) return { error: e1 === 0 ? 'the network has no ties between the listed nodes — check the FROM and TO columns.' : 'every possible tie is present — nothing to model.' }; }
-  const fit = glm(y, preds, null, 'logistic');
+  const fit = glmCore(y, preds, null, 'logistic');
   if (fit.error) return fit;
   if (!fit.converged || fit.coefs.some(c => !Number.isFinite(c.b) || !Number.isFinite(c.se))) return { error: 'MPLE did not converge to a finite stable solution. Check separation or remove redundant effects. Network descriptives remain available.' };
   fit.coefs[0].term = 'edges';
