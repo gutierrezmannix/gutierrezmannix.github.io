@@ -138,9 +138,12 @@
     const langTxt = det.langs.map(l => LN[l] || l).join(' and ');
     if (det.from && det.from !== 'text') notes.push(this.tlBanner('info', h('b', null, langTxt + ' detected. '), this.fmtN(det.top) + ' of ' + this.fmtN(det.n) + ' rows (' + this.tlPct(det.share) + ') say “' + det.langs[0] + '” in ' + det.from + '. ' + (T.rec.langs ? 'You chose: ' + T.rec.langs.map(l => LN[l] || l).join(', ') + '.' : 'Common words in ' + langTxt + ' are removed; change this in Clean.')));
     else notes.push(this.tlBanner('info', h('b', null, langTxt + ' detected '), 'from the most common words in the texts. Common words in ' + langTxt + ' are removed; change this in Clean.'));
-    const texts = C.texts; let at = 0, blank = 0;
-    for (let i = 0; i < texts.length; i++) { const s = texts[i]; if (s == null) { blank++; continue; } if (s.length >= 32767) at++; }
-    if (at) notes.push(this.tlBanner('warn', h('b', null, this.fmtN(at) + ' texts are exactly 32,767 characters long. '), 'That is the most an Excel cell can hold, so these texts were cut off when the file was saved in Excel. Results describe only the part that was kept. If you have the full texts (for example as .txt or .csv), load those instead.'));
+    // texts cut by Excel's cell limit (32,767 characters): exactly that long, or (when a program trims a little more) every long
+    // text stops just under it and none is longer. Texts longer than the limit (e.g. Stata strL, CSV) are complete.
+    const texts = C.texts; let at = 0, blank = 0, near = 0, over = 0, filled = 0;
+    for (let i = 0; i < texts.length; i++) { const s = texts[i]; if (s == null) { blank++; continue; } filled++; const L = s.length; if (L === 32767) at++; else if (L > 32767) over++; else if (L >= 31000) near++; }
+    if (at) notes.push(this.tlBanner('warn', h('b', null, this.fmtN(at) + ' texts are exactly 32,767 characters long. '), 'That is the most an Excel cell can hold, so these texts were cut off when the file was saved in Excel. Results describe only the part that was kept. If you have the full texts (for example as Stata .dta, .csv or .txt), load those instead.'));
+    else if (!over && near >= Math.max(5, 0.1 * filled)) notes.push(this.tlBanner('warn', h('b', null, this.fmtN(near) + ' texts stop at 31,000–32,766 characters and none is longer. '), 'They look cut off just under Excel’s cell limit (32,767 characters), so results describe only the first part of each text. If you have the full texts (for example as Stata .dta, .csv or .txt), load those instead.'));
     if (blank) notes.push(this.tlBanner('info', this.fmtN(blank) + ' rows have no text. They are left out of every count and get a missing value (.) in saved variables.'));
     const G = this.tlGroupsOf(T, C, T.by);
     if (G && G.merged.length) notes.push(this.tlBanner('info', h('b', null, 'Groups that differ only in capital letters are merged: '), G.merged.map(m => m.join(' + ')).join('; ') + '. ', this.tlBtn(T.mergeCase ? 'Keep them separate' : 'Merge them', () => this.tlSet({ mergeCase: !T.mergeCase }))));

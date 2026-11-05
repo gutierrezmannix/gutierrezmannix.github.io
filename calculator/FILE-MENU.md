@@ -1,3 +1,19 @@
+# Stata long text and dates — build .77
+
+- **Long text (strL).** Stata stores text longer than 2,045 characters (speeches, transcripts, open answers) as strL.
+  The reader filled every strL value with an empty string, so a transcript file opened with a blank text column. It
+  now reads the `<strls>` section for Stata 13, 14 and 15+ files (releases 117, 118, 119; R haven's 119 layout too):
+  every text in full, with accents. A 72 MB file with 1,128 transcripts of about 63,000 characters reads in 0.5 s.
+- **Dates.** Numbers with a `%td`, `%tc` / `%tC` or `%tm` format are read as dates (2018-12-04, 2019-01-02 07:30:00,
+  2019-01), as Excel dates are, so Text analysis and time charts find them. They used to arrive as day counts (21,522).
+- **Stata 13 files written as UTF-8** (e.g. by R) keep their accents; true Latin-1 files are still read as before.
+- **Text analysis, Excel's cell limit.** The warning counted every text of 32,767 characters *or more* as cut off by
+  Excel, so complete texts from Stata or CSV were flagged. It now counts texts of exactly 32,767 characters, and also
+  warns when many texts stop just under it (31,000–32,766) and none is longer, as when a program trims a little more.
+
+Tests: `tests/stata-strl.test.mjs` with `tests/data/stata-strl-v13/14/15.dta` (texts, the empty text, accents, the
+three date formats).
+
 # Start page and File menu — build .67
 
 The start page's two buttons (**Browse files**, **Create your own dataset**) and the **File** menu. Code:

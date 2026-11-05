@@ -131,7 +131,7 @@ export async function parseDTA(buf, prog) {
     const mi = head.indexOf('<map>'); if (mi < 0) throw new Error('malformed .dta (no map).');
     const offs = []; for (let i = 0; i < 14; i++) offs.push(Number(dv.getBigUint64(mi + 5 + i * 8, le)));
     const W = rel >= 118 ? { name: 129, lbl: 129, vlab: 321 } : { name: 33, lbl: 33, vlab: 81 };
-    const dec = new TextDecoder(rel >= 118 ? 'utf-8' : 'windows-1252');
+    const dec = rel >= 118 ? new TextDecoder('utf-8') : (() => { const u = new TextDecoder('utf-8', { fatal: true }), w = new TextDecoder('windows-1252'); return { decode: b => { try { return u.decode(b); } catch (e) { return w.decode(b); } } }; })();
     const rdFixed = (start, width, count) => { const out = []; for (let i = 0; i < count; i++) { const a = start + i * width; let e = a; const cap = a + width; while (e < cap && u8[e] !== 0) e++; out.push(dec.decode(u8.subarray(a, e))); } return out; };
     let p = skipTag(offs[2]);
     const types = []; for (let i = 0; i < K; i++) types.push(dv.getUint16(p + i * 2, le));
@@ -141,6 +141,21 @@ export async function parseDTA(buf, prog) {
     const size = t => t === 65526 ? 8 : t === 65527 ? 4 : t === 65528 ? 4 : t === 65529 ? 2 : t === 65530 ? 1 : t === 32768 ? 8 : t;
     const colOff = []; let rowLen = 0; for (let i = 0; i < K; i++) { colOff.push(rowLen); rowLen += size(types[i]); }
     const dAt = skipTag(offs[9]);
+    // long strings (strL, type 32768): each data cell holds (v, o); the text itself is in the <strls> section as GSO blocks.
+    // 117: v and o are 4 bytes each; 118: v 2 bytes and o 6 bytes; 119: v 3 bytes and o 5 bytes (in the file's byte order).
+    const hasStrL = types.includes(32768), strl = new Map(), vB = rel === 117 ? 4 : rel === 118 ? 2 : 3;
+    const uint = (at, n) => { let x = 0; if (le) { for (let i = n - 1; i >= 0; i--) x = x * 256 + u8[at + i]; } else { for (let i = 0; i < n; i++) x = x * 256 + u8[at + i]; } return x; };
+    if (hasStrL) {
+      let g = skipTag(offs[10]); const gEnd = offs[11];
+      while (g + 3 <= gEnd && u8[g] === 71 && u8[g + 1] === 83 && u8[g + 2] === 79) {
+        const v = uint(g + 3, 4), o = uint(g + 7, rel === 117 ? 4 : 8); g += rel === 117 ? 11 : 15;
+        const tt = u8[g], len = uint(g + 1, 4); g += 5;
+        let e = g + len; if (tt === 130 && e > g && u8[e - 1] === 0) e--;
+        strl.set(v + ':' + o, dec.decode(u8.subarray(g, e))); g += len;
+      }
+    }
+    // some writers (e.g. ReadStat / R haven) use the 118 split (v 2 bytes) in 119 files: try the other split when a key is not found
+    const strlAt = q => { let v = uint(q, vB), o = uint(q + vB, 8 - vB); if (v === 0 && o === 0) return ''; let x = strl.get(v + ':' + o); if (x === undefined && rel >= 118) { const b2 = vB === 2 ? 3 : 2; x = strl.get(uint(q, b2) + ':' + uint(q + b2, 8 - b2)); } return x === undefined ? '' : x; };
     const cols = types.map(t => (t >= 65526 && t <= 65530) ? { k: 'n', a: (t === 65527 || t === 65529 || t === 65530) ? new Float32Array(N) : new Float64Array(N) } : { k: 's', a: new Array(N) });
     for (let r0 = 0; r0 < N; r0 += 1500) {
       const r1 = Math.min(N, r0 + 1500);
@@ -153,7 +168,7 @@ export async function parseDTA(buf, prog) {
           else if (t === 65528) { const v = dv.getInt32(q, le); cols[c].a[r] = v > 2147483620 ? NaN : v; }
           else if (t === 65529) { const v = dv.getInt16(q, le); cols[c].a[r] = v > 32740 ? NaN : v; }
           else if (t === 65530) { const v = dv.getInt8(q); cols[c].a[r] = v > 100 ? NaN : v; }
-          else if (t === 32768) { cols[c].a[r] = ''; }
+          else if (t === 32768) { cols[c].a[r] = strlAt(q); }
           else { let e = q; const cap = q + t; while (e < cap && u8[e] !== 0) e++; cols[c].a[r] = e > q ? dec.decode(u8.subarray(q, e)) : ''; }
         }
       }
@@ -179,6 +194,20 @@ export async function parseDTA(buf, prog) {
       if (asc(vp, vp + 6) === '</lbl>') vp += 6; else vp = tStart + tableLen;
     }
     const vlabs = Object.create(null); names.forEach((nm, i) => { if (lblNames[i] && vmaps[lblNames[i]]) vlabs[nm] = vmaps[lblNames[i]]; });
+    // Stata dates are numbers with a display format: %td days, %tc / %tC milliseconds and %tm months since 1960. They are
+    // read as dates (2019-01-02, 2019-01-02 07:30:00, 2019-01), as Excel dates are, so time charts and text over time find them.
+    const fmts = rdFixed(skipTag(offs[5]), rel === 117 ? 49 : 57, K), E1960 = Date.UTC(1960, 0, 1), p2 = x => String(x).padStart(2, '0');
+    const isoDay = ms => { const d = new Date(ms); return d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate()); };
+    for (let c = 0; c < K; c++) {
+      if (cols[c].k !== 'n') continue; const f = String(fmts[c] || '').replace(/^%-?/, '%');
+      const kind = /^%t?d/.test(f) && !/^%t[cCwmqhy]/.test(f) ? 'd' : /^%t[cC]/.test(f) ? 'c' : /^%tm/.test(f) ? 'm' : '';
+      if (!kind) continue; const src = cols[c].a, out = new Array(N);
+      for (let r = 0; r < N; r++) { const v = src[r]; if (!isFinite(v)) { out[r] = ''; continue; }
+        if (kind === 'd') out[r] = isoDay(E1960 + Math.round(v) * 86400000);
+        else if (kind === 'c') { const d = new Date(E1960 + v); out[r] = isoDay(E1960 + v) + (v % 86400000 ? ' ' + p2(d.getUTCHours()) + ':' + p2(d.getUTCMinutes()) + ':' + p2(d.getUTCSeconds()) : ''); }
+        else { const m = Math.round(v), y = 1960 + Math.floor(m / 12); out[r] = y + '-' + p2(((m % 12) + 12) % 12 + 1); } }
+      cols[c] = { k: 's', a: out };
+    }
     return { names, labels: varLabels, cols, vlabs, n: N };
   }
   const ver = u8[0];
