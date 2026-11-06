@@ -175,22 +175,30 @@
   }
 
   // in context: kwic + match list + by group
+  // ---- the search shared by In context, Over time and Connections: the words in T.q, the forms unticked in T.qOff
+  tlSearchField(T, after, k) { return this.tlField('Search', this.tlText(T.q || '', v => { this.tlSet({ q: v, qOff: [] }); if (after) after(v); }, { placeholder: 'e.g. corrup*, "guardia nacional", #covid19', aria: 'Search words', width: 300, mono: true, k: k || 'q' })); }
+  tlSearchHelp(T) { return React.createElement('span', { className: 'tl-hint' }, '* any ending · ? one letter · "two words" = phrase · -word = never count · #tag · @name · accents ' + (T.rec.fold ? 'ignored (ñ kept)' : 'respected')); }
+  tlSearchAll(ctx) { const { T, C } = ctx, E = this._E, q = T.q || ''; return this.memo('tlQall|' + C.key + '|' + q + '|' + T.rec.fold, () => E.tlLookup(C, E.tlCompileDict(C, [{ name: 'q', keys: q }], !!T.rec.fold))[0]); }
+  tlSearchForms(ctx) {
+    const h = React.createElement, { T } = ctx, E = this._E, q = T.q || ''; if (!q.trim()) return null;
+    const off = new Set(T.qOff || []), forms = [...this.tlSearchAll(ctx).forms.entries()].sort((a, b) => b[1] - a[1]);
+    if (!forms.length) return this.tlBanner('warn', 'No word in the texts matches “' + q + '”. Check the spelling, or add * for any ending (corrup*).');
+    const row = h('div', { className: 'tl-forms' }, ...forms.slice(0, 40).map(([w, c]) => { const isOff = off.has(w) || off.has(E.tlFold(w)); return h('label', { key: w, className: 'tl-form' + (isOff ? ' off' : '') }, h('input', { type: 'checkbox', checked: !isOff, onChange: () => this.tlSet({ qOff: isOff ? [...off].filter(x => x !== w && x !== E.tlFold(w)) : [...off, w] }) }), w, h('em', null, ' ' + this.fmtN(c))); }), forms.length > 40 ? h('span', { className: 'tl-hint' }, '+ ' + (forms.length - 40) + ' more') : null);
+    return h('div', { className: 'tl-col tl-search-forms' }, h('span', { className: 'tl-lbl' }, 'This search matched ' + forms.length + ' different word' + (forms.length === 1 ? '' : 's') + ' · untick any that do not belong'), row);
+  }
   tlContext(ctx) {
     const h = React.createElement, { T, C, FT } = ctx, E = this._E;
     const q = T.q || '';
-    const search = h('div', { className: 'tl-row wide' }, this.tlField('Search', this.tlText(q, v => this.tlSet({ q: v, qOff: [] }), { placeholder: 'e.g. corrup*, "guardia nacional", #covid19', aria: 'Search words', width: 300, mono: true, k: 'q' })),
+    const search = h('div', { className: 'tl-row wide' }, this.tlSearchField(T),
       this.tlField('Words each side', this.tlNum(T.win, v => this.tlSet({ win: v }), { min: 1, max: 30, aria: 'Words of context' })),
       this.tlField('Sort by', this.tlSeg([['row', 'Row'], ['pre', 'Word before'], ['post', 'Word after'], ['group', 'Group']], T.sort, v => this.tlSet({ sort: v }))));
-    const help = h('span', { className: 'tl-hint' }, '* any ending · ? one letter · "two words" = phrase · -word = never count · #tag · @name · accents ' + (T.rec.fold ? 'ignored (ñ kept)' : 'respected'));
+    const help = this.tlSearchHelp(T);
     if (!q.trim()) return this.tlPanel('In context', 'read every use of a word (kwic)', null, search, help, this.tlBanner('info', 'Type a word, or click any word in a table. Wildcards show every form they match, so you can drop the wrong ones.'));
     const off = new Set(T.qOff || []);
     const comp = this.memo('tlQ|' + C.key + '|' + q + '|' + [...off].join(',') + '|' + T.rec.fold, () => E.tlCompileDict(C, [{ name: 'q', keys: q, off }], !!T.rec.fold));
-    const all = this.memo('tlQall|' + C.key + '|' + q + '|' + T.rec.fold, () => E.tlLookup(C, E.tlCompileDict(C, [{ name: 'q', keys: q }], !!T.rec.fold))[0]);
     const look = this.memo('tlQL|' + C.key + '|' + q + '|' + [...off].join(',') + '|' + T.rec.fold, () => E.tlLookup(C, comp)[0]);
     const mask = ctx.mask;
     let hits = 0, docs = 0, n = 0; for (let d = 0; d < look.counts.length; d++) { if (mask && !mask[d]) continue; const v = look.counts[d]; if (!isFinite(v)) continue; n++; if (v > 0) { docs++; hits += v; } }
-    const forms = [...all.forms.entries()].sort((a, b) => b[1] - a[1]);
-    const formRow = h('div', { className: 'tl-forms' }, ...forms.slice(0, 40).map(([w, c]) => { const isOff = off.has(w) || off.has(E.tlFold(w)); return h('label', { key: w, className: 'tl-form' + (isOff ? ' off' : '') }, h('input', { type: 'checkbox', checked: !isOff, onChange: () => this.tlSet({ qOff: isOff ? [...off].filter(x => x !== w && x !== E.tlFold(w)) : [...off, w] }) }), w, h('em', null, ' ' + this.fmtN(c))); }), forms.length > 40 ? h('span', { className: 'tl-hint' }, '+ ' + (forms.length - 40) + ' more') : null);
     const K = this.memo('tlKW|' + C.key + '|' + q + '|' + [...off].join(',') + '|' + T.win + '|' + T.rec.fold + '|' + (mask ? this.filterSig() : ''), () => E.tlKwic(C, C.texts, comp, { window: T.win, limit: 500, mask }));
     const G = T.by ? this.tlGroupsOf(T, C, T.by) : null;
     let rows = K.rows.slice();
@@ -207,7 +215,7 @@
       byG = this.tlBarsSvg('tlkwg', ord.map(i => ({ label: G.labels[i], value: 100 * st[i].hit / st[i].n, note: this.fmtN(st[i].hit) + ' of ' + this.fmtN(st[i].n), color: this.tlPal(0) })), { title: '% of texts that mention it, by ' + T.by, xlab: '% of texts', pct: true });
     }
     return h('div', { className: 'tl-col' }, this.tlPanel('In context', 'every use of the search, with the words around it (kwic)', null, search, help,
-      h('span', { className: 'tl-lbl' }, 'This search matched ' + forms.length + ' different word' + (forms.length === 1 ? '' : 's') + ' · untick any that do not belong'), formRow,
+      this.tlSearchForms(ctx),
       this.tlBanner('ok', h('b', null, this.fmtN(docs) + ' texts'), ' (' + this.tlPct(docs / Math.max(1, n)) + ') mention it, ' + this.fmtN(hits) + ' times in total.' + (K.rows.length < hits ? ' Showing the first ' + Math.min(200, K.rows.length) + ' lines.' : '')),
       kwic, h('div', { className: 'tl-row' }, copy, this.tlBtn('Use as a dictionary category', () => { const T2 = this.tlS(), d = (T2.dict || []).filter(x => x.keys.trim()); this.tlSet({ dict: d.concat([{ name: q.replace(/[^\p{L}\p{N} ]/gu, '').trim().split(/\s+/)[0] || 'category', keys: q, off: [...off] }]), step: 'measure', msub: 'dict' }); }), this.tlBtn('See it over time', () => this.tlSet({ sub: 'time', time: Object.assign({}, T.time, { what: 'search' }) }))),
       this.tlRcode('kwic(toks, pattern = ' + this.tlRvec(E.tlParsePatterns(q).filter(p => !p.neg).map(p => p.parts.join(' '))) + ', window = ' + T.win + ', valuetype = "glob")')),
@@ -315,7 +323,10 @@
           : TM.what === 'ntexts' ? this.tlField('As', this.tlSeg(nOpts, nm, v => set({ nmeasure: v })))
           : TM.what !== 'words' ? this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], TM.measure, v => set({ measure: v }))) : null),
       isVar && V.made.length > 1 ? this.tlField('Compare with other saved variables', h('div', { className: 'tl-row' }, ...V.made.filter(n => n !== vname).map(n => { const on = (TM.vars || []).includes(n); return this.tlChip((on ? '✓ ' : '+ ') + n, on, () => set({ vars: on ? (TM.vars || []).filter(x => x !== n) : (TM.vars || []).concat([n]), lines: on ? TM.lines : (TM.lines === 'auto' || TM.lines === 'author' || TM.lines === 'none' ? (G ? 'grid-author' : 'item') : TM.lines) }), { key: n }); }))) : null,
-      TM.what === 'search' && parts.length < 2 ? h('span', { className: 'tl-hint' }, 'Tip: search several words separated by commas (e.g. salud, covid, pandemia) to give each word its own line.') : null,
+      // search right here (the same search as In context): typing switches Show to it
+      h('div', { className: 'tl-row wide' }, this.tlSearchField(T, v => set({ what: v.trim() ? 'search' : (TM.what === 'search' ? 'ntexts' : TM.what) }), 'qt'), this.tlSearchHelp(T)),
+      TM.what === 'search' ? this.tlSearchForms(ctx) : null,
+      TM.what === 'search' && (T.q || '').trim() && parts.length < 2 ? h('span', { className: 'tl-hint' }, 'Tip: search several words separated by commas (e.g. salud, covid, pandemia) to give each word its own line.') : null,
       h('div', { className: 'tl-row wide' },
         // the group column can be chosen here too (the same setting as Groups to compare in step 1): a line per author, party, outlet …
         this.tlField('Plot by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); set({ lines: v ? (many ? 'grid-author' : 'author') : (many ? 'item' : 'none') }); }, 'Plot by variable')),
@@ -339,23 +350,68 @@
   // connections: fcm + textplot_network
   tlNetwork(ctx) {
     const h = React.createElement, { T, C, FT, cnt } = ctx, NW = T.net, set = p => this.tlSetIn('net', p), E = this._E;
-    const feats = this.tlTop(ctx, T.wview === 'tag' ? 'tag' : 'word', NW.n, cnt).map(w => w.f);
-    const M = this.memo('tlNet|' + FT.sig + '|' + NW.n + '|' + NW.context + '|' + T.wview, () => E.tlFcm(FT, feats, { window: NW.context === 'window' ? 5 : 0 }));
+    const q = (T.q || '').trim(), view = T.wview === 'tag' ? 'tag' : 'word', win = NW.context === 'window' ? 5 : 0;
+    // with a search: the words found together with it, the matched forms (minus the unticked ones) joined into one node
+    let seeds = [];
+    if (q) seeds = this.memo('tlNetSeed|' + FT.sig + '|' + q + '|' + (T.qOff || []).join(',') + '|' + T.rec.fold, () => {
+      const K = E.tlCompileDict(C, [{ name: 'q', keys: q, off: new Set(T.qOff || []) }], !!T.rec.fold)[0], fs = new Set();
+      for (let t = 0; t < C.types.length; t++) if (K.singles[t]) { const f = FT.fid[t]; if (f >= 0 && FT.count[f] > 0) fs.add(f); }
+      return [...fs];
+    });
+    const focus = q && seeds.length > 0;
+    let feats, M, labelOf, sizeOf, hub = -1, near = null;
+    const cmaxAll = Math.max(1, ...this.tlTop(ctx, view, NW.n, cnt).map(w => cnt.count[w.f]));
+    if (focus) {
+      // the words most over-represented with the search (keyness, chi2), not merely the most frequent ones:
+      // long texts contain every common word, so raw co-occurrence would put "entonces", "va" … first
+      const key = this.memo('tlNetKey|' + FT.sig + '|' + seeds.join(',') + '|' + win, () => { const nr = E.tlFcmNear(FT, seeds, { window: win }); return Object.assign(E.tlKeyness(nr.tc, nr.rc, { minCount: 10 }), { tc: nr.tc, nIn: nr.nIn, nAll: nr.nAll }); });
+      const cand = key.rows.filter(r => r.stat > 0 && r.a >= 5 && this.tlKindOk(FT.kind[r.f], view === 'tag' ? 'tag' : 'word'));
+      near = { rows: cand.slice(0, Math.max(4, NW.n - 1)), tc: key.tc, share: key.nAll ? key.nIn / key.nAll : 0 };
+      feats = [-1].concat(near.rows.map(r => r.f)); hub = 0;
+      M = this.memo('tlNetF|' + FT.sig + '|' + feats.join(',') + '|' + seeds.join(',') + '|' + win, () => { const node = new Int32Array(FT.count.length).fill(-1); seeds.forEach(f => { node[f] = 0; }); feats.forEach((f, i) => { if (i) node[f] = i; }); return E.tlFcmNodes(FT, node, feats.length, { window: win }); });
+      const hubCount = seeds.reduce((a, f) => a + cnt.count[f], 0);
+      labelOf = i => i === 0 ? q : FT.label[feats[i]]; sizeOf = i => i === 0 ? 1 : Math.min(1, cnt.count[feats[i]] / Math.max(1, hubCount, cmaxAll));
+    } else {
+      feats = this.tlTop(ctx, view, NW.n, cnt).map(w => w.f);
+      M = this.memo('tlNet|' + FT.sig + '|' + NW.n + '|' + NW.context + '|' + T.wview, () => E.tlFcm(FT, feats, { window: win }));
+      labelOf = i => FT.label[feats[i]]; sizeOf = i => cnt.count[feats[i]] / cmaxAll;
+    }
     const n = feats.length, edges = []; let mx = 0;
     for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const w = M[i * n + j]; if (w > 0) edges.push([i, j, w]); if (w > mx) mx = w; }
     edges.sort((a, b) => b[2] - a[2]);
-    const keepN = Math.max(n, Math.round(edges.length * (1 - NW.minFreq)));
-    const kept = edges.slice(0, Math.min(keepN, 3 * n)).map(([i, j, w]) => [i, j, w / mx]);
-    const W = 760, H = 480, lay = this.memo('tlNetL|' + FT.sig + '|' + NW.n + '|' + NW.context + '|' + kept.length, () => E.tlForceLayout(n, kept, 11, W, H));
-    const cmax = Math.max(1, ...feats.map(f => cnt.count[f]));
-    const svg = h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': 'Word co-occurrence network', ref: this.svgRef('tlnet'), className: 'tl-svg' },
+    // with a search every word keeps its link to the searched word; the other links are thinned as usual
+    const hubE = focus ? edges.filter(e => e[0] === hub || e[1] === hub) : [], rest = focus ? edges.filter(e => e[0] !== hub && e[1] !== hub) : edges;
+    const keepN = Math.max(n, Math.round(rest.length * (1 - NW.minFreq)));
+    const kept = hubE.concat(rest.slice(0, Math.min(keepN, 3 * n))).map(([i, j, w]) => [i, j, w / mx]);
+    // with a search the layout is a star: each word is pulled toward the search by its keyness rank (strongest
+    // closest), so the very common words do not pile up in one knot; the links between the words are still drawn
+    const layE = focus ? feats.slice(1).map((f, k) => [0, k + 1, 1 - 0.8 * k / Math.max(1, n - 2)]) : kept;
+    const W = 760, H = 480, lay = this.memo('tlNetL|' + FT.sig + '|' + feats.join(',') + '|' + NW.context + '|' + kept.length + '|' + (focus ? q : ''), () => E.tlForceLayout(n, layE, 11, W, H));
+    const svg = h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': focus ? 'Words found together with ' + q : 'Word co-occurrence network', ref: this.svgRef('tlnet'), className: 'tl-svg' },
       h('rect', { width: W, height: H, fill: '#FFFFFF' }),
-      kept.map(([i, j, w], k) => h('line', { key: 'e' + k, x1: lay.x[i], y1: lay.y[i], x2: lay.x[j], y2: lay.y[j], stroke: '#2E7D58', strokeOpacity: 0.15 + 0.6 * w, strokeWidth: 0.6 + 4 * w })),
-      feats.map((f, i) => { const r = 3 + 9 * Math.sqrt(cnt.count[f] / cmax); return h('g', { key: 'n' + i }, h('circle', { cx: lay.x[i], cy: lay.y[i], r, fill: '#C4681E', fillOpacity: 0.85 }), h('text', { x: lay.x[i], y: lay.y[i] - r - 3, textAnchor: 'middle', fontSize: 11 + 5 * Math.sqrt(cnt.count[f] / cmax), fontFamily: "'Hanken Grotesk', sans-serif", fontWeight: 600, fill: '#1A1711' }, FT.label[f])); }));
-    return this.tlPanel('Connections', 'which words appear together (fcm + textplot_network)', null,
+      // with a search: links to it in blue and on top, the links between the other words faint behind them
+      kept.filter(e => !focus || (e[0] !== hub && e[1] !== hub)).map(([i, j, w], k) => h('line', { key: 'e' + k, x1: lay.x[i], y1: lay.y[i], x2: lay.x[j], y2: lay.y[j], stroke: '#2E7D58', strokeOpacity: focus ? 0.06 + 0.25 * w : 0.15 + 0.6 * w, strokeWidth: focus ? 0.5 + 1.5 * w : 0.6 + 4 * w })),
+      focus ? (() => { const hw = Math.max(1e-9, ...kept.filter(e => e[0] === hub || e[1] === hub).map(e => e[2])); return kept.filter(e => e[0] === hub || e[1] === hub).map(([i, j, w], k) => h('line', { key: 'h' + k, x1: lay.x[i], y1: lay.y[i], x2: lay.x[j], y2: lay.y[j], stroke: '#1A5061', strokeOpacity: 0.3 + 0.5 * w / hw, strokeWidth: 1 + 4 * w / hw })); })() : null,
+      feats.map((f, i) => i).sort((a, b) => (a === hub) - (b === hub)).map(i => { const z = Math.sqrt(Math.max(0, sizeOf(i))), r = i === hub ? 14 : 3 + 9 * z; return h('g', { key: 'n' + i }, h('circle', { cx: lay.x[i], cy: lay.y[i], r, fill: i === hub ? '#1A5061' : '#C4681E', fillOpacity: i === hub ? 1 : 0.85 }), h('text', { x: lay.x[i], y: lay.y[i] - r - 3, textAnchor: 'middle', fontSize: i === hub ? 16 : 11 + 5 * z, fontFamily: "'Hanken Grotesk', sans-serif", fontWeight: i === hub ? 700 : 600, fill: i === hub ? '#1A5061' : '#1A1711', stroke: '#FFFFFF', strokeWidth: 3, strokeLinejoin: 'round', paintOrder: 'stroke' }, labelOf(i))); }));
+    const top = focus ? near.rows.slice(0, 8) : [];
+    const note = focus ? (n < 2 ? this.tlBanner('warn', 'No word stands out ' + (win ? 'within 5 words of' : 'in the texts that use') + ' “' + q + '” yet (it needs to be used more often). Try Same text, or a broader search.')
+      : this.tlBanner('ok', h('b', null, q), ' (' + this.fmtN(seeds.length) + ' word form' + (seeds.length === 1 ? '' : 's') + ', one node) with the ' + (n - 1) + ' words that stand out most ' + (win ? 'within 5 words of it' : 'in the texts that use it') + ' — used more there than elsewhere (keyness, χ²). Strongest: ' + top.map(t => FT.label[t.f] + ' (' + this.fmtN(t.a) + '×)').join(', ') + '. Clear the search to see the whole network.'
+        + (!win && near.share > 0.5 ? ' Note: ' + q + ' is in ' + this.tlPct(near.share) + ' of the texts, so “Same text” mostly compares long texts with short ones — choose “Within 5 words” for the words used right next to it.' : '')))
+      : q ? this.tlBanner('warn', '“' + q + '” is not among the cleaned words (it may be a stopword, a phrase that is not joined, or all its forms are unticked), so the whole network is shown.') : null;
+    // in R: every feature the search's words match (folded like the recipe when accents are ignored), minus the unticked forms
+    const fw = x => T.rec.fold ? 'fold(' + x + ')' : x, pats = focus ? E.tlParsePatterns(q).filter(p => !p.neg && p.parts.length === 1).map(p => p.parts[0]) : [];
+    const kwR = focus ? fw(this.tlRvec(pats)) + '))   # every form your search matches' + ((T.qOff || []).length ? '\nkw <- setdiff(kw, ' + fw(this.tlRvec(T.qOff)) + ')   # minus the forms you unticked' : '') : '';
+    return this.tlPanel('Connections', focus ? 'the words found together with your search (fcm + textplot_network)' : 'which words appear together (fcm + textplot_network)', null,
+      h('div', { className: 'tl-row wide' }, this.tlSearchField(T, null, 'qn'), this.tlSearchHelp(T)),
+      q ? this.tlSearchForms(ctx) : h('span', { className: 'tl-hint' }, 'Search a word (e.g. corrup*) to see only the words that appear together with it.'),
       h('div', { className: 'tl-row wide' }, this.tlField('Words', this.tlNum(NW.n, v => set({ n: v }), { min: 5, max: 120, aria: 'Number of words' })), this.tlField('Together means', this.tlSeg([['doc', 'Same text'], ['window', 'Within 5 words']], NW.context, v => set({ context: v }))), this.tlField('Show links', this.tlSeg([[0.5, 'Strongest half'], [0.8, 'Top 20%'], [0, 'All']], NW.minFreq, v => set({ minFreq: v })))),
-      svg, this.tlExportRow('tlnet', 'word-network'),
-      this.tlRcode('fcmat <- fcm(toks_clean, context = "' + (NW.context === 'window' ? 'window", window = 5' : 'document"') + ')\nfeat <- names(topfeatures(dfmat, ' + NW.n + '))\ntextplot_network(fcm_select(fcmat, pattern = feat), min_freq = ' + (NW.minFreq || 0.5) + ')'));
+      note, svg, this.tlExportRow('tlnet', focus ? 'word-network-' + this._E.tlVarName(q) : 'word-network'),
+      this.tlRcode(focus
+        ? 'kw <- featnames(dfm_select(dfmat, pattern = ' + kwR + '\n' + (win
+            ? 'near_in  <- dfm(tokens_remove(tokens_keep(toks_clean, pattern = kw, window = 5), pattern = kw))\nnear_out <- dfm(tokens_remove(toks_clean, pattern = kw, window = 5))\nkey <- textstat_keyness(rbind(near_in, near_out), target = seq_len(ndoc(near_in)))\n'
+            : 'has <- rowSums(dfm_select(dfmat, pattern = kw)) > 0   # texts that use the search\nkey <- textstat_keyness(dfm_remove(dfmat, pattern = kw), target = has)\n')
+          + 'near <- head(key$feature[key$chi2 > 0 & key$n_target >= 5 & key$n_target + key$n_reference >= 10], ' + (n - 1) + ')\nfcmat <- fcm(toks_clean, context = "' + (win ? 'window", window = 5' : 'document"') + ')\ntextplot_network(fcm_select(fcmat, pattern = c(kw, near)), min_freq = ' + (NW.minFreq || 0.5) + ')   # in R each form of the search is its own node'
+        : 'fcmat <- fcm(toks_clean, context = "' + (win ? 'window", window = 5' : 'document"') + ')\nfeat <- names(topfeatures(dfmat, ' + NW.n + '))\ntextplot_network(fcm_select(fcmat, pattern = feat), min_freq = ' + (NW.minFreq || 0.5) + ')'));
   }
 
   // clusters: textstat_simil/dist + hclust dendrogram

@@ -11451,6 +11451,39 @@ export function tlFcm(FT, feats, opts) {
   }
   return M;
 }
+// words found with a search (the seed features): token counts inside the target — the texts that use the search
+// (window 0), or the tokens within `window` words of it — and outside it, the seeds left out of both, as quanteda's
+// textstat_keyness(dfm_remove(dfmat, kw), target = has) or the tokens_keep/tokens_remove(window = 5) recipe.
+export function tlFcmNear(FT, seeds, opts) {
+  opts = opts || {};
+  const nF = FT.count.length, isSeed = new Uint8Array(nF), tc = new Float64Array(nF), rc = new Float64Array(nF), nd = FT.foff.length - 1, win = opts.window || 0;
+  for (const f of seeds) isSeed[f] = 1;
+  let inMark = new Uint8Array(0), nIn = 0, nAll = 0;
+  for (let d = 0; d < nd; d++) {
+    const a = FT.foff[d], b = FT.foff[d + 1];
+    if (!win) {
+      let has = false; for (let i = a; i < b; i++) if (isSeed[FT.ftok[i]]) { has = true; break; }
+      if (has) nIn++; if (b > a) nAll++;
+      const out = has ? tc : rc; for (let i = a; i < b; i++) { const f = FT.ftok[i]; if (!isSeed[f]) out[f]++; }
+    } else {
+      if (inMark.length < b - a) inMark = new Uint8Array(b - a); else inMark.fill(0, 0, b - a);
+      for (let i = a; i < b; i++) if (isSeed[FT.ftok[i]]) for (let j = Math.max(a, i - win); j < Math.min(b, i + win + 1); j++) inMark[j - a] = 1;
+      for (let i = a; i < b; i++) { const f = FT.ftok[i]; if (!isSeed[f]) (inMark[i - a] ? tc : rc)[f]++; }
+    }
+  }
+  return { tc, rc, nIn, nAll };
+}
+// fcm where several features can share a node: node[f] = node index or -1 (e.g. every form of a search on node 0)
+export function tlFcmNodes(FT, node, n, opts) {
+  opts = opts || {};
+  const M = new Float64Array(n * n), nd = FT.foff.length - 1, win = opts.window || 0;
+  for (let d = 0; d < nd; d++) {
+    const a = FT.foff[d], b = FT.foff[d + 1];
+    if (!win) { const s = new Set(); for (let i = a; i < b; i++) { const k = node[FT.ftok[i]]; if (k >= 0) s.add(k); } const arr = [...s]; for (let i = 0; i < arr.length; i++) for (let j = i + 1; j < arr.length; j++) { M[arr[i] * n + arr[j]]++; M[arr[j] * n + arr[i]]++; } }
+    else for (let i = a; i < b; i++) { const x = node[FT.ftok[i]]; if (x < 0) continue; for (let j = i + 1; j < Math.min(b, i + win + 1); j++) { const y = node[FT.ftok[j]]; if (y < 0 || y === x) continue; M[x * n + y]++; M[y * n + x]++; } }
+  }
+  return M;
+}
 export function tlForceLayout(n, edges, seed, W, H) {
   const rnd = tlRng(seed || 7), x = Float64Array.from({ length: n }, () => rnd() * W), y = Float64Array.from({ length: n }, () => rnd() * H), k = Math.sqrt(W * H / Math.max(1, n)) * 0.75;
   let t = W / 8;

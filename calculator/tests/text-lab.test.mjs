@@ -178,3 +178,25 @@ test('Naive Bayes, groups that differ only in capitals, safe variable names', ()
 test('fold keeps ñ and ç but drops other accents', () => {
   assert.equal(E.tlFold('Año Peña Économie Übermäßig façade'), 'Año Peña Economie Ubermaßig façade');
 });
+
+test('Connections with a search: target/reference counts for keyness and a shared node for every form (build .80)', () => {
+  const texts = ['corrupción impunidad gobierno gobierno', 'corruptos impunidad saqueo', 'gobierno escuelas salud', 'salud escuelas', 'corrupción régimen'];
+  const C = E.tlTokenize(texts), FT = E.tlFeatures(C, BASE, E.tlStemEs);
+  const fOf = w => FT.label.indexOf(w), K = E.tlCompileDict(C, [{ name: 'q', keys: 'corrup*' }], true)[0];
+  const seeds = [...new Set(C.types.map((t, i) => K.singles[i] ? FT.fid[i] : -1).filter(f => f >= 0))];
+  assert.deepEqual(seeds.map(f => FT.label[f]).sort(), ['corrupción', 'corruptos']);
+  // same text: texts 1, 2 and 5 use the search (the seeds themselves are not counted)
+  const doc = E.tlFcmNear(FT, seeds, { window: 0 });
+  assert.equal(doc.nIn, 3); assert.equal(doc.nAll, 5);
+  assert.equal(doc.tc[fOf('impunidad')], 2); assert.equal(doc.rc[fOf('impunidad')], 0);
+  assert.equal(doc.tc[fOf('gobierno')], 2); assert.equal(doc.rc[fOf('gobierno')], 1);
+  assert.equal(doc.tc[fOf('salud')], 0); assert.equal(doc.rc[fOf('salud')], 2);
+  for (const f of seeds) assert.equal(doc.tc[f] + doc.rc[f], 0);
+  // within 1 word: only the direct neighbours are in the target, each token counted once
+  const w1 = E.tlFcmNear(FT, seeds, { window: 1 });
+  assert.equal(w1.tc[fOf('impunidad')], 2); assert.equal(w1.tc[fOf('gobierno')], 0); assert.equal(w1.rc[fOf('gobierno')], 3); assert.equal(w1.tc[fOf('régimen')], 1);
+  // both forms on node 0: their links add up
+  const node = new Int32Array(FT.count.length).fill(-1); seeds.forEach(f => { node[f] = 0; }); node[fOf('impunidad')] = 1; node[fOf('salud')] = 2;
+  const M = E.tlFcmNodes(FT, node, 3, { window: 0 });
+  assert.equal(M[0 * 3 + 1], 2); assert.equal(M[1 * 3 + 0], 2); assert.equal(M[0 * 3 + 2], 0);
+});

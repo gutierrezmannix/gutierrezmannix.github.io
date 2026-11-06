@@ -33,6 +33,19 @@ It is the same setting as *Groups to compare* in step 1, so it can be set in eit
 variable, *100% per year* (or quarter, month …): each author's share of that period's texts, so the lines add up to
 100% in every period. The R code below the chart switches to `prop.table()` with the matching margin.
 
+**Search in Over time and Connections (build .81).** Both tabs now have the same **Search** box as *In context*
+(it is one search: typing it in any of the three changes it everywhere), with the list of the word forms it matched
+so you can untick the ones that do not belong.
+- *Over time*: typing a search switches **Show** to it, e.g. `corrup*` plotted by president as % of texts, count or
+  per 10k words.
+- *Connections*: the search becomes one node (all its ticked forms) in the middle, linked to the words that stand
+  out most with it — words used more in the texts that use it (*Same text*) or within 5 words of it (*Within 5 words*)
+  than elsewhere (keyness, χ², as `textstat_keyness`). Ranking by keyness rather than raw co-occurrence keeps common
+  words (entonces, va, pues) from filling the chart. When the search is in most texts, *Same text* mostly contrasts
+  long with short texts, and the page says so. Checked against quanteda 4.5.1 on the mañaneras sample: the same 39
+  words in both modes, the strongest eight in the same order (window: impunidad, acabar, régimen, desterrar, combate,
+  cero, actos, imperaba). The R code under the chart reproduces it.
+
 Every chart downloads as SVG (fonts embedded) or PNG at 150/300/600 dpi (with the dpi stored in the file).
 "Recipe · R code" shows the quanteda script for the current cleaning.
 
