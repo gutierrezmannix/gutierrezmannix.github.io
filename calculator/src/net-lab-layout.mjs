@@ -112,7 +112,8 @@ export function nlLayout(net, o) {
 // Labels that never overlap: most important first; tries 12 positions around each node. The most important labels
 // (must) are always shown: if no free spot is near, they move further out and may cover a dot, but never another label.
 export function nlPlaceLabels(items, obstacles, o = {}) {
-  const fs = o.fs || 11, cw = o.cw || 0.6, B = o.bounds, must = o.must == null ? 6 : o.must, obs = obstacles.slice(), labs = [], out = [];
+  // o.hard: boxes no label may cover, like other labels (the section headings of the side column and isolates strip)
+  const fs = o.fs || 11, cw = o.cw || 0.6, B = o.bounds, must = o.must == null ? 6 : o.must, obs = obstacles.slice(), labs = (o.hard || []).slice(), out = [];
   const over = (b, list) => { let h = 0; for (const t of list) if (b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]) h++; return h; };
   const inB = b => !B || (b[0] >= B[0] && b[1] >= B[1] && b[2] <= B[2] && b[3] <= B[3]);
   const score = b => inB(b) ? 100 * over(b, labs) + over(b, obs) : 1e6;

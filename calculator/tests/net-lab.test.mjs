@@ -172,3 +172,18 @@ test('map labels: the most important ones are always shown and never cover anoth
   const box = p => { const w = p.text.length * 11 * 0.6 + 3, h = 11 * 1.15, x0 = p.anchor === 'start' ? p.x - 1 : p.anchor === 'end' ? p.x - w : p.x - w / 2, y0 = p.anchor === 'middle' ? p.y - h + 2 : p.y - 11 * 0.35 - h / 2; return [x0, y0, x0 + w, y0 + h]; };
   for (let a = 0; a < P.length; a++) for (let b = a + 1; b < P.length; b++) { const A = box(P[a]), B = box(P[b]); assert.ok(!(A[0] < B[2] - 1 && A[2] > B[0] + 1 && A[1] < B[3] - 1 && A[3] > B[1] + 1), P[a].text + ' overlaps ' + P[b].text); }
 });
+
+test('build .86 audit: undirected nominal assortativity as igraph; counts with many values are numbers', async () => {
+  const rd = f => fs.readFileSync(new URL('./data/' + f, import.meta.url), 'utf8');
+  const er = await E.parseCSV(buf(rd('net-mesa-edges.csv')), () => {}), nr = await E.parseCSV(buf(rd('net-mesa-nodes.csv')), () => {});
+  const b = E.nlBuild(er, nr, { from: 'from', to: 'to', id: 'id', label: 'id', directed: false });
+  assert.equal(b.net.n, 205); assert.equal(b.net.edges.length, 203);
+  // igraph::assortativity_nominal(faux.mesa.high): Grade 0.7444451, Race 0.2347852 (a tie within a group has two ends)
+  const g = run(E.nlMixing(b.net, 'Grade', 50, 1)), r = run(E.nlMixing(b.net, 'Race', 50, 1));
+  assert.ok(Math.abs(g.assort - 0.7444451) < 1e-6, 'Grade ' + g.assort); assert.ok(Math.abs(r.assort - 0.2347852) < 1e-6, 'Race ' + r.assort);
+  assert.ok(Math.abs(g.within - 0.8029557) < 1e-6); assert.ok(Math.abs(g.ei - -0.6059113) < 1e-6);
+  // Grade 7–12 stays a category; Florentine priorates (10 values, 0–74) and totalties (12 values) are numbers
+  const roles = Object.fromEntries(E.nlColumnRoles(nr, 'n').map(x => [x.name, x.role])); assert.equal(roles.Grade, 'cat');
+  const fr = await E.parseCSV(buf(rd('net-flo-nodes.csv')), () => {}), fro = Object.fromEntries(E.nlColumnRoles(fr, 'n').map(x => [x.name, x.role]));
+  assert.equal(fro.priorates, 'num'); assert.equal(fro.totalties, 'num'); assert.equal(fro.wealth, 'num');
+});

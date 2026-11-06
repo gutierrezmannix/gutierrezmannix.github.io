@@ -149,7 +149,7 @@ export function* nlSimulate(net, terms, theta, o = {}) {
 export function* nlErgm(net, spec, o = {}) {
   const chk = nlErgmCheck(net, spec); if (chk.error) return { error: chk.error, missing: chk.missing, kind: chk.missing && chk.missing.length ? 'missing' : 'spec' };
   const terms = chk.terms, p = terms.length, labels = terms.map(nlTermLabel), n = net.n;
-  if (n > 1400) return { error: 'The model runs in the browser for up to 1,400 people (this network has ' + n + '). Use the R code under Save.', kind: 'size' };
+  if (n > 1400) return { error: 'The model runs in the browser for up to 1,400 people (this network has ' + n.toLocaleString('en-US') + '). Use the R code under Save.', kind: 'size' };
   const t0 = Date.now(); yield { p: 0.01, msg: 'Starting values (pseudo-likelihood)' };
   const ob = nlObsStats(net, terms), gobs = ob.g, D = ob.S.D; let S = ob.S, T = ob.T;
   // boundary checks: MLE does not exist when an observed statistic sits at its minimum or maximum

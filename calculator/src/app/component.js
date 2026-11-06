@@ -4590,7 +4590,7 @@ class Component extends DCLogic {
       this.tlStat('separate pieces', this.fmtN(S.components), 'largest: ' + this.fmtN(S.largest) + (S.isolates ? ' · ' + this.fmtN(S.isolates) + ' without ties' : '')),
       this.tlStat('groups', lv.done && lv.value ? String(lv.value.sizes.filter(s => s > 1).length) : '…', lv.done && lv.value ? 'modularity Q = ' + f3(lv.value.Q) : 'finding groups'));
     const words = [];
-    words.push(S.density > 0.25 ? 'A dense network: many of the possible ties exist (Kadushin ch. 3). ' : S.density < 0.02 ? 'A sparse network: only a small share of possible ties exist, so it is held together by a few well-connected nodes and bridges. ' : 'A network of moderate density. ');
+    words.push(S.density > 0.25 ? 'A dense network: many of the possible ties exist (Kadushin ch. 3). ' : S.density < 0.02 ? 'A sparse network: only a small share of possible ties exist, so the few well-connected people and the bridges between them matter a lot. ' : 'A network of moderate density. ');
     if (S.reciprocity != null) words.push(Math.round(100 * S.reciprocity) + '% of ties are returned' + (C && C.reciprocity ? (S.reciprocity > C.reciprocity.hi ? ', far more than in random networks of the same size' : '') : '') + '. ');
     if (C) words.push(S.transitivity > C.transitivity.hi ? '“Friends of friends” are tied more often than chance would produce (clustering ' + f3(S.transitivity) + ' vs ' + f3(C.transitivity.mean) + '). ' : 'Clustering is close to what random networks show. ');
     if (S.components > 1 || S.isolates) words.push('The network has ' + S.components + ' separate piece' + (S.components === 1 ? '' : 's') + (S.isolates ? ' and ' + S.isolates + ' nodes without ties' : '') + '; distances are measured within pieces. ');
@@ -4679,7 +4679,10 @@ class Component extends DCLogic {
     if (sel != null) pick = [sel, ...[...net.und[sel]].sort((a, b) => R[b] - R[a]).slice(0, 12)].concat(pick.filter(i => i !== sel));
     if (cfg.labelOnly) pick = pick.filter(i => cfg.labelOnly.has(i));
     const obst = order.filter(i => R[i] > rmin + 2).slice(-60).map(i => [L.x[i] - R[i], L.y[i] - R[i], L.x[i] + R[i], L.y[i] + R[i]]);
-    const placed = E.nlPlaceLabels(pick.map(i => ({ i, x: L.x[i], y: L.y[i], r: R[i], text: net.labels[i], must: i === sel })), obst, { fs, bounds: [2, 2, W - 2, Hh - 2], must: 6 });
+    // the headings of the small-groups column and the isolates strip (9.5px Space Mono) are kept free of labels
+    const head = (at, t) => at ? [[at.x - 2, at.y - 9.5, at.x + t.length * 9.5 * 0.62 + 2, at.y + 3]] : [];
+    const hard = head(L.side, (L.side ? L.side.count : 0) + ' SMALL SEPARATE GROUPS').concat(head(L.strip, (L.strip ? L.strip.count : 0) + ' WITH NO TIES (isolates)'));
+    const placed = E.nlPlaceLabels(pick.map(i => ({ i, x: L.x[i], y: L.y[i], r: R[i], text: net.labels[i], must: i === sel })), obst, { fs, bounds: [2, 2, W - 2, Hh - 2], must: 6, hard });
     for (const p of placed) kids.push(h('text', { key: 'l' + p.i, x: p.x.toFixed(1), y: p.y.toFixed(1), textAnchor: p.anchor, fontSize: fs, fontWeight: 600, fill: '#1A1711', fontFamily: "'Hanken Grotesk', system-ui, sans-serif", stroke: '#FFFFFF', strokeWidth: 3.2, paintOrder: 'stroke', strokeLinejoin: 'round', pointerEvents: 'none' }, p.text));
     return h('svg', { viewBox: '0 0 ' + W + ' ' + Hh, width: '100%', role: 'img', 'aria-label': cfg.title || 'Network map', ref: this.svgRef(cfg.key || 'nlmap'), className: 'tl-svg nl-map' }, ...kids);
   }
@@ -4733,7 +4736,7 @@ class Component extends DCLogic {
   }
   // ---- step 4: people
   nlQuestions(net) {
-    return [['attention', 'Who gets the most attention?', net.directed ? 'indegree' : 'degree', 'ties received · in-degree'], ...(net.directed ? [['outreach', 'Who reaches out most?', 'outdegree', 'ties sent · out-degree']] : []),
+    return [['attention', 'Who gets the most attention?', net.directed ? 'indegree' : 'degree', net.directed ? 'ties received · in-degree' : 'ties · degree'], ...(net.directed ? [['outreach', 'Who reaches out most?', 'outdegree', 'ties sent · out-degree']] : []),
       ['bridges', 'Who are the bridges?', 'betweenness', 'betweenness'], ['reach', 'Who can reach everyone fastest?', 'harmonic', 'closeness · harmonic'], ['eigen', 'Connected to the well-connected?', 'eigenvector', 'eigenvector · PageRank'],
       ['brokers', 'Who brokers between groups?', 'constraint', 'constraint · effective size · roles'], ['connected', 'Best connected, counting tie strength?', 'connectedness', 'Fowler’s connectedness'], ['core', 'Who sits in the core?', 'core', 'k-core']];
   }
@@ -4742,7 +4745,7 @@ class Component extends DCLogic {
     const Q = this.nlQuestions(net), q = Q.find(x => x[0] === o.people.q) || Q[0], key = q[2], asc = key === 'constraint';
     const idx = Array.from({ length: net.n }, (_, i) => i).filter(i => isFinite(M[key][i])).sort((a, b) => asc ? M[key][a] - M[key][b] : M[key][b] - M[key][a]);
     const rows = o.people.all ? idx : idx.slice(0, 15), f = (x, d) => isFinite(x) ? this.fmt(x, d) : '—';
-    const rk = arr => { const ord = Array.from({ length: net.n }, (_, i) => i).sort((a, b) => arr[b] - arr[a]), r = new Int32Array(net.n); ord.forEach((v, k) => { r[v] = k + 1; }); return r; };
+    const rk = arr => { const ord = Array.from({ length: net.n }, (_, i) => i).sort((a, b) => arr[b] - arr[a]), r = new Int32Array(net.n); ord.forEach((v, k) => { r[v] = k && Math.abs(arr[v] - arr[ord[k - 1]]) < 1e-9 ? r[ord[k - 1]] : k + 1; }); return r; };   // equal values share a rank (1, 2, 2, 4)
     const rB = this.memo('nlrkb|' + net.key, () => rk(M.betweenness)), rD = this.memo('nlrkd|' + net.key, () => rk(net.directed ? M.indegree : M.degree));
     const cat = this.nlBestAttr(net) || Object.keys(net.attrs).find(k => net.attrs[k].kind === 'cat');
     const cols = [['#', null], ['name', null], ...(cat ? [[cat, null]] : []), ...(net.directed ? [['received', 'indegree', 0], ['sent', 'outdegree', 0]] : [['ties', 'degree', 0]]), ...(net.weighted ? [['strength', 'strengthIn', 0]] : []), ['bridge (rank)', 'betweenness', 1], [M.connectednessHarmonic ? 'reach' : 'closeness', M.connectednessHarmonic ? 'harmonic' : 'closeness', 2], ['eigenvector', 'eigenvector', 2], ['constraint', 'constraint', 2], ['connected', 'connectedness', 2], ['core', 'core', 0]];
@@ -4750,7 +4753,7 @@ class Component extends DCLogic {
       h('tbody', null, rows.map((i, r) => h('tr', { key: i }, h('td', { className: 'x' }, r + 1), h('td', { className: 'w nm' }, net.labels[i]), cat ? h('td', null, net.attrs[cat].v[i] == null ? '—' : net.attrs[cat].v[i]) : null,
         ...cols.slice(cat ? 3 : 2).map(([l, k, d], c) => h('td', { key: c, className: 'n' + (k === key ? ' hl' : '') }, k === 'betweenness' ? h(React.Fragment, null, f(M[k][i], 1), h('em', null, ' #' + rB[i])) : f(M[k][i], d))))))));
     const top = idx.slice(0, 3).map(i => net.labels[i]), tb = idx[0];
-    const msg = { attention: top.join(', ') + ' receive the most ties. Popularity is the simplest kind of centrality (Kadushin ch. 3); in Fowler’s cosponsorship study it is the number of colleagues who support a legislator.',
+    const msg = { attention: top.join(', ') + (net.directed ? ' receive the most ties. ' : ' have the most ties. ') + 'Popularity is the simplest kind of centrality (Kadushin ch. 3); in Fowler’s cosponsorship study it is the number of colleagues who support a legislator.',
       outreach: top.join(', ') + ' send the most ties — the most active members.',
       bridges: top.join(', ') + ' sit on the most shortest paths between others: if they left, messages would have to take longer routes. ' + (rD[tb] > 5 ? net.labels[tb] + ' is the #1 bridge but only #' + rD[tb] + ' by ties received — bridges and popular people are not the same (Kadushin ch. 3).' : ''),
       reach: top.join(', ') + ' can reach everyone in the fewest steps' + (M.connectednessHarmonic ? ' (harmonic closeness, because not everyone can reach everyone)' : '') + '.',
@@ -4780,6 +4783,10 @@ class Component extends DCLogic {
   }
   nlStepGroups(o, B) {
     const h = React.createElement, net = B.net, G = this.nlGroups(net, o); if (!G.done) return this.tlPending(G.label || 'Finding groups', G.p);
+    // a method that cannot run here (e.g. Same position above 1,500 people) explains why and keeps the other methods at hand
+    if (G.error || !G.member || !G.sizes) return h(React.Fragment, null,
+      h('div', { className: 'tl-row' }, h('span', { className: 'tl-lbl' }, 'Find groups by'), this.tlSeg([['louvain', 'Communities'], ['core', 'Core / periphery'], ['cliques', 'Cliques'], ['equiv', 'Same position'], ['components', 'Separate pieces']], o.groups.method, v => this.nlSetIn('groups', { method: v }))),
+      this.tlBanner('warn', G.error || 'These groups could not be found for this network.', ' Choose another way to find groups above.'), this.nlNav(o, ['people', 'People'], ['ties', 'Ties & similarity']));
     const MJ = this.nlMeasures(net); if (!MJ.done) return this.tlPending(MJ.label, MJ.p); const M = MJ.value;
     const k = G.sizes.length, gname = j => (G.names && G.names[j]) || (o.groups.method === 'cliques' ? 'Clique ' + (j + 1) : 'Group ' + (j + 1));
     const cat = o.groups.attr && net.attrs[o.groups.attr] ? o.groups.attr : this.nlBestAttr(net) || Object.keys(net.attrs).find(a => net.attrs[a].kind === 'cat');
@@ -4867,7 +4874,7 @@ class Component extends DCLogic {
           h('div', { className: 'tl-tblwrap' }, h('table', { className: 'tl-tbl nl-mix' }, h('thead', null, h('tr', null, h('th', null, (net.directed ? 'from \\ to' : attr)), lv.map(l => h('th', { key: l, className: 'n' }, l)), h('th', { className: 'n' }, 'within'))),
             h('tbody', null, lv.map((l, i) => { const row = X.matrix[i], tot = row.reduce((a, b) => a + b, 0); return h('tr', { key: l }, h('td', { className: 'w' }, l), lv.map((m, j) => h('td', { key: m, className: 'n' + (i === j ? ' hl' : '') }, this.fmtN(row[j]))), h('td', { className: 'n' }, tot ? pct(row[i] / tot) : '—')); })))),
           h('div', { className: 'tl-stats' }, this.tlStat('ties within', pct(X.within), pct(X.expected) + ' expected by chance'), this.tlStat('E–I index', this.fmt(X.ei, 2), '−1 all inside · +1 all across'), this.tlStat('assortativity', this.fmt(X.assort, 2), X.pMore < 0.05 ? 'p ' + (X.pMore < 0.001 ? '< .001' : '= ' + this.fmt(X.pMore, 3)) + ' · ' + this.fmtN(X.perms) + ' shuffles' : 'not different from chance')),
-          this.nlWhat(X.within > X.expected && X.pMore < 0.05 ? 'Ties stay within the same ' + attr + ' far more than chance (' + pct(X.within) + ' vs ' + pct(X.expected) + '): “birds of a feather flock together” (homophily, Kadushin ch. 2). The p-value comes from shuffling ' + attr + ' among the people ' + this.fmtN(X.perms) + ' times.' : X.pLess < 0.05 ? 'Ties cross ' + attr + ' groups more than chance — heterophily.' : 'Ties are not more concentrated within ' + attr + ' groups than chance would produce.', X.missing ? ' ' + X.missing + ' people without a value are left out.' : ''));
+          this.nlWhat(X.within > X.expected && X.pMore < 0.05 ? 'Ties stay within the same ' + attr + (X.within >= 2 * X.expected ? ' far more often' : ' more often') + ' than chance (' + pct(X.within) + ' vs ' + pct(X.expected) + '): “birds of a feather flock together” (homophily, Kadushin ch. 2). The p-value comes from shuffling ' + attr + ' among the people ' + this.fmtN(X.perms) + ' times.' : X.pLess < 0.05 ? 'Ties cross ' + attr + ' groups more than chance — heterophily.' : 'Ties are not more concentrated within ' + attr + ' groups than chance would produce.', X.missing ? ' ' + X.missing + ' people without a value are left out.' : ''));
       } else body = h(React.Fragment, null, h('div', { className: 'tl-stats' }, this.tlStat('difference, tied pairs', this.fmt(X.tiedDiff, 3)), this.tlStat('difference, untied pairs', this.fmt(X.untiedDiff, 3)), this.tlStat('assortativity', this.fmt(X.assort, 2), 'p (closer than chance) ' + (X.pCloser < 0.001 ? '< .001' : '= ' + this.fmt(X.pCloser, 3)))),
         this.nlWhat(X.pCloser < 0.05 ? 'Tied people have more similar ' + attr + ' than chance would produce (homophily).' : 'Tied people are not more similar in ' + attr + ' than chance.', X.missing ? ' ' + X.missing + ' people without a value are left out.' : ''));
       left = this.tlPanel('Birds of a feather?', 'who is tied to whom, by', this.tlSelect(attr, cats.map(a => [a, a]), v => this.nlSetIn('ties', { attr: v }), 'Characteristic'), body);
@@ -4908,7 +4915,7 @@ class Component extends DCLogic {
       const forest = c => h('svg', { width: 196, height: 18, 'aria-hidden': 'true' }, h('line', { x1: lx(1), x2: lx(1), y1: 0, y2: 18, stroke: '#AB9F8A', strokeDasharray: '2 2' }), h('line', { x1: lx(c.lo), x2: lx(c.hi), y1: 9, y2: 9, stroke: c.p < 0.05 ? '#2E7D58' : '#AB9F8A', strokeWidth: 2 }), h('circle', { cx: lx(c.or), cy: 9, r: 4.5, fill: c.p < 0.05 ? '#2E7D58' : '#FFFFFF', stroke: c.p < 0.05 ? '#2E7D58' : '#AB9F8A', strokeWidth: 1.5 }));
       const rows = res.coefs.map((c, k) => k === 0 ? null : h('tr', { key: k }, h('td', null, h('b', null, c.term), h('br'), h('span', { className: 'tl-hint' }, this.nlEffectSentence(c, res.terms[k]))), h('td', { className: 'n' }, isFinite(c.or) ? this.fmt(c.or, 2) : '—'), h('td', null, forest(c)), h('td', { className: 'n' }, c.p < 0.001 ? '< .001' : this.fmt(c.p, 3)), to.est ? h('td', { className: 'n' }, this.fmt(c.b, 3) + ' (' + this.fmt(c.se, 3) + ')') : null, to.est ? h('td', { className: 'n' }, this.fmt(res.mple.coef[k], 3)) : null));
       const tbl = h('table', { className: 'tl-tbl nl-model' }, h('thead', null, h('tr', null, h('th', null, 'reason · in words'), h('th', { className: 'n' }, 'odds ×'), h('th', null, '0.2 · 1 · 20'), h('th', { className: 'n' }, 'p'), to.est ? h('th', { className: 'n' }, 'estimate (SE)') : null, to.est ? h('th', { className: 'n' }, 'MPLE') : null)), h('tbody', null, rows));
-      results = h(React.Fragment, null, badge, this.nlWhy(res, model, to, runLonger, longer), tbl,
+      results = h(React.Fragment, null, badge, this.nlWhy(res, model, to, runLonger, longer), h('div', { className: 'tl-tblwrap' }, tbl),   // scrolls sideways in a narrow window (estimates, SE and MPLE shown)
         h('div', { className: 'tl-row' }, this.tlChip('show estimates, SE and MPLE', !!to.est, () => this.nlSetIn('ties', { est: !to.est })), this.tlBtn(this.state.copied === 'nlergm' ? 'Copied ✓' : 'Copy table', () => this.copyTSV('nlergm', ['effect\tR term\testimate\tSE\tz\tp\todds ratio'].concat(res.coefs.map(c => [c.term, c.r, c.b, c.se, c.z, c.p, c.or].join('\t'))).join('\n')))),
         res.gof ? this.nlGofView(res.gof, net.directed) : null);
     }
@@ -4943,7 +4950,9 @@ class Component extends DCLogic {
     let timeP;
     if (!o.date || !years.length) timeP = this.tlPanel('Over time', 'one network per year', null, this.tlBanner('info', 'Choose a date column in step 1 (Data) to see how the network changes year by year.'));
     else {
-      const rows = this.memo('nltime|' + net.key + '|' + attr, () => years.map(y => { const b = E.nlBuild(this._nlE, this._nlN, Object.assign(this.nlOpts(o), { y0: y, y1: y })); if (!b.net) return { year: y }; const s = E.nlSummary(b.net, { triads: false }), act = b.net.und.filter(x => x.size).length; let cross = 0; if (attr) for (const [i, j] of b.net.edges) { const a = b.net.attrs[attr]; if (a && a.v[i] != null && a.v[j] != null && a.v[i] !== a.v[j]) cross++; } return { year: y, ties: s.m, active: act, density: act > 1 ? s.m / (b.net.directed ? act * (act - 1) : act * (act - 1) / 2) : NaN, recip: s.reciprocity, cross: s.m ? cross / s.m : NaN }; }));
+      // every year from the first to the last, so the time axis is even: a year without ties shows 0 ties
+      const span = years.length && years[years.length - 1] - years[0] <= 200 ? Array.from({ length: years[years.length - 1] - years[0] + 1 }, (_, k) => years[0] + k) : years, has = new Set(years);
+      const rows = this.memo('nltime|' + net.key + '|' + attr, () => span.map(y => !has.has(y) ? { year: y, ties: 0, active: 0, density: NaN, recip: NaN, cross: NaN } : (() => { const b = E.nlBuild(this._nlE, this._nlN, Object.assign(this.nlOpts(o), { y0: y, y1: y })); if (!b.net) return { year: y }; const s = E.nlSummary(b.net, { triads: false }), act = b.net.und.filter(x => x.size).length; let cross = 0; if (attr) for (const [i, j] of b.net.edges) { const a = b.net.attrs[attr]; if (a && a.v[i] != null && a.v[j] != null && a.v[i] !== a.v[j]) cross++; } return { year: y, ties: s.m, active: act, density: act > 1 ? s.m / (b.net.directed ? act * (act - 1) : act * (act - 1) / 2) : NaN, recip: s.reciprocity, cross: s.m ? cross / s.m : NaN }; })()));
       const nodexlMerged = B.info.wMax > 1 && E.nlGuess(this._nlE, null).nodexl;
       timeP = this.tlPanel('Over time', 'one network per year (ties dated in that year)', null,
         nodexlMerged ? this.tlBanner('warn', h('b', null, 'Heads-up about this file: '), 'NodeXL merged repeated ties into one row (Edge Weight), so each tie keeps only one date. For a true timeline, export from NodeXL with “merge duplicate edges” off.') : null,
@@ -4965,7 +4974,9 @@ class Component extends DCLogic {
     return h(React.Fragment, null, h('div', { className: 'nl-two' }, timeP, cmpP), this.nlNav(o, ['ties', 'Ties & similarity'], ['save', 'Save']));
   }
   // ---- step 8: save — variables, exports, R code
-  nlVarList(net, M) { return [['indegree', 'sna_indegree'], ['outdegree', 'sna_outdegree'], ['degree', 'sna_degree'], ['strengthIn', 'sna_strength'], ['betweenness', 'sna_betweenness'], ['closeness', 'sna_closeness'], ['harmonic', 'sna_harmonic'], ['eigenvector', 'sna_eigenvector'], ['pagerank', 'sna_pagerank'], ['constraint', 'sna_constraint'], ['effsize', 'sna_effsize'], ['connectedness', 'sna_connectedness'], ['core', 'sna_core'], ['clustering', 'sna_clustering']].filter(([k]) => M[k] && (net.directed || (k !== 'indegree' && k !== 'outdegree'))); }
+  nlVarList(net, M) { return [['indegree', 'sna_indegree'], ['outdegree', 'sna_outdegree'], ['degree', 'sna_degree'], ['strengthIn', 'sna_strength'], ['betweenness', 'sna_betweenness'], ['closeness', 'sna_closeness'], ['harmonic', 'sna_harmonic'], ['eigenvector', 'sna_eigenvector'], ['pagerank', 'sna_pagerank'], ['constraint', 'sna_constraint'], ['effsize', 'sna_effsize'], ['connectedness', 'sna_connectedness'], ['core', 'sna_core'], ['clustering', 'sna_clustering']].filter(([k]) => M[k] && (net.directed || (k !== 'indegree' && k !== 'outdegree'))
+    // classic closeness is 0 for everyone when some people cannot reach others (sna); harmonic closeness is kept instead
+    && !(k === 'closeness' && Array.from(M.closeness).every(v => !(v > 0)))); }
   nlMatchCurrent(net) {
     const raw = this._raw; if (!raw) return null; let best = null;
     raw.names.forEach((nm, ci) => { const idx = new Map(net.ids.map((id, i) => [id, i])); let hit = 0; for (let r = 0; r < Math.min(raw.n, 5000); r++) if (idx.has(this._E.nlKey(raw.cols[ci].a[r]))) hit++; if (hit && (!best || hit > best.hit)) best = { ci, name: nm, hit }; });
@@ -4999,17 +5010,22 @@ class Component extends DCLogic {
     const model = o.ties.model || this.nlDefaultModel(net), q = s => JSON.stringify(String(s));
     const keepT = Object.entries(o.keep || {}).filter(([, v]) => v === false).map(([t]) => t), two = Object.entries(o.twoWay || {}).filter(([, v]) => v).map(([t]) => t);
     const R = ['# Networks — reproduces the calculator with statnet (sna + network + ergm) and igraph', 'library(network); library(sna); library(ergm); library(igraph); library(intergraph)',
+      '# sna and igraph both have degree(), betweenness(), closeness(): each function below names its package',
       'e <- read.csv(' + q(this._nlEname || 'edges.csv') + ', check.names = FALSE)', this._nlN ? 'v <- read.csv(' + q(this._nlNname || 'nodes.csv') + ', check.names = FALSE)' : null,
       'e <- e[e[[' + q(o.from) + ']] != e[[' + q(o.to) + ']], ]                     # self-ties removed',
       keepT.length && o.type ? 'e <- e[!(e[[' + q(o.type) + ']] %in% c(' + keepT.map(q).join(', ') + ')), ]   # kinds of tie left out' : null,
       (+o.y0 || +o.y1) && o.date ? 'yr <- as.numeric(regmatches(e[[' + q(o.date) + ']], regexpr("(19|20)[0-9]{2}", e[[' + q(o.date) + ']])))\ne <- e[yr >= ' + (+o.y0 || 0) + ' & yr <= ' + (+o.y1 || 9999) + ', ]' : null,
-      two.length && o.type ? 'tw <- e[e[[' + q(o.type) + ']] %in% c(' + two.map(q).join(', ') + '), ]; tw[, c(' + q(o.from) + ', ' + q(o.to) + ')] <- tw[, c(' + q(o.to) + ', ' + q(o.from) + ')]\ne <- rbind(e, tw)                                    # two-way kinds count in both directions' : null,
+      two.length && o.type && net.directed ? 'tw <- e[e[[' + q(o.type) + ']] %in% c(' + two.map(q).join(', ') + '), ]; tw[, c(' + q(o.from) + ', ' + q(o.to) + ')] <- tw[, c(' + q(o.to) + ', ' + q(o.from) + ')]\ntw <- tw[!paste(tw[[' + q(o.from) + ']], tw[[' + q(o.to) + ']]) %in% paste(e[[' + q(o.from) + ']], e[[' + q(o.to) + ']]), ]   # only the missing direction\ne <- rbind(e, tw)                                    # two-way kinds count in both directions' : null,
+      !net.directed ? 'e[, c(' + q(o.from) + ', ' + q(o.to) + ')] <- t(apply(e[, c(' + q(o.from) + ', ' + q(o.to) + ')], 1, sort))   # undirected: a–b and b–a are the same tie' : null,
       'el <- aggregate(list(weight = ' + (o.weight ? 'e[[' + q(o.weight) + ']]' : 'rep(1, nrow(e))') + '), by = list(from = e[[' + q(o.from) + ']], to = e[[' + q(o.to) + ']]), FUN = sum)',
       +o.minW > 1 ? 'el <- el[el$weight >= ' + (+o.minW) + ', ]' : null,
       this._nlN ? 'names(v)[names(v) == ' + q(o.id) + '] <- "vertex.names"\nnet <- network(el[, 1:2], vertices = v, directed = ' + (net.directed ? 'TRUE' : 'FALSE') + ', matrix.type = "edgelist", ignore.eval = FALSE)' : 'net <- network(el[, 1:2], directed = ' + (net.directed ? 'TRUE' : 'FALSE') + ', matrix.type = "edgelist")',
-      'net %e% "weight" <- el$weight', '', '# whole network (step 2)', 'gden(net); ' + (net.directed ? 'grecip(net, measure = "edgewise"); ' : '') + 'gtrans(net, mode = "graph")', net.directed ? 'triad.census(net)' : null,
-      '', '# people (step 4)', 'm <- data.frame(id = network.vertex.names(net),', '  indegree = degree(net, cmode = "indegree"), outdegree = degree(net, cmode = "outdegree"),', '  betweenness = betweenness(net), closeness = closeness(net), eigenvector = evcent(net))',
-      'g <- asIgraph(net); m$constraint <- constraint(g); m$core <- coreness(g, mode = "all")', '', '# groups (step 5)', 'cl <- cluster_louvain(as.undirected(g, mode = "collapse")); m$group <- membership(cl); modularity(cl)',
+      'net %e% "weight" <- el$weight', 'g <- intergraph::asIgraph(net)', '', '# whole network (step 2)', 'sna::gden(net)' + (net.directed ? '; sna::grecip(net, measure = "edgewise")' : '') + '; igraph::transitivity(igraph::as.undirected(g, mode = "collapse"))   # density' + (net.directed ? ', reciprocity' : '') + ', clustering', net.directed ? 'sna::triad.census(net)' : null,
+      '', '# people (step 4)', 'gm <- "' + (net.directed ? 'digraph' : 'graph') + '"   # ' + (net.directed ? 'directed' : 'undirected: each pair counted once'), 'm <- data.frame(id = network.vertex.names(net),',
+      net.directed ? '  indegree = sna::degree(net, gmode = gm, cmode = "indegree"), outdegree = sna::degree(net, gmode = gm, cmode = "outdegree"),' : '  degree = sna::degree(net, gmode = gm),',
+      '  betweenness = sna::betweenness(net, gmode = gm), reach = sna::closeness(net, gmode = gm, cmode = "' + (net.directed ? 'suminvdir' : 'suminvundir') + '"),   # reach = harmonic closeness, works across separate pieces',
+      '  eigenvector = sna::evcent(net, gmode = gm))', 'm$eigenvector <- m$eigenvector / max(m$eigenvector)   # the best connected = 1, as on the page',
+      'm$constraint <- igraph::constraint(g); m$core <- igraph::coreness(igraph::as.undirected(g, mode = "collapse"))   # k-core of who is tied to whom, as on the page', '', '# groups (step 5)', 'cl <- igraph::cluster_louvain(igraph::as.undirected(g, mode = "collapse")); m$group <- igraph::membership(cl); igraph::modularity(cl)',
       '', '# model (step 6)', E.nlErgmRCode(model, net), '', 'write.csv(m, "network-measures.csv", row.names = FALSE)'].filter(x => x != null).join('\n');
     return h(React.Fragment, null, h('div', { className: 'nl-two' },
       this.tlPanel('Save as variables', 'one column per measure, matched by ID', null,
@@ -10445,7 +10461,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-06.85') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-06.86') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {

@@ -18,7 +18,9 @@ export function nlColumnRoles(raw, kind) {
     if (!nn.length) r.role = 'empty';
     else if (NL_JUNK.has(low)) r.role = 'junk';
     else if (NL_METRIC.has(low)) r.role = 'metric';
-    else if (num) r.role = lv.size <= 1 ? 'constant' : lv.size <= 12 && nn.every(x => Number.isInteger(+x)) ? 'cat' : 'num';
+    // whole numbers with few values are codes (grade 7–12, party 1/2/3, 100/200/328) → categories; but 6+ values spread
+    // over a much wider range are counts or amounts (seats 0–74, number of ties) → numbers
+    else if (num) { const xs = nn.map(Number), span = Math.max(...xs) - Math.min(...xs); r.role = lv.size <= 1 ? 'constant' : lv.size <= 12 && xs.every(Number.isInteger) && !(lv.size >= 6 && span > 3 * lv.size) ? 'cat' : 'num'; }
     else {
       const avg = nn.reduce((s, x) => s + String(x).length, 0) / nn.length;
       r.role = lv.size <= 1 ? 'constant' : (lv.size === nn.length && nn.length >= 5 && avg < 60) ? 'name' : lv.size <= Math.max(12, Math.min(40, raw.n / 4)) && avg < 40 ? 'cat' : (lv.size >= 0.9 * nn.length && avg < 60 ? 'name' : 'text');
@@ -325,7 +327,7 @@ export function nlCliques(net, minSize = 3, cap = 5000) {
 }
 // structural equivalence: correlation of tie profiles (rows and columns), complete-linkage clustering cut into k positions
 export function nlEquivalence(net, k = 4) {
-  const n = net.n; if (n > 1500) return { error: 'Structural equivalence is limited to 1,500 people.' };
+  const n = net.n; if (n > 1500) return { error: 'Same position (structural equivalence) compares the ties of every pair of people, which is too slow above 1,500 people; this network has ' + n.toLocaleString('en-US') + '. Keep fewer kinds of tie, years or people in step 1, or use Communities.' };
   const prof = Array.from({ length: n }, (_, i) => { const v = new Float64Array(2 * n); for (const j of net.out[i]) v[j] = 1; for (const j of net.inn[i]) v[n + j] = 1; return v; });
   const mean = prof.map(v => v.reduce((s, x) => s + x, 0) / v.length), sd = prof.map((v, i) => Math.sqrt(v.reduce((s, x) => s + (x - mean[i]) ** 2, 0)));
   const D = Array.from({ length: n }, () => new Float64Array(n));
@@ -350,7 +352,9 @@ export function* nlMixing(net, attrName, perms = 1000, seed = 26) {
     const within = vals => { let s = 0; for (const [i, j] of E) if (vals[i] === vals[j]) s++; return E.length ? s / E.length : NaN; };
     const obs = within(a.v); const cnt = new Map(); for (const i of ok) cnt.set(a.v[i], (cnt.get(a.v[i]) || 0) + 1); let exp = 0; const no = ok.length; for (const c of cnt.values()) exp += c * (c - 1); exp = no > 1 ? exp / (no * (no - 1)) : NaN;
     // Newman assortativity (directed form)
-    let tr = 0, ab = 0; const tot = E.length * (net.directed ? 1 : 2), rs = new Float64Array(K), cs = new Float64Array(K); for (let x = 0; x < K; x++) for (let y = 0; y < K; y++) { const e = M[x][y] / tot; if (x === y) tr += e; rs[x] += e; cs[y] += e; } for (let x = 0; x < K; x++) ab += rs[x] * cs[x];
+    // undirected: a tie across groups is in M both ways, a tie within a group only once, so it counts twice here
+    // (each tie has two ends) — as igraph::assortativity_nominal
+    let tr = 0, ab = 0; const tot = E.length * (net.directed ? 1 : 2), rs = new Float64Array(K), cs = new Float64Array(K); for (let x = 0; x < K; x++) for (let y = 0; y < K; y++) { const e = M[x][y] * (!net.directed && x === y ? 2 : 1) / tot; if (x === y) tr += e; rs[x] += e; cs[y] += e; } for (let x = 0; x < K; x++) ab += rs[x] * cs[x];
     const r = ab < 1 ? (tr - ab) / (1 - ab) : NaN;
     const vals = a.v.slice(), pool = ok.map(i => a.v[i]); let ge = 0, le = 0; const sim = [];
     for (let p = 0; p < perms; p++) { for (let t = pool.length - 1; t > 0; t--) { const u = Math.floor(rnd() * (t + 1)); [pool[t], pool[u]] = [pool[u], pool[t]]; } ok.forEach((i, t) => { vals[i] = pool[t]; }); const s = within(vals); sim.push(s); if (s >= obs - 1e-12) ge++; if (s <= obs + 1e-12) le++; if (p % 100 === 0) yield { p: p / perms, msg: 'Shuffling characteristics' }; }

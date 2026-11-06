@@ -62,7 +62,10 @@
     if (sel != null) pick = [sel, ...[...net.und[sel]].sort((a, b) => R[b] - R[a]).slice(0, 12)].concat(pick.filter(i => i !== sel));
     if (cfg.labelOnly) pick = pick.filter(i => cfg.labelOnly.has(i));
     const obst = order.filter(i => R[i] > rmin + 2).slice(-60).map(i => [L.x[i] - R[i], L.y[i] - R[i], L.x[i] + R[i], L.y[i] + R[i]]);
-    const placed = E.nlPlaceLabels(pick.map(i => ({ i, x: L.x[i], y: L.y[i], r: R[i], text: net.labels[i], must: i === sel })), obst, { fs, bounds: [2, 2, W - 2, Hh - 2], must: 6 });
+    // the headings of the small-groups column and the isolates strip (9.5px Space Mono) are kept free of labels
+    const head = (at, t) => at ? [[at.x - 2, at.y - 9.5, at.x + t.length * 9.5 * 0.62 + 2, at.y + 3]] : [];
+    const hard = head(L.side, (L.side ? L.side.count : 0) + ' SMALL SEPARATE GROUPS').concat(head(L.strip, (L.strip ? L.strip.count : 0) + ' WITH NO TIES (isolates)'));
+    const placed = E.nlPlaceLabels(pick.map(i => ({ i, x: L.x[i], y: L.y[i], r: R[i], text: net.labels[i], must: i === sel })), obst, { fs, bounds: [2, 2, W - 2, Hh - 2], must: 6, hard });
     for (const p of placed) kids.push(h('text', { key: 'l' + p.i, x: p.x.toFixed(1), y: p.y.toFixed(1), textAnchor: p.anchor, fontSize: fs, fontWeight: 600, fill: '#1A1711', fontFamily: "'Hanken Grotesk', system-ui, sans-serif", stroke: '#FFFFFF', strokeWidth: 3.2, paintOrder: 'stroke', strokeLinejoin: 'round', pointerEvents: 'none' }, p.text));
     return h('svg', { viewBox: '0 0 ' + W + ' ' + Hh, width: '100%', role: 'img', 'aria-label': cfg.title || 'Network map', ref: this.svgRef(cfg.key || 'nlmap'), className: 'tl-svg nl-map' }, ...kids);
   }
@@ -116,7 +119,7 @@
   }
   // ---- step 4: people
   nlQuestions(net) {
-    return [['attention', 'Who gets the most attention?', net.directed ? 'indegree' : 'degree', 'ties received · in-degree'], ...(net.directed ? [['outreach', 'Who reaches out most?', 'outdegree', 'ties sent · out-degree']] : []),
+    return [['attention', 'Who gets the most attention?', net.directed ? 'indegree' : 'degree', net.directed ? 'ties received · in-degree' : 'ties · degree'], ...(net.directed ? [['outreach', 'Who reaches out most?', 'outdegree', 'ties sent · out-degree']] : []),
       ['bridges', 'Who are the bridges?', 'betweenness', 'betweenness'], ['reach', 'Who can reach everyone fastest?', 'harmonic', 'closeness · harmonic'], ['eigen', 'Connected to the well-connected?', 'eigenvector', 'eigenvector · PageRank'],
       ['brokers', 'Who brokers between groups?', 'constraint', 'constraint · effective size · roles'], ['connected', 'Best connected, counting tie strength?', 'connectedness', 'Fowler’s connectedness'], ['core', 'Who sits in the core?', 'core', 'k-core']];
   }
@@ -125,7 +128,7 @@
     const Q = this.nlQuestions(net), q = Q.find(x => x[0] === o.people.q) || Q[0], key = q[2], asc = key === 'constraint';
     const idx = Array.from({ length: net.n }, (_, i) => i).filter(i => isFinite(M[key][i])).sort((a, b) => asc ? M[key][a] - M[key][b] : M[key][b] - M[key][a]);
     const rows = o.people.all ? idx : idx.slice(0, 15), f = (x, d) => isFinite(x) ? this.fmt(x, d) : '—';
-    const rk = arr => { const ord = Array.from({ length: net.n }, (_, i) => i).sort((a, b) => arr[b] - arr[a]), r = new Int32Array(net.n); ord.forEach((v, k) => { r[v] = k + 1; }); return r; };
+    const rk = arr => { const ord = Array.from({ length: net.n }, (_, i) => i).sort((a, b) => arr[b] - arr[a]), r = new Int32Array(net.n); ord.forEach((v, k) => { r[v] = k && Math.abs(arr[v] - arr[ord[k - 1]]) < 1e-9 ? r[ord[k - 1]] : k + 1; }); return r; };   // equal values share a rank (1, 2, 2, 4)
     const rB = this.memo('nlrkb|' + net.key, () => rk(M.betweenness)), rD = this.memo('nlrkd|' + net.key, () => rk(net.directed ? M.indegree : M.degree));
     const cat = this.nlBestAttr(net) || Object.keys(net.attrs).find(k => net.attrs[k].kind === 'cat');
     const cols = [['#', null], ['name', null], ...(cat ? [[cat, null]] : []), ...(net.directed ? [['received', 'indegree', 0], ['sent', 'outdegree', 0]] : [['ties', 'degree', 0]]), ...(net.weighted ? [['strength', 'strengthIn', 0]] : []), ['bridge (rank)', 'betweenness', 1], [M.connectednessHarmonic ? 'reach' : 'closeness', M.connectednessHarmonic ? 'harmonic' : 'closeness', 2], ['eigenvector', 'eigenvector', 2], ['constraint', 'constraint', 2], ['connected', 'connectedness', 2], ['core', 'core', 0]];
@@ -133,7 +136,7 @@
       h('tbody', null, rows.map((i, r) => h('tr', { key: i }, h('td', { className: 'x' }, r + 1), h('td', { className: 'w nm' }, net.labels[i]), cat ? h('td', null, net.attrs[cat].v[i] == null ? '—' : net.attrs[cat].v[i]) : null,
         ...cols.slice(cat ? 3 : 2).map(([l, k, d], c) => h('td', { key: c, className: 'n' + (k === key ? ' hl' : '') }, k === 'betweenness' ? h(React.Fragment, null, f(M[k][i], 1), h('em', null, ' #' + rB[i])) : f(M[k][i], d))))))));
     const top = idx.slice(0, 3).map(i => net.labels[i]), tb = idx[0];
-    const msg = { attention: top.join(', ') + ' receive the most ties. Popularity is the simplest kind of centrality (Kadushin ch. 3); in Fowler’s cosponsorship study it is the number of colleagues who support a legislator.',
+    const msg = { attention: top.join(', ') + (net.directed ? ' receive the most ties. ' : ' have the most ties. ') + 'Popularity is the simplest kind of centrality (Kadushin ch. 3); in Fowler’s cosponsorship study it is the number of colleagues who support a legislator.',
       outreach: top.join(', ') + ' send the most ties — the most active members.',
       bridges: top.join(', ') + ' sit on the most shortest paths between others: if they left, messages would have to take longer routes. ' + (rD[tb] > 5 ? net.labels[tb] + ' is the #1 bridge but only #' + rD[tb] + ' by ties received — bridges and popular people are not the same (Kadushin ch. 3).' : ''),
       reach: top.join(', ') + ' can reach everyone in the fewest steps' + (M.connectednessHarmonic ? ' (harmonic closeness, because not everyone can reach everyone)' : '') + '.',
@@ -163,6 +166,10 @@
   }
   nlStepGroups(o, B) {
     const h = React.createElement, net = B.net, G = this.nlGroups(net, o); if (!G.done) return this.tlPending(G.label || 'Finding groups', G.p);
+    // a method that cannot run here (e.g. Same position above 1,500 people) explains why and keeps the other methods at hand
+    if (G.error || !G.member || !G.sizes) return h(React.Fragment, null,
+      h('div', { className: 'tl-row' }, h('span', { className: 'tl-lbl' }, 'Find groups by'), this.tlSeg([['louvain', 'Communities'], ['core', 'Core / periphery'], ['cliques', 'Cliques'], ['equiv', 'Same position'], ['components', 'Separate pieces']], o.groups.method, v => this.nlSetIn('groups', { method: v }))),
+      this.tlBanner('warn', G.error || 'These groups could not be found for this network.', ' Choose another way to find groups above.'), this.nlNav(o, ['people', 'People'], ['ties', 'Ties & similarity']));
     const MJ = this.nlMeasures(net); if (!MJ.done) return this.tlPending(MJ.label, MJ.p); const M = MJ.value;
     const k = G.sizes.length, gname = j => (G.names && G.names[j]) || (o.groups.method === 'cliques' ? 'Clique ' + (j + 1) : 'Group ' + (j + 1));
     const cat = o.groups.attr && net.attrs[o.groups.attr] ? o.groups.attr : this.nlBestAttr(net) || Object.keys(net.attrs).find(a => net.attrs[a].kind === 'cat');

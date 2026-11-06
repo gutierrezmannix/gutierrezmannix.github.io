@@ -122,7 +122,7 @@
       this.tlStat('separate pieces', this.fmtN(S.components), 'largest: ' + this.fmtN(S.largest) + (S.isolates ? ' · ' + this.fmtN(S.isolates) + ' without ties' : '')),
       this.tlStat('groups', lv.done && lv.value ? String(lv.value.sizes.filter(s => s > 1).length) : '…', lv.done && lv.value ? 'modularity Q = ' + f3(lv.value.Q) : 'finding groups'));
     const words = [];
-    words.push(S.density > 0.25 ? 'A dense network: many of the possible ties exist (Kadushin ch. 3). ' : S.density < 0.02 ? 'A sparse network: only a small share of possible ties exist, so it is held together by a few well-connected nodes and bridges. ' : 'A network of moderate density. ');
+    words.push(S.density > 0.25 ? 'A dense network: many of the possible ties exist (Kadushin ch. 3). ' : S.density < 0.02 ? 'A sparse network: only a small share of possible ties exist, so the few well-connected people and the bridges between them matter a lot. ' : 'A network of moderate density. ');
     if (S.reciprocity != null) words.push(Math.round(100 * S.reciprocity) + '% of ties are returned' + (C && C.reciprocity ? (S.reciprocity > C.reciprocity.hi ? ', far more than in random networks of the same size' : '') : '') + '. ');
     if (C) words.push(S.transitivity > C.transitivity.hi ? '“Friends of friends” are tied more often than chance would produce (clustering ' + f3(S.transitivity) + ' vs ' + f3(C.transitivity.mean) + '). ' : 'Clustering is close to what random networks show. ');
     if (S.components > 1 || S.isolates) words.push('The network has ' + S.components + ' separate piece' + (S.components === 1 ? '' : 's') + (S.isolates ? ' and ' + S.isolates + ' nodes without ties' : '') + '; distances are measured within pieces. ');

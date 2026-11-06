@@ -93,3 +93,32 @@ GM26_NET_FILES="/path/edges.csv,/path/nodes.csv" NODE_PATH=$(npm root -g) node c
 
 Sources: `src/net-lab-engine.mjs`, `src/net-lab-layout.mjs`, `src/net-lab-ergm.mjs`, `src/net-lab*.js`,
 `src/net-lab.css`, `tools/net_lab.py`. CSV files saved by Excel on Windows (cp1252) are now read with their accents.
+
+## Audit (build .86)
+
+A simulated student went through all eight steps and their main options (layouts, colour/size/labels, find, the eight
+People questions, the five ways to find groups, mixing for every characteristic, the network model, Over time, Save and
+every export) on five networks: Florentine marriages (16, `ergm`), faux.mesa.high (205 students, Grade/Race/Sex), Zachary's
+karate club (34, weighted), the cartel NodeXL export (390, directed, two kinds of tie) and 18,399 @mentions from the
+mañaneras tweets (3,316 accounts, dated, three kinds). The numbers were checked against igraph, sna and ergm 4.12:
+density, reciprocity, clustering, distances, pieces, dyad census, betweenness, harmonic closeness, eigenvector, constraint,
+k-cores, modularity, E–I and the ERGM estimates (Mesa: Same Grade 2.829 (0.172) vs 2.828 (0.177); cartel: returned ties
+7.124 vs 7.099). The page's look is unchanged. Fixes:
+- **Assortativity of a category in undirected networks** counted a tie inside a group once instead of twice (both ends),
+  so it was about half the true value (Mesa Grade 0.36 → 0.744, Race 0.09 → 0.235, as `igraph::assortativity_nominal`).
+- **Counts were read as categories**: whole numbers with ≤ 12 values became groups, so Florentine *priorates* (0–74) and
+  *totalties* got a 10 × 10 mixing table and the default model used “Same totalties”. Six or more values spread over a
+  much wider range are now numbers; codes such as grade 7–12 or party 1/2/3 stay categories.
+- **Same position on more than 1,500 people** made the Groups step disappear (an error result had no groups); it now says
+  why and keeps the other methods at hand.
+- **Labels on the map** could cover the “SMALL SEPARATE GROUPS” and “WITH NO TIES” headings; the headings are now kept free.
+- **Over time** skipped years without ties, so the axis jumped (2012 → 2014); every year is shown, with 0 ties.
+- **The model table** was cut off on the right when estimates, SE and MPLE are shown; it scrolls inside its panel.
+- **People**: an undirected network said “ties received · in-degree”; equal values (e.g. betweenness 0) now share a rank.
+- **Save** leaves out classic closeness when it is 0 for everyone (the network has separate pieces); harmonic closeness stays.
+- **The R code under Save failed at once**: igraph, loaded after sna, hides sna's `degree()`, `betweenness()`,
+  `closeness()` and `triad.census()`. Every function now names its package; undirected networks use `gmode = "graph"`
+  (sna would double the betweenness), reach is harmonic closeness, eigenvector is scaled to 1, k-cores use the undirected
+  ties, two-way kinds add only the missing direction (strengths were doubled), and undirected pairs are merged a–b = b–a.
+  It now reproduces the page (Medici: betweenness 47.5, reach 0.633, constraint 0.21; Sinaloa 10,018.2, reach 0.231).
+- Wording: “far more than chance” only when ties within are at least twice the expected share.
