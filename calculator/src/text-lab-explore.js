@@ -137,7 +137,7 @@
       this.tlBanner('info', 'λ measures how strongly the words stick together; z is λ divided by its standard error (z above 3.3 ≈ p < .001). Phrases start and end with a content word. ', h('b', null, 'Join'), ' makes a phrase count as one word everywhere.'),
       h('div', { className: 'tl-tblwrap' }, h('table', { className: 'tl-tbl' }, h('thead', null, h('tr', null, h('th', null, 'Phrase'), h('th', { className: 'n' }, 'Count'), h('th', { className: 'n' }, 'λ'), h('th', { className: 'n' }, 'z'), h('th', null, ''))),
         h('tbody', null, rows.map(r => { const p = r.words.join(' '), on = phrases.includes(p); return h('tr', { key: p }, h('td', { className: 'w' }, h('button', { type: 'button', className: 'tl-link', onClick: () => this.tlSet({ q: '"' + p + '"', sub: 'context', qOff: [] }) }, p)), h('td', { className: 'n' }, this.fmtN(r.count)), h('td', { className: 'n' }, r.lambda.toFixed(2)), h('td', { className: 'n' }, r.z.toFixed(1)), h('td', null, this.tlChip(on ? '✓ joined' : 'Join', on, () => this.tlSetIn('rec', { phrases: on ? phrases.filter(x => x !== p) : phrases.concat([p]) })))); })))),
-      this.tlRcode('toks <- tokens(corp, remove_punct = TRUE, remove_url = TRUE) |> tokens_tolower()\ntextstat_collocations(toks, size = ' + P.size + ', min_count = ' + min + ')'));
+      this.tlRcode('toks_p <- tokens(corp, remove_punct = TRUE, remove_url = TRUE) |> tokens_tolower()   # stopwords kept: phrases need them\ntextstat_collocations(toks_p, size = ' + P.size + ', min_count = ' + min + ')   # can take several minutes on long texts'));
   }
   tlSlim(C) { return { n: C.n, docs: C.docs, types: C.types, kind: C.kind, tok: C.tok, brk: C.brk, off: C.off, blank: C.blank }; }
 
@@ -171,7 +171,7 @@
     const sig = res.rows.filter(r => isFinite(r.p) && r.p < 0.001);
     const story = this.tlBanner('ok', h('b', null, 'What this means: '), tName + ' uses ' + words(top) + ' much more than ' + rName + '. ' + (bot.length ? rName.charAt(0).toUpperCase() + rName.slice(1) + ' uses ' + words(bot) + ' more. ' : '') + this.fmtN(sig.length) + ' words differ with p < .001 (each used at least ' + K.min + ' times). Read them in context before quoting.');
     return h('div', { className: 'tl-col' }, this.tlPanel('Compare groups', 'which words set one group apart (textstat_keyness)', null, ctl, story, svg, this.tlExportRow('tlkey', 'keyness'), tbl,
-      this.tlRcode('# dfmat is the cleaned dfm from the recipe above (stopwords removed), as on this page\n' + (ref >= 0 ? 'dfk <- dfm_subset(dfmat, ' + by + ' %in% c("' + tName + '", "' + rName + '"))   # against one group only\n' : 'dfk <- dfmat\n') + 'key <- textstat_keyness(dfm_group(dfk, groups = ' + by + '), target = "' + tName + '", measure = "' + K.measure + '")\nkey <- key[key$n_target + key$n_reference >= ' + K.min + ', ]   # words used at least ' + K.min + ' times, as the page shows\nhead(key, ' + n + '); tail(key, ' + n + ')\ntextplot_keyness(key, n = ' + n + ')')));
+      this.tlRcode('# dfmat is the cleaned dfm from the recipe above (stopwords removed), as on this page\n' + (ref >= 0 ? 'dfk <- dfm_subset(dfmat, `' + by + '` %in% c("' + tName + '", "' + rName + '"))   # against one group only\n' : 'dfk <- dfmat\n') + 'key <- textstat_keyness(dfm_group(dfk, groups = `' + by + '`), target = "' + tName + '", measure = "' + K.measure + '")\nkey <- key[key$n_target + key$n_reference >= ' + K.min + ', ]   # words used at least ' + K.min + ' times, as the page shows\nhead(key, ' + n + '); tail(key, ' + n + ')\ntextplot_keyness(key, n = ' + n + ')')));
   }
 
   // in context: kwic + match list + by group
@@ -218,7 +218,7 @@
       this.tlSearchForms(ctx),
       this.tlBanner('ok', h('b', null, this.fmtN(docs) + ' texts'), ' (' + this.tlPct(docs / Math.max(1, n)) + ') mention it, ' + this.fmtN(hits) + ' times in total.' + (K.rows.length < hits ? ' Showing the first ' + Math.min(200, K.rows.length) + ' lines.' : '')),
       kwic, h('div', { className: 'tl-row' }, copy, this.tlBtn('Use as a dictionary category', () => { const T2 = this.tlS(), d = (T2.dict || []).filter(x => x.keys.trim()); this.tlSet({ dict: d.concat([{ name: q.replace(/[^\p{L}\p{N} ]/gu, '').trim().split(/\s+/)[0] || 'category', keys: q, off: [...off] }]), step: 'measure', msub: 'dict' }); }), this.tlBtn('See it over time', () => this.tlSet({ sub: 'time', time: Object.assign({}, T.time, { what: 'search' }) }))),
-      this.tlRcode('kwic(toks, pattern = ' + this.tlRvec(E.tlParsePatterns(q).filter(p => !p.neg).map(p => p.parts.join(' '))) + ', window = ' + T.win + ', valuetype = "glob")')),
+      this.tlRcode('kwic(toks, pattern = ' + (q.indexOf('"') >= 0 || /\s/.test(q.replace(/,\s*/g, ',')) ? 'phrase(' : '') + this.tlRvec(E.tlParsePatterns(q).filter(p => !p.neg).map(p => { const w = p.parts.join(' '); return T.rec.fold ? E.tlFold(w) : w; })) + (q.indexOf('"') >= 0 || /\s/.test(q.replace(/,\s*/g, ',')) ? ')' : '') + ', window = ' + T.win + ', valuetype = "glob")')),
       byG ? this.tlPanel('By ' + T.by, null, null, byG, this.tlExportRow('tlkwg', 'mentions-by-group')) : null);
   }
 
@@ -257,6 +257,22 @@
   tlFirstDoc(C) { return this.memo('tlFD|' + C.key, () => { const n = C.off.length - 1, f = new Uint8Array(n); let last = -1; for (let d = 0; d < n; d++) { const r = this.tlRowOf(C, d); if (r !== last) { f[d] = 1; last = r; } } return f; }); }
   tlRPeriod(T, unit) { const d = 'as.Date(df$`' + T.date + '`, tryFormats = c("%Y-%m-%d", "%d.%m.%y", "%d.%m.%Y", "%d/%m/%Y", "%m/%d/%Y"))'; return unit === 'year' ? 'format(' + d + ', "%Y")' : unit === 'quarter' ? 'paste(format(' + d + ', "%Y"), quarters(' + d + '))' : unit === 'month' ? 'format(' + d + ', "%Y-%m")' : unit === 'week' ? 'format(' + d + ', "%G-W%V")' : 'format(' + d + ', "%Y-%m-%d")'; }
   tlMeasureLab(m, what) { return m === 'count' ? 'times mentioned' : m === 'rate' ? 'mentions per 10,000 words' : m === 'mean' ? 'mean per text' : m === 'sum' ? 'total' : '% of texts that mention ' + (what || 'it'); }
+  // R code for a search or dictionary category over time: the dictionary, the hits per text, then per period
+  tlTimeRDict(T, TM, its, measure, P, by) {
+    const E = this._E, fw = x => T.rec.fold ? 'fold(' + x + ')' : x, isSearch = TM.what === 'search', names = its.map(it => it.name);
+    const pats = it => E.tlParsePatterns(it.combined ? T.q : it.name).filter(p => !p.neg).map(p => p.parts.join(' '));
+    const L = [];
+    if (isSearch) {
+      L.push('dict <- dictionary(list(' + its.map(it => '`' + it.name + '` = ' + fw(this.tlRvec(pats(it)))).join(', ') + '))   # your search');
+      if ((T.qOff || []).length) L.push('toks_q <- tokens_remove(toks, ' + fw(this.tlRvec(T.qOff)) + ', valuetype = "fixed")   # minus the forms you unticked');
+    } else L.push('# dict: the dictionary from the Measure step (its R code is there)');
+    L.push('hits <- convert(dfm(tokens_lookup(' + (isSearch && (T.qOff || []).length ? 'toks_q' : 'toks') + ', dict, nested_scope = "key")), to = "data.frame")', 'df$period <- ' + P);
+    const cols = names.map(n => '`' + n + '`').join(', ');
+    if (measure === 'rate') L.push('agg <- aggregate(cbind(' + cols + ', words) ~ period' + by + ', data = cbind(df, hits[-1], words = ntoken(toks_clean)), FUN = sum)', 'agg[' + this.tlRvec(names) + '] <- 10000 * agg[' + this.tlRvec(names) + '] / agg$words   # mentions per 10,000 words', 'agg');
+    else if (measure === 'count') L.push('aggregate(cbind(' + cols + ') ~ period' + by + ', data = cbind(df, hits[-1]), FUN = sum)   # times mentioned');
+    else L.push('aggregate(cbind(' + cols + ') ~ period' + by + ', data = cbind(df, 100 * (hits[-1] > 0)), FUN = mean)   # % of texts that mention it');
+    return L.join('\n');
+  }
   tlTime(ctx) {
     const h = React.createElement, { T, C, FT } = ctx, E = this._E, TM = T.time, set = p => this.tlSetIn('time', p);
     const dateOpts = [['', 'pick a date column']].concat((this.state.cols || []).map(c => c.name).filter(n => n !== T.v).map(n => [n, n]));
@@ -334,11 +350,11 @@
       : kind === 'ntexts' ? 'df$period <- ' + P + '\n' + (nm === 'count' ? 'table(df$period' + (by ? ', df$`' + T.by + '`' : '') + ')        # number of texts per period' + (by ? ' and ' + T.by : '')
         : '100 * prop.table(table(df$period' + (by ? ', df$`' + T.by + '`), margin = 2)   # % of each ' + T.by + '’s texts in each period' : '))   # % of all texts in each period'))
       : kind === 'words' ? 'df$words <- ntoken(toks_clean)\ndf$period <- ' + P + '\naggregate(words ~ period' + by + ', data = df, FUN = mean)'
-      : 'dict <- dictionary(list(' + parts.map((it, k) => '`' + it.name + '` = ' + this.tlRvec([it.name])).join(', ') + '))   # or your dictionary\nhits <- convert(dfm(tokens_lookup(toks, dict, nested_scope = "key")), to = "data.frame")\ndf$period <- ' + P + '\naggregate(cbind(' + parts.map(it => '`' + it.name + '`').join(', ') + ') ~ period' + by + ', data = cbind(df, hits[-1] > 0), FUN = mean)';
+      : this.tlTimeRDict(T, TM, parts.length ? parts : items, measure, P, by);
     const need = !items.length;
     return this.tlPanel('Over time', 'by ' + unit + (G ? ' · ' + T.by : ''), null, ctl,
       D.ambiguous ? this.tlBanner('info', 'Dates like 02.03.18 are read as ' + (D.order === 'dmy' ? 'day.month.year' : 'month.day.year') + '. ', this.tlBtn('Switch', () => set({ order: D.order === 'dmy' ? 'mdy' : 'dmy' }))) : null,
-      need ? this.tlBanner('info', isVar ? '“' + vname + '” is not a numeric variable.' : 'Type a search in “In context” (several words separated by commas), build dictionary categories, or pick a saved variable to chart it over time.') : null,
+      need ? this.tlBanner('info', isVar ? '“' + vname + '” is not a numeric variable.' : 'Type a search in the Search box above (several words separated by commas give one line each), build dictionary categories in Measure, or pick a saved variable to chart it over time.') : null,
       ...charts.map(ch => h('div', { key: ch.key, className: 'tl-col' }, this.tlLinesSvg(ch.key, ch.data.xs, ch.data.series, { ylab, pct: measure === 'pct' || (kind === 'ntexts' && nm !== 'count'), title: ch.title }), this.tlExportRow(ch.key, 'over-time-' + this._E.tlVarName(ch.title.split(' · ')[0])))),
       need ? null : this.tlRcode(rcode));
   }
@@ -396,6 +412,8 @@
       : q ? this.tlBanner('warn', '“' + q + '” is not among the cleaned words (it may be a stopword, a phrase that is not joined, or all its forms are unticked), so the whole network is shown.') : null;
     // in R: every feature the search's words match (folded like the recipe when accents are ignored), minus the unticked forms
     const fw = x => T.rec.fold ? 'fold(' + x + ')' : x, pats = focus ? E.tlParsePatterns(q).filter(p => !p.neg && p.parts.length === 1).map(p => p.parts[0]) : [];
+    // keep only the chosen words before fcm(): an fcm of the whole vocabulary can run out of memory on long texts
+    const fcmR = sel => win ? 'fcmat <- fcm(tokens_select(toks_clean, ' + sel + ', valuetype = "fixed", padding = TRUE), context = "window", window = 5) |> fcm_remove("")' : 'fcmat <- fcm(dfm_select(dfmat, ' + sel + ', valuetype = "fixed"))';
     const kwR = focus ? fw(this.tlRvec(pats)) + '))   # every form your search matches' + ((T.qOff || []).length ? '\nkw <- setdiff(kw, ' + fw(this.tlRvec(T.qOff)) + ')   # minus the forms you unticked' : '') : '';
     return this.tlPanel('Connections', focus ? 'the words found together with your search (fcm + textplot_network)' : 'which words appear together (fcm + textplot_network)', null,
       h('div', { className: 'tl-row wide' }, this.tlSearchField(T, null, 'qn'), this.tlSearchHelp(T)),
@@ -406,8 +424,8 @@
         ? 'kw <- featnames(dfm_select(dfmat, pattern = ' + kwR + '\n' + (win
             ? 'near_in  <- dfm(tokens_remove(tokens_keep(toks_clean, pattern = kw, window = 5), pattern = kw))\nnear_out <- dfm(tokens_remove(toks_clean, pattern = kw, window = 5))\nkey <- textstat_keyness(rbind(near_in, near_out), target = seq_len(ndoc(near_in)))\n'
             : 'has <- rowSums(dfm_select(dfmat, pattern = kw)) > 0   # texts that use the search\nkey <- textstat_keyness(dfm_remove(dfmat, pattern = kw), target = has)\n')
-          + 'near <- head(key$feature[key$chi2 > 0 & key$n_target >= 5 & key$n_target + key$n_reference >= 10], ' + (n - 1) + ')\nfcmat <- fcm(toks_clean, context = "' + (win ? 'window", window = 5' : 'document"') + ')\ntextplot_network(fcm_select(fcmat, pattern = c(kw, near)), min_freq = ' + (NW.minFreq || 0.5) + ')   # in R each form of the search is its own node'
-        : 'fcmat <- fcm(toks_clean, context = "' + (win ? 'window", window = 5' : 'document"') + ')\nfeat <- names(topfeatures(dfmat, ' + NW.n + '))\ntextplot_network(fcm_select(fcmat, pattern = feat), min_freq = ' + (NW.minFreq || 0.5) + ')'));
+          + 'near <- head(key$feature[key$chi2 > 0 & key$n_target >= 5 & key$n_target + key$n_reference >= 10], ' + (n - 1) + ')\n' + fcmR('c(kw, near)') + '\ntextplot_network(fcmat, min_freq = ' + (NW.minFreq || 0.5) + ')   # in R each form of the search is its own node'
+        : 'feat <- names(topfeatures(dfmat, ' + NW.n + '))\n' + fcmR('feat') + '\ntextplot_network(fcmat, min_freq = ' + (NW.minFreq || 0.5) + ')'));
   }
 
   // clusters: textstat_simil/dist + hclust dendrogram
@@ -464,7 +482,7 @@
     const members = Array.from({ length: k }, (_, i) => labels.filter((_, j) => cl[j] === i + 1));
     return h('div', { className: 'tl-grid c-cl' }, this.tlPanel('Settings', null, null, controls), this.tlPanel('Dendrogram', note + ' · ' + dist + ' distance · ' + CU.link + ' linkage', null, svg, this.tlExportRow('tldendro', 'dendrogram'),
       h('div', { className: 'tl-clusters' }, members.map((m, i) => h('div', { key: i, className: 'tl-cluster' }, h('span', { className: 'sw', style: { background: this.tlPal(i) } }), h('b', null, 'Cluster ' + (i + 1) + ' · ' + m.length), ' ', m.slice(0, 18).join(', ') + (m.length > 18 ? ' …' : '')))),
-      this.tlRcode((CU.what === 'groups' ? 'dfmat_g <- dfm_group(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + '))), groups = ' + T.by + (CU.byYear && T.date ? ' + year' : '') + ')' : CU.what === 'texts' ? 'dfmat_g <- dfm_sample(dfmat, ' + labels.length + ')' : 'dfmat_g <- t(fcm(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + ')))))') + '\n' + (CU.weight === 'prop' ? 'dfmat_g <- dfm_weight(dfmat_g, scheme = "prop")\n' : CU.weight === 'tfidf' ? 'dfmat_g <- dfm_tfidf(dfmat_g)\n' : '') + (['cosine', 'correlation', 'jaccard'].includes(dist) ? 'd <- as.dist(1 - as.matrix(textstat_simil(dfmat_g, method = "' + dist + '")))' : 'd <- as.dist(as.matrix(textstat_dist(dfmat_g, method = "' + dist + '")))') + '\nhc <- hclust(d, method = "' + CU.link + '")\nplot(hc); rect.hclust(hc, k = ' + k + ')\ncor(d, cophenetic(hc))   # ' + (isFinite(H.coph) ? H.coph.toFixed(3) : '') + '\ncutree(hc, k = ' + k + ')')));
+      this.tlRcode((CU.what === 'groups' ? (CU.byYear && T.date ? 'grp <- interaction(df$`' + T.by + '`, ' + this.tlRPeriod(T, 'year') + ', sep = " ", drop = TRUE)   # ' + T.by + ' × year\n' : '') + 'dfmat_g <- dfm_group(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + '))), groups = ' + (CU.byYear && T.date ? 'grp)' : '`' + T.by + '`)') : CU.what === 'texts' ? 'dfmat_g <- dfm_sample(dfmat, ' + labels.length + ')' : 'dfmat_g <- t(fcm(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + ')))))') + '\n' + (CU.weight === 'prop' ? 'dfmat_g <- dfm_weight(dfmat_g, scheme = "prop")\n' : CU.weight === 'tfidf' ? 'dfmat_g <- dfm_tfidf(dfmat_g)\n' : '') + (['cosine', 'correlation', 'jaccard'].includes(dist) ? 'd <- as.dist(1 - as.matrix(textstat_simil(dfmat_g, method = "' + dist + '")))' : 'd <- as.dist(as.matrix(textstat_dist(dfmat_g, method = "' + dist + '")))') + '\nhc <- hclust(d, method = "' + CU.link + '")\nplot(hc); rect.hclust(hc, k = ' + k + ')\ncor(d, cophenetic(hc))   # ' + (isFinite(H.coph) ? H.coph.toFixed(3) : '') + '\ncutree(hc, k = ' + k + ')')));
   }
 
   // text stats
@@ -485,5 +503,5 @@
       this.tlBanner('info', 'Averages per text. MATTR is the share of different words in every 50-word window (textstat_lexdiv(measure = "MATTR")); it does not fall as texts get longer the way the plain type–token ratio does. Reading ease: higher = easier; the Spanish score uses Fernández-Huerta’s formula with approximate syllable counts.'),
       this.tlBtn('Save word counts as variables', () => { this.tlSetIn('save', { nwords: true }); this.tlSet({ step: 'save' }); })),
       this.tlPanel('Length of the texts', 'median ' + q(0.5) + ' words · 90% have ' + q(0.05) + '–' + q(0.95), null, histSvg, this.tlExportRow('tllen', 'text-lengths'),
-        this.tlRcode('textstat_summary(corp)\ntextstat_lexdiv(toks, measure = "MATTR", MATTR_window = 50)\ntextstat_readability(corp, measure = "Flesch")')));
+        this.tlRcode('textstat_summary(corp)\ntextstat_lexdiv(tokens_subset(toks, ntoken(toks) >= 50), measure = "MATTR", MATTR_window = 50)   # texts of 50+ words; needs a lot of memory on long texts\ntextstat_readability(corp, measure = "Flesch")')));
   }

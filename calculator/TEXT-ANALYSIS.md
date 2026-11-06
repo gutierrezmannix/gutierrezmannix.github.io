@@ -47,6 +47,22 @@ so you can untick the ones that do not belong.
   words in both modes, the strongest eight in the same order (window: impunidad, acabar, régimen, desterrar, combate,
   cero, actos, imperaba). The R code under the chart reproduces it.
 
+**Audit (build .83).** A student was simulated through every step and sub-tab on the mañaneras sample (2,198 long
+transcript parts) and on 30,932 tweets: no page errors, and the numbers agree across tabs (a search's mentions in
+*In context* = the sum of its *Over time* counts = its dictionary category = the saved variable; texts per period add
+up to all texts with a date). Every R block the page shows was then run in R (quanteda 4.5.1) on both files; fixes:
+- *Over time* with one search word wrote an empty dictionary; it now writes the search (accents folded like the
+  recipe, unticked forms removed) and matches the measure shown: % of texts, count, or per 10,000 words. The
+  dictionary timeline's *Per 10k words* R code divided by the words, too.
+- Column names with spaces (`Author Username`) broke Compare groups, Scale and topic pooling; they are quoted now,
+  and CSV files are read with `check.names = FALSE` so the names stay as they are.
+- *Clusters* by group × year and *Topics* pooled by group × month build the grouping with `interaction()`.
+- *Connections* selects its words before `fcm()` (the full fcm ran out of memory on the transcripts).
+- *Phrases* no longer overwrites `toks`; *Text stats* skips texts under 50 words for MATTR (it failed on empty rows);
+  *In context* folds accents in the pattern.
+- The *Check accuracy* sample in Measure scrolls inside its panel instead of spilling past it; clearing the search
+  sends *Over time* back to the number of texts.
+
 Every chart downloads as SVG (fonts embedded) or PNG at 150/300/600 dpi (with the dpi stored in the file).
 "Recipe · R code" shows the quanteda script for the current cleaning.
 

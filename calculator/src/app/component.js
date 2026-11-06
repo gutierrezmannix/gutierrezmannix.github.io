@@ -2541,6 +2541,8 @@ class Component extends DCLogic {
   tlSet(patch) { this.setState(st => { const cur = st.tl || {}; let p = typeof patch === 'function' ? patch(Object.assign(this.tlDefaults(), cur)) : patch;
     // a new search (typed in any tab, or a word clicked in a table) is what Over time shows, unless it shows a category or a variable
     if (p && typeof p.q === 'string' && p.q.trim() && p.q !== cur.q && !p.time) { const tm = Object.assign({}, this.tlDefaults().time, cur.time || {}); if (tm.what === 'ntexts') p = Object.assign({}, p, { time: Object.assign({}, tm, { what: 'search' }) }); }
+    // the search cleared: Over time goes back to the number of texts instead of an empty chart
+    else if (p && typeof p.q === 'string' && !p.q.trim() && (cur.q || '').trim() && !p.time) { const tm = Object.assign({}, this.tlDefaults().time, cur.time || {}); if (tm.what === 'search') p = Object.assign({}, p, { time: Object.assign({}, tm, { what: 'ntexts' }) }); }
     return { tl: Object.assign({}, cur, p) }; }); }
   tlSetIn(k, patch) { this.tlSet(cur => ({ [k]: Object.assign({}, this.tlDefaults()[k], cur[k] || {}, patch) })); }
 
@@ -3107,7 +3109,7 @@ class Component extends DCLogic {
       this.tlBanner('info', 'λ measures how strongly the words stick together; z is λ divided by its standard error (z above 3.3 ≈ p < .001). Phrases start and end with a content word. ', h('b', null, 'Join'), ' makes a phrase count as one word everywhere.'),
       h('div', { className: 'tl-tblwrap' }, h('table', { className: 'tl-tbl' }, h('thead', null, h('tr', null, h('th', null, 'Phrase'), h('th', { className: 'n' }, 'Count'), h('th', { className: 'n' }, 'λ'), h('th', { className: 'n' }, 'z'), h('th', null, ''))),
         h('tbody', null, rows.map(r => { const p = r.words.join(' '), on = phrases.includes(p); return h('tr', { key: p }, h('td', { className: 'w' }, h('button', { type: 'button', className: 'tl-link', onClick: () => this.tlSet({ q: '"' + p + '"', sub: 'context', qOff: [] }) }, p)), h('td', { className: 'n' }, this.fmtN(r.count)), h('td', { className: 'n' }, r.lambda.toFixed(2)), h('td', { className: 'n' }, r.z.toFixed(1)), h('td', null, this.tlChip(on ? '✓ joined' : 'Join', on, () => this.tlSetIn('rec', { phrases: on ? phrases.filter(x => x !== p) : phrases.concat([p]) })))); })))),
-      this.tlRcode('toks <- tokens(corp, remove_punct = TRUE, remove_url = TRUE) |> tokens_tolower()\ntextstat_collocations(toks, size = ' + P.size + ', min_count = ' + min + ')'));
+      this.tlRcode('toks_p <- tokens(corp, remove_punct = TRUE, remove_url = TRUE) |> tokens_tolower()   # stopwords kept: phrases need them\ntextstat_collocations(toks_p, size = ' + P.size + ', min_count = ' + min + ')   # can take several minutes on long texts'));
   }
   tlSlim(C) { return { n: C.n, docs: C.docs, types: C.types, kind: C.kind, tok: C.tok, brk: C.brk, off: C.off, blank: C.blank }; }
 
@@ -3141,7 +3143,7 @@ class Component extends DCLogic {
     const sig = res.rows.filter(r => isFinite(r.p) && r.p < 0.001);
     const story = this.tlBanner('ok', h('b', null, 'What this means: '), tName + ' uses ' + words(top) + ' much more than ' + rName + '. ' + (bot.length ? rName.charAt(0).toUpperCase() + rName.slice(1) + ' uses ' + words(bot) + ' more. ' : '') + this.fmtN(sig.length) + ' words differ with p < .001 (each used at least ' + K.min + ' times). Read them in context before quoting.');
     return h('div', { className: 'tl-col' }, this.tlPanel('Compare groups', 'which words set one group apart (textstat_keyness)', null, ctl, story, svg, this.tlExportRow('tlkey', 'keyness'), tbl,
-      this.tlRcode('# dfmat is the cleaned dfm from the recipe above (stopwords removed), as on this page\n' + (ref >= 0 ? 'dfk <- dfm_subset(dfmat, ' + by + ' %in% c("' + tName + '", "' + rName + '"))   # against one group only\n' : 'dfk <- dfmat\n') + 'key <- textstat_keyness(dfm_group(dfk, groups = ' + by + '), target = "' + tName + '", measure = "' + K.measure + '")\nkey <- key[key$n_target + key$n_reference >= ' + K.min + ', ]   # words used at least ' + K.min + ' times, as the page shows\nhead(key, ' + n + '); tail(key, ' + n + ')\ntextplot_keyness(key, n = ' + n + ')')));
+      this.tlRcode('# dfmat is the cleaned dfm from the recipe above (stopwords removed), as on this page\n' + (ref >= 0 ? 'dfk <- dfm_subset(dfmat, `' + by + '` %in% c("' + tName + '", "' + rName + '"))   # against one group only\n' : 'dfk <- dfmat\n') + 'key <- textstat_keyness(dfm_group(dfk, groups = `' + by + '`), target = "' + tName + '", measure = "' + K.measure + '")\nkey <- key[key$n_target + key$n_reference >= ' + K.min + ', ]   # words used at least ' + K.min + ' times, as the page shows\nhead(key, ' + n + '); tail(key, ' + n + ')\ntextplot_keyness(key, n = ' + n + ')')));
   }
 
   // in context: kwic + match list + by group
@@ -3188,7 +3190,7 @@ class Component extends DCLogic {
       this.tlSearchForms(ctx),
       this.tlBanner('ok', h('b', null, this.fmtN(docs) + ' texts'), ' (' + this.tlPct(docs / Math.max(1, n)) + ') mention it, ' + this.fmtN(hits) + ' times in total.' + (K.rows.length < hits ? ' Showing the first ' + Math.min(200, K.rows.length) + ' lines.' : '')),
       kwic, h('div', { className: 'tl-row' }, copy, this.tlBtn('Use as a dictionary category', () => { const T2 = this.tlS(), d = (T2.dict || []).filter(x => x.keys.trim()); this.tlSet({ dict: d.concat([{ name: q.replace(/[^\p{L}\p{N} ]/gu, '').trim().split(/\s+/)[0] || 'category', keys: q, off: [...off] }]), step: 'measure', msub: 'dict' }); }), this.tlBtn('See it over time', () => this.tlSet({ sub: 'time', time: Object.assign({}, T.time, { what: 'search' }) }))),
-      this.tlRcode('kwic(toks, pattern = ' + this.tlRvec(E.tlParsePatterns(q).filter(p => !p.neg).map(p => p.parts.join(' '))) + ', window = ' + T.win + ', valuetype = "glob")')),
+      this.tlRcode('kwic(toks, pattern = ' + (q.indexOf('"') >= 0 || /\s/.test(q.replace(/,\s*/g, ',')) ? 'phrase(' : '') + this.tlRvec(E.tlParsePatterns(q).filter(p => !p.neg).map(p => { const w = p.parts.join(' '); return T.rec.fold ? E.tlFold(w) : w; })) + (q.indexOf('"') >= 0 || /\s/.test(q.replace(/,\s*/g, ',')) ? ')' : '') + ', window = ' + T.win + ', valuetype = "glob")')),
       byG ? this.tlPanel('By ' + T.by, null, null, byG, this.tlExportRow('tlkwg', 'mentions-by-group')) : null);
   }
 
@@ -3227,6 +3229,22 @@ class Component extends DCLogic {
   tlFirstDoc(C) { return this.memo('tlFD|' + C.key, () => { const n = C.off.length - 1, f = new Uint8Array(n); let last = -1; for (let d = 0; d < n; d++) { const r = this.tlRowOf(C, d); if (r !== last) { f[d] = 1; last = r; } } return f; }); }
   tlRPeriod(T, unit) { const d = 'as.Date(df$`' + T.date + '`, tryFormats = c("%Y-%m-%d", "%d.%m.%y", "%d.%m.%Y", "%d/%m/%Y", "%m/%d/%Y"))'; return unit === 'year' ? 'format(' + d + ', "%Y")' : unit === 'quarter' ? 'paste(format(' + d + ', "%Y"), quarters(' + d + '))' : unit === 'month' ? 'format(' + d + ', "%Y-%m")' : unit === 'week' ? 'format(' + d + ', "%G-W%V")' : 'format(' + d + ', "%Y-%m-%d")'; }
   tlMeasureLab(m, what) { return m === 'count' ? 'times mentioned' : m === 'rate' ? 'mentions per 10,000 words' : m === 'mean' ? 'mean per text' : m === 'sum' ? 'total' : '% of texts that mention ' + (what || 'it'); }
+  // R code for a search or dictionary category over time: the dictionary, the hits per text, then per period
+  tlTimeRDict(T, TM, its, measure, P, by) {
+    const E = this._E, fw = x => T.rec.fold ? 'fold(' + x + ')' : x, isSearch = TM.what === 'search', names = its.map(it => it.name);
+    const pats = it => E.tlParsePatterns(it.combined ? T.q : it.name).filter(p => !p.neg).map(p => p.parts.join(' '));
+    const L = [];
+    if (isSearch) {
+      L.push('dict <- dictionary(list(' + its.map(it => '`' + it.name + '` = ' + fw(this.tlRvec(pats(it)))).join(', ') + '))   # your search');
+      if ((T.qOff || []).length) L.push('toks_q <- tokens_remove(toks, ' + fw(this.tlRvec(T.qOff)) + ', valuetype = "fixed")   # minus the forms you unticked');
+    } else L.push('# dict: the dictionary from the Measure step (its R code is there)');
+    L.push('hits <- convert(dfm(tokens_lookup(' + (isSearch && (T.qOff || []).length ? 'toks_q' : 'toks') + ', dict, nested_scope = "key")), to = "data.frame")', 'df$period <- ' + P);
+    const cols = names.map(n => '`' + n + '`').join(', ');
+    if (measure === 'rate') L.push('agg <- aggregate(cbind(' + cols + ', words) ~ period' + by + ', data = cbind(df, hits[-1], words = ntoken(toks_clean)), FUN = sum)', 'agg[' + this.tlRvec(names) + '] <- 10000 * agg[' + this.tlRvec(names) + '] / agg$words   # mentions per 10,000 words', 'agg');
+    else if (measure === 'count') L.push('aggregate(cbind(' + cols + ') ~ period' + by + ', data = cbind(df, hits[-1]), FUN = sum)   # times mentioned');
+    else L.push('aggregate(cbind(' + cols + ') ~ period' + by + ', data = cbind(df, 100 * (hits[-1] > 0)), FUN = mean)   # % of texts that mention it');
+    return L.join('\n');
+  }
   tlTime(ctx) {
     const h = React.createElement, { T, C, FT } = ctx, E = this._E, TM = T.time, set = p => this.tlSetIn('time', p);
     const dateOpts = [['', 'pick a date column']].concat((this.state.cols || []).map(c => c.name).filter(n => n !== T.v).map(n => [n, n]));
@@ -3304,11 +3322,11 @@ class Component extends DCLogic {
       : kind === 'ntexts' ? 'df$period <- ' + P + '\n' + (nm === 'count' ? 'table(df$period' + (by ? ', df$`' + T.by + '`' : '') + ')        # number of texts per period' + (by ? ' and ' + T.by : '')
         : '100 * prop.table(table(df$period' + (by ? ', df$`' + T.by + '`), margin = 2)   # % of each ' + T.by + '’s texts in each period' : '))   # % of all texts in each period'))
       : kind === 'words' ? 'df$words <- ntoken(toks_clean)\ndf$period <- ' + P + '\naggregate(words ~ period' + by + ', data = df, FUN = mean)'
-      : 'dict <- dictionary(list(' + parts.map((it, k) => '`' + it.name + '` = ' + this.tlRvec([it.name])).join(', ') + '))   # or your dictionary\nhits <- convert(dfm(tokens_lookup(toks, dict, nested_scope = "key")), to = "data.frame")\ndf$period <- ' + P + '\naggregate(cbind(' + parts.map(it => '`' + it.name + '`').join(', ') + ') ~ period' + by + ', data = cbind(df, hits[-1] > 0), FUN = mean)';
+      : this.tlTimeRDict(T, TM, parts.length ? parts : items, measure, P, by);
     const need = !items.length;
     return this.tlPanel('Over time', 'by ' + unit + (G ? ' · ' + T.by : ''), null, ctl,
       D.ambiguous ? this.tlBanner('info', 'Dates like 02.03.18 are read as ' + (D.order === 'dmy' ? 'day.month.year' : 'month.day.year') + '. ', this.tlBtn('Switch', () => set({ order: D.order === 'dmy' ? 'mdy' : 'dmy' }))) : null,
-      need ? this.tlBanner('info', isVar ? '“' + vname + '” is not a numeric variable.' : 'Type a search in “In context” (several words separated by commas), build dictionary categories, or pick a saved variable to chart it over time.') : null,
+      need ? this.tlBanner('info', isVar ? '“' + vname + '” is not a numeric variable.' : 'Type a search in the Search box above (several words separated by commas give one line each), build dictionary categories in Measure, or pick a saved variable to chart it over time.') : null,
       ...charts.map(ch => h('div', { key: ch.key, className: 'tl-col' }, this.tlLinesSvg(ch.key, ch.data.xs, ch.data.series, { ylab, pct: measure === 'pct' || (kind === 'ntexts' && nm !== 'count'), title: ch.title }), this.tlExportRow(ch.key, 'over-time-' + this._E.tlVarName(ch.title.split(' · ')[0])))),
       need ? null : this.tlRcode(rcode));
   }
@@ -3366,6 +3384,8 @@ class Component extends DCLogic {
       : q ? this.tlBanner('warn', '“' + q + '” is not among the cleaned words (it may be a stopword, a phrase that is not joined, or all its forms are unticked), so the whole network is shown.') : null;
     // in R: every feature the search's words match (folded like the recipe when accents are ignored), minus the unticked forms
     const fw = x => T.rec.fold ? 'fold(' + x + ')' : x, pats = focus ? E.tlParsePatterns(q).filter(p => !p.neg && p.parts.length === 1).map(p => p.parts[0]) : [];
+    // keep only the chosen words before fcm(): an fcm of the whole vocabulary can run out of memory on long texts
+    const fcmR = sel => win ? 'fcmat <- fcm(tokens_select(toks_clean, ' + sel + ', valuetype = "fixed", padding = TRUE), context = "window", window = 5) |> fcm_remove("")' : 'fcmat <- fcm(dfm_select(dfmat, ' + sel + ', valuetype = "fixed"))';
     const kwR = focus ? fw(this.tlRvec(pats)) + '))   # every form your search matches' + ((T.qOff || []).length ? '\nkw <- setdiff(kw, ' + fw(this.tlRvec(T.qOff)) + ')   # minus the forms you unticked' : '') : '';
     return this.tlPanel('Connections', focus ? 'the words found together with your search (fcm + textplot_network)' : 'which words appear together (fcm + textplot_network)', null,
       h('div', { className: 'tl-row wide' }, this.tlSearchField(T, null, 'qn'), this.tlSearchHelp(T)),
@@ -3376,8 +3396,8 @@ class Component extends DCLogic {
         ? 'kw <- featnames(dfm_select(dfmat, pattern = ' + kwR + '\n' + (win
             ? 'near_in  <- dfm(tokens_remove(tokens_keep(toks_clean, pattern = kw, window = 5), pattern = kw))\nnear_out <- dfm(tokens_remove(toks_clean, pattern = kw, window = 5))\nkey <- textstat_keyness(rbind(near_in, near_out), target = seq_len(ndoc(near_in)))\n'
             : 'has <- rowSums(dfm_select(dfmat, pattern = kw)) > 0   # texts that use the search\nkey <- textstat_keyness(dfm_remove(dfmat, pattern = kw), target = has)\n')
-          + 'near <- head(key$feature[key$chi2 > 0 & key$n_target >= 5 & key$n_target + key$n_reference >= 10], ' + (n - 1) + ')\nfcmat <- fcm(toks_clean, context = "' + (win ? 'window", window = 5' : 'document"') + ')\ntextplot_network(fcm_select(fcmat, pattern = c(kw, near)), min_freq = ' + (NW.minFreq || 0.5) + ')   # in R each form of the search is its own node'
-        : 'fcmat <- fcm(toks_clean, context = "' + (win ? 'window", window = 5' : 'document"') + ')\nfeat <- names(topfeatures(dfmat, ' + NW.n + '))\ntextplot_network(fcm_select(fcmat, pattern = feat), min_freq = ' + (NW.minFreq || 0.5) + ')'));
+          + 'near <- head(key$feature[key$chi2 > 0 & key$n_target >= 5 & key$n_target + key$n_reference >= 10], ' + (n - 1) + ')\n' + fcmR('c(kw, near)') + '\ntextplot_network(fcmat, min_freq = ' + (NW.minFreq || 0.5) + ')   # in R each form of the search is its own node'
+        : 'feat <- names(topfeatures(dfmat, ' + NW.n + '))\n' + fcmR('feat') + '\ntextplot_network(fcmat, min_freq = ' + (NW.minFreq || 0.5) + ')'));
   }
 
   // clusters: textstat_simil/dist + hclust dendrogram
@@ -3434,7 +3454,7 @@ class Component extends DCLogic {
     const members = Array.from({ length: k }, (_, i) => labels.filter((_, j) => cl[j] === i + 1));
     return h('div', { className: 'tl-grid c-cl' }, this.tlPanel('Settings', null, null, controls), this.tlPanel('Dendrogram', note + ' · ' + dist + ' distance · ' + CU.link + ' linkage', null, svg, this.tlExportRow('tldendro', 'dendrogram'),
       h('div', { className: 'tl-clusters' }, members.map((m, i) => h('div', { key: i, className: 'tl-cluster' }, h('span', { className: 'sw', style: { background: this.tlPal(i) } }), h('b', null, 'Cluster ' + (i + 1) + ' · ' + m.length), ' ', m.slice(0, 18).join(', ') + (m.length > 18 ? ' …' : '')))),
-      this.tlRcode((CU.what === 'groups' ? 'dfmat_g <- dfm_group(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + '))), groups = ' + T.by + (CU.byYear && T.date ? ' + year' : '') + ')' : CU.what === 'texts' ? 'dfmat_g <- dfm_sample(dfmat, ' + labels.length + ')' : 'dfmat_g <- t(fcm(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + ')))))') + '\n' + (CU.weight === 'prop' ? 'dfmat_g <- dfm_weight(dfmat_g, scheme = "prop")\n' : CU.weight === 'tfidf' ? 'dfmat_g <- dfm_tfidf(dfmat_g)\n' : '') + (['cosine', 'correlation', 'jaccard'].includes(dist) ? 'd <- as.dist(1 - as.matrix(textstat_simil(dfmat_g, method = "' + dist + '")))' : 'd <- as.dist(as.matrix(textstat_dist(dfmat_g, method = "' + dist + '")))') + '\nhc <- hclust(d, method = "' + CU.link + '")\nplot(hc); rect.hclust(hc, k = ' + k + ')\ncor(d, cophenetic(hc))   # ' + (isFinite(H.coph) ? H.coph.toFixed(3) : '') + '\ncutree(hc, k = ' + k + ')')));
+      this.tlRcode((CU.what === 'groups' ? (CU.byYear && T.date ? 'grp <- interaction(df$`' + T.by + '`, ' + this.tlRPeriod(T, 'year') + ', sep = " ", drop = TRUE)   # ' + T.by + ' × year\n' : '') + 'dfmat_g <- dfm_group(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + '))), groups = ' + (CU.byYear && T.date ? 'grp)' : '`' + T.by + '`)') : CU.what === 'texts' ? 'dfmat_g <- dfm_sample(dfmat, ' + labels.length + ')' : 'dfmat_g <- t(fcm(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + ')))))') + '\n' + (CU.weight === 'prop' ? 'dfmat_g <- dfm_weight(dfmat_g, scheme = "prop")\n' : CU.weight === 'tfidf' ? 'dfmat_g <- dfm_tfidf(dfmat_g)\n' : '') + (['cosine', 'correlation', 'jaccard'].includes(dist) ? 'd <- as.dist(1 - as.matrix(textstat_simil(dfmat_g, method = "' + dist + '")))' : 'd <- as.dist(as.matrix(textstat_dist(dfmat_g, method = "' + dist + '")))') + '\nhc <- hclust(d, method = "' + CU.link + '")\nplot(hc); rect.hclust(hc, k = ' + k + ')\ncor(d, cophenetic(hc))   # ' + (isFinite(H.coph) ? H.coph.toFixed(3) : '') + '\ncutree(hc, k = ' + k + ')')));
   }
 
   // text stats
@@ -3455,7 +3475,7 @@ class Component extends DCLogic {
       this.tlBanner('info', 'Averages per text. MATTR is the share of different words in every 50-word window (textstat_lexdiv(measure = "MATTR")); it does not fall as texts get longer the way the plain type–token ratio does. Reading ease: higher = easier; the Spanish score uses Fernández-Huerta’s formula with approximate syllable counts.'),
       this.tlBtn('Save word counts as variables', () => { this.tlSetIn('save', { nwords: true }); this.tlSet({ step: 'save' }); })),
       this.tlPanel('Length of the texts', 'median ' + q(0.5) + ' words · 90% have ' + q(0.05) + '–' + q(0.95), null, histSvg, this.tlExportRow('tllen', 'text-lengths'),
-        this.tlRcode('textstat_summary(corp)\ntextstat_lexdiv(toks, measure = "MATTR", MATTR_window = 50)\ntextstat_readability(corp, measure = "Flesch")')));
+        this.tlRcode('textstat_summary(corp)\ntextstat_lexdiv(tokens_subset(toks, ntoken(toks) >= 50), measure = "MATTR", MATTR_window = 50)   # texts of 50+ words; needs a lot of memory on long texts\ntextstat_readability(corp, measure = "Flesch")')));
   }
   // ---- step 4: measure
   tlStepMeasure(ctx) {
@@ -3612,7 +3632,8 @@ class Component extends DCLogic {
     }
     const by = T.by ? ' + `' + T.by + '`' : '';
     return h('div', { className: 'tl-col tl-dtime' }, title, ctl, ...charts,
-      this.tlRcode('hits <- convert(dfm(tokens_lookup(toks, dict, nested_scope = "key")), to = "data.frame")\ndf$period <- ' + this.tlRPeriod(T, unit) + '\n' + (all ? L.cats.map(c => 'aggregate(hits[["' + c.name + '"]] > 0 ~ period' + by + ', data = df, FUN = mean)').join('\n') : 'aggregate(hits[["' + L.cats[ci].name + '"]] ' + (DT.measure === 'pct' ? '> 0 ' : '') + '~ period' + by + ', data = df, FUN = ' + (DT.measure === 'pct' ? 'mean' : 'sum') + ')')));
+      this.tlRcode('hits <- convert(dfm(tokens_lookup(toks, dict, nested_scope = "key")), to = "data.frame")\ndf$period <- ' + this.tlRPeriod(T, unit) + '\n' + (all ? L.cats.map(c => 'aggregate(hits[["' + c.name + '"]] > 0 ~ period' + by + ', data = df, FUN = mean)').join('\n') : (DT.measure === 'rate' ? 'agg <- aggregate(cbind(hits = hits[["' + L.cats[ci].name + '"]], words = ntoken(toks_clean)) ~ period' + by + ', data = df, FUN = sum)\nagg$per10k <- 10000 * agg$hits / agg$words   # mentions per 10,000 words\nagg'
+        : 'aggregate(' + (DT.measure === 'pct' ? '100 * (hits[["' + L.cats[ci].name + '"]] > 0)' : 'hits[["' + L.cats[ci].name + '"]]') + ' ~ period' + by + ', data = df, FUN = ' + (DT.measure === 'pct' ? 'mean' : 'sum') + ')' + (DT.measure === 'pct' ? '   # % of texts that mention it' : '   # times mentioned')))));
   }
   tlPrecision(ctx, L) {
     const h = React.createElement, { T, C } = ctx, E = this._E, ci = Math.min(L.cats.length - 1, T.precCat || 0), PR = (T.prec || {})[L.cats[ci].name] || {};
@@ -3624,7 +3645,7 @@ class Component extends DCLogic {
     const mark = (i, v) => this.tlSet(cur => { const p = Object.assign({}, cur.prec || {}); p[L.cats[ci].name] = Object.assign({}, p[L.cats[ci].name] || {}, { [i]: v }); return { prec: p }; });
     return h('details', { className: 'tl-details' }, h('summary', null, 'Check accuracy: read 20 random matches' + (right + wrong ? ' · precision ' + this.tlPct(right / (right + wrong), 0) + ' (' + right + ' of ' + (right + wrong) + ' right)' : '')),
       h('div', { className: 'tl-row' }, this.tlSelect(String(ci), L.cats.map((c, i) => [String(i), c.name]), v => this.tlSet({ precCat: Number(v) }), 'Category to check'), this.tlBtn('New sample', () => this.tlSet({ precSeed: (T.precSeed || 7) + 1 }))),
-      h('table', { className: 'tl-kwic' }, h('tbody', null, sample.map(([i, r]) => h('tr', { key: i }, h('td', { className: 'meta' }, 'row ' + (this.tlRowOf(C, r.doc) + 1)), h('td', { className: 'pre' }, r.pre), h('td', { className: 'kw' }, r.kw), h('td', { className: 'post' }, r.post), h('td', { className: 'mark' }, this.tlChip('✓', PR[i] === 1, () => mark(i, 1), { title: 'Right' }), this.tlChip('✗', PR[i] === 0, () => mark(i, 0), { title: 'Wrong' })))))));
+      h('div', { className: 'tl-tblwrap' }, h('table', { className: 'tl-kwic' }, h('tbody', null, sample.map(([i, r]) => h('tr', { key: i }, h('td', { className: 'meta' }, 'row ' + (this.tlRowOf(C, r.doc) + 1)), h('td', { className: 'pre' }, r.pre), h('td', { className: 'kw' }, r.kw), h('td', { className: 'post' }, r.post), h('td', { className: 'mark' }, this.tlChip('✓', PR[i] === 1, () => mark(i, 1), { title: 'Right' }), this.tlChip('✗', PR[i] === 0, () => mark(i, 0), { title: 'Wrong' }))))))));
   }
   tlImportDict(text, name) {
     const cats = []; const add = (n, words) => { const w = words.map(s => s.trim()).filter(Boolean); if (n && w.length) cats.push({ name: n.trim(), keys: w.map(x => /\s/.test(x) ? '"' + x + '"' : x).join(', '), off: [] }); };
@@ -3770,7 +3791,7 @@ class Component extends DCLogic {
     return h('div', { className: 'tl-col' }, this.tlPanel('Topics found', K + ' topics · divergence ' + M.divergence.toFixed(3) + ' · type your own labels', null, cards,
       this.tlBarsSvg('tltopics', sizes, { title: 'Average share of each topic per text', xlab: '% of words', pct: true }), this.tlExportRow('tltopics', 'topic-shares'),
       h('div', { className: 'tl-row' }, this.tlBtn('Save main topic and shares as variables →', () => { this.tlSetIn('save', { topic: true, shares: true }); this.tlSet({ step: 'save' }); }, 'green')),
-      this.tlRcode('library(seededlda)\ndfmat_t <- dfm_trim(dfmat, min_docfreq = ' + this.tlTopEff(T, C).min + ') |> dfm_trim(max_docfreq = ' + (this.tlTopEff(T, C).maxPct / 100) + ', docfreq_type = "prop")\n' + (T.top.pool !== 'none' ? 'dfmat_t <- dfm_group(dfmat_t, groups = ' + T.by + (T.top.pool === 'group-month' ? ' + month' : '') + ')\n' : '') + 'set.seed(' + T.top.seed + ')\n' + (seeded ? 'tmod <- textmodel_seededlda(dfmat_t, dict, residual = ' + T.top.residual + ', max_iter = ' + T.top.iter + ')' : 'tmod <- textmodel_lda(dfmat_t, k = ' + K + ', max_iter = ' + T.top.iter + ')') + '\nterms(tmod, 10)\ntopics(tmod)          # main topic of each text\ndivergence(tmod)')), typical);
+      this.tlRcode('library(seededlda)\ndfmat_t <- dfm_trim(dfmat, min_docfreq = ' + this.tlTopEff(T, C).min + ') |> dfm_trim(max_docfreq = ' + (this.tlTopEff(T, C).maxPct / 100) + ', docfreq_type = "prop")\n' + (T.top.pool !== 'none' ? (T.top.pool === 'group-month' ? 'grp <- interaction(df$`' + T.by + '`, ' + this.tlRPeriod(T, 'month') + ', sep = " ", drop = TRUE)   # ' + T.by + ' × month\n' : '') + 'dfmat_t <- dfm_group(dfmat_t, groups = ' + (T.top.pool === 'group-month' ? 'grp' : '`' + T.by + '`') + ')\n' : '') + 'set.seed(' + T.top.seed + ')\n' + (seeded ? 'tmod <- textmodel_seededlda(dfmat_t, dict, residual = ' + T.top.residual + ', max_iter = ' + T.top.iter + ')' : 'tmod <- textmodel_lda(dfmat_t, k = ' + K + ', max_iter = ' + T.top.iter + ')') + '\nterms(tmod, 10)\ntopics(tmod)          # main topic of each text\ndivergence(tmod)')), typical);
   }
   tlTopicGrid(ctx, TD) {
     const ks = [5, 10, 15, 20, 25, 30].filter(k => k < TD.V), key = 'tlGrid|' + this.tlTopicKey(ctx, TD, 'grid');
@@ -3842,17 +3863,17 @@ class Component extends DCLogic {
       const key = 'tlWF|' + FT.sig + '|' + by + '|' + gi.join(',');
       const J = this.tlJob(key, 'tlWordfish', () => [M, { iter: 150 }], 'Fitting Wordfish');
       if (!J.done) out = this.tlPending(J.label);
-      else if (J.value) { const R = J.value; const ends = feats.map((f, j) => [f, R.beta[j]]).sort((a, b) => a[1] - b[1]); out = h('div', { className: 'tl-col' }, this.tlDotsSvg('tlwf', gi.map((g, i) => ({ label: G.labels[g], x: R.theta[i], lo: R.theta[i] - 1.96 * R.se[i], hi: R.theta[i] + 1.96 * R.se[i] })), { xlab: 'estimated position (θ) with 95% interval' }), this.tlExportRow('tlwf', 'wordfish'), this.tlBanner('info', h('b', null, 'Low end words: '), ends.slice(0, 12).map(e => FT.label[e[0]]).join(', '), h('br'), h('b', null, 'High end words: '), ends.slice(-12).reverse().map(e => FT.label[e[0]]).join(', ')), this.tlRcode('library(quanteda.textmodels)\ntmod <- textmodel_wordfish(dfm_group(dfmat, groups = ' + by + '))\ntextplot_scale1d(tmod)')); }
+      else if (J.value) { const R = J.value; const ends = feats.map((f, j) => [f, R.beta[j]]).sort((a, b) => a[1] - b[1]); out = h('div', { className: 'tl-col' }, this.tlDotsSvg('tlwf', gi.map((g, i) => ({ label: G.labels[g], x: R.theta[i], lo: R.theta[i] - 1.96 * R.se[i], hi: R.theta[i] + 1.96 * R.se[i] })), { xlab: 'estimated position (θ) with 95% interval' }), this.tlExportRow('tlwf', 'wordfish'), this.tlBanner('info', h('b', null, 'Low end words: '), ends.slice(0, 12).map(e => FT.label[e[0]]).join(', '), h('br'), h('b', null, 'High end words: '), ends.slice(-12).reverse().map(e => FT.label[e[0]]).join(', ')), this.tlRcode('library(quanteda.textmodels)\ntmod <- textmodel_wordfish(dfm_group(dfmat, groups = `' + by + '`))\ntextplot_scale1d(tmod)')); }
     } else if (SC.method === 'wordscores') {
       const ref = SC.ref || {};
       const scores = gi.map(g => { const v = ref[G.labels[g]]; return v === '' || v == null ? NaN : Number(v); });
       const inputs = h('div', { className: 'tl-row' }, ...gi.slice(0, 20).map((g, i) => h('label', { key: g, className: 'tl-field' }, h('span', { className: 'tl-lbl' }, String(G.labels[g]).slice(0, 18)), h('input', { type: 'number', className: 'tl-input num', style: { width: '76px' }, defaultValue: ref[G.labels[g]] ?? '', key: 'ws' + g + (ref[G.labels[g]] ?? ''), placeholder: '—', onBlur: e => set({ ref: Object.assign({}, ref, { [G.labels[g]]: e.target.value }) }) }))));
       const nRef = scores.filter(isFinite).length;
       if (nRef < 2) out = h('div', { className: 'tl-col' }, inputs, this.tlBanner('info', 'Give a known position (e.g. −1 and 1) to at least two groups.'));
-      else { const R = E.tlWordscores(M, scores); out = h('div', { className: 'tl-col' }, inputs, this.tlDotsSvg('tlws', gi.map((g, i) => ({ label: G.labels[g] + (isFinite(scores[i]) ? ' (reference)' : ''), x: R.score[i] })), { xlab: 'Wordscores position (raw)' }), this.tlExportRow('tlws', 'wordscores'), this.tlRcode('tmod <- textmodel_wordscores(dfm_group(dfmat, groups = ' + by + '), y = refscores)\npredict(tmod)')); }
+      else { const R = E.tlWordscores(M, scores); out = h('div', { className: 'tl-col' }, inputs, this.tlDotsSvg('tlws', gi.map((g, i) => ({ label: G.labels[g] + (isFinite(scores[i]) ? ' (reference)' : ''), x: R.score[i] })), { xlab: 'Wordscores position (raw)' }), this.tlExportRow('tlws', 'wordscores'), this.tlRcode('tmod <- textmodel_wordscores(dfm_group(dfmat, groups = `' + by + '`), y = refscores)\npredict(tmod)')); }
     } else {
       const R = this.memo('tlCA|' + FT.sig + '|' + by + '|' + gi.join(','), () => E.tlCA(M, 2));
-      out = h('div', { className: 'tl-col' }, this.tlScatterSvg('tlca', gi.map((g, i) => ({ label: G.labels[g], x: R.rowCoord[i][0], y: R.rowCoord[i][1] || 0 })), { xlab: 'Dimension 1 (' + this.tlPct(R.inertia[0], 0) + ' of inertia)', ylab: 'Dimension 2 (' + this.tlPct(R.inertia[1] || 0, 0) + ')' }), this.tlExportRow('tlca', 'correspondence-analysis'), this.tlRcode('tmod <- textmodel_ca(dfm_group(dfmat, groups = ' + by + '))\ntextplot_scale1d(tmod, margin = "documents")'));
+      out = h('div', { className: 'tl-col' }, this.tlScatterSvg('tlca', gi.map((g, i) => ({ label: G.labels[g], x: R.rowCoord[i][0], y: R.rowCoord[i][1] || 0 })), { xlab: 'Dimension 1 (' + this.tlPct(R.inertia[0], 0) + ' of inertia)', ylab: 'Dimension 2 (' + this.tlPct(R.inertia[1] || 0, 0) + ')' }), this.tlExportRow('tlca', 'correspondence-analysis'), this.tlRcode('tmod <- textmodel_ca(dfm_group(dfmat, groups = `' + by + '`))\ntextplot_scale1d(tmod, margin = "documents")'));
     }
     return h('div', { className: 'tl-col' }, this.tlPanel('Scale', gi.length + ' groups with 100+ words · ' + feats.length + ' words', null, ctl, help, out));
   }
@@ -3969,7 +3990,7 @@ class Component extends DCLogic {
     const file = this.state.fileName || 'data.csv', isX = /\.xlsx?$/i.test(file);
     const L = [];
     L.push('library(quanteda)', 'library(quanteda.textstats)', 'library(quanteda.textplots)');
-    L.push(isX ? 'df <- as.data.frame(readxl::read_excel("' + file + '"))' : 'df <- read.csv("' + file + '", encoding = "UTF-8")');
+    L.push(isX ? 'df <- as.data.frame(readxl::read_excel("' + file + '"))' : 'df <- read.csv("' + file + '", encoding = "UTF-8", check.names = FALSE)   # keep column names as they are');
     L.push('corp <- corpus(df, text_field = "' + T.v + '")' + (T.unit === 'sentence' ? ' |> corpus_reshape(to = "sentences")' : ''));
     L.push('toks <- tokens(corp, remove_punct = TRUE, remove_symbols = ' + (R.emoji === 'remove' ? 'TRUE' : 'FALSE') + ', remove_numbers = ' + (R.num === 'remove' ? 'TRUE' : 'FALSE') + ', remove_url = ' + (R.url === 'remove' ? 'TRUE' : 'FALSE') + ', split_hyphens = ' + (R.hyphen === 'split' ? 'TRUE' : 'FALSE') + ', split_tags = ' + (R.tag === 'word' ? 'TRUE' : 'FALSE') + ') |>\n  tokens_tolower()');
     if (R.fold) L.push('# ignore accents (keeps ñ and ç): á→a, é→e, ü→u …', 'fold <- function(x) stringi::stri_trans_general(x, "NFD; [[:Mn:] - [\\\\u0303\\\\u0327]] Remove; NFC")', 'toks <- tokens_replace(toks, types(toks), fold(types(toks)), valuetype = "fixed")');
@@ -10396,7 +10417,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-06.82') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-06.83') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {

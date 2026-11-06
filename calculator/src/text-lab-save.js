@@ -111,7 +111,7 @@
     const file = this.state.fileName || 'data.csv', isX = /\.xlsx?$/i.test(file);
     const L = [];
     L.push('library(quanteda)', 'library(quanteda.textstats)', 'library(quanteda.textplots)');
-    L.push(isX ? 'df <- as.data.frame(readxl::read_excel("' + file + '"))' : 'df <- read.csv("' + file + '", encoding = "UTF-8")');
+    L.push(isX ? 'df <- as.data.frame(readxl::read_excel("' + file + '"))' : 'df <- read.csv("' + file + '", encoding = "UTF-8", check.names = FALSE)   # keep column names as they are');
     L.push('corp <- corpus(df, text_field = "' + T.v + '")' + (T.unit === 'sentence' ? ' |> corpus_reshape(to = "sentences")' : ''));
     L.push('toks <- tokens(corp, remove_punct = TRUE, remove_symbols = ' + (R.emoji === 'remove' ? 'TRUE' : 'FALSE') + ', remove_numbers = ' + (R.num === 'remove' ? 'TRUE' : 'FALSE') + ', remove_url = ' + (R.url === 'remove' ? 'TRUE' : 'FALSE') + ', split_hyphens = ' + (R.hyphen === 'split' ? 'TRUE' : 'FALSE') + ', split_tags = ' + (R.tag === 'word' ? 'TRUE' : 'FALSE') + ') |>\n  tokens_tolower()');
     if (R.fold) L.push('# ignore accents (keeps ñ and ç): á→a, é→e, ü→u …', 'fold <- function(x) stringi::stri_trans_general(x, "NFD; [[:Mn:] - [\\\\u0303\\\\u0327]] Remove; NFC")', 'toks <- tokens_replace(toks, types(toks), fold(types(toks)), valuetype = "fixed")');
