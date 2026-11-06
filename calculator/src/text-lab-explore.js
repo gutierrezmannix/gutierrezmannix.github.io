@@ -292,18 +292,16 @@
     const lineOpts = many ? [['item', 'One line per ' + (kind === 'var' ? 'variable' : 'word / category')]].concat(G ? [['grid-author', 'One chart per ' + T.by], ['grid-item', 'One chart per ' + (kind === 'var' ? 'variable' : 'word / category')]] : []).concat(combined && G ? [['author', 'All together, one line per ' + T.by]] : [])
       : (G ? [['author', '']] : [['none', '']]);   // one series: the Plot by variable alone decides (a line per group, or all texts)
     const lines = lineOpts.some(o => o[0] === TM.lines) ? TM.lines : lineOpts[0][0];
-    // number of texts: as a count, as the % of all texts (each line's texts spread over the periods), or, split by group,
-    // as each group's share of the period's texts (the lines add up to 100% in every period)
-    const nOpts = [['count', 'Count'], ['share', '% of all texts']].concat(kind === 'ntexts' && G && lines === 'author' ? [['period', '100% per ' + unit]] : []);
+    // number of texts: as a count, or as the % of all texts (each line's texts spread over the periods)
+    const nOpts = [['count', 'Count'], ['share', '% of all texts']];
     const nm = kind === 'ntexts' && nOpts.some(o => o[0] === TM.nmeasure) ? TM.nmeasure : 'count';
     if (kind === 'ntexts' && nm === 'share') ylab = '% of all texts';
-    if (kind === 'ntexts' && nm === 'period') ylab = '% of the ' + unit + '’s texts';
     const sig = 'tlTA|' + FT.sig + '|' + T.date + '|' + T.time.order + '|' + unit + '|' + TM.what + '|' + measure + '|' + lines + '|' + T.by + '|' + T.mergeCase + '|' + this.filterSig() + '|' + (kind === 'var' ? (this._dataRev || 0) + items.map(i => i.name).join(',') : JSON.stringify(this.tlCats(T)) + '|' + (T.q || '') + '|' + (T.qOff || []).join(','));
     const charts = [];   // [{ key, title, data }]
     const one = (key, title, defs) => charts.push({ key, title, data: this.memo(sig + '|' + key, () => this.tlTimeAgg(ctx, D, unit, defs, measure, kind === 'ntexts')) });
     if (items.length) {
       const single = combined || parts[0];
-      const t1 = kind === 'ntexts' ? (nm === 'count' ? 'Number of texts per ' + unit : nm === 'share' ? 'Share of all texts in each ' + unit : 'Share of each ' + unit + '’s texts') : single.name + ' · ' + ylab;
+      const t1 = kind === 'ntexts' ? (nm === 'count' ? 'Number of texts per ' + unit : 'Share of all texts in each ' + unit) : single.name + ' · ' + ylab;
       if (lines === 'author') one('tltime', t1, this.tlGroupDefs(ctx, single.x).defs);
       else if (lines === 'none') one('tltime', t1, [{ name: 'All texts', color: this.tlPal(0), inc: () => true, x: single.x }]);
       else if (lines === 'item') one('tltime', ylab + (kind === 'var' ? '' : ' · each word / category'), parts.map((it, k) => ({ name: it.name, color: this.tlPal(k), inc: () => true, x: it.x })));
@@ -312,8 +310,7 @@
     }
     if (kind === 'ntexts' && nm !== 'count') charts.forEach(ch => {
       const S = ch.data.series, xs = ch.data.xs, fin = v => isFinite(v) ? v : 0;
-      const series = nm === 'share' ? S.map(se => { const tot = se.pts.reduce((a, v) => a + fin(v), 0); return Object.assign({}, se, { pts: se.pts.map(v => isFinite(v) && tot ? 100 * v / tot : NaN) }); })
-        : S.map(se => Object.assign({}, se, { pts: se.pts.map((v, j) => { const tot = S.reduce((a, o) => a + fin(o.pts[j]), 0); return isFinite(v) && tot ? 100 * v / tot : NaN; }) }));
+      const series = S.map(se => { const tot = se.pts.reduce((a, v) => a + fin(v), 0); return Object.assign({}, se, { pts: se.pts.map(v => isFinite(v) && tot ? 100 * v / tot : NaN) }); });
       ch.data = { xs, series };
     });
     const ctl = h('div', { className: 'tl-col' }, h('div', { className: 'tl-row wide' }, head,
@@ -335,8 +332,7 @@
     const P = this.tlRPeriod(T, unit), by = G && lines !== 'none' && lines !== 'item' ? ' + `' + T.by + '`' : '';
     const rcode = kind === 'var' ? 'df$period <- ' + P + '\naggregate(cbind(' + items.map(i => '`' + i.name + '`').join(', ') + ') ~ period' + by + ', data = df, FUN = ' + (measure === 'pct' ? 'function(v) 100 * mean(v > 0)' : measure === 'sum' ? 'sum' : 'mean') + ')'
       : kind === 'ntexts' ? 'df$period <- ' + P + '\n' + (nm === 'count' ? 'table(df$period' + (by ? ', df$`' + T.by + '`' : '') + ')        # number of texts per period' + (by ? ' and ' + T.by : '')
-        : nm === 'share' ? '100 * prop.table(table(df$period' + (by ? ', df$`' + T.by + '`), margin = 2)   # % of each ' + T.by + '’s texts in each period' : '))   # % of all texts in each period')
-        : '100 * prop.table(table(df$period, df$`' + T.by + '`), margin = 1)   # each ' + T.by + '’s share of the period’s texts (rows add up to 100)')
+        : '100 * prop.table(table(df$period' + (by ? ', df$`' + T.by + '`), margin = 2)   # % of each ' + T.by + '’s texts in each period' : '))   # % of all texts in each period'))
       : kind === 'words' ? 'df$words <- ntoken(toks_clean)\ndf$period <- ' + P + '\naggregate(words ~ period' + by + ', data = df, FUN = mean)'
       : 'dict <- dictionary(list(' + parts.map((it, k) => '`' + it.name + '` = ' + this.tlRvec([it.name])).join(', ') + '))   # or your dictionary\nhits <- convert(dfm(tokens_lookup(toks, dict, nested_scope = "key")), to = "data.frame")\ndf$period <- ' + P + '\naggregate(cbind(' + parts.map(it => '`' + it.name + '`').join(', ') + ') ~ period' + by + ', data = cbind(df, hits[-1] > 0), FUN = mean)';
     const need = !items.length;

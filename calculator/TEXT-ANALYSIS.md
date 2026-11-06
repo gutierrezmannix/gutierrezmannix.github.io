@@ -28,10 +28,11 @@ single line. There is no separate "one line per …" switch any more: the variab
 or categories are plotted, a **Layout** choice (one line per word, one chart per author, one chart per word) appears.
 It is the same setting as *Groups to compare* in step 1, so it can be set in either place.
 
-**Number of texts as Count, % or 100% (build .80).** With Show = *Number of texts*, **As** offers *Count*,
-*% of all texts* (each line's texts spread over the periods, so a line adds up to 100%) and, when plotted by a
-variable, *100% per year* (or quarter, month …): each author's share of that period's texts, so the lines add up to
-100% in every period. The R code below the chart switches to `prop.table()` with the matching margin.
+**Number of texts and searches over time (builds .80–.82).** With Show = *Number of texts*, **As** offers *Count* and
+*% of all texts* (each line's texts spread over the periods). A search typed in any tab (or a word clicked in a table)
+switches Over time from *Number of texts* to that search, with the same **As** choices as the Measure timeline:
+*% of texts*, *Count* and *Per 10k words*. A dictionary category or saved variable already on show is left as it is.
+(The *100% per year* option of build .80 was removed in .82.)
 
 **Search in Over time and Connections (build .81).** Both tabs now have the same **Search** box as *In context*
 (it is one search: typing it in any of the three changes it everywhere), with the list of the word forms it matched

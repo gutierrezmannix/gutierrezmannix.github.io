@@ -25,7 +25,10 @@
     for (const k of ['rec', 'cloud', 'key', 'time', 'dtime', 'dcloud', 'coll', 'net', 'clu', 'sent', 'top', 'nb', 'scale', 'save']) o[k] = Object.assign({}, d[k], s[k] || {});
     return o;
   }
-  tlSet(patch) { this.setState(st => { const cur = st.tl || {}; const p = typeof patch === 'function' ? patch(Object.assign(this.tlDefaults(), cur)) : patch; return { tl: Object.assign({}, cur, p) }; }); }
+  tlSet(patch) { this.setState(st => { const cur = st.tl || {}; let p = typeof patch === 'function' ? patch(Object.assign(this.tlDefaults(), cur)) : patch;
+    // a new search (typed in any tab, or a word clicked in a table) is what Over time shows, unless it shows a category or a variable
+    if (p && typeof p.q === 'string' && p.q.trim() && p.q !== cur.q && !p.time) { const tm = Object.assign({}, this.tlDefaults().time, cur.time || {}); if (tm.what === 'ntexts') p = Object.assign({}, p, { time: Object.assign({}, tm, { what: 'search' }) }); }
+    return { tl: Object.assign({}, cur, p) }; }); }
   tlSetIn(k, patch) { this.tlSet(cur => ({ [k]: Object.assign({}, this.tlDefaults()[k], cur[k] || {}, patch) })); }
 
   // ---- columns and sensible defaults
