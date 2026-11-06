@@ -3138,7 +3138,7 @@ class Component extends DCLogic {
     const sig = res.rows.filter(r => isFinite(r.p) && r.p < 0.001);
     const story = this.tlBanner('ok', h('b', null, 'What this means: '), tName + ' uses ' + words(top) + ' much more than ' + rName + '. ' + (bot.length ? rName.charAt(0).toUpperCase() + rName.slice(1) + ' uses ' + words(bot) + ' more. ' : '') + this.fmtN(sig.length) + ' words differ with p < .001 (each used at least ' + K.min + ' times). Read them in context before quoting.');
     return h('div', { className: 'tl-col' }, this.tlPanel('Compare groups', 'which words set one group apart (textstat_keyness)', null, ctl, story, svg, this.tlExportRow('tlkey', 'keyness'), tbl,
-      this.tlRcode('dfmat <- dfm(toks)\ntextstat_keyness(dfm_group(dfmat, groups = ' + by + '), target = "' + tName + '", measure = "' + K.measure + '")' + (ref >= 0 ? '\n# against one group only: dfm_subset(dfmat, ' + by + ' %in% c("' + tName + '", "' + rName + '")) first' : '') + '\ntextplot_keyness(key, n = ' + n + ')')));
+      this.tlRcode('# dfmat is the cleaned dfm from the recipe above (stopwords removed), as on this page\n' + (ref >= 0 ? 'dfk <- dfm_subset(dfmat, ' + by + ' %in% c("' + tName + '", "' + rName + '"))   # against one group only\n' : 'dfk <- dfmat\n') + 'key <- textstat_keyness(dfm_group(dfk, groups = ' + by + '), target = "' + tName + '", measure = "' + K.measure + '")\nkey <- key[key$n_target + key$n_reference >= ' + K.min + ', ]   # words used at least ' + K.min + ' times, as the page shows\nhead(key, ' + n + '); tail(key, ' + n + ')\ntextplot_keyness(key, n = ' + n + ')')));
   }
 
   // in context: kwic + match list + by group
@@ -10321,7 +10321,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-05.77') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-06.78') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
