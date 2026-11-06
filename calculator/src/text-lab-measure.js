@@ -187,7 +187,7 @@
   }
   tlDictYaml(T) { return this.tlCats(T).map(c => { const E = this._E, ps = E.tlParsePatterns(c.keys).filter(p => !p.neg).map(p => p.parts.join(' ')); return c.name + ':\n' + ps.map(p => '  - ' + (/[:#\s]/.test(p) ? '"' + p + '"' : p)).join('\n'); }).join('\n') + '\n'; }
 
-  // sentiment: polarity from two dictionary categories (quanteda.sentiment), or a valence list
+  // sentiment: polarity from two dictionary categories (as quanteda.sentiment's textstat_polarity), or a valence list
   tlSentiment(ctx) {
     const h = React.createElement, { T, C, FT } = ctx, E = this._E, SN = T.sent, set = p => this.tlSetIn('sent', p);
     const L = this.tlDictLook(ctx), cats = L ? L.cats.map(c => c.name) : [];
@@ -201,7 +201,7 @@
     if (score) {
       const G = T.by ? this.tlGroupsOf(T, C, T.by) : null, mask = ctx.mask, groups = G ? G.labels.map((l, i) => i).sort((a, b) => G.count[b] - G.count[a]).slice(0, 15) : [null];
       const agg = groups.map(g => { let n = 0, s = 0, pos = 0, neg = 0; for (let d = 0; d < score.v.length; d++) { if ((G && G.g[d] !== g) || (mask && !mask[d]) || !isFinite(score.v[d])) continue; n++; s += score.v[d]; if (score.v[d] > 0) pos++; else if (score.v[d] < 0) neg++; } return { n, mean: s / n, pos, neg }; });
-      const bars = this.tlBarsSvg('tlsent', groups.map((g, i) => ({ label: G ? G.labels[g] : 'All texts', value: agg[i].mean, note: this.tlPct(agg[i].pos / Math.max(1, agg[i].n), 0) + ' positive · ' + this.tlPct(agg[i].neg / Math.max(1, agg[i].n), 0) + ' negative', color: agg[i].mean >= 0 ? '#2E7D58' : '#A3540F' })), { title: 'Mean ' + score.name + ' per text' + (G ? ' by ' + T.by : ''), xlab: score.name, diverging: true });
+      const bars = this.tlBarsSvg('tlsent', groups.map((g, i) => ({ g, i })).filter(o => agg[o.i].n > 0).map(({ g, i }) => ({ label: G ? G.labels[g] : 'All texts', value: agg[i].mean, note: this.tlPct(agg[i].pos / Math.max(1, agg[i].n), 0) + ' positive · ' + this.tlPct(agg[i].neg / Math.max(1, agg[i].n), 0) + ' negative', color: agg[i].mean >= 0 ? '#2E7D58' : '#A3540F' })), { title: 'Mean ' + score.name + ' per text' + (G ? ' by ' + T.by : ''), xlab: score.name, diverging: true });
       out = this.tlPanel('Results', null, null, bars, this.tlExportRow('tlsent', 'sentiment'), h('div', { className: 'tl-row' }, this.tlBtn('Save the score as a variable →', () => { this.tlSetIn('save', { sent: true }); this.tlSet({ step: 'save' }); }, 'green')), this.tlRcode(score.r));
     }
     return h('div', { className: 'tl-col' }, this.tlPanel('Sentiment', 'polarity from your own word lists', null, help, ctl, val, !L ? this.tlBanner('warn', 'Create a positive and a negative category in Dictionary first.') : null), out);
@@ -213,12 +213,12 @@
         const pairs = SN.valence.split(/\n/).map(l => l.match(/^\s*(.+?)\s*[=:\t,]\s*(-?\d+(?:\.\d+)?)\s*$/)).filter(Boolean).map(m => ({ k: m[1], s: Number(m[2]) }));
         const comp = E.tlCompileDict(C, pairs.map((p, i) => ({ name: 'v' + i, keys: p.k })), !!T.rec.fold), res = E.tlLookup(C, comp), n = C.off.length - 1, v = new Float64Array(n);
         for (let d = 0; d < n; d++) { if (C.blank[d]) { v[d] = NaN; continue; } let s = 0, c = 0; res.forEach((r, i) => { const k = r.counts[d]; if (k > 0) { s += k * pairs[i].s; c += k; } }); v[d] = c ? s / c : NaN; }
-        return { v, name: 'valence (mean word score)', r: 'valence(dict) <- ' + JSON.stringify(Object.fromEntries(pairs.map(p => [p.k, p.s]))) + '  # see quanteda.sentiment\ntextstat_valence(toks, dictionary = dict)' };
+        return { v, name: 'valence (mean word score)', r: 'sc <- c(' + pairs.map(p => JSON.stringify(T.rec.fold ? this._E.tlFold(p.k.toLowerCase()) : p.k.toLowerCase()) + ' = ' + p.s).join(', ') + ')   # your word scores\ndic_v <- dictionary(setNames(as.list(names(sc)), names(sc)))   # one key per scored word (wildcards work)\nhits <- as.matrix(dfm(tokens_lookup(toks, dic_v, nested_scope = "key")))[, names(sc), drop = FALSE]\nvalence <- as.vector(hits %*% sc) / rowSums(hits)   # mean score of the scored words in each text (NaN when none), as textstat_valence()' };
       });
     }
     if (!L) return null;
     const pi = L.cats.findIndex(c => c.name === SN.pos), ni = L.cats.findIndex(c => c.name === SN.neg); if (pi < 0 || ni < 0 || pi === ni) return null;
-    return this.memo('tlPol|' + C.key + '|' + JSON.stringify(L.cats) + pi + ni, () => { const a = L.res[pi].counts, b = L.res[ni].counts; return { v: Float64Array.from(a, (x, d) => isFinite(x) ? Math.log((x + 0.5) / (b[d] + 0.5)) : NaN), name: 'polarity', r: 'library(quanteda.sentiment)\npolarity(dict) <- list(pos = "' + SN.pos + '", neg = "' + SN.neg + '")\ntextstat_polarity(toks, dictionary = dict)   # log((pos + 0.5) / (neg + 0.5))' }; });
+    return this.memo('tlPol|' + C.key + '|' + JSON.stringify(L.cats) + pi + ni, () => { const a = L.res[pi].counts, b = L.res[ni].counts; return { v: Float64Array.from(a, (x, d) => isFinite(x) ? Math.log((x + 0.5) / (b[d] + 0.5)) : NaN), name: 'polarity', r: 'pol <- convert(dfm(tokens_lookup(toks, dict[c("' + SN.pos + '", "' + SN.neg + '")], nested_scope = "key")), to = "data.frame")\npol$polarity <- log((pol[["' + SN.pos + '"]] + 0.5) / (pol[["' + SN.neg + '"]] + 0.5))   # as textstat_polarity() in quanteda.sentiment; 0 = balanced' + (T.by ? '\naggregate(pol$polarity ~ df$`' + T.by + '`, FUN = mean)   # mean per ' + T.by : '') }; });
   }
 
   // topics: seededlda
@@ -353,14 +353,17 @@
       for (let d = 0; d < nd; d++) if (test[d] && m1.pred[d] >= 0) { cm[y[d]][m1.pred[d]]++; nt++; if (y[d] === m1.pred[d]) ok++; }
       const all = new Uint8Array(nd); for (let d = 0; d < nd; d++) all[d] = train[d] || test[d];
       const m2 = E.tlNaiveBayes(FT, y, G.labels, all, { prior: NB.prior });
-      let unl = 0; for (let d = 0; d < nd; d++) if (y[d] < 0 && !C.blank[d]) unl++;
+      let unl = 0; const present = new Array(G.labels.length).fill(0);
+      for (let d = 0; d < nd; d++) { if (mask && !mask[d]) continue; if (y[d] < 0 && !C.blank[d]) unl++; if (all[d]) present[y[d]]++; }
       const tops = G.labels.map((l, c) => { const o = FT.order.slice(0, 5000).map(f => [f, m2.logPw[c][f] - Math.max(...m2.logPw.map((lp, j) => j === c ? -Infinity : lp[f]))]); return o.sort((a, b) => b[1] - a[1]).slice(0, 10).map(([f]) => FT.label[f]); });
-      return { acc: nt ? ok / nt : NaN, nt, nl, cm, unl, tops, base: Math.max(...G.count) / G.count.reduce((a, b) => a + b, 0), m2 };
+      // the baseline and the table use only the labelled texts in the current subgroup, as the accuracy does
+      return { acc: nt ? ok / nt : NaN, nt, nl, cm, unl, tops, present, base: Math.max(...present) / Math.max(1, present.reduce((a, b) => a + b, 0)), m2 };
     });
-    const groups = G.labels.map((l, i) => i);
+    const groups = G.labels.map((l, i) => i).filter(g => res.present[g] > 0);
+    if (groups.length < 2) return this.tlPanel('Classify', 'predict a label from the words (textmodel_nb)', null, ctl, help, this.tlBanner('warn', h('b', null, 'Only one label has texts' + (ctx.mask ? ' in the current subgroup' : '') + ' (' + (groups.length ? G.labels[groups[0]] : 'none') + '), '), 'so there is nothing to tell apart. ' + (ctx.mask ? 'Clear or widen the subgroup, or pick' : 'Pick') + ' a column with at least two labels.'));
     const cmTbl = h('div', { className: 'tl-tblwrap' }, h('table', { className: 'tl-tbl' }, h('thead', null, h('tr', null, h('th', null, 'true ↓ / predicted →'), ...groups.map(g => h('th', { key: g, className: 'n' }, String(G.labels[g]).slice(0, 14))), h('th', { className: 'n' }, 'recall'))), h('tbody', null, groups.map(g => h('tr', { key: g }, h('td', { className: 'w' }, G.labels[g]), ...groups.map(p => h('td', { key: p, className: 'n' + (p === g ? ' sig' : '') }, res.cm[g][p])), h('td', { className: 'n' }, this.tlPct(res.cm[g][g] / Math.max(1, res.cm[g].reduce((a, b) => a + b, 0)), 0)))))));
     return h('div', { className: 'tl-col' }, this.tlPanel('Classify', 'predict a label from the words (textmodel_nb)', null, ctl, help,
-      this.tlBanner(res.acc > res.base + 0.05 ? 'ok' : 'warn', h('b', null, 'Accuracy on ' + this.fmtN(res.nt) + ' held-out texts: ' + this.tlPct(res.acc) + '. '), 'Always guessing the biggest label would score ' + this.tlPct(res.base) + '. ' + (res.unl ? this.fmtN(res.unl) + ' texts have no label and can get a predicted one.' : '')),
+      this.tlBanner(res.acc > res.base + 0.05 ? 'ok' : 'warn', h('b', null, 'Accuracy on ' + this.fmtN(res.nt) + ' held-out texts: ' + this.tlPct(res.acc) + '. '), 'Always guessing the biggest label would score ' + this.tlPct(res.base) + '. ' + (res.unl ? this.fmtN(res.unl) + (res.unl === 1 ? ' text has' : ' texts have') + ' no label and can get a predicted one.' : '')),
       cmTbl, h('span', { className: 'tl-lbl' }, 'Words that most point to each label'),
       h('div', { className: 'tl-col' }, groups.map(g => h('div', { key: g, className: 'tl-cluster' }, h('span', { className: 'sw', style: { background: this.tlPal(g) } }), h('b', null, G.labels[g] + ': '), res.tops[g].join(', ')))),
       h('div', { className: 'tl-row' }, this.tlBtn('Save predicted label and probability →', () => { this.tlSetIn('save', { nb: true }); this.tlSet({ step: 'save' }); }, 'green')),
@@ -378,6 +381,8 @@
     const gc = this.memo('tlGC|' + FT.sig + '|' + by + '|' + T.mergeCase, () => E.tlGroupCounts(FT, G.g, G.labels.length, ctx.mask));
     const gi = G.labels.map((l, i) => i).filter(i => gc.tot[i] >= 100).sort((a, b) => G.count[b] - G.count[a]).slice(0, 40);
     const feats = cnt.order.filter(f => FT.kind[f] !== 4).slice(0, 1500).filter(f => gi.filter(g => gc.counts[g][f] > 0).length >= 2).slice(0, 1000);
+    // a group with (almost) no words, e.g. outside the current subgroup, is left out; at least 3 must remain
+    if (gi.length < 3) return this.tlPanel('Scale', 'place groups on a dimension', null, ctl, help, this.tlBanner('warn', 'Scaling needs at least 3 groups with 100 words or more' + (ctx.mask ? ' in the current subgroup' : '') + '; ' + gi.length + ' ' + (gi.length === 1 ? 'has' : 'have') + ' that many.'));
     const M = gi.map(g => Array.from(feats, f => gc.counts[g][f]));
     let out = null;
     if (SC.method === 'wordfish') {

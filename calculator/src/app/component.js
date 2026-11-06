@@ -3147,12 +3147,12 @@ class Component extends DCLogic {
     const svg = this.tlKeynessSvg('tlkey', top, bot, FT, tName, rName, K.measure);
     const rate = (c, t) => t ? (1e4 * c / t).toFixed(1) : '—';
     const tbl = h('div', { className: 'tl-tblwrap' }, h('table', { className: 'tl-tbl tl-wraph' }, h('thead', null, h('tr', null, h('th', null, 'Word'), h('th', { className: 'n' }, K.measure === 'chi2' ? 'χ²' : K.measure === 'lr' ? 'G²' : K.measure === 'exact' ? 'odds ratio' : 'PMI'), h('th', { className: 'n' }, 'p'), h('th', { className: 'n' }, tName.slice(0, 18) + ' per 10k'), h('th', { className: 'n' }, rName.slice(0, 18) + ' per 10k'))),
-      h('tbody', null, top.concat(bot).map(r => h('tr', { key: r.f }, h('td', { className: 'w' }, h('button', { type: 'button', className: 'tl-link', onClick: () => this.tlSet({ q: FT.label[r.f], sub: 'context', qOff: [] }) }, FT.label[r.f])), h('td', { className: 'n' }, this.fmt(r.stat, 1)), h('td', { className: 'n' }, isFinite(r.p) ? (r.p < 0.001 ? '<.001' : r.p.toFixed(3)) : '—'), h('td', { className: 'n' }, rate(r.a, res.Tt)), h('td', { className: 'n' }, rate(r.b, res.Tr)))))));
+      h('tbody', null, top.concat(bot).map(r => h('tr', { key: r.f }, h('td', { className: 'w' }, h('button', { type: 'button', className: 'tl-link', onClick: () => this.tlSet({ q: FT.label[r.f], sub: 'context', qOff: [] }) }, FT.label[r.f])), h('td', { className: 'n' }, K.measure === 'exact' ? (r.or === Infinity ? '∞' : this.fmt(r.or, 2)) : this.fmt(r.stat, 1)), h('td', { className: 'n' }, isFinite(r.p) ? (r.p < 0.001 ? '<.001' : r.p.toFixed(3)) : '—'), h('td', { className: 'n' }, rate(r.a, res.Tt)), h('td', { className: 'n' }, rate(r.b, res.Tr)))))));
     const words = arr => arr.slice(0, 5).map(r => FT.label[r.f]).join(', ');
     const sig = res.rows.filter(r => isFinite(r.p) && r.p < 0.001);
     const story = this.tlBanner('ok', h('b', null, 'What this means: '), tName + ' uses ' + words(top) + ' much more than ' + rName + '. ' + (bot.length ? rName.charAt(0).toUpperCase() + rName.slice(1) + ' uses ' + words(bot) + ' more. ' : '') + this.fmtN(sig.length) + ' words differ with p < .001 (each used at least ' + K.min + ' times). Read them in context before quoting.');
     return h('div', { className: 'tl-col' }, this.tlPanel('Compare groups', 'which words set one group apart (textstat_keyness)', null, ctl, story, svg, this.tlExportRow('tlkey', 'keyness'), tbl,
-      this.tlRcode('# dfmat is the cleaned dfm from the recipe above (stopwords removed), as on this page\n' + (ref >= 0 ? 'dfk <- dfm_subset(dfmat, `' + by + '` %in% c("' + tName + '", "' + rName + '"))   # against one group only\n' : 'dfk <- dfmat\n') + 'key <- textstat_keyness(dfm_group(dfk, groups = `' + by + '`), target = "' + tName + '", measure = "' + K.measure + '")\nkey <- key[key$n_target + key$n_reference >= ' + K.min + ', ]   # words used at least ' + K.min + ' times, as the page shows\nhead(key, ' + n + '); tail(key, ' + n + ')\ntextplot_keyness(key, n = ' + n + ')')));
+      this.tlRcode('# dfmat is the cleaned dfm from the recipe above (stopwords removed), as on this page\n' + (ref >= 0 ? 'dfk <- dfm_subset(dfmat, `' + by + '` %in% c("' + tName + '", "' + rName + '"))   # against one group only\n' : 'dfk <- dfmat\n') + 'key <- textstat_keyness(dfm_group(dfk, groups = `' + by + '`), target = "' + tName + '", measure = "' + K.measure + '")\n' + (K.measure === 'exact' ? 'Tt <- sum(key$n_target); Tr <- sum(key$n_reference)   # all words of each side\nkey$log_or <- log(((key$n_target + 0.5) * (Tr - key$n_reference + 0.5)) / ((key$n_reference + 0.5) * (Tt - key$n_target + 0.5)))\n' : '') + 'key <- key[key$n_target + key$n_reference >= ' + K.min + ', ]   # words used at least ' + K.min + ' times, as the page shows\n' + (K.measure === 'exact' ? 'key <- key[order(-key$log_or, key$p), ]   # ranked as on the page: log odds ratio (+0.5), then p\n' : '') + 'head(key, ' + n + '); tail(key, ' + n + ')\n' + (K.measure === 'exact' ? 'key$exact <- key$log_or   # the plot needs finite values: draw the log odds ratio, as on the page\n' : '') + 'textplot_keyness(key, n = ' + n + ')')));
   }
 
   // in context: kwic + match list + by group
@@ -3463,7 +3463,8 @@ class Component extends DCLogic {
     const members = Array.from({ length: k }, (_, i) => labels.filter((_, j) => cl[j] === i + 1));
     return h('div', { className: 'tl-grid c-cl' }, this.tlPanel('Settings', null, null, controls), this.tlPanel('Dendrogram', note + ' · ' + dist + ' distance · ' + CU.link + ' linkage', null, svg, this.tlExportRow('tldendro', 'dendrogram'),
       h('div', { className: 'tl-clusters' }, members.map((m, i) => h('div', { key: i, className: 'tl-cluster' }, h('span', { className: 'sw', style: { background: this.tlPal(i) } }), h('b', null, 'Cluster ' + (i + 1) + ' · ' + m.length), ' ', m.slice(0, 18).join(', ') + (m.length > 18 ? ' …' : '')))),
-      this.tlRcode((CU.what === 'groups' ? (CU.byYear && T.date ? 'grp <- interaction(df$`' + T.by + '`, ' + this.tlRPeriod(T, 'year') + ', sep = " ", drop = TRUE)   # ' + T.by + ' × year\n' : '') + 'dfmat_g <- dfm_group(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + '))), groups = ' + (CU.byYear && T.date ? 'grp)' : '`' + T.by + '`)') : CU.what === 'texts' ? 'dfmat_g <- dfm_sample(dfmat, ' + labels.length + ')' : 'dfmat_g <- t(fcm(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + ')))))') + '\n' + (CU.weight === 'prop' ? 'dfmat_g <- dfm_weight(dfmat_g, scheme = "prop")\n' : CU.weight === 'tfidf' ? 'dfmat_g <- dfm_tfidf(dfmat_g)\n' : '') + (['cosine', 'correlation', 'jaccard'].includes(dist) ? 'd <- as.dist(1 - as.matrix(textstat_simil(dfmat_g, method = "' + dist + '")))' : 'd <- as.dist(as.matrix(textstat_dist(dfmat_g, method = "' + dist + '")))') + '\nhc <- hclust(d, method = "' + CU.link + '")\nplot(hc); rect.hclust(hc, k = ' + k + ')\ncor(d, cophenetic(hc))   # ' + (isFinite(H.coph) ? H.coph.toFixed(3) : '') + '\ncutree(hc, k = ' + k + ')')));
+      this.tlRcode((CU.what === 'groups' ? (CU.byYear && T.date ? 'grp <- interaction(df$`' + T.by + '`, ' + this.tlRPeriod(T, 'year') + ', sep = " ", drop = TRUE)   # ' + T.by + ' × year\n' : '') + 'dfmat_g <- dfm_group(dfmat, groups = ' + (CU.byYear && T.date ? 'grp)' : '`' + T.by + '`)') + '\ndfmat_g <- dfm_subset(dfmat_g, ntoken(dfmat_g) >= 200)   # groups with 200+ words, as on the page\ndfmat_g <- dfm_select(dfmat_g, names(topfeatures(dfmat, ' + topF.length + ')))' : CU.what === 'texts' ? 'keep <- which(ntoken(dfmat) >= 5)   # texts with 5+ words, an even sample of them as on the page\npick <- head(keep[seq(1, length(keep), by = max(1, length(keep) %/% ' + labels.length + '))], ' + labels.length + ')\ndfmat_g <- dfm_select(dfmat[pick, ], names(topfeatures(dfmat, ' + topF.length + ')))\ndfmat_g <- dfm_subset(dfmat_g, ntoken(dfmat_g) > 0)'
+        : 'fc <- as.matrix(fcm(dfm_weight(dfm_select(dfmat, names(topfeatures(dfmat, ' + topF.length + '))), scheme = "boolean"), tri = FALSE)); diag(fc) <- 0   # texts where two words meet\ndfmat_g <- as.dfm(fc)') + '\n' + (CU.weight === 'prop' ? 'dfmat_g <- dfm_weight(dfmat_g, scheme = "prop")\n' : CU.weight === 'tfidf' ? 'dfmat_g <- dfm_tfidf(dfmat_g)\n' : '') + (['cosine', 'correlation', 'jaccard'].includes(dist) ? 'd <- as.dist(1 - as.matrix(textstat_simil(dfmat_g, method = "' + dist + '")))' : 'd <- as.dist(as.matrix(textstat_dist(dfmat_g, method = "' + dist + '")))') + '\nhc <- hclust(d, method = "' + CU.link + '")\nk <- min(' + k + ', ndoc(dfmat_g) - 1)   # fewer clusters than items\nplot(hc); if (k >= 2) rect.hclust(hc, k = k)\ncor(d, cophenetic(hc))   # ' + (isFinite(H.coph) ? H.coph.toFixed(3) : '') + '\ncutree(hc, k = k)')));
   }
 
   // text stats
@@ -3675,7 +3676,7 @@ class Component extends DCLogic {
   }
   tlDictYaml(T) { return this.tlCats(T).map(c => { const E = this._E, ps = E.tlParsePatterns(c.keys).filter(p => !p.neg).map(p => p.parts.join(' ')); return c.name + ':\n' + ps.map(p => '  - ' + (/[:#\s]/.test(p) ? '"' + p + '"' : p)).join('\n'); }).join('\n') + '\n'; }
 
-  // sentiment: polarity from two dictionary categories (quanteda.sentiment), or a valence list
+  // sentiment: polarity from two dictionary categories (as quanteda.sentiment's textstat_polarity), or a valence list
   tlSentiment(ctx) {
     const h = React.createElement, { T, C, FT } = ctx, E = this._E, SN = T.sent, set = p => this.tlSetIn('sent', p);
     const L = this.tlDictLook(ctx), cats = L ? L.cats.map(c => c.name) : [];
@@ -3689,7 +3690,7 @@ class Component extends DCLogic {
     if (score) {
       const G = T.by ? this.tlGroupsOf(T, C, T.by) : null, mask = ctx.mask, groups = G ? G.labels.map((l, i) => i).sort((a, b) => G.count[b] - G.count[a]).slice(0, 15) : [null];
       const agg = groups.map(g => { let n = 0, s = 0, pos = 0, neg = 0; for (let d = 0; d < score.v.length; d++) { if ((G && G.g[d] !== g) || (mask && !mask[d]) || !isFinite(score.v[d])) continue; n++; s += score.v[d]; if (score.v[d] > 0) pos++; else if (score.v[d] < 0) neg++; } return { n, mean: s / n, pos, neg }; });
-      const bars = this.tlBarsSvg('tlsent', groups.map((g, i) => ({ label: G ? G.labels[g] : 'All texts', value: agg[i].mean, note: this.tlPct(agg[i].pos / Math.max(1, agg[i].n), 0) + ' positive · ' + this.tlPct(agg[i].neg / Math.max(1, agg[i].n), 0) + ' negative', color: agg[i].mean >= 0 ? '#2E7D58' : '#A3540F' })), { title: 'Mean ' + score.name + ' per text' + (G ? ' by ' + T.by : ''), xlab: score.name, diverging: true });
+      const bars = this.tlBarsSvg('tlsent', groups.map((g, i) => ({ g, i })).filter(o => agg[o.i].n > 0).map(({ g, i }) => ({ label: G ? G.labels[g] : 'All texts', value: agg[i].mean, note: this.tlPct(agg[i].pos / Math.max(1, agg[i].n), 0) + ' positive · ' + this.tlPct(agg[i].neg / Math.max(1, agg[i].n), 0) + ' negative', color: agg[i].mean >= 0 ? '#2E7D58' : '#A3540F' })), { title: 'Mean ' + score.name + ' per text' + (G ? ' by ' + T.by : ''), xlab: score.name, diverging: true });
       out = this.tlPanel('Results', null, null, bars, this.tlExportRow('tlsent', 'sentiment'), h('div', { className: 'tl-row' }, this.tlBtn('Save the score as a variable →', () => { this.tlSetIn('save', { sent: true }); this.tlSet({ step: 'save' }); }, 'green')), this.tlRcode(score.r));
     }
     return h('div', { className: 'tl-col' }, this.tlPanel('Sentiment', 'polarity from your own word lists', null, help, ctl, val, !L ? this.tlBanner('warn', 'Create a positive and a negative category in Dictionary first.') : null), out);
@@ -3701,12 +3702,12 @@ class Component extends DCLogic {
         const pairs = SN.valence.split(/\n/).map(l => l.match(/^\s*(.+?)\s*[=:\t,]\s*(-?\d+(?:\.\d+)?)\s*$/)).filter(Boolean).map(m => ({ k: m[1], s: Number(m[2]) }));
         const comp = E.tlCompileDict(C, pairs.map((p, i) => ({ name: 'v' + i, keys: p.k })), !!T.rec.fold), res = E.tlLookup(C, comp), n = C.off.length - 1, v = new Float64Array(n);
         for (let d = 0; d < n; d++) { if (C.blank[d]) { v[d] = NaN; continue; } let s = 0, c = 0; res.forEach((r, i) => { const k = r.counts[d]; if (k > 0) { s += k * pairs[i].s; c += k; } }); v[d] = c ? s / c : NaN; }
-        return { v, name: 'valence (mean word score)', r: 'valence(dict) <- ' + JSON.stringify(Object.fromEntries(pairs.map(p => [p.k, p.s]))) + '  # see quanteda.sentiment\ntextstat_valence(toks, dictionary = dict)' };
+        return { v, name: 'valence (mean word score)', r: 'sc <- c(' + pairs.map(p => JSON.stringify(T.rec.fold ? this._E.tlFold(p.k.toLowerCase()) : p.k.toLowerCase()) + ' = ' + p.s).join(', ') + ')   # your word scores\ndic_v <- dictionary(setNames(as.list(names(sc)), names(sc)))   # one key per scored word (wildcards work)\nhits <- as.matrix(dfm(tokens_lookup(toks, dic_v, nested_scope = "key")))[, names(sc), drop = FALSE]\nvalence <- as.vector(hits %*% sc) / rowSums(hits)   # mean score of the scored words in each text (NaN when none), as textstat_valence()' };
       });
     }
     if (!L) return null;
     const pi = L.cats.findIndex(c => c.name === SN.pos), ni = L.cats.findIndex(c => c.name === SN.neg); if (pi < 0 || ni < 0 || pi === ni) return null;
-    return this.memo('tlPol|' + C.key + '|' + JSON.stringify(L.cats) + pi + ni, () => { const a = L.res[pi].counts, b = L.res[ni].counts; return { v: Float64Array.from(a, (x, d) => isFinite(x) ? Math.log((x + 0.5) / (b[d] + 0.5)) : NaN), name: 'polarity', r: 'library(quanteda.sentiment)\npolarity(dict) <- list(pos = "' + SN.pos + '", neg = "' + SN.neg + '")\ntextstat_polarity(toks, dictionary = dict)   # log((pos + 0.5) / (neg + 0.5))' }; });
+    return this.memo('tlPol|' + C.key + '|' + JSON.stringify(L.cats) + pi + ni, () => { const a = L.res[pi].counts, b = L.res[ni].counts; return { v: Float64Array.from(a, (x, d) => isFinite(x) ? Math.log((x + 0.5) / (b[d] + 0.5)) : NaN), name: 'polarity', r: 'pol <- convert(dfm(tokens_lookup(toks, dict[c("' + SN.pos + '", "' + SN.neg + '")], nested_scope = "key")), to = "data.frame")\npol$polarity <- log((pol[["' + SN.pos + '"]] + 0.5) / (pol[["' + SN.neg + '"]] + 0.5))   # as textstat_polarity() in quanteda.sentiment; 0 = balanced' + (T.by ? '\naggregate(pol$polarity ~ df$`' + T.by + '`, FUN = mean)   # mean per ' + T.by : '') }; });
   }
 
   // topics: seededlda
@@ -3841,14 +3842,17 @@ class Component extends DCLogic {
       for (let d = 0; d < nd; d++) if (test[d] && m1.pred[d] >= 0) { cm[y[d]][m1.pred[d]]++; nt++; if (y[d] === m1.pred[d]) ok++; }
       const all = new Uint8Array(nd); for (let d = 0; d < nd; d++) all[d] = train[d] || test[d];
       const m2 = E.tlNaiveBayes(FT, y, G.labels, all, { prior: NB.prior });
-      let unl = 0; for (let d = 0; d < nd; d++) if (y[d] < 0 && !C.blank[d]) unl++;
+      let unl = 0; const present = new Array(G.labels.length).fill(0);
+      for (let d = 0; d < nd; d++) { if (mask && !mask[d]) continue; if (y[d] < 0 && !C.blank[d]) unl++; if (all[d]) present[y[d]]++; }
       const tops = G.labels.map((l, c) => { const o = FT.order.slice(0, 5000).map(f => [f, m2.logPw[c][f] - Math.max(...m2.logPw.map((lp, j) => j === c ? -Infinity : lp[f]))]); return o.sort((a, b) => b[1] - a[1]).slice(0, 10).map(([f]) => FT.label[f]); });
-      return { acc: nt ? ok / nt : NaN, nt, nl, cm, unl, tops, base: Math.max(...G.count) / G.count.reduce((a, b) => a + b, 0), m2 };
+      // the baseline and the table use only the labelled texts in the current subgroup, as the accuracy does
+      return { acc: nt ? ok / nt : NaN, nt, nl, cm, unl, tops, present, base: Math.max(...present) / Math.max(1, present.reduce((a, b) => a + b, 0)), m2 };
     });
-    const groups = G.labels.map((l, i) => i);
+    const groups = G.labels.map((l, i) => i).filter(g => res.present[g] > 0);
+    if (groups.length < 2) return this.tlPanel('Classify', 'predict a label from the words (textmodel_nb)', null, ctl, help, this.tlBanner('warn', h('b', null, 'Only one label has texts' + (ctx.mask ? ' in the current subgroup' : '') + ' (' + (groups.length ? G.labels[groups[0]] : 'none') + '), '), 'so there is nothing to tell apart. ' + (ctx.mask ? 'Clear or widen the subgroup, or pick' : 'Pick') + ' a column with at least two labels.'));
     const cmTbl = h('div', { className: 'tl-tblwrap' }, h('table', { className: 'tl-tbl' }, h('thead', null, h('tr', null, h('th', null, 'true ↓ / predicted →'), ...groups.map(g => h('th', { key: g, className: 'n' }, String(G.labels[g]).slice(0, 14))), h('th', { className: 'n' }, 'recall'))), h('tbody', null, groups.map(g => h('tr', { key: g }, h('td', { className: 'w' }, G.labels[g]), ...groups.map(p => h('td', { key: p, className: 'n' + (p === g ? ' sig' : '') }, res.cm[g][p])), h('td', { className: 'n' }, this.tlPct(res.cm[g][g] / Math.max(1, res.cm[g].reduce((a, b) => a + b, 0)), 0)))))));
     return h('div', { className: 'tl-col' }, this.tlPanel('Classify', 'predict a label from the words (textmodel_nb)', null, ctl, help,
-      this.tlBanner(res.acc > res.base + 0.05 ? 'ok' : 'warn', h('b', null, 'Accuracy on ' + this.fmtN(res.nt) + ' held-out texts: ' + this.tlPct(res.acc) + '. '), 'Always guessing the biggest label would score ' + this.tlPct(res.base) + '. ' + (res.unl ? this.fmtN(res.unl) + ' texts have no label and can get a predicted one.' : '')),
+      this.tlBanner(res.acc > res.base + 0.05 ? 'ok' : 'warn', h('b', null, 'Accuracy on ' + this.fmtN(res.nt) + ' held-out texts: ' + this.tlPct(res.acc) + '. '), 'Always guessing the biggest label would score ' + this.tlPct(res.base) + '. ' + (res.unl ? this.fmtN(res.unl) + (res.unl === 1 ? ' text has' : ' texts have') + ' no label and can get a predicted one.' : '')),
       cmTbl, h('span', { className: 'tl-lbl' }, 'Words that most point to each label'),
       h('div', { className: 'tl-col' }, groups.map(g => h('div', { key: g, className: 'tl-cluster' }, h('span', { className: 'sw', style: { background: this.tlPal(g) } }), h('b', null, G.labels[g] + ': '), res.tops[g].join(', ')))),
       h('div', { className: 'tl-row' }, this.tlBtn('Save predicted label and probability →', () => { this.tlSetIn('save', { nb: true }); this.tlSet({ step: 'save' }); }, 'green')),
@@ -3866,6 +3870,8 @@ class Component extends DCLogic {
     const gc = this.memo('tlGC|' + FT.sig + '|' + by + '|' + T.mergeCase, () => E.tlGroupCounts(FT, G.g, G.labels.length, ctx.mask));
     const gi = G.labels.map((l, i) => i).filter(i => gc.tot[i] >= 100).sort((a, b) => G.count[b] - G.count[a]).slice(0, 40);
     const feats = cnt.order.filter(f => FT.kind[f] !== 4).slice(0, 1500).filter(f => gi.filter(g => gc.counts[g][f] > 0).length >= 2).slice(0, 1000);
+    // a group with (almost) no words, e.g. outside the current subgroup, is left out; at least 3 must remain
+    if (gi.length < 3) return this.tlPanel('Scale', 'place groups on a dimension', null, ctl, help, this.tlBanner('warn', 'Scaling needs at least 3 groups with 100 words or more' + (ctx.mask ? ' in the current subgroup' : '') + '; ' + gi.length + ' ' + (gi.length === 1 ? 'has' : 'have') + ' that many.'));
     const M = gi.map(g => Array.from(feats, f => gc.counts[g][f]));
     let out = null;
     if (SC.method === 'wordfish') {
@@ -3936,7 +3942,7 @@ class Component extends DCLogic {
     }
     if (SV.sent) { const sc = this.tlSentScores(ctx); if (!sc) problems.push('Set up Sentiment first (Measure → Sentiment).'); else vars.push(Object.assign(mk('sentiment', ''), { a: perRow(d => sc.v[d]), kind: 'sent', label: sc.name + ' of ' + T.v })); }
     if (SV.nb) {
-      const NB = T.nb, G = NB.y ? this.tlGroupsOf(T, C, NB.y) : null, R = G ? this._memo && Object.keys(this._memo).find(k => k.startsWith('tlNB|' + FT.sig + '|' + NB.y + '|')) : null;
+      const NB = T.nb, G = NB.y ? this.tlGroupsOf(T, C, NB.y) : null, key = 'tlNB|' + FT.sig + '|' + NB.y + '|' + NB.test + '|' + NB.prior + '|' + this.filterSig() + '#' + this.filterSig(), R = G && this._memo && this._memo[key] ? key : null;   // the run that matches the current settings and subgroup (memo() adds '#' + the subgroup), never an older one
       if (!G || !R) problems.push('Run Classify first (Measure → Classify).');
       else { const m2 = this._memo[R].m2; vars.push(Object.assign(mk('pred_' + NB.y, ''), { a: perRow(d => m2.pred[d] >= 0 ? m2.pred[d] + 1 : NaN), kind: 'nb', label: 'predicted ' + NB.y + ' (Naive Bayes)', vl: G.labels })); vars.push(Object.assign(mk('prob_' + NB.y, ''), { a: perRow(d => m2.prob[d]), kind: 'nbp', label: 'probability of the predicted ' + NB.y })); }
     }
@@ -3956,7 +3962,7 @@ class Component extends DCLogic {
     const checks = [];
     if (plan.L) plan.vars.filter(v => v.kind === 'count' || v.kind === 'any').forEach(v => { let s = 0; for (const x of v.a) if (isFinite(x)) s += x; const r = plan.L.res[v.cat], mask = T.save.rows === 'subgroup' ? ctx.mask : null; let exp = 0; for (let d = 0; d < r.counts.length; d++) { if (mask && !mask[d]) continue; const x = r.counts[d]; if (isFinite(x)) exp += v.kind === 'any' ? (x > 0 ? 1 : 0) : x; } checks.push([v.name, s, T.unit === 'sentence' && v.kind === 'any' ? null : exp]); });
     const okAll = checks.every(([, s, e]) => e == null || Math.abs(s - e) < 1e-9);
-    return h('div', { className: 'tl-col' }, tbl, checks.length ? this.tlBanner(okAll ? 'ok' : 'warn', okAll ? '✓ Totals match the dictionary table: ' : 'Totals differ from the dictionary table: ', checks.map(([nm, s, e]) => nm + ' sums to ' + this.fmtN(s) + (e != null && Math.abs(s - e) > 1e-9 ? ' (table: ' + this.fmtN(e) + ')' : '')).join(', ') + '.') : null);
+    return h('div', { className: 'tl-col' }, tbl, checks.length ? this.tlBanner(okAll ? 'ok' : 'warn', (okAll ? '✓ Totals match the dictionary' : 'Totals differ from the dictionary') + (ctx.mask && T.save.rows !== 'subgroup' ? ' counts for all ' + this.fmtN(raw.n) + ' rows (the table in Measure shows only the subgroup): ' : ctx.mask ? ' table for the subgroup: ' : ' table: '), checks.map(([nm, s, e]) => nm + ' sums to ' + this.fmtN(s) + (e != null && Math.abs(s - e) > 1e-9 ? ' (table: ' + this.fmtN(e) + ')' : '')).join(', ') + '.') : null);
   }
   tlSaveRun(ctx, plan) {
     const raw = this._raw, made = [], E = this._E, T = ctx.T;
@@ -3999,7 +4005,15 @@ class Component extends DCLogic {
     const file = this.state.fileName || 'data.csv', isX = /\.xlsx?$/i.test(file);
     const L = [];
     L.push('library(quanteda)', 'library(quanteda.textstats)', 'library(quanteda.textplots)');
-    L.push(isX ? 'df <- as.data.frame(readxl::read_excel("' + file + '"))' : 'df <- read.csv("' + file + '", encoding = "UTF-8", check.names = FALSE)   # keep column names as they are');
+    const isD = /\.dta$/i.test(file), isT = /\.(tsv|tab|txt)$/i.test(file);
+    L.push(isX ? 'df <- as.data.frame(readxl::read_excel("' + file + '"))'
+      : isD ? 'df <- as.data.frame(haven::as_factor(haven::read_dta("' + file + '")))   # Stata: value labels become text, as on the page'
+      : isT ? 'df <- read.delim("' + file + '", encoding = "UTF-8", check.names = FALSE)'
+      : 'df <- read.csv("' + file + '", encoding = "UTF-8", check.names = FALSE)   # keep column names as they are');
+    if (isX) L.push('df <- df[rowSums(!is.na(df)) > 0, ]   # drop completely empty rows (Excel can leave them at the end), as the page does');
+    // groups that differ only in capital letters are merged on the page (Amlo + amlo): do the same before the corpus
+    const Gm = T.by && T.mergeCase ? this.tlGroupsOf(T, C, T.by) : null;
+    if (Gm && Gm.merged && Gm.merged.length) L.push('# merge groups that differ only in capital letters (' + Gm.merged.map(m => m.join(' + ')).join('; ') + '), as the page does', 'g <- as.character(df$`' + T.by + '`); top <- tapply(g, tolower(g), function(v) names(which.max(table(v))))', 'df$`' + T.by + '` <- unname(top[tolower(g)])');
     L.push('corp <- corpus(df, text_field = "' + T.v + '")' + (T.unit === 'sentence' ? ' |> corpus_reshape(to = "sentences")' : ''));
     L.push('toks <- tokens(corp, remove_punct = TRUE, remove_symbols = ' + (R.emoji === 'remove' ? 'TRUE' : 'FALSE') + ', remove_numbers = ' + (R.num === 'remove' ? 'TRUE' : 'FALSE') + ', remove_url = ' + (R.url === 'remove' ? 'TRUE' : 'FALSE') + ', split_hyphens = ' + (R.hyphen === 'split' ? 'TRUE' : 'FALSE') + ', split_tags = ' + (R.tag === 'word' ? 'TRUE' : 'FALSE') + ') |>\n  tokens_tolower()');
     if (R.fold) L.push('# ignore accents (keeps ñ and ç): á→a, é→e, ü→u …', 'fold <- function(x) stringi::stri_trans_general(x, "NFD; [[:Mn:] - [\\\\u0303\\\\u0327]] Remove; NFC")', 'toks <- tokens_replace(toks, types(toks), fold(types(toks)), valuetype = "fixed")');
@@ -4075,6 +4089,7 @@ class Component extends DCLogic {
 
   // ---- charts (ggplot2-like conventions: light grid, direct labels, no chart junk)
   tlBarsSvg(key, rows, o) {
+    rows = rows.filter(r => isFinite(r.value));   // a group with no texts (e.g. outside the subgroup) has no value to draw
     const h = React.createElement, n = rows.length; if (!n) return null;
     if (o.vertical) {
       const W = 760, H = 300, L = 46, B = 54, Tt = 28, mx = Math.max(...rows.map(r => r.value), 1), bw = (W - L - 10) / n;
@@ -4084,20 +4099,24 @@ class Component extends DCLogic {
         rows.map((r, i) => { const hh = (H - B - Tt) * r.value / ticks[ticks.length - 1]; return h('g', { key: i }, h('rect', { x: L + i * bw + 1, y: H - B - hh, width: Math.max(1, bw - 2), height: hh, fill: r.color, rx: 1.5 }), i % Math.ceil(n / 10) === 0 ? h('text', { x: L + i * bw + bw / 2, y: H - B + 14, fontSize: 9.5, textAnchor: 'middle', fontFamily: "'Space Mono', monospace", fill: '#6B6455' }, r.label) : null); }),
         h('text', { x: (W + L) / 2, y: H - 10, fontSize: 10.5, textAnchor: 'middle', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#5D5648' }, 'words per text'), h('text', { x: 12, y: (H - B + Tt) / 2, fontSize: 10.5, textAnchor: 'middle', transform: 'rotate(-90 12 ' + (H - B + Tt) / 2 + ')', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#5D5648' }, o.xlab));
     }
-    const rowH = 22, Tt = 30, L = Math.min(230, 14 + 7.2 * Math.max(...rows.map(r => String(r.label).length))), R = 70, W = 760, H = Tt + n * rowH + 34;
+    // the value (and its note) is written after each bar: leave room for the longest one on the right
+    const vtxt = r => (o.pct ? r.value.toFixed(1) + '%' : this.fmt(r.value, Math.abs(r.value) < 10 && r.value % 1 ? 2 : 0)) + (r.note ? '  ' + r.note : '');
+    const rowH = 22, Tt = 30, L = Math.min(230, 14 + 7.2 * Math.max(...rows.map(r => String(r.label).length))), R = Math.min(300, Math.max(70, 14 + 6.4 * Math.max(...rows.filter(r => r.value >= 0).map(r => vtxt(r).length), 0))), W = 760, H = Tt + n * rowH + 34;
     const vals = rows.map(r => r.value), lo = o.diverging ? Math.min(0, ...vals) : 0, hi = Math.max(0, ...vals) || 1, ticks = this.tlTicks(lo, hi, 5), t0 = ticks[0], t1 = ticks[ticks.length - 1];
     const X = v => L + (W - L - R) * (v - t0) / ((t1 - t0) || 1);
     return h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': o.title, ref: this.svgRef(key), className: 'tl-svg' }, h('rect', { width: W, height: H, fill: '#FFFFFF' }),
       h('text', { x: 8, y: 18, fontSize: 12.5, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", fill: '#1A1711' }, o.title),
       ticks.map((t, i) => h('g', { key: i }, h('line', { x1: X(t), x2: X(t), y1: Tt - 4, y2: Tt + n * rowH, stroke: t === 0 ? '#B5AA96' : '#ECE6DA' }), h('text', { x: X(t), y: Tt + n * rowH + 14, fontSize: 10, textAnchor: 'middle', fontFamily: "'Space Mono', monospace", fill: '#6B6455' }, o.pct ? t + '%' : this.fmt(t, Math.abs(t1 - t0) < 5 ? 1 : 0)))),
-      rows.map((r, i) => { const y = Tt + i * rowH, x0 = X(Math.min(0, r.value)), x1 = X(Math.max(0, r.value)); return h('g', { key: i }, h('text', { x: L - 8, y: y + rowH / 2 + 4, fontSize: 12, textAnchor: 'end', fontFamily: "'Hanken Grotesk', sans-serif", fontWeight: 600, fill: '#1A1711' }, String(r.label).slice(0, 34)), h('rect', { x: x0, y: y + 4, width: Math.max(1, x1 - x0), height: rowH - 8, fill: r.color, rx: 2 }), h('text', { x: (r.value >= 0 ? x1 + 5 : x0 - 5), y: y + rowH / 2 + 4, fontSize: 10.5, textAnchor: r.value >= 0 ? 'start' : 'end', fontFamily: "'Space Mono', monospace", fill: '#3D3629' }, (o.pct ? r.value.toFixed(1) + '%' : this.fmt(r.value, Math.abs(r.value) < 10 && r.value % 1 ? 2 : 0)) + (r.note ? '  ' + r.note : ''))); }),
+      rows.map((r, i) => { const y = Tt + i * rowH, x0 = X(Math.min(0, r.value)), x1 = X(Math.max(0, r.value)); return h('g', { key: i }, h('text', { x: L - 8, y: y + rowH / 2 + 4, fontSize: 12, textAnchor: 'end', fontFamily: "'Hanken Grotesk', sans-serif", fontWeight: 600, fill: '#1A1711' }, String(r.label).slice(0, 34)), h('rect', { x: x0, y: y + 4, width: Math.max(1, x1 - x0), height: rowH - 8, fill: r.color, rx: 2 }), h('text', { x: (r.value >= 0 ? x1 + 5 : x0 - 5), y: y + rowH / 2 + 4, fontSize: 10.5, textAnchor: r.value >= 0 ? 'start' : 'end', fontFamily: "'Space Mono', monospace", fill: '#3D3629' }, vtxt(r))); }),
       h('text', { x: (L + W - R) / 2, y: H - 4, fontSize: 10.5, textAnchor: 'middle', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#5D5648' }, o.xlab));
   }
   tlTicks(lo, hi, n) { if (hi === lo) hi = lo + 1; const raw = (hi - lo) / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p, step = (m > 5 ? 10 : m > 2 ? 5 : m > 1 ? 2 : 1) * p, out = []; for (let v = Math.floor(lo / step) * step; v <= hi + step * 0.999; v += step) out.push(Math.round(v / step) * step); return out; }
   tlKeynessSvg(key, top, bot, FT, tName, rName, measure) {
     const h = React.createElement, rows = top.map(r => ({ r, side: 1 })).concat(bot.map(r => ({ r, side: -1 }))), n = Math.max(top.length, bot.length);
-    const W = 760, rowH = 21, Tt = 34, H = Tt + n * rowH + 30, mid = W / 2, mx = Math.max(1, ...rows.map(x => Math.abs(x.r.stat))), sc = (mid - 130) / mx;
-    const lab = measure === 'chi2' ? 'χ²' : measure === 'lr' ? 'G²' : measure === 'exact' ? 'odds ratio' : 'PMI';
+    // room for the word and its value after each bar: from the longest word (long #hashtags), so no label runs off the chart
+    const longest = Math.max(4, ...rows.map(x => [...FT.label[x.r.f]].length));
+    const W = 760, rowH = 21, Tt = 34, H = Tt + n * rowH + 30, mid = W / 2, mx = Math.max(1e-9, ...rows.map(x => Math.abs(x.r.stat))), sc = (mid - Math.min(mid - 60, Math.max(130, 14 + 7.2 * longest + 46))) / mx;
+    const lab = measure === 'chi2' ? 'χ²' : measure === 'lr' ? 'G²' : measure === 'exact' ? 'log odds ratio' : 'PMI';
     return h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': 'Keyness of ' + tName + ' against ' + rName, ref: this.svgRef(key), className: 'tl-svg' }, h('rect', { width: W, height: H, fill: '#FFFFFF' }),
       h('text', { x: mid - 10, y: 18, fontSize: 12, fontWeight: 700, textAnchor: 'end', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#A3540F' }, '← more ' + rName), h('text', { x: mid + 10, y: 18, fontSize: 12, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", fill: '#2E7D58' }, 'more ' + tName + ' →'),
       h('line', { x1: mid, x2: mid, y1: Tt - 6, y2: Tt + n * rowH, stroke: '#3D3629' }),
@@ -10426,7 +10445,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-06.84') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-06.85') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {

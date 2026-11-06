@@ -11015,14 +11015,18 @@ export function tlKeyness(tc, rc, opts) {
     } else if (measure === 'pmi') {
       stat = Math.log(a * N / ((a + b) * (a + c))); p = NaN; if (!isFinite(stat)) continue;
     } else if (measure === 'exact') {
-      stat = (a * d) / (b * c); p = tlFisherP(a, b, c, d); if (!isFinite(stat)) stat = a * d > 0 ? 1e9 : 0;
+      // the odds ratio itself (Inf when the other group never uses the word) is kept in `or`; words are ranked and drawn
+      // by the signed log odds ratio with the +0.5 (Haldane-Anscombe) correction, finite and negative for the other side
+      const or = (a * d) / (b * c); p = tlFisherP(a, b, c, d);
+      stat = Math.log(((a + 0.5) * (d + 0.5)) / ((b + 0.5) * (c + 0.5)));
+      rows.push({ f, stat, p, a, b, or: isFinite(or) ? or : (a * d > 0 ? Infinity : 0) }); continue;
     } else {
       const num = Math.pow(Math.max(0, Math.abs(a * d - b * c) - N / 2), 2) * N, den = (a + b) * (c + d) * (a + c) * (b + d);
       stat = den ? num / den : 0; p = tlChisqP1(stat); if (a < E11) stat = -stat;
     }
     rows.push({ f, stat, p, a, b });
   }
-  rows.sort((x, y) => y.stat - x.stat);
+  rows.sort((x, y) => (y.stat - x.stat) || ((isFinite(x.p) ? x.p : 1) - (isFinite(y.p) ? y.p : 1)) || ((y.a + y.b) - (x.a + x.b)));   // ties: smaller p, then more uses
   return { rows, Tt, Tr };
 }
 

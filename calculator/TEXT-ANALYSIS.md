@@ -67,6 +67,27 @@ up to all texts with a date). Every R block the page shows was then run in R (qu
 one-line summary gives the counts (e.g. 2,035 of 4,556 words kept · 2,488 common words · 33 removed). Opened, the words
 scroll inside a 420-pixel window; the choice stays while you step through texts. A long transcript no longer fills the page.
 
+**Audit 2 (build .85).** A second simulated student went through every cleaning option (stems, lemmas, extended
+stopwords, accents kept, 3+ letters, hashtags as words, rare/common trim and back), sentence units, the IF subgroup, all
+four Compare-groups measures, search edge cases (phrases, `-word`, `#*`, `@*`, no match, several words), clusters by
+groups / texts / words, sentiment, seeded and pooled topics, Classify, Scale and Save, on the 202 mañaneras (.xlsx), the
+same data as a Stata .dta with a labelled president variable and a %td date, and the 30,932 tweets. Every R block the
+page showed was then run in R on all three files (25 per file, all run). Fixes:
+- *Sentiment* with a subgroup drew a bar for a group with no texts (page errors); such groups are left out, and bar
+  charts never draw a missing value. Long value notes no longer run off the chart.
+- *Classify*: with only one label in the subgroup it now says so (the accuracy and baseline were computed on different
+  rows); the baseline uses the subgroup's labelled texts; Save uses the Classify run that matches the current settings.
+- *Scale* needs 3 groups with 100+ words; with fewer (e.g. in a subgroup) it says so instead of drawing empty points.
+- *Fisher exact*: words only one group uses showed an odds ratio of "1,000,000,000" and the other group's words never
+  appeared. Words are now ranked and drawn by the log odds ratio (+0.5), the table shows the odds ratio (∞ when
+  infinite), and the R code ranks and plots the same way. Long #hashtags fit in the keyness chart.
+- R recipe: Stata files are read with `haven::read_dta` (value labels as text), tab files with `read.delim`; Excel's empty
+  trailing rows are dropped; groups that differ only in capital letters are merged as on the page.
+- R code: sentiment and word scores in plain quanteda (quanteda.sentiment is not on CRAN); clusters of texts use the
+  page's even sample of texts with 5+ words; clusters of words use a symmetric co-occurrence matrix; clusters of groups
+  keep groups with 200+ words; the number of clusters never exceeds what R allows.
+- Save says whether its totals check covers all rows or only the subgroup.
+
 Every chart downloads as SVG (fonts embedded) or PNG at 150/300/600 dpi (with the dpi stored in the file).
 "Recipe · R code" shows the quanteda script for the current cleaning.
 

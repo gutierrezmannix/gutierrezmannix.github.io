@@ -48,7 +48,7 @@
     }
     if (SV.sent) { const sc = this.tlSentScores(ctx); if (!sc) problems.push('Set up Sentiment first (Measure → Sentiment).'); else vars.push(Object.assign(mk('sentiment', ''), { a: perRow(d => sc.v[d]), kind: 'sent', label: sc.name + ' of ' + T.v })); }
     if (SV.nb) {
-      const NB = T.nb, G = NB.y ? this.tlGroupsOf(T, C, NB.y) : null, R = G ? this._memo && Object.keys(this._memo).find(k => k.startsWith('tlNB|' + FT.sig + '|' + NB.y + '|')) : null;
+      const NB = T.nb, G = NB.y ? this.tlGroupsOf(T, C, NB.y) : null, key = 'tlNB|' + FT.sig + '|' + NB.y + '|' + NB.test + '|' + NB.prior + '|' + this.filterSig() + '#' + this.filterSig(), R = G && this._memo && this._memo[key] ? key : null;   // the run that matches the current settings and subgroup (memo() adds '#' + the subgroup), never an older one
       if (!G || !R) problems.push('Run Classify first (Measure → Classify).');
       else { const m2 = this._memo[R].m2; vars.push(Object.assign(mk('pred_' + NB.y, ''), { a: perRow(d => m2.pred[d] >= 0 ? m2.pred[d] + 1 : NaN), kind: 'nb', label: 'predicted ' + NB.y + ' (Naive Bayes)', vl: G.labels })); vars.push(Object.assign(mk('prob_' + NB.y, ''), { a: perRow(d => m2.prob[d]), kind: 'nbp', label: 'probability of the predicted ' + NB.y })); }
     }
@@ -68,7 +68,7 @@
     const checks = [];
     if (plan.L) plan.vars.filter(v => v.kind === 'count' || v.kind === 'any').forEach(v => { let s = 0; for (const x of v.a) if (isFinite(x)) s += x; const r = plan.L.res[v.cat], mask = T.save.rows === 'subgroup' ? ctx.mask : null; let exp = 0; for (let d = 0; d < r.counts.length; d++) { if (mask && !mask[d]) continue; const x = r.counts[d]; if (isFinite(x)) exp += v.kind === 'any' ? (x > 0 ? 1 : 0) : x; } checks.push([v.name, s, T.unit === 'sentence' && v.kind === 'any' ? null : exp]); });
     const okAll = checks.every(([, s, e]) => e == null || Math.abs(s - e) < 1e-9);
-    return h('div', { className: 'tl-col' }, tbl, checks.length ? this.tlBanner(okAll ? 'ok' : 'warn', okAll ? '✓ Totals match the dictionary table: ' : 'Totals differ from the dictionary table: ', checks.map(([nm, s, e]) => nm + ' sums to ' + this.fmtN(s) + (e != null && Math.abs(s - e) > 1e-9 ? ' (table: ' + this.fmtN(e) + ')' : '')).join(', ') + '.') : null);
+    return h('div', { className: 'tl-col' }, tbl, checks.length ? this.tlBanner(okAll ? 'ok' : 'warn', (okAll ? '✓ Totals match the dictionary' : 'Totals differ from the dictionary') + (ctx.mask && T.save.rows !== 'subgroup' ? ' counts for all ' + this.fmtN(raw.n) + ' rows (the table in Measure shows only the subgroup): ' : ctx.mask ? ' table for the subgroup: ' : ' table: '), checks.map(([nm, s, e]) => nm + ' sums to ' + this.fmtN(s) + (e != null && Math.abs(s - e) > 1e-9 ? ' (table: ' + this.fmtN(e) + ')' : '')).join(', ') + '.') : null);
   }
   tlSaveRun(ctx, plan) {
     const raw = this._raw, made = [], E = this._E, T = ctx.T;
@@ -111,7 +111,15 @@
     const file = this.state.fileName || 'data.csv', isX = /\.xlsx?$/i.test(file);
     const L = [];
     L.push('library(quanteda)', 'library(quanteda.textstats)', 'library(quanteda.textplots)');
-    L.push(isX ? 'df <- as.data.frame(readxl::read_excel("' + file + '"))' : 'df <- read.csv("' + file + '", encoding = "UTF-8", check.names = FALSE)   # keep column names as they are');
+    const isD = /\.dta$/i.test(file), isT = /\.(tsv|tab|txt)$/i.test(file);
+    L.push(isX ? 'df <- as.data.frame(readxl::read_excel("' + file + '"))'
+      : isD ? 'df <- as.data.frame(haven::as_factor(haven::read_dta("' + file + '")))   # Stata: value labels become text, as on the page'
+      : isT ? 'df <- read.delim("' + file + '", encoding = "UTF-8", check.names = FALSE)'
+      : 'df <- read.csv("' + file + '", encoding = "UTF-8", check.names = FALSE)   # keep column names as they are');
+    if (isX) L.push('df <- df[rowSums(!is.na(df)) > 0, ]   # drop completely empty rows (Excel can leave them at the end), as the page does');
+    // groups that differ only in capital letters are merged on the page (Amlo + amlo): do the same before the corpus
+    const Gm = T.by && T.mergeCase ? this.tlGroupsOf(T, C, T.by) : null;
+    if (Gm && Gm.merged && Gm.merged.length) L.push('# merge groups that differ only in capital letters (' + Gm.merged.map(m => m.join(' + ')).join('; ') + '), as the page does', 'g <- as.character(df$`' + T.by + '`); top <- tapply(g, tolower(g), function(v) names(which.max(table(v))))', 'df$`' + T.by + '` <- unname(top[tolower(g)])');
     L.push('corp <- corpus(df, text_field = "' + T.v + '")' + (T.unit === 'sentence' ? ' |> corpus_reshape(to = "sentences")' : ''));
     L.push('toks <- tokens(corp, remove_punct = TRUE, remove_symbols = ' + (R.emoji === 'remove' ? 'TRUE' : 'FALSE') + ', remove_numbers = ' + (R.num === 'remove' ? 'TRUE' : 'FALSE') + ', remove_url = ' + (R.url === 'remove' ? 'TRUE' : 'FALSE') + ', split_hyphens = ' + (R.hyphen === 'split' ? 'TRUE' : 'FALSE') + ', split_tags = ' + (R.tag === 'word' ? 'TRUE' : 'FALSE') + ') |>\n  tokens_tolower()');
     if (R.fold) L.push('# ignore accents (keeps ñ and ç): á→a, é→e, ü→u …', 'fold <- function(x) stringi::stri_trans_general(x, "NFD; [[:Mn:] - [\\\\u0303\\\\u0327]] Remove; NFC")', 'toks <- tokens_replace(toks, types(toks), fold(types(toks)), valuetype = "fixed")');
@@ -187,6 +195,7 @@
 
   // ---- charts (ggplot2-like conventions: light grid, direct labels, no chart junk)
   tlBarsSvg(key, rows, o) {
+    rows = rows.filter(r => isFinite(r.value));   // a group with no texts (e.g. outside the subgroup) has no value to draw
     const h = React.createElement, n = rows.length; if (!n) return null;
     if (o.vertical) {
       const W = 760, H = 300, L = 46, B = 54, Tt = 28, mx = Math.max(...rows.map(r => r.value), 1), bw = (W - L - 10) / n;
@@ -196,20 +205,24 @@
         rows.map((r, i) => { const hh = (H - B - Tt) * r.value / ticks[ticks.length - 1]; return h('g', { key: i }, h('rect', { x: L + i * bw + 1, y: H - B - hh, width: Math.max(1, bw - 2), height: hh, fill: r.color, rx: 1.5 }), i % Math.ceil(n / 10) === 0 ? h('text', { x: L + i * bw + bw / 2, y: H - B + 14, fontSize: 9.5, textAnchor: 'middle', fontFamily: "'Space Mono', monospace", fill: '#6B6455' }, r.label) : null); }),
         h('text', { x: (W + L) / 2, y: H - 10, fontSize: 10.5, textAnchor: 'middle', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#5D5648' }, 'words per text'), h('text', { x: 12, y: (H - B + Tt) / 2, fontSize: 10.5, textAnchor: 'middle', transform: 'rotate(-90 12 ' + (H - B + Tt) / 2 + ')', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#5D5648' }, o.xlab));
     }
-    const rowH = 22, Tt = 30, L = Math.min(230, 14 + 7.2 * Math.max(...rows.map(r => String(r.label).length))), R = 70, W = 760, H = Tt + n * rowH + 34;
+    // the value (and its note) is written after each bar: leave room for the longest one on the right
+    const vtxt = r => (o.pct ? r.value.toFixed(1) + '%' : this.fmt(r.value, Math.abs(r.value) < 10 && r.value % 1 ? 2 : 0)) + (r.note ? '  ' + r.note : '');
+    const rowH = 22, Tt = 30, L = Math.min(230, 14 + 7.2 * Math.max(...rows.map(r => String(r.label).length))), R = Math.min(300, Math.max(70, 14 + 6.4 * Math.max(...rows.filter(r => r.value >= 0).map(r => vtxt(r).length), 0))), W = 760, H = Tt + n * rowH + 34;
     const vals = rows.map(r => r.value), lo = o.diverging ? Math.min(0, ...vals) : 0, hi = Math.max(0, ...vals) || 1, ticks = this.tlTicks(lo, hi, 5), t0 = ticks[0], t1 = ticks[ticks.length - 1];
     const X = v => L + (W - L - R) * (v - t0) / ((t1 - t0) || 1);
     return h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': o.title, ref: this.svgRef(key), className: 'tl-svg' }, h('rect', { width: W, height: H, fill: '#FFFFFF' }),
       h('text', { x: 8, y: 18, fontSize: 12.5, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", fill: '#1A1711' }, o.title),
       ticks.map((t, i) => h('g', { key: i }, h('line', { x1: X(t), x2: X(t), y1: Tt - 4, y2: Tt + n * rowH, stroke: t === 0 ? '#B5AA96' : '#ECE6DA' }), h('text', { x: X(t), y: Tt + n * rowH + 14, fontSize: 10, textAnchor: 'middle', fontFamily: "'Space Mono', monospace", fill: '#6B6455' }, o.pct ? t + '%' : this.fmt(t, Math.abs(t1 - t0) < 5 ? 1 : 0)))),
-      rows.map((r, i) => { const y = Tt + i * rowH, x0 = X(Math.min(0, r.value)), x1 = X(Math.max(0, r.value)); return h('g', { key: i }, h('text', { x: L - 8, y: y + rowH / 2 + 4, fontSize: 12, textAnchor: 'end', fontFamily: "'Hanken Grotesk', sans-serif", fontWeight: 600, fill: '#1A1711' }, String(r.label).slice(0, 34)), h('rect', { x: x0, y: y + 4, width: Math.max(1, x1 - x0), height: rowH - 8, fill: r.color, rx: 2 }), h('text', { x: (r.value >= 0 ? x1 + 5 : x0 - 5), y: y + rowH / 2 + 4, fontSize: 10.5, textAnchor: r.value >= 0 ? 'start' : 'end', fontFamily: "'Space Mono', monospace", fill: '#3D3629' }, (o.pct ? r.value.toFixed(1) + '%' : this.fmt(r.value, Math.abs(r.value) < 10 && r.value % 1 ? 2 : 0)) + (r.note ? '  ' + r.note : ''))); }),
+      rows.map((r, i) => { const y = Tt + i * rowH, x0 = X(Math.min(0, r.value)), x1 = X(Math.max(0, r.value)); return h('g', { key: i }, h('text', { x: L - 8, y: y + rowH / 2 + 4, fontSize: 12, textAnchor: 'end', fontFamily: "'Hanken Grotesk', sans-serif", fontWeight: 600, fill: '#1A1711' }, String(r.label).slice(0, 34)), h('rect', { x: x0, y: y + 4, width: Math.max(1, x1 - x0), height: rowH - 8, fill: r.color, rx: 2 }), h('text', { x: (r.value >= 0 ? x1 + 5 : x0 - 5), y: y + rowH / 2 + 4, fontSize: 10.5, textAnchor: r.value >= 0 ? 'start' : 'end', fontFamily: "'Space Mono', monospace", fill: '#3D3629' }, vtxt(r))); }),
       h('text', { x: (L + W - R) / 2, y: H - 4, fontSize: 10.5, textAnchor: 'middle', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#5D5648' }, o.xlab));
   }
   tlTicks(lo, hi, n) { if (hi === lo) hi = lo + 1; const raw = (hi - lo) / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p, step = (m > 5 ? 10 : m > 2 ? 5 : m > 1 ? 2 : 1) * p, out = []; for (let v = Math.floor(lo / step) * step; v <= hi + step * 0.999; v += step) out.push(Math.round(v / step) * step); return out; }
   tlKeynessSvg(key, top, bot, FT, tName, rName, measure) {
     const h = React.createElement, rows = top.map(r => ({ r, side: 1 })).concat(bot.map(r => ({ r, side: -1 }))), n = Math.max(top.length, bot.length);
-    const W = 760, rowH = 21, Tt = 34, H = Tt + n * rowH + 30, mid = W / 2, mx = Math.max(1, ...rows.map(x => Math.abs(x.r.stat))), sc = (mid - 130) / mx;
-    const lab = measure === 'chi2' ? 'χ²' : measure === 'lr' ? 'G²' : measure === 'exact' ? 'odds ratio' : 'PMI';
+    // room for the word and its value after each bar: from the longest word (long #hashtags), so no label runs off the chart
+    const longest = Math.max(4, ...rows.map(x => [...FT.label[x.r.f]].length));
+    const W = 760, rowH = 21, Tt = 34, H = Tt + n * rowH + 30, mid = W / 2, mx = Math.max(1e-9, ...rows.map(x => Math.abs(x.r.stat))), sc = (mid - Math.min(mid - 60, Math.max(130, 14 + 7.2 * longest + 46))) / mx;
+    const lab = measure === 'chi2' ? 'χ²' : measure === 'lr' ? 'G²' : measure === 'exact' ? 'log odds ratio' : 'PMI';
     return h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': 'Keyness of ' + tName + ' against ' + rName, ref: this.svgRef(key), className: 'tl-svg' }, h('rect', { width: W, height: H, fill: '#FFFFFF' }),
       h('text', { x: mid - 10, y: 18, fontSize: 12, fontWeight: 700, textAnchor: 'end', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#A3540F' }, '← more ' + rName), h('text', { x: mid + 10, y: 18, fontSize: 12, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", fill: '#2E7D58' }, 'more ' + tName + ' →'),
       h('line', { x1: mid, x2: mid, y1: Tt - 6, y2: Tt + n * rowH, stroke: '#3D3629' }),
