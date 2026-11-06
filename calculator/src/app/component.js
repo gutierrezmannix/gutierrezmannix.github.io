@@ -3270,7 +3270,10 @@ class Component extends DCLogic {
           : TM.what !== 'words' && TM.what !== 'ntexts' ? this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], TM.measure, v => set({ measure: v }))) : null),
       isVar && V.made.length > 1 ? this.tlField('Compare with other saved variables', h('div', { className: 'tl-row' }, ...V.made.filter(n => n !== vname).map(n => { const on = (TM.vars || []).includes(n); return this.tlChip((on ? '✓ ' : '+ ') + n, on, () => set({ vars: on ? (TM.vars || []).filter(x => x !== n) : (TM.vars || []).concat([n]), lines: on ? TM.lines : (TM.lines === 'auto' || TM.lines === 'author' || TM.lines === 'none' ? (G ? 'grid-author' : 'item') : TM.lines) }), { key: n }); }))) : null,
       TM.what === 'search' && parts.length < 2 ? h('span', { className: 'tl-hint' }, 'Tip: search several words separated by commas (e.g. salud, covid, pandemia) to give each word its own line.') : null,
-      h('div', { className: 'tl-row wide' }, this.tlField('Lines', this.tlSeg(lineOpts, lines, v => set({ lines: v }))),
+      h('div', { className: 'tl-row wide' },
+        // the group column can be chosen here too (the same setting as Groups to compare in step 1): a line per author, party, outlet …
+        this.tlField('Split by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); set({ lines: v ? (many ? 'grid-author' : 'author') : (many ? 'item' : 'none') }); }, 'Split lines by')),
+        this.tlField('Lines', this.tlSeg(lineOpts, lines, v => set({ lines: v }))),
         this.tlField('By', this.tlSeg([['auto', 'Auto (' + unit + ')'], ['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']], TM.unit, v => set({ unit: v })))));
     const P = this.tlRPeriod(T, unit), by = G && lines !== 'none' && lines !== 'item' ? ' + `' + T.by + '`' : '';
     const rcode = kind === 'var' ? 'df$period <- ' + P + '\naggregate(cbind(' + items.map(i => '`' + i.name + '`').join(', ') + ') ~ period' + by + ', data = df, FUN = ' + (measure === 'pct' ? 'function(v) 100 * mean(v > 0)' : measure === 'sum' ? 'sum' : 'mean') + ')'
@@ -3519,6 +3522,8 @@ class Component extends DCLogic {
     const ylab = this.tlMeasureLab(DT.measure), sig = '|' + C.key + '|' + JSON.stringify(L.cats) + '|' + T.date + '|' + T.time.order + '|' + unit + '|' + DT.measure + '|' + T.by + '|' + T.mergeCase + '|' + this.filterSig();
     const ctl = h('div', { className: 'tl-row wide' }, head,
       this.tlField('Category', this.tlSelect(all ? 'all' : String(ci), [['all', 'All categories (one chart per group)']].concat(L.cats.map((c, i) => [String(i), c.name])), v => set({ cat: v }), 'Timeline category')),
+      // a line (or a chart) per author, party, outlet …: the same setting as Groups to compare in step 1
+      this.tlField('Split by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); }, 'Split timeline by')),
       this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], DT.measure, v => set({ measure: v }))),
       this.tlField('By', this.tlSeg([['auto', 'Auto (' + unit + ')'], ['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']], DT.unit, v => set({ unit: v }))));
     const charts = [];
@@ -10321,7 +10326,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-06.78') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-06.79') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {

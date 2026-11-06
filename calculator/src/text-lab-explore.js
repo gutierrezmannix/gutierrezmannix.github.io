@@ -303,7 +303,10 @@
           : TM.what !== 'words' && TM.what !== 'ntexts' ? this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], TM.measure, v => set({ measure: v }))) : null),
       isVar && V.made.length > 1 ? this.tlField('Compare with other saved variables', h('div', { className: 'tl-row' }, ...V.made.filter(n => n !== vname).map(n => { const on = (TM.vars || []).includes(n); return this.tlChip((on ? '✓ ' : '+ ') + n, on, () => set({ vars: on ? (TM.vars || []).filter(x => x !== n) : (TM.vars || []).concat([n]), lines: on ? TM.lines : (TM.lines === 'auto' || TM.lines === 'author' || TM.lines === 'none' ? (G ? 'grid-author' : 'item') : TM.lines) }), { key: n }); }))) : null,
       TM.what === 'search' && parts.length < 2 ? h('span', { className: 'tl-hint' }, 'Tip: search several words separated by commas (e.g. salud, covid, pandemia) to give each word its own line.') : null,
-      h('div', { className: 'tl-row wide' }, this.tlField('Lines', this.tlSeg(lineOpts, lines, v => set({ lines: v }))),
+      h('div', { className: 'tl-row wide' },
+        // the group column can be chosen here too (the same setting as Groups to compare in step 1): a line per author, party, outlet …
+        this.tlField('Split by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); set({ lines: v ? (many ? 'grid-author' : 'author') : (many ? 'item' : 'none') }); }, 'Split lines by')),
+        this.tlField('Lines', this.tlSeg(lineOpts, lines, v => set({ lines: v }))),
         this.tlField('By', this.tlSeg([['auto', 'Auto (' + unit + ')'], ['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']], TM.unit, v => set({ unit: v })))));
     const P = this.tlRPeriod(T, unit), by = G && lines !== 'none' && lines !== 'item' ? ' + `' + T.by + '`' : '';
     const rcode = kind === 'var' ? 'df$period <- ' + P + '\naggregate(cbind(' + items.map(i => '`' + i.name + '`').join(', ') + ') ~ period' + by + ', data = df, FUN = ' + (measure === 'pct' ? 'function(v) 100 * mean(v > 0)' : measure === 'sum' ? 'sum' : 'mean') + ')'

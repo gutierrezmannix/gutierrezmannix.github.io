@@ -22,6 +22,11 @@ The Dictionary results include the same timeline and a category cloud, shown by 
 category sized in proportion to its mentions, texts or % of texts (one cloud per author on a common
 scale), or the words inside each category coloured by category.
 
+**Split by (build .79).** Explore → Over time and the Dictionary timeline have a **Split by** box: pick the column
+with the authors (president, party, outlet …) to get one line per author, or one chart per author with several
+categories. It is the same setting as *Groups to compare* in step 1, so it can be set in either place; before, the
+timelines offered only *All texts together* when no group had been picked in step 1.
+
 Every chart downloads as SVG (fonts embedded) or PNG at 150/300/600 dpi (with the dpi stored in the file).
 "Recipe · R code" shows the quanteda script for the current cleaning.
 
