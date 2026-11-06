@@ -134,7 +134,7 @@
     const ctl = h('div', { className: 'tl-row wide' }, head,
       this.tlField('Category', this.tlSelect(all ? 'all' : String(ci), [['all', 'All categories (one chart per group)']].concat(L.cats.map((c, i) => [String(i), c.name])), v => set({ cat: v }), 'Timeline category')),
       // a line (or a chart) per author, party, outlet …: the same setting as Groups to compare in step 1
-      this.tlField('Split by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); }, 'Split timeline by')),
+      this.tlField('Plot by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); }, 'Plot timeline by')),
       this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], DT.measure, v => set({ measure: v }))),
       this.tlField('By', this.tlSeg([['auto', 'Auto (' + unit + ')'], ['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']], DT.unit, v => set({ unit: v }))));
     const charts = [];

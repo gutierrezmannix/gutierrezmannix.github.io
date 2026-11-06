@@ -22,10 +22,16 @@ The Dictionary results include the same timeline and a category cloud, shown by 
 category sized in proportion to its mentions, texts or % of texts (one cloud per author on a common
 scale), or the words inside each category coloured by category.
 
-**Split by (build .79).** Explore → Over time and the Dictionary timeline have a **Split by** box: pick the column
-with the authors (president, party, outlet …) to get one line per author, or one chart per author with several
-categories. It is the same setting as *Groups to compare* in step 1, so it can be set in either place; before, the
-timelines offered only *All texts together* when no group had been picked in step 1.
+**Plot by (builds .79–.80).** Explore → Over time and the Dictionary timeline have a **Plot by** box: pick the
+column with the authors (president, party, outlet …) to get one line per author, or *none — all texts together* for a
+single line. There is no separate "one line per …" switch any more: the variable you pick decides. When several words
+or categories are plotted, a **Layout** choice (one line per word, one chart per author, one chart per word) appears.
+It is the same setting as *Groups to compare* in step 1, so it can be set in either place.
+
+**Number of texts as Count, % or 100% (build .80).** With Show = *Number of texts*, **As** offers *Count*,
+*% of all texts* (each line's texts spread over the periods, so a line adds up to 100%) and, when plotted by a
+variable, *100% per year* (or quarter, month …): each author's share of that period's texts, so the lines add up to
+100% in every period. The R code below the chart switches to `prop.table()` with the matching margin.
 
 Every chart downloads as SVG (fonts embedded) or PNG at 150/300/600 dpi (with the dpi stored in the file).
 "Recipe · R code" shows the quanteda script for the current cleaning.

@@ -3249,42 +3249,57 @@ class Component extends DCLogic {
     const combined = items.find(it => it.combined), parts = items.filter(it => !it.combined), many = parts.length > 1;
     const G = T.by ? this.tlGroupsOf(T, C, T.by) : null;
     const lineOpts = many ? [['item', 'One line per ' + (kind === 'var' ? 'variable' : 'word / category')]].concat(G ? [['grid-author', 'One chart per ' + T.by], ['grid-item', 'One chart per ' + (kind === 'var' ? 'variable' : 'word / category')]] : []).concat(combined && G ? [['author', 'All together, one line per ' + T.by]] : [])
-      : (G ? [['author', 'One line per ' + T.by], ['none', 'All texts together']] : [['none', 'All texts together']]);
+      : (G ? [['author', '']] : [['none', '']]);   // one series: the Plot by variable alone decides (a line per group, or all texts)
     const lines = lineOpts.some(o => o[0] === TM.lines) ? TM.lines : lineOpts[0][0];
+    // number of texts: as a count, as the % of all texts (each line's texts spread over the periods), or, split by group,
+    // as each group's share of the period's texts (the lines add up to 100% in every period)
+    const nOpts = [['count', 'Count'], ['share', '% of all texts']].concat(kind === 'ntexts' && G && lines === 'author' ? [['period', '100% per ' + unit]] : []);
+    const nm = kind === 'ntexts' && nOpts.some(o => o[0] === TM.nmeasure) ? TM.nmeasure : 'count';
+    if (kind === 'ntexts' && nm === 'share') ylab = '% of all texts';
+    if (kind === 'ntexts' && nm === 'period') ylab = '% of the ' + unit + '’s texts';
     const sig = 'tlTA|' + FT.sig + '|' + T.date + '|' + T.time.order + '|' + unit + '|' + TM.what + '|' + measure + '|' + lines + '|' + T.by + '|' + T.mergeCase + '|' + this.filterSig() + '|' + (kind === 'var' ? (this._dataRev || 0) + items.map(i => i.name).join(',') : JSON.stringify(this.tlCats(T)) + '|' + (T.q || '') + '|' + (T.qOff || []).join(','));
     const charts = [];   // [{ key, title, data }]
     const one = (key, title, defs) => charts.push({ key, title, data: this.memo(sig + '|' + key, () => this.tlTimeAgg(ctx, D, unit, defs, measure, kind === 'ntexts')) });
     if (items.length) {
       const single = combined || parts[0];
-      const t1 = kind === 'ntexts' ? 'Number of texts per ' + unit : single.name + ' · ' + ylab;
+      const t1 = kind === 'ntexts' ? (nm === 'count' ? 'Number of texts per ' + unit : nm === 'share' ? 'Share of all texts in each ' + unit : 'Share of each ' + unit + '’s texts') : single.name + ' · ' + ylab;
       if (lines === 'author') one('tltime', t1, this.tlGroupDefs(ctx, single.x).defs);
       else if (lines === 'none') one('tltime', t1, [{ name: 'All texts', color: this.tlPal(0), inc: () => true, x: single.x }]);
       else if (lines === 'item') one('tltime', ylab + (kind === 'var' ? '' : ' · each word / category'), parts.map((it, k) => ({ name: it.name, color: this.tlPal(k), inc: () => true, x: it.x })));
       else if (lines === 'grid-author') this.tlGroupDefs(ctx, null).defs.slice(0, 6).forEach((gd, gi) => one('tltime' + gi, gd.name + ' · ' + ylab, parts.map((it, k) => ({ name: it.name, color: this.tlPal(k), inc: gd.inc, x: it.x }))));
       else parts.slice(0, 9).forEach((it, k) => one('tltime' + k, it.name + ' · ' + ylab, this.tlGroupDefs(ctx, it.x).defs));
     }
+    if (kind === 'ntexts' && nm !== 'count') charts.forEach(ch => {
+      const S = ch.data.series, xs = ch.data.xs, fin = v => isFinite(v) ? v : 0;
+      const series = nm === 'share' ? S.map(se => { const tot = se.pts.reduce((a, v) => a + fin(v), 0); return Object.assign({}, se, { pts: se.pts.map(v => isFinite(v) && tot ? 100 * v / tot : NaN) }); })
+        : S.map(se => Object.assign({}, se, { pts: se.pts.map((v, j) => { const tot = S.reduce((a, o) => a + fin(o.pts[j]), 0); return isFinite(v) && tot ? 100 * v / tot : NaN; }) }));
+      ch.data = { xs, series };
+    });
     const ctl = h('div', { className: 'tl-col' }, h('div', { className: 'tl-row wide' }, head,
         this.tlField('Show', this.tlSelect(TM.what, whatOpts, v => set({ what: v }), 'What to show')),
         this.tlField('Or a saved variable', this.tlSelect(isVar ? TM.what : '', varOpts, v => set({ what: v || 'words' }), 'Saved variable')),
         isVar ? this.tlField('As', this.tlSeg([['mean', 'Mean per text'], ['pct', '% of texts above 0'], ['sum', 'Total']], TM.vmeasure, v => set({ vmeasure: v })))
-          : TM.what !== 'words' && TM.what !== 'ntexts' ? this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], TM.measure, v => set({ measure: v }))) : null),
+          : TM.what === 'ntexts' ? this.tlField('As', this.tlSeg(nOpts, nm, v => set({ nmeasure: v })))
+          : TM.what !== 'words' ? this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], TM.measure, v => set({ measure: v }))) : null),
       isVar && V.made.length > 1 ? this.tlField('Compare with other saved variables', h('div', { className: 'tl-row' }, ...V.made.filter(n => n !== vname).map(n => { const on = (TM.vars || []).includes(n); return this.tlChip((on ? '✓ ' : '+ ') + n, on, () => set({ vars: on ? (TM.vars || []).filter(x => x !== n) : (TM.vars || []).concat([n]), lines: on ? TM.lines : (TM.lines === 'auto' || TM.lines === 'author' || TM.lines === 'none' ? (G ? 'grid-author' : 'item') : TM.lines) }), { key: n }); }))) : null,
       TM.what === 'search' && parts.length < 2 ? h('span', { className: 'tl-hint' }, 'Tip: search several words separated by commas (e.g. salud, covid, pandemia) to give each word its own line.') : null,
       h('div', { className: 'tl-row wide' },
         // the group column can be chosen here too (the same setting as Groups to compare in step 1): a line per author, party, outlet …
-        this.tlField('Split by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); set({ lines: v ? (many ? 'grid-author' : 'author') : (many ? 'item' : 'none') }); }, 'Split lines by')),
-        this.tlField('Lines', this.tlSeg(lineOpts, lines, v => set({ lines: v }))),
+        this.tlField('Plot by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); set({ lines: v ? (many ? 'grid-author' : 'author') : (many ? 'item' : 'none') }); }, 'Plot by variable')),
+        many && lineOpts.length > 1 ? this.tlField('Layout', this.tlSeg(lineOpts, lines, v => set({ lines: v }))) : null,
         this.tlField('By', this.tlSeg([['auto', 'Auto (' + unit + ')'], ['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']], TM.unit, v => set({ unit: v })))));
     const P = this.tlRPeriod(T, unit), by = G && lines !== 'none' && lines !== 'item' ? ' + `' + T.by + '`' : '';
     const rcode = kind === 'var' ? 'df$period <- ' + P + '\naggregate(cbind(' + items.map(i => '`' + i.name + '`').join(', ') + ') ~ period' + by + ', data = df, FUN = ' + (measure === 'pct' ? 'function(v) 100 * mean(v > 0)' : measure === 'sum' ? 'sum' : 'mean') + ')'
-      : kind === 'ntexts' ? 'df$period <- ' + P + '\ntable(df$period' + (by ? ', df$`' + T.by + '`' : '') + ')        # number of texts per period' + (by ? ' and ' + T.by : '')
+      : kind === 'ntexts' ? 'df$period <- ' + P + '\n' + (nm === 'count' ? 'table(df$period' + (by ? ', df$`' + T.by + '`' : '') + ')        # number of texts per period' + (by ? ' and ' + T.by : '')
+        : nm === 'share' ? '100 * prop.table(table(df$period' + (by ? ', df$`' + T.by + '`), margin = 2)   # % of each ' + T.by + '’s texts in each period' : '))   # % of all texts in each period')
+        : '100 * prop.table(table(df$period, df$`' + T.by + '`), margin = 1)   # each ' + T.by + '’s share of the period’s texts (rows add up to 100)')
       : kind === 'words' ? 'df$words <- ntoken(toks_clean)\ndf$period <- ' + P + '\naggregate(words ~ period' + by + ', data = df, FUN = mean)'
       : 'dict <- dictionary(list(' + parts.map((it, k) => '`' + it.name + '` = ' + this.tlRvec([it.name])).join(', ') + '))   # or your dictionary\nhits <- convert(dfm(tokens_lookup(toks, dict, nested_scope = "key")), to = "data.frame")\ndf$period <- ' + P + '\naggregate(cbind(' + parts.map(it => '`' + it.name + '`').join(', ') + ') ~ period' + by + ', data = cbind(df, hits[-1] > 0), FUN = mean)';
     const need = !items.length;
     return this.tlPanel('Over time', 'by ' + unit + (G ? ' · ' + T.by : ''), null, ctl,
       D.ambiguous ? this.tlBanner('info', 'Dates like 02.03.18 are read as ' + (D.order === 'dmy' ? 'day.month.year' : 'month.day.year') + '. ', this.tlBtn('Switch', () => set({ order: D.order === 'dmy' ? 'mdy' : 'dmy' }))) : null,
       need ? this.tlBanner('info', isVar ? '“' + vname + '” is not a numeric variable.' : 'Type a search in “In context” (several words separated by commas), build dictionary categories, or pick a saved variable to chart it over time.') : null,
-      ...charts.map(ch => h('div', { key: ch.key, className: 'tl-col' }, this.tlLinesSvg(ch.key, ch.data.xs, ch.data.series, { ylab, pct: measure === 'pct', title: ch.title }), this.tlExportRow(ch.key, 'over-time-' + this._E.tlVarName(ch.title.split(' · ')[0])))),
+      ...charts.map(ch => h('div', { key: ch.key, className: 'tl-col' }, this.tlLinesSvg(ch.key, ch.data.xs, ch.data.series, { ylab, pct: measure === 'pct' || (kind === 'ntexts' && nm !== 'count'), title: ch.title }), this.tlExportRow(ch.key, 'over-time-' + this._E.tlVarName(ch.title.split(' · ')[0])))),
       need ? null : this.tlRcode(rcode));
   }
 
@@ -3523,7 +3538,7 @@ class Component extends DCLogic {
     const ctl = h('div', { className: 'tl-row wide' }, head,
       this.tlField('Category', this.tlSelect(all ? 'all' : String(ci), [['all', 'All categories (one chart per group)']].concat(L.cats.map((c, i) => [String(i), c.name])), v => set({ cat: v }), 'Timeline category')),
       // a line (or a chart) per author, party, outlet …: the same setting as Groups to compare in step 1
-      this.tlField('Split by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); }, 'Split timeline by')),
+      this.tlField('Plot by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); }, 'Plot timeline by')),
       this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], DT.measure, v => set({ measure: v }))),
       this.tlField('By', this.tlSeg([['auto', 'Auto (' + unit + ')'], ['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']], DT.unit, v => set({ unit: v }))));
     const charts = [];
@@ -10326,15 +10341,17 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-06.79') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-06.80') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
     this.setState({ asList: this.state.screen === 'work' ? [] : this.asIndex() });
     setTimeout(() => this.versionCheck(), 2500);
-    this._vcI = setInterval(() => this.versionCheck(), 30 * 60 * 1000);
-    this._onVis = () => { if (document.visibilityState === 'hidden') this.autoSave(); else if (Date.now() - (this._vcAt || 0) > 30 * 60 * 1000) this.versionCheck(); };
+    // every 5 minutes, and again when the tab comes back into view or gets focus (at most once every 2 minutes)
+    this._vcI = setInterval(() => this.versionCheck(), 5 * 60 * 1000);
+    this._onVis = () => { if (document.visibilityState === 'hidden') this.autoSave(); else if (Date.now() - (this._vcAt || 0) > 2 * 60 * 1000) this.versionCheck(); };
     document.addEventListener('visibilitychange', this._onVis);
+    window.addEventListener('focus', () => { if (Date.now() - (this._vcAt || 0) > 2 * 60 * 1000) this.versionCheck(); });
     window.addEventListener('pagehide', () => this.autoSave());
     window.addEventListener('beforeunload', () => this.autoSave());
   }
@@ -10367,9 +10384,10 @@ class Component extends DCLogic {
       const BAN = [], btn = (label, click, primary) => ({ label, click, style: primary ? 'background: var(--c194F39, #194F39); color: var(--cFFFFFF, #FFFFFF); border-color: var(--c194F39, #194F39);' : '' });
       if (S.newVer) {
         const nv = S.newVer, later = btn('Later', () => { this._verDismiss = nv.build; this.setState({ newVer: null }); });
-        if (nv.site) BAN.push({ text: 'A newer version of GM 26.11 is available (build ' + nv.build + ').' + (nv.note ? ' ' + nv.note : '') + (this._raw ? ' Your work is autosaved and will be offered back after the reload.' : ''), style: 'border-left: 4px solid var(--cC4681E, #C4681E);',
+        const fl = 'border-left: 4px solid var(--cC4681E, #C4681E); position: fixed; right: 16px; bottom: 16px; z-index: 9000; max-width: min(400px, calc(100vw - 32px)); box-sizing: border-box; box-shadow: 0 6px 24px rgba(0,0,0,0.18);';
+        if (nv.site) BAN.push({ text: '↻ New version of the calculator available (build ' + nv.build + ').' + (nv.note ? ' ' + nv.note : '') + (this._raw ? ' Your work is autosaved and offered back after the reload.' : ''), style: fl,
           acts: [btn('Reload now', () => { this._skipUnload = true; Promise.resolve(this.autoSave()).then(() => { location.replace(location.pathname + '?v=' + encodeURIComponent(nv.build)); }); }, true), later] });
-        else BAN.push({ text: 'A newer version of GM 26.11 is available (build ' + nv.build + '). This is a downloaded copy — get the new one from the website.' + (nv.note ? ' ' + nv.note : ''), style: 'border-left: 4px solid var(--cC4681E, #C4681E);',
+        else BAN.push({ text: '↻ New version of the calculator available (build ' + nv.build + '). This is a downloaded copy — get the new one from the website.' + (nv.note ? ' ' + nv.note : ''), style: fl,
           acts: [btn('Open the website', () => { window.open('https://gutierrezmannix.github.io/calculator/', '_blank'); }, true), later] });
       }
       if (out.showWork && S.asOffer) {
