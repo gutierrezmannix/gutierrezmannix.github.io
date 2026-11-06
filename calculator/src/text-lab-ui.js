@@ -209,11 +209,20 @@
     const before = this.memo('tlWordsAll|' + C.key, () => { let w = 0; for (let i = 0; i < C.tok.length; i++) if (C.kind[C.tok[i]] === 1) w++; return w; });
     const prev = this.tlPanel('See one text change', 'row ' + this.fmtN(this.tlRowOf(C, d) + 1), nav,
       h('div', { className: 'tl-quote' }, String(C.texts[d]).slice(0, 900)),
-      h('span', { className: 'tl-lbl' }, 'After cleaning'),
-      h('div', { className: 'tl-toks' }, parts.map((p, i) => h('span', { key: i, className: 'tl-tk ' + p.cls, title: p.why }, p.text))),
-      R.forms !== 'none' ? h('span', { className: 'tl-lbl' }, R.forms === 'stem' ? 'Counted as (stems)' : 'Counted as (lemmas)') : null,
-      R.forms !== 'none' ? h('div', { className: 'tl-toks' }, parts.filter(p => p.feat).map((p, i) => h('span', { key: i, className: 'tl-tk ' + p.cls }, p.feat))) : null,
-      h('div', { className: 'tl-legend' }, ['kept', 'stop', 'url', 'tag', 'phr', 'inc', 'rare'].map(c => h('span', { key: c, className: 'tl-tk ' + c }, { kept: 'kept', stop: 'common word', url: 'removed', tag: '#tag / @name', phr: 'phrase', inc: 'inclusive spelling', rare: 'too rare' }[c]))),
+      // every word of the text, marked kept / left out: folded by default (a long transcript fills the screen);
+      // the summary line gives the counts, and the words are drawn only when it is opened
+      (() => {
+        const lab = { kept: 'kept', stop: 'common words', url: 'removed', tag: '#tags / @names', phr: 'phrases', inc: 'inclusive spellings', rare: 'too rare' }, by = {};
+        parts.forEach(p => { by[p.cls] = (by[p.cls] || 0) + 1; });
+        const kept = (by.kept || 0) + (by.tag || 0) + (by.phr || 0) + (by.inc || 0), open = !!T.prevOpen;
+        const sum = 'After cleaning: ' + this.fmtN(kept) + ' of ' + this.fmtN(parts.length) + ' words kept' + ['stop', 'url', 'rare'].filter(c => by[c]).map(c => ' · ' + this.fmtN(by[c]) + ' ' + lab[c]).join('') + (open ? '' : ' — show every word');
+        return h('details', { className: 'tl-details tl-aftercl', open, onToggle: e => { if (e.currentTarget.open !== open) this.tlSet({ prevOpen: e.currentTarget.open }); } }, h('summary', null, sum),
+          open ? h('div', { className: 'tl-col' },
+            h('div', { className: 'tl-toks' }, parts.map((p, i) => h('span', { key: i, className: 'tl-tk ' + p.cls, title: p.why }, p.text))),
+            R.forms !== 'none' ? h('span', { className: 'tl-lbl' }, R.forms === 'stem' ? 'Counted as (stems)' : 'Counted as (lemmas)') : null,
+            R.forms !== 'none' ? h('div', { className: 'tl-toks' }, parts.filter(p => p.feat).map((p, i) => h('span', { key: i, className: 'tl-tk ' + p.cls }, p.feat))) : null,
+            h('div', { className: 'tl-legend' }, ['kept', 'stop', 'url', 'tag', 'phr', 'inc', 'rare'].map(c => h('span', { key: c, className: 'tl-tk ' + c }, { kept: 'kept', stop: 'common word', url: 'removed', tag: '#tag / @name', phr: 'phrase', inc: 'inclusive spelling', rare: 'too rare' }[c])))) : null);
+      })(),
       h('div', { className: 'tl-stats' }, this.tlStat('Texts', this.fmtN(C.docs)), this.tlStat('Words kept', this.fmtN(FT.total), 'of ' + this.fmtN(before) + ' words'), this.tlStat('Different words', this.fmtN(FT.order.length), 'before cleaning: ' + this.fmtN(C.types.length)), this.tlStat('Words per text', this.fmt(FT.total / Math.max(1, C.docs), 1), 'after cleaning')));
     return h('div', { className: 'tl-col' }, h('div', { className: 'tl-grid c-l' }, ctl, prev), this.tlNav(['texts', 'Texts'], ['explore', 'Next: Explore']));
   }

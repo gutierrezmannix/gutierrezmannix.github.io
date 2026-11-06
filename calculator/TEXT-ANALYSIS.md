@@ -63,6 +63,10 @@ up to all texts with a date). Every R block the page shows was then run in R (qu
 - The *Check accuracy* sample in Measure scrolls inside its panel instead of spilling past it; clearing the search
   sends *Over time* back to the number of texts.
 
+**See one text change, folded (build .84).** In Clean, the word-by-word *After cleaning* view starts closed: its
+one-line summary gives the counts (e.g. 2,035 of 4,556 words kept · 2,488 common words · 33 removed). Opened, the words
+scroll inside a 420-pixel window; the choice stays while you step through texts. A long transcript no longer fills the page.
+
 Every chart downloads as SVG (fonts embedded) or PNG at 150/300/600 dpi (with the dpi stored in the file).
 "Recipe · R code" shows the quanteda script for the current cleaning.
 

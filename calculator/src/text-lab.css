@@ -164,3 +164,5 @@
 .tl-mchip{display:inline-flex;align-items:center;gap:4px;background:var(--c194F39,#194F39);color:#fff;border-radius:999px;padding:3px 4px 3px 10px;font-size:12px}
 .tl-mchip .mono{font-family:var(--fMono,'Space Mono',monospace)}
 .tl-mchip button{background:none;border:0;color:#fff;cursor:pointer;font-size:14px;line-height:1;padding:0 4px}
+/* See one text change: the word list scrolls in its own window when opened (build .84) */
+.tl-aftercl .tl-toks{max-height:420px;overflow-y:auto;padding-right:4px;overscroll-behavior:contain}
