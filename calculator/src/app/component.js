@@ -4008,6 +4008,7 @@ class Component extends DCLogic {
     const isD = /\.dta$/i.test(file), isT = /\.(tsv|tab|txt)$/i.test(file);
     L.push(isX ? 'df <- as.data.frame(readxl::read_excel("' + file + '"))'
       : isD ? 'df <- as.data.frame(haven::as_factor(haven::read_dta("' + file + '")))   # Stata: value labels become text, as on the page'
+      : /\.z?sav$/i.test(file) ? 'df <- as.data.frame(haven::as_factor(haven::read_sav("' + file + '")))   # SPSS: value labels become text, as on the page'
       : isT ? 'df <- read.delim("' + file + '", encoding = "UTF-8", check.names = FALSE)'
       : 'df <- read.csv("' + file + '", encoding = "UTF-8", check.names = FALSE)   # keep column names as they are');
     if (isX) L.push('df <- df[rowSums(!is.na(df)) > 0, ]   # drop completely empty rows (Excel can leave them at the end), as the page does');
@@ -4483,8 +4484,8 @@ class Component extends DCLogic {
     const E = await this._engineP;
     try {
       const buf = await file.arrayBuffer(), u8 = new Uint8Array(buf, 0, Math.min(16, buf.byteLength)); let head = ''; for (let i = 0; i < u8.length; i++) head += String.fromCharCode(u8[i]);
-      const isDta = head.startsWith('<stata_dta>') || (/\.dta$/i.test(file.name) && u8[0] >= 102 && u8[0] <= 119), isX = (u8[0] === 0x50 && u8[1] === 0x4B) || /\.xlsx?$/i.test(file.name);
-      const raw = isDta ? await E.parseDTA(buf, () => {}) : isX ? await E.parseXLSX(buf, () => {}) : await E.parseCSV(buf, () => {});
+      const k = this.dataKind(file.name, u8);
+      const raw = k === 'dta' ? await E.parseDTA(buf, () => {}) : k === 'xl' ? await E.parseXLSX(buf, () => {}) : k === 'sav' ? await E.parseSAV(buf, () => {}) : await E.parseCSV(buf, () => {});
       this.nlTake(kind, raw, file.name);
     } catch (e) { this.flash('Could not read ' + file.name + ': ' + (e.message || e)); }
   }
@@ -4511,7 +4512,7 @@ class Component extends DCLogic {
   nlJob(net, name, fn, args, label) { const J = this.tlJob('nl|' + net.key + '|' + name, fn, () => args, label); if (!J.done && J.p && typeof J.p === 'object') return Object.assign({}, J, { p: J.p.p, label: J.p.msg || label }); return J; }
   nlFile(kind) {
     const h = React.createElement, ref = el => { this['_nlIn' + kind] = el; };
-    return h('input', { type: 'file', accept: '.csv,.tsv,.txt,.xlsx,.xlsm,.dta', style: { display: 'none' }, ref, onChange: e => { const f = e.target.files && e.target.files[0]; if (f) this.nlLoad(kind, f); e.target.value = ''; } });
+    return h('input', { type: 'file', accept: '.csv,.tsv,.txt,.xlsx,.xlsm,.xls,.dta,.sav,.zsav', style: { display: 'none' }, ref, onChange: e => { const f = e.target.files && e.target.files[0]; if (f) this.nlLoad(kind, f); e.target.value = ''; } });
   }
   // ---- the whole tab
   nlRender() {
@@ -6643,6 +6644,8 @@ class Component extends DCLogic {
   }
   cxImportCmd(dial) {
     const S = this.state, f = S.fileName || 'data.csv', c = (this._raw && this._raw.csv) || {}, xl = /\.(xlsx|xlsm|xltx|xltm|xls)$/i.test(f), sheet = this._xlsx && this._xlsx.name === f ? this._xlsx.sheet : '';
+    const sav = /\.z?sav$/i.test(f);
+    if (sav) return dial === 'stata' ? 'import spss using "' + f + '", clear' : 'df <- as.data.frame(haven::as_factor(haven::read_sav("' + f + '")))';
     if (dial === 'stata') {
       if (xl) return 'import excel "' + f + '",' + (sheet ? ' sheet("' + sheet + '")' : '') + ' firstrow clear';
       return 'import delimited "' + f + '",' + (c.delim === ';' ? ' delimiters(";")' : c.delim === '|' ? ' delimiters("|")' : '') + (c.decComma ? ' decimalseparator(,) groupseparator(.)' : '') + ' clear';
@@ -8923,16 +8926,24 @@ class Component extends DCLogic {
 
   // The shared toolbar wraps at small widths without hiding controls.
   navFit() {}
+  // GM26 .88: which reader a file needs, from its first bytes (and its name when the bytes say nothing)
+  dataKind(name, u8) {
+    const b = i => u8.length > i ? u8[i] : -1, head = String.fromCharCode(...Array.from(u8.subarray ? u8.subarray(0, 11) : u8.slice(0, 11)));
+    if (head.startsWith('<stata_dta>') || (/\.dta$/i.test(name) && b(0) >= 102 && b(0) <= 119)) return 'dta';
+    if (head.startsWith('$FL2') || head.startsWith('$FL3')) return 'sav';
+    if ((b(0) === 0x50 && b(1) === 0x4B && b(2) === 3 && b(3) === 4) || (b(0) === 0xD0 && b(1) === 0xCF && b(2) === 0x11 && b(3) === 0xE0) || /\.(xlsx|xlsm|xltx|xltm|xls)$/i.test(name)) return 'xl';
+    return 'csv';
+  }
   notDataReason(name, buf) {
     const ext = (String(name).match(/\.([A-Za-z0-9]+)$/) || [])[1], e = ext ? ext.toLowerCase() : '';
-    const formats = 'Open a CSV or TSV text file, an Excel workbook (.xlsx), a Stata file (.dta) or a saved session (.json).';
-    if (/^(sav|zsav|por)$/.test(e)) return '"' + name + '" is an SPSS file, which this calculator cannot read. In SPSS use File → Export → CSV (or Stata .dta), then open that file.';
+    const formats = 'Open a CSV or TSV text file, an Excel workbook (.xlsx or .xls), a Stata file (.dta), an SPSS file (.sav) or a saved session (.json).';
+    if (e === 'por') return '"' + name + '" is an SPSS portable file (.por), which this calculator cannot read. In SPSS open it and use File → Save As → SPSS Statistics (.sav), then open that file.';
     if (/^(sas7bdat|xpt|sas7bcat)$/.test(e)) return '"' + name + '" is a SAS file, which this calculator cannot read. Export it to CSV (PROC EXPORT … DBMS=CSV) or Stata, then open that file.';
     if (/^(rds|rdata|rda)$/.test(e)) return '"' + name + '" is an R file, which this calculator cannot read. In R: write.csv(df, "data.csv", row.names = FALSE), then open data.csv.';
     if (/^(ods|numbers)$/.test(e)) return '"' + name + '" is a ' + (e === 'ods' ? 'LibreOffice' : 'Numbers') + ' spreadsheet. Save it as Excel (.xlsx) or CSV, then open that file.';
     if (/^(pdf|docx?|odt|rtf|pptx?|key|png|jpe?g|gif|webp|bmp|tiff?|heic|svg|mp3|mp4|mov|zip|rar|7z|gz|tar|exe|dmg|html?|parquet|feather|sqlite|db|mdb|accdb)$/.test(e)) return '"' + name + '" is not a data file this calculator can read. ' + formats;
     if (!buf) return '';
-    { const b = new Uint8Array(buf, 0, Math.min(2, buf.byteLength)); if ((b[0] === 0xFF && b[1] === 0xFE) || (b[0] === 0xFE && b[1] === 0xFF)) return ''; } // UTF-16 text (Excel's Unicode text)
+    if (this._E && this._E.nlUtf16 && this._E.nlUtf16(buf)) return ''; // UTF-16 text (Excel's Unicode text), with or without a byte-order mark
     // content: text data has no NUL bytes and few control characters in its first 4 KB (only for files read as CSV / TSV)
     const u8 = new Uint8Array(buf, 0, Math.min(4096, buf.byteLength)); let bad = 0;
     for (let i = 0; i < u8.length; i++) { const c = u8[i]; if (c === 0) return '"' + name + '" is not a text data file. ' + formats; if (c < 9 || (c > 13 && c < 32 && c !== 27)) bad++; }
@@ -9130,17 +9141,17 @@ class Component extends DCLogic {
         if (obj && (obj.magic === 'digimi-session' || obj.magic === 'cidigimi-session') && obj.data) { this._undo = []; this.setState({ undoN: 0 }); this._plots = (obj.plots || []).map(p => Object.assign({}, p, { thumb: this.plotThumb(p.xml) })); this._plotLast = {}; const nP = this._plots.length; return this.ingest(null, obj.fileName || name, Object.assign({}, obj.state || {}, { dirty: false, plotN: nP, plotCur: nP - 1, mfSettings: false, mfFile: false, mfNav: '', mfDl: false, mfCmd: '', mfCmdErr: '', mfCmdOk: '' }), this.sessionData(obj)); }
       }
       const userErr = m => Object.assign(new Error(m), { userFacing: true }); // shown on the page, not logged as a fault
-      if (head.startsWith('{') && /\.json$/i.test(name)) throw userErr('"' + name + '" is a .json file but not a saved GM 26 session. Open a session saved with File → Save session, or a data file (CSV, TSV, Excel .xlsx, Stata .dta).');
+      if (head.startsWith('{') && /\.json$/i.test(name)) throw userErr('"' + name + '" is a .json file but not a saved GM 26 session. Open a session saved with File → Save session, or a data file (CSV, TSV, Excel .xlsx/.xls, Stata .dta, SPSS .sav).');
       { const why = this.notDataReason(name, null); if (why) throw userErr(why); } // GM26 .66: PDFs, images, SPSS … get a clear message (by extension)
-      const isDta = head.startsWith('<stata_dta>') || (/\.dta$/i.test(name) && u8[0] >= 102 && u8[0] <= 119);
-      { const zip = u8[0] === 0x50 && u8[1] === 0x4B, ole = u8[0] === 0xD0 && u8[1] === 0xCF; if (!isDta && !zip && !ole && !/\.(xlsx|xlsm|xltx|xltm|xls)$/i.test(name)) { const why = this.notDataReason(name, buf); if (why) throw userErr(why); } } // GM26 .66: binary content is not text data (files read as CSV / TSV)
+      const kind = this.dataKind(name, u8), isDta = kind === 'dta';
+      { const zip = u8[0] === 0x50 && u8[1] === 0x4B, ole = u8[0] === 0xD0 && u8[1] === 0xCF; if (kind === 'csv' && !zip && !ole) { const why = this.notDataReason(name, buf); if (why) throw userErr(why); } } // GM26 .66: binary content is not text data (files read as CSV / TSV)
       this.setState({ progress: 35, parseStage: 'reading rows and columns' });
       const prog = p => this._ingestCancel ? (() => { throw new Error('__cancelled'); })() : this.setState({ progress: Math.round(35 + 0.55 * Math.max(0, Math.min(93, p)) / 0.93), parseStage: p < 75 ? 'reading rows · ' + Math.round(100 * p / 75) + '%' : 'sorting values into columns' });
       // GM26 xlsx ingest
       const isZip = u8[0] === 0x50 && u8[1] === 0x4B && u8[2] === 3 && u8[3] === 4, isOle = u8[0] === 0xD0 && u8[1] === 0xCF && u8[2] === 0x11 && u8[3] === 0xE0;
       this._xlsx = null;
       if (isZip || isOle || /\.(xlsx|xlsm|xltx|xltm|xls)$/i.test(name)) { this.setState({ parseStage: 'reading the Excel workbook' }); data = await E.parseXLSX(buf, prog, { sheet: extra && extra.xlSheetPick != null ? extra.xlSheetPick : undefined }); if (data.xlsx && data.xlsx.sheets.length > 1) { this._xlsx = { buf, name, sheets: data.xlsx.sheets, sheet: data.xlsx.sheet }; setTimeout(() => this.flash('This workbook has ' + data.xlsx.sheets.length + ' sheets — showing “' + data.xlsx.sheet + '”. Pick another under Data information.'), 900); } }
-      else data = isDta ? await E.parseDTA(buf, prog) : await E.parseCSV(buf, prog);
+      else data = isDta ? await E.parseDTA(buf, prog) : kind === 'sav' ? (this.setState({ parseStage: 'reading the SPSS file' }), await E.parseSAV(buf, prog)) : await E.parseCSV(buf, prog);
       }
       if (!preData) { this._plots = []; this._plotLast = {}; } // GM26 .66: cleared once the new file is read (a failed load keeps them)
       if (!preData) { try { this._autoLab = this.autoLabels(data, name); } catch (e) { this._autoLab = null; } }
@@ -9383,8 +9394,8 @@ class Component extends DCLogic {
     try {
       const buf = await file.arrayBuffer(), u8 = new Uint8Array(buf, 0, Math.min(16, buf.byteLength));
       let head = ''; for (let i = 0; i < u8.length; i++) head += String.fromCharCode(u8[i]);
-      const isDta = head.startsWith('<stata_dta>') || (/\.dta$/i.test(file.name) && u8[0] >= 102 && u8[0] <= 119);
-      const raw = isDta ? await E.parseDTA(buf, () => {}) : await E.parseCSV(buf, () => {});
+      const k = this.dataKind(file.name, u8);
+      const raw = k === 'dta' ? await E.parseDTA(buf, () => {}) : k === 'xl' ? await E.parseXLSX(buf, () => {}) : k === 'sav' ? await E.parseSAV(buf, () => {}) : await E.parseCSV(buf, () => {});
       if (kind === 'e') { this._netE = raw; this.setState(Object.assign({ ngE: this.netMeta(raw, file.name), ngErr: '', ngFit: null }, this.netGuess('e', raw))); }
       else { this._netN = raw; this.setState(Object.assign({ ngN: this.netMeta(raw, file.name), ngErr: '', ngFit: null }, this.netGuess('n', raw))); }
     } catch (e) { this.setState({ ngErr: 'could not read ' + file.name + ': ' + (e.message || e) }); }
@@ -10476,7 +10487,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-07.87') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-07.88') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {

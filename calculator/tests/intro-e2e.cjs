@@ -21,7 +21,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   let p = await page();
   const t = await p.locator('body').innerText();
   check(await p.locator('.gi-drop').count() === 1 && /Drag a data file here/.test(t), 'the data box');
-  check(/CSV · TSV · Excel \(\.xlsx\) · Stata \(\.dta\)/.test(t) && !/saved session/i.test(t), 'file types without "saved session"');
+  check(/CSV · TSV · Excel \(\.xlsx, \.xls\) · Stata \(\.dta\) · SPSS \(\.sav\)/.test(t) && !/saved session/i.test(t), 'file types without "saved session"');
   check(await p.locator('.gi-card').count() === 0 && !/What would you like to do today|Start from a task|Pick a task|Everything runs on this computer/.test(t), 'no task cards, heading or intro lines');
   check(/GM\s*26\.11/.test(t) && !/Mainframe/i.test(t) && /Carlos Daniel Gutierrez-Mannix, PhD/.test(t) && !/ALL COMPUTATION LOCAL/i.test(t), 'GM 26.11, no Mainframe, the author in the footer, no "all computation local"');
   check(await p.getByText('Use summary statistics or plan a study').count() === 0, 'the removed button stays removed');
@@ -50,7 +50,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   const fcSpace = p.waitForEvent('filechooser', { timeout: 2000 }).then(() => true).catch(() => false); await p.keyboard.press('Space');
   check(!(await fcSpace) && await p.waitForSelector('.mf-main', { timeout: 20000 }).then(() => true).catch(() => false), 'Space on Create your own dataset opens the new dataset, not the file dialog'); await p.close();
   p = await page();
-  for (const [f, body, re] of [['informe.pdf', '%PDF-1.4 x', /"informe\.pdf" is not a data file this calculator can read/], ['encuesta.sav', '$FL2@(#) SPSS', /"encuesta\.sav" is an SPSS file/], ['bytes.dat', Buffer.from([0, 1, 2, 3, 0, 200, 4, 0]), /"bytes\.dat" is not a text data file/]]) {
+  for (const [f, body, re] of [['informe.pdf', '%PDF-1.4 x', /"informe\.pdf" is not a data file this calculator can read/], ['encuesta.por', 'SPSS PORT FILE', /"encuesta\.por" is an SPSS portable file/], ['bytes.dat', Buffer.from([0, 1, 2, 3, 0, 200, 4, 0]), /"bytes\.dat" is not a text data file/]]) {
     const fp = path.join(tmp, f); fs.writeFileSync(fp, body);
     const [fc] = await Promise.all([p.waitForEvent('filechooser', { timeout: 10000 }), p.locator('.gi-browse').click()]); await fc.setFiles(fp); await p.waitForTimeout(1200);
     check(re.test(await p.locator('.gi').innerText()), f + ': a clear reason instead of "found a header but no data rows"');

@@ -26,7 +26,8 @@ const comp = () => { const c = new C(); c._E = E; c._engineP = Promise.resolve(E
 test('files that are not data get a clear reason; text data passes', () => {
   const c = comp();
   assert.match(c.notDataReason('informe.pdf', null), /"informe\.pdf" is not a data file this calculator can read\. Open a CSV/);
-  assert.match(c.notDataReason('encuesta.sav', null), /is an SPSS file.*File → Export → CSV/);
+  assert.equal(c.notDataReason('encuesta.sav', null), '', 'SPSS .sav files are read (GM26 .88)');
+  assert.match(c.notDataReason('encuesta.por', null), /SPSS portable file.*Save As/);
   assert.match(c.notDataReason('df.rds', null), /is an R file.*write\.csv/);
   assert.match(c.notDataReason('hoja.ods', null), /LibreOffice spreadsheet\. Save it as Excel/);
   assert.equal(c.notDataReason('datos.csv', null), '');

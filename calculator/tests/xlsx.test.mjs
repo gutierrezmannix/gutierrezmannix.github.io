@@ -87,7 +87,7 @@ test('1904 date system, hidden sheets, sheet choice and prefixed XML', async () 
 
 test('clear messages for files that are not .xlsx workbooks', async () => {
   const xls = new Uint8Array(64); xls.set([0xD0, 0xCF, 0x11, 0xE0]);
-  await assert.rejects(parseXLSX(xls.buffer), /97–2003/);
+  await assert.rejects(parseXLSX(xls.buffer), /damaged or incomplete/); // .xls files are read since GM26 .88; a broken one gets a clear reason
   await assert.rejects(parseXLSX(zip({ 'content.xml': '<x/>', 'mimetype': 'application/vnd.oasis.opendocument.spreadsheet' })), /OpenDocument/);
   await assert.rejects(parseXLSX(zip({ 'a.txt': 'hi' })), /does not contain an Excel workbook/);
 });

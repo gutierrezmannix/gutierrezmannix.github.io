@@ -1,3 +1,40 @@
+# Data formats audit — build .88
+
+Every format was tested with files written by real software (R haven, foreign, writexl and readxl; LibreOffice; a
+BIFF5 writer for Excel 5.0/95) from one 40-row dataset with accents, labels, dates, missing values and a 395-character
+text. Each file was compared value by value with that dataset, and loaded through the real file dialog in the browser.
+
+| Format | Before | Now |
+| --- | --- | --- |
+| Excel 97–2003 `.xls` (BIFF8) | refused ("save as .xlsx") | read: numbers, text (shared strings across CONTINUE records), dates, booleans, formulas' cached values, merged cells, every sheet, the 1904 date system; large (6,000 rows) and tiny (mini-stream) files |
+| Excel 5.0 / 95 `.xls` (BIFF5, 1993) | refused | read the same way, text in the workbook's code page |
+| SPSS `.sav` (uncompressed and compressed) and `.zsav` | refused ("export to CSV") | read: variable labels, value labels, user-missing values and system-missing as missing, dates, long names, text longer than 255 bytes, the file's own encoding |
+| SPSS portable `.por` | "an SPSS file" | its own message: open it in SPSS and Save As `.sav` |
+| Stata 6 (release 108) and 5 (105) | refused | read (Stata 5 value labels stay as codes) |
+| Stata 7–12 dates (`%td`, `%tc`, `%tm`) | day counts (21,522) | dates (2018-12-04), as Stata 13+ files already were |
+| Stata 7–12 files written as UTF-8 (by R) | "PeÃ±a" | "Peña"; true Latin-1 files are still read as Latin-1 |
+| CSV with old-Mac line endings (CR only) | one long row | rows |
+| Excel Unicode text (UTF-16) with no byte-order mark, and big-endian UTF-16 | garbage | read |
+| A file cut short (broken download) | `.xls`: the page froze (out of memory); `.dta`: made-up rows or "Offset is outside the bounds"; `.sav`: part of the rows | "this … file is damaged or incomplete" with what to do |
+
+Already fine and unchanged: `.xlsx` (writexl, LibreOffice), Stata 8–15+ (releases 113–119), CSV in UTF-8 (with
+and without a byte-order mark), Windows-1252, semicolons with decimal commas, tabs, CRLF.
+
+Where it shows: the formats line on the start page and the footer list `.xls` and `.sav`; the Networks file buttons
+accept `.xls`, `.sav` and `.zsav`; the session log and R code start with `import spss using "file.sav", clear` /
+`haven::read_sav()` for SPSS files.
+
+Kept as they are, on purpose:
+- **"NA" in a text column stays the text "NA"** in CSV files (R writes missing text that way). Number columns already
+  treat NA as missing. Turning text "NA" into missing would also blank a real value such as Namibia's country code.
+- **Codes with leading zeros** ("04182") in a column that is all digits become numbers (4182), as in `read.csv` and
+  Stata's `import delimited`. Keep such codes as text in the source file, or rebuild them with Make a new variable.
+- Limits of the formats themselves: Stata 6–7 text holds 80 characters, Stata 8–12 244 bytes, an Excel 5.0 cell 255.
+
+Tests: `tests/file-formats.test.mjs` (19 tests) with the files in `tests/data/formats/` and `truth.json`, and the
+Networks tab run end to end from CSV, `.xls` and `.sav` copies of the same edge and node lists (same 390 people,
+331 ties, same model).
+
 # Stata long text and dates — build .77
 
 - **Long text (strL).** Stata stores text longer than 2,045 characters (speeches, transcripts, open answers) as strL.

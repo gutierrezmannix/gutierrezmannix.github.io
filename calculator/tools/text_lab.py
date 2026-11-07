@@ -75,7 +75,7 @@ def integrate_component(c):
             raise RuntimeError('text_lab: session key lists changed')
         c = c.replace('"ttY2","guideOn"]', '"ttY2","guideOn","tl"]')
     # 4. Excel files load through the workbook reader (re-applied on every run, so edits here take effect)
-    original = '      data = isDta ? await E.parseDTA(buf, prog) : await E.parseCSV(buf, prog);'
+    original = '      data = isDta ? await E.parseDTA(buf, prog) : kind === \'sav\' ? (this.setState({ parseStage: \'reading the SPSS file\' }), await E.parseSAV(buf, prog)) : await E.parseCSV(buf, prog);'
     if '// GM26 xlsx ingest' in c:
         a = c.index('      // GM26 xlsx ingest\n')
         b = c.index('      else ' + original.strip(), a) + len('      else ' + original.strip())
@@ -85,7 +85,7 @@ def integrate_component(c):
                 '      const isZip = u8[0] === 0x50 && u8[1] === 0x4B && u8[2] === 3 && u8[3] === 4, isOle = u8[0] === 0xD0 && u8[1] === 0xCF && u8[2] === 0x11 && u8[3] === 0xE0;\n'
                 '      this._xlsx = null;\n'
                 '      if (isZip || isOle || /\\.(xlsx|xlsm|xltx|xltm|xls)$/i.test(name)) { this.setState({ parseStage: \'reading the Excel workbook\' }); data = await E.parseXLSX(buf, prog, { sheet: extra && extra.xlSheetPick != null ? extra.xlSheetPick : undefined }); if (data.xlsx && data.xlsx.sheets.length > 1) { this._xlsx = { buf, name, sheets: data.xlsx.sheets, sheet: data.xlsx.sheet }; setTimeout(() => this.flash(\'This workbook has \' + data.xlsx.sheets.length + \' sheets — showing “\' + data.xlsx.sheet + \'”. Pick another under Data information.\'), 900); } }\n'
-                '      else data = isDta ? await E.parseDTA(buf, prog) : await E.parseCSV(buf, prog);',
+                '      else data = isDta ? await E.parseDTA(buf, prog) : kind === \'sav\' ? (this.setState({ parseStage: \'reading the SPSS file\' }), await E.parseSAV(buf, prog)) : await E.parseCSV(buf, prog);',
                 'xlsx ingest')
     if '// GM26 xlsx sheet picker' not in c:
         c = one(c, "    out.dimsText = this.fmtN(S.nRows) + ' ROWS × ' + S.cols.length + ' VARS';",

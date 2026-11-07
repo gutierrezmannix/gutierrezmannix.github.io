@@ -349,6 +349,8 @@
   }
   cxImportCmd(dial) {
     const S = this.state, f = S.fileName || 'data.csv', c = (this._raw && this._raw.csv) || {}, xl = /\.(xlsx|xlsm|xltx|xltm|xls)$/i.test(f), sheet = this._xlsx && this._xlsx.name === f ? this._xlsx.sheet : '';
+    const sav = /\.z?sav$/i.test(f);
+    if (sav) return dial === 'stata' ? 'import spss using "' + f + '", clear' : 'df <- as.data.frame(haven::as_factor(haven::read_sav("' + f + '")))';
     if (dial === 'stata') {
       if (xl) return 'import excel "' + f + '",' + (sheet ? ' sheet("' + sheet + '")' : '') + ' firstrow clear';
       return 'import delimited "' + f + '",' + (c.delim === ';' ? ' delimiters(";")' : c.delim === '|' ? ' delimiters("|")' : '') + (c.decComma ? ' decimalseparator(,) groupseparator(.)' : '') + ' clear';

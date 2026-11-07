@@ -114,6 +114,7 @@
     const isD = /\.dta$/i.test(file), isT = /\.(tsv|tab|txt)$/i.test(file);
     L.push(isX ? 'df <- as.data.frame(readxl::read_excel("' + file + '"))'
       : isD ? 'df <- as.data.frame(haven::as_factor(haven::read_dta("' + file + '")))   # Stata: value labels become text, as on the page'
+      : /\.z?sav$/i.test(file) ? 'df <- as.data.frame(haven::as_factor(haven::read_sav("' + file + '")))   # SPSS: value labels become text, as on the page'
       : isT ? 'df <- read.delim("' + file + '", encoding = "UTF-8", check.names = FALSE)'
       : 'df <- read.csv("' + file + '", encoding = "UTF-8", check.names = FALSE)   # keep column names as they are');
     if (isX) L.push('df <- df[rowSums(!is.na(df)) > 0, ]   # drop completely empty rows (Excel can leave them at the end), as the page does');

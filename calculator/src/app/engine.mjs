@@ -48,7 +48,7 @@ export async function parseCSV(buf, prog) {
   let _ty = performance.now();
   const yieldIf = async p => { if (performance.now() - _ty > 50) { prog(p); await yieldUI(); _ty = performance.now(); } };
   const text = nlDecodeText(buf).replace(/^\uFEFF/, ''); // GM26 text encoding
-  const firstNL = text.indexOf('\n');
+  const firstNL = text.search(/\r\n|\r|\n/);   // also the lone CR of old Mac Excel CSV files
   const first = firstNL > 0 ? text.slice(0, firstNL) : text;
   let delim = ',', best = -1;
   for (const d of [',', ';', '\t', '|']) {
@@ -74,7 +74,8 @@ export async function parseCSV(buf, prog) {
       else if (c === '"') inQ = true;
       else if (c === delim) { row.push(field); field = ''; }
       else if (c === '\n') endRow();
-      else if (c !== '\r') field += c;
+      else if (c === '\r') { if (text[i + 1] !== '\n') endRow(); }   // a lone CR ends a row (old Mac Excel)
+      else field += c;
       if ((i & 0xFFFF) === 0xFFFF) await yieldIf(5 + Math.round(70 * i / n));
     }
     if (field !== '' || row.length) endRow();
@@ -113,8 +114,30 @@ export async function parseCSV(buf, prog) {
   return { names, labels: names.map(() => ''), cols, vlabs: Object.create(null), n: N, csv: { delim, decComma } };
 }
 
-// ---------- Stata .dta parser (releases 113-115, 117-119) ----------
+// Stata dates are numbers with a display format: %td (or %d before Stata 10) days, %tc / %tC milliseconds and %tm months
+// since 1960. They are read as dates (2019-01-02, 2019-01-02 07:30:00, 2019-01), as Excel dates are, so time charts and
+// text over time find them. Used by every .dta release.
+function dtaDates(cols, fmts, N) {
+  const E1960 = Date.UTC(1960, 0, 1), p2 = x => String(x).padStart(2, '0');
+  const isoDay = ms => { const d = new Date(ms); return d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate()); };
+  for (let c = 0; c < cols.length; c++) {
+    if (cols[c].k !== 'n') continue; const f = String(fmts[c] || '').replace(/^%-?/, '%');
+    const kind = /^%t?d/.test(f) && !/^%t[cCwmqhy]/.test(f) ? 'd' : /^%t[cC]/.test(f) ? 'c' : /^%tm/.test(f) ? 'm' : '';
+    if (!kind) continue; const src = cols[c].a, out = new Array(N);
+    for (let r = 0; r < N; r++) { const v = src[r]; if (!isFinite(v)) { out[r] = ''; continue; }
+      if (kind === 'd') out[r] = isoDay(E1960 + Math.round(v) * 86400000);
+      else if (kind === 'c') { const d = new Date(E1960 + v); out[r] = isoDay(E1960 + v) + (v % 86400000 ? ' ' + p2(d.getUTCHours()) + ':' + p2(d.getUTCMinutes()) + ':' + p2(d.getUTCSeconds()) : ''); }
+      else { const m = Math.round(v), y = 1960 + Math.floor(m / 12); out[r] = y + '-' + p2(((m % 12) + 12) % 12 + 1); } }
+    cols[c] = { k: 's', a: out };
+  }
+}
+// ---------- Stata .dta parser (releases 105, 108, 110-115, 117-119) ----------
+// a Stata file cut short (a broken download) gets a plain reason instead of a byte-offset error or made-up rows
+const DTA_CUT = 'this Stata file is damaged or incomplete (it ends before its data does). Save it again from Stata, or download it again, and open the new copy.';
 export async function parseDTA(buf, prog) {
+  try { return await dtaRead(buf, prog); } catch (e) { if (e instanceof RangeError) throw new Error(DTA_CUT); throw e; }
+}
+async function dtaRead(buf, prog) {
   const u8 = new Uint8Array(buf), dv = new DataView(buf);
   const asc = (s, e) => { let r = ''; for (let i = s; i < Math.min(e, u8.length); i++) r += String.fromCharCode(u8[i]); return r; };
   const skipTag = (off) => { let i = off; const cap = off + 64; while (i < cap && u8[i] !== 62) i++; return i + 1; };
@@ -128,8 +151,9 @@ export async function parseDTA(buf, prog) {
     const K = rel >= 119 ? dv.getUint32(kAt, le) : dv.getUint16(kAt, le);
     const nAt = head.indexOf('<N>') + 3;
     const N = rel >= 118 ? Number(dv.getBigUint64(nAt, le)) : dv.getUint32(nAt, le);
-    const mi = head.indexOf('<map>'); if (mi < 0) throw new Error('malformed .dta (no map).');
+    const mi = head.indexOf('<map>'); if (mi < 0) throw new Error(u8.length < 2000 ? DTA_CUT : 'malformed .dta (no map).');
     const offs = []; for (let i = 0; i < 14; i++) offs.push(Number(dv.getBigUint64(mi + 5 + i * 8, le)));
+    if (offs[13] > u8.length) throw new Error(DTA_CUT); // the map's last entry is where the file ends
     const W = rel >= 118 ? { name: 129, lbl: 129, vlab: 321 } : { name: 33, lbl: 33, vlab: 81 };
     const dec = rel >= 118 ? new TextDecoder('utf-8') : (() => { const u = new TextDecoder('utf-8', { fatal: true }), w = new TextDecoder('windows-1252'); return { decode: b => { try { return u.decode(b); } catch (e) { return w.decode(b); } } }; })();
     const rdFixed = (start, width, count) => { const out = []; for (let i = 0; i < count; i++) { const a = start + i * width; let e = a; const cap = a + width; while (e < cap && u8[e] !== 0) e++; out.push(dec.decode(u8.subarray(a, e))); } return out; };
@@ -196,39 +220,34 @@ export async function parseDTA(buf, prog) {
     const vlabs = Object.create(null); names.forEach((nm, i) => { if (lblNames[i] && vmaps[lblNames[i]]) vlabs[nm] = vmaps[lblNames[i]]; });
     // Stata dates are numbers with a display format: %td days, %tc / %tC milliseconds and %tm months since 1960. They are
     // read as dates (2019-01-02, 2019-01-02 07:30:00, 2019-01), as Excel dates are, so time charts and text over time find them.
-    const fmts = rdFixed(skipTag(offs[5]), rel === 117 ? 49 : 57, K), E1960 = Date.UTC(1960, 0, 1), p2 = x => String(x).padStart(2, '0');
-    const isoDay = ms => { const d = new Date(ms); return d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate()); };
-    for (let c = 0; c < K; c++) {
-      if (cols[c].k !== 'n') continue; const f = String(fmts[c] || '').replace(/^%-?/, '%');
-      const kind = /^%t?d/.test(f) && !/^%t[cCwmqhy]/.test(f) ? 'd' : /^%t[cC]/.test(f) ? 'c' : /^%tm/.test(f) ? 'm' : '';
-      if (!kind) continue; const src = cols[c].a, out = new Array(N);
-      for (let r = 0; r < N; r++) { const v = src[r]; if (!isFinite(v)) { out[r] = ''; continue; }
-        if (kind === 'd') out[r] = isoDay(E1960 + Math.round(v) * 86400000);
-        else if (kind === 'c') { const d = new Date(E1960 + v); out[r] = isoDay(E1960 + v) + (v % 86400000 ? ' ' + p2(d.getUTCHours()) + ':' + p2(d.getUTCMinutes()) + ':' + p2(d.getUTCSeconds()) : ''); }
-        else { const m = Math.round(v), y = 1960 + Math.floor(m / 12); out[r] = y + '-' + p2(((m % 12) + 12) % 12 + 1); } }
-      cols[c] = { k: 's', a: out };
-    }
+    dtaDates(cols, rdFixed(skipTag(offs[5]), rel === 117 ? 49 : 57, K), N);
     return { names, labels: varLabels, cols, vlabs, n: N };
   }
   const ver = u8[0];
-  if (ver < 110 || ver > 115) throw new Error('unsupported .dta version (' + ver + '). Export as CSV or from Stata 7 or later instead.');
+  if (![105, 108, 110, 111, 113, 114, 115].includes(ver)) throw new Error('unsupported .dta version (' + ver + '). Export as CSV, or save it again from a newer Stata (File → Save as).');
   const old = ver < 113;
   const le = u8[1] === 2;
   const K = dv.getUint16(4, le), N = dv.getUint32(6, le);
-  const dec = new TextDecoder('windows-1252');
-  let p = 109;
+  // field widths by release: Stata 5 (105) and 6 (108) have 9-character names; 105 has 32-character labels
+  const W = ver === 105 ? { dl: 32, nm: 9, fmt: 12, lbl: 9, vl: 32, ex: 2 } : ver === 108 ? { dl: 81, nm: 9, fmt: 12, lbl: 9, vl: 81, ex: 2 } : { dl: 81, nm: 33, fmt: ver <= 113 ? 12 : 49, lbl: 33, vl: 81, ex: 4 };
+  // text: Stata 12 and earlier wrote Latin-1 / Windows-1252, but files written by R (haven, foreign) and newer tools hold
+  // UTF-8: UTF-8 is used when it is valid, Windows-1252 otherwise
+  const d8 = new TextDecoder('utf-8', { fatal: true }), d1252 = new TextDecoder('windows-1252');
+  const dec = { decode: b => { for (let i = 0; i < b.length; i++) if (b[i] > 127) { try { return d8.decode(b); } catch (e) { return d1252.decode(b); } } return d1252.decode(b); } };
+  let p = 10 + W.dl + 18;
   const types = []; for (let i = 0; i < K; i++) types.push(u8[p + i]); p += K;
-  if (ver === 110) for (let i = 0; i < K; i++) { const t = types[i]; types[i] = { 98: 251, 105: 252, 108: 253, 102: 254, 100: 255 }[t] || (t >= 128 ? t - 127 : t); }
+  if (ver <= 110) for (let i = 0; i < K; i++) { const t = types[i]; types[i] = { 98: 251, 105: 252, 108: 253, 102: 254, 100: 255 }[t] || (t >= 128 ? t - 127 : t); }
   const rdA = (width, count) => { const out = []; for (let i = 0; i < count; i++) { const a = p + i * width; let e = a; const cap = a + width; while (e < cap && u8[e] !== 0) e++; out.push(dec.decode(u8.subarray(a, e))); } p += width * count; return out; };
-  const names = rdA(33, K);
+  const names = rdA(W.nm, K);
   p += 2 * (K + 1);
-  p += (ver <= 113 ? 12 : 49) * K;
-  const lblNames = rdA(33, K);
-  const varLabels = rdA(81, K);
-  while (p + 5 <= u8.length) { const dt = u8[p]; const len = dv.getInt32(p + 1, le); p += 5; if (dt === 0 && len === 0) break; p += len; }
+  const fmts = rdA(W.fmt, K);
+  const lblNames = rdA(W.lbl, K);
+  const varLabels = rdA(W.vl, K);
+  if (ver >= 105) while (p + 1 + W.ex <= u8.length) { const dt = u8[p]; const len = W.ex === 2 ? dv.getInt16(p + 1, le) : dv.getInt32(p + 1, le); p += 1 + W.ex; if (dt === 0 && len === 0) break; p += len; }
   const size = t => t === 255 ? 8 : t === 254 ? 4 : t === 253 ? 4 : t === 252 ? 2 : t === 251 ? 1 : t;
   const colOff = []; let rowLen = 0; for (let i = 0; i < K; i++) { colOff.push(rowLen); rowLen += size(types[i]); }
   const dAt = p;
+  if (!(dAt + N * rowLen <= u8.length)) throw new Error(DTA_CUT); // also when the variable list itself is missing
   const cols = types.map(t => (t >= 251 && t <= 255) ? { k: 'n', a: (t === 251 || t === 252 || t === 254) ? new Float32Array(N) : new Float64Array(N) } : { k: 's', a: new Array(N) });
   for (let r0 = 0; r0 < N; r0 += 6000) {
     const r1 = Math.min(N, r0 + 6000);
@@ -252,8 +271,9 @@ export async function parseDTA(buf, prog) {
   try {
     while (vp + 44 < u8.length) {
       dv.getInt32(vp, le); vp += 4;
-      let e = vp; const cap = vp + 33; while (e < cap && u8[e] !== 0) e++;
-      const lname = dec.decode(u8.subarray(vp, e)); vp += 33 + 3;
+      if (ver === 105) break;   // Stata 5's older value-label layout: the codes are kept as numbers
+      let e = vp; const cap = vp + W.lbl; while (e < cap && u8[e] !== 0) e++;
+      const lname = dec.decode(u8.subarray(vp, e)); vp += W.lbl + 3;
       const nn = dv.getInt32(vp, le); vp += 4;
       const txtlen = dv.getInt32(vp, le); vp += 4;
       if (nn < 0 || nn > 200000 || txtlen < 0) break;
@@ -266,7 +286,106 @@ export async function parseDTA(buf, prog) {
     }
   } catch (e) { /* value labels are optional */ }
   const vlabs = Object.create(null); names.forEach((nm, i) => { if (lblNames[i] && vmaps[lblNames[i]]) vlabs[nm] = vmaps[lblNames[i]]; });
+  dtaDates(cols, fmts, N);
   return { names, labels: varLabels, cols, vlabs, n: N };
+}
+
+// ---------- SPSS .sav / .zsav ----------
+// A dictionary of records (variables, labels, extensions) then the cases: uncompressed 8-byte cells, bytecode-compressed
+// (1 byte per cell for small whole numbers) or, in .zsav, the same bytecode in zlib blocks. Value labels become the
+// labels students see (as with Stata), variable labels are kept, dates (seconds since 14 Oct 1582) are read as dates and
+// user-missing codes (e.g. 99 = "don't know") count as missing, as haven::read_sav does by default.
+// a file that ends early (a broken download, a copy cut short) gets a plain reason instead of a byte-offset error
+const SAV_CUT = 'this SPSS file is damaged or incomplete (it ends before its data does). Save it again from SPSS, or download it again, and open the new copy.';
+export async function parseSAV(buf, prog) {
+  try { return await savRead(buf, prog); } catch (e) { if (e instanceof RangeError) throw new Error(SAV_CUT); throw e; }
+}
+async function savRead(buf, prog) {
+  prog = prog || (() => {});
+  const u8 = new Uint8Array(buf), dv = new DataView(buf), magic = String.fromCharCode(...u8.subarray(0, 4));
+  if (magic !== '$FL2' && magic !== '$FL3') throw new Error(magic.startsWith('$FL') ? 'unsupported SPSS file.' : 'this is not an SPSS .sav file' + (/^\s*\$?FL|^\*/.test(magic) ? '' : ' (SPSS portable .por files are not supported: save it as .sav).'));
+  let le = true; { const lc = dv.getInt32(64, true); if (lc !== 2 && lc !== 3) le = false; }
+  const i32 = o => dv.getInt32(o, le), f64 = o => dv.getFloat64(o, le);
+  const nomCase = i32(68), compr = i32(72), ncases = i32(80), bias = f64(84);
+  let p = 176; const vars = [], slot = [];   // slot[k] = variable record k (1-based dictionary index) → variable
+  const vlRecs = [], ext = {}; let enc = '';
+  while (p + 4 <= u8.length) {
+    const rt = i32(p); p += 4;
+    if (rt === 2) {
+      const type = i32(p), hasLab = i32(p + 4), nmis = i32(p + 8), pfmt = i32(p + 12); const nm = String.fromCharCode(...u8.subarray(p + 20, p + 28)).trim(); p += 28;
+      let lab = null; if (hasLab) { const ll = i32(p); lab = u8.subarray(p + 4, p + 4 + ll); p += 4 + Math.ceil(ll / 4) * 4; }
+      const mis = []; for (let k = 0; k < Math.abs(nmis); k++) { mis.push(f64(p)); p += 8; }
+      if (type === -1) { slot.push(slot[slot.length - 1]); continue; }
+      const v = { short: nm, type, lab, nmis, mis, fmt: (pfmt >> 16) & 0xFF, seg: slot.length }; vars.push(v); slot.push(v);
+    } else if (rt === 3) {
+      const n = i32(p); p += 4; const labs = []; for (let k = 0; k < n; k++) { const raw = u8.subarray(p, p + 8), val = f64(p), ll = u8[p + 8]; labs.push({ raw, val, txt: u8.subarray(p + 9, p + 9 + ll) }); p += Math.ceil((9 + ll) / 8) * 8; }
+      if (i32(p) === 4) { const nv = i32(p + 4); const idx = []; for (let k = 0; k < nv; k++) idx.push(i32(p + 8 + 4 * k)); p += 8 + 4 * nv; vlRecs.push({ labs, idx }); }
+    } else if (rt === 6) { const n = i32(p); p += 4 + 80 * n; }
+    else if (rt === 7) { const sub = i32(p), size = i32(p + 4), cnt = i32(p + 8); ext[sub] = u8.subarray(p + 12, p + 12 + size * cnt); if (sub === 3 && size === 4 && cnt >= 8) ext.cp = i32(p + 12 + 28); p += 12 + size * cnt; }
+    else if (rt === 999) { p += 4; break; }
+    else throw new Error('this SPSS file has a record this calculator cannot read (type ' + rt + ').');
+  }
+  // text encoding: the file's own (record 7.20), else its code page, else Windows-1252
+  if (ext[20]) enc = new TextDecoder('ascii').decode(ext[20]).trim();
+  let dec; try { dec = new TextDecoder(enc || (ext.cp === 65001 ? 'utf-8' : ext.cp >= 1250 && ext.cp <= 1258 ? 'windows-' + ext.cp : ext.cp === 20127 ? 'utf-8' : 'windows-1252')); } catch (e) { dec = new TextDecoder('windows-1252'); }
+  const txt = b => { let e = b.length; while (e > 0 && (b[e - 1] === 32 || b[e - 1] === 0)) e--; return dec.decode(b.subarray(0, e)); };
+  // long names (7.13) and very long strings (7.14: one variable made of several 255-byte segments)
+  const longName = {}; if (ext[13]) for (const kv of dec.decode(ext[13]).split('\t')) { const k = kv.indexOf('='); if (k > 0) longName[kv.slice(0, k).trim()] = kv.slice(k + 1).replace(/\0+$/, '').trim(); }
+  const vlong = {}; if (ext[14]) for (const kv of dec.decode(ext[14]).split(/[\t\0]+/)) { const k = kv.indexOf('='); if (k > 0) vlong[kv.slice(0, k).trim()] = parseInt(kv.slice(k + 1), 10); }
+  const out = []; for (let k = 0; k < vars.length; k++) { const v = vars[k], w = vlong[v.short];
+    if (w > 255) { const nseg = Math.ceil(w / 252); out.push({ v, parts: vars.slice(k, k + nseg), width: w }); k += nseg - 1; } else out.push({ v, parts: [v], width: v.type }); }
+  // cases: each case is nomCase 8-byte cells, read through the bytecode decoder when compressed
+  let data = u8.subarray(p);
+  if (compr === 2) {
+    const zt = Number(dv.getBigInt64(p + 8, le)), nb = i32(zt + 20); const blocks = [];
+    for (let b = 0; b < nb; b++) { const q = zt + 24 + 24 * b, co = Number(dv.getBigInt64(q + 8, le)), cs = i32(q + 20); blocks.push(await xlInflate(u8.subarray(co + 2, co + cs - 4))); }
+    const tot = blocks.reduce((a, b) => a + b.length, 0); data = new Uint8Array(tot); let o = 0; for (const b of blocks) { data.set(b, o); o += b.length; }
+  }
+  const SYSMIS = -Number.MAX_VALUE, cells = [];   // the decoded case cells, 8 bytes each (as numbers or raw bytes)
+  const raw8 = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const N = ncases >= 0 ? ncases : Infinity; let rows = 0;
+  const colsRaw = out.map(o => o.width === 0 ? new Float64Array(0) : []);   // filled below
+  const num = out.map(o => o.v.type === 0), vals = out.map(o => num[out.indexOf(o)] ? [] : []);
+  let q = 0, cmd = null, ci = 8; const caseBuf = new Array(nomCase); let filled = 0, done = false;
+  const pushCell = c => { caseBuf[filled++] = c; if (filled === nomCase) { cells.push(caseBuf.slice()); filled = 0; rows++; if (rows >= N) done = true; } };
+  if (compr === 0) { while (!done && q + 8 <= data.length) { pushCell(data.subarray(q, q + 8)); q += 8; } }
+  else while (!done && (ci < 8 || q < data.length)) {
+    if (ci === 8) { if (q + 8 > data.length) break; cmd = data.subarray(q, q + 8); q += 8; ci = 0; }
+    const c = cmd[ci++];
+    if (c === 0) continue;
+    if (c === 252) break;
+    if (c === 253) { if (q + 8 > data.length) break; pushCell(data.subarray(q, q + 8)); q += 8; }
+    else if (c === 254) pushCell('        ');
+    else if (c === 255) pushCell(SYSMIS);
+    else pushCell(c - bias);
+    if ((rows & 8191) === 8191 && filled === 0) { prog(10 + Math.min(70, rows / 2000)); await new Promise(r => setTimeout(r, 0)); }
+  }
+  const n = cells.length, sp = new Uint8Array(8).fill(32);
+  const numOf = c => typeof c === 'number' ? c : typeof c === 'string' ? NaN : new DataView(c.buffer, c.byteOffset, 8).getFloat64(0, le);
+  const bytesOf = c => typeof c === 'string' ? sp : typeof c === 'number' ? new Uint8Array(8) : c;
+  const names = [], labels = [], cols = [], vlabs = Object.create(null), seen = Object.create(null);
+  const E1582 = Date.UTC(1582, 9, 14), p2 = x => String(x).padStart(2, '0');
+  for (const o of out) {
+    const v = o.v; let nm = longName[v.short] || v.short; if (seen[nm]) nm = nm + '_' + (++seen[nm]); else seen[nm] = 1; names.push(nm); labels.push(v.lab ? txt(v.lab) : '');
+    if (v.type === 0) { const a = new Float64Array(n); for (let r = 0; r < n; r++) { let x = numOf(cells[r][v.seg]); if (!(x > -1.7e308) || (v.nmis > 0 && v.mis.includes(x)) || (v.nmis < 0 && ((x >= v.mis[0] && x <= v.mis[1]) || (v.mis.length > 2 && x === v.mis[2])))) x = NaN; a[r] = x; }
+      const dk = [20, 23, 24, 38, 39].includes(v.fmt) ? 'd' : [22, 41].includes(v.fmt) ? 'c' : v.fmt === 28 ? 'm' : '';
+      if (dk) { const s2 = new Array(n); for (let r = 0; r < n; r++) { const x = a[r]; if (!isFinite(x)) { s2[r] = ''; continue; } const d = new Date(E1582 + x * 1000), day = d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate());
+          s2[r] = dk === 'd' ? day : dk === 'm' ? day.slice(0, 7) : day + (x % 86400 ? ' ' + p2(d.getUTCHours()) + ':' + p2(d.getUTCMinutes()) + ':' + p2(d.getUTCSeconds()) : ''); } cols.push({ k: 's', a: s2 }); }
+      else cols.push({ k: 'n', a });
+    } else {
+      // a string spans ceil(width / 8) cells; a very long one (width > 255) is ceil(width / 252) segments, each holding
+      // 255 bytes of the text except the last, which holds the rest (the layout SPSS, PSPP and ReadStat use)
+      const a = new Array(n);
+      for (let r = 0; r < n; r++) { const pieces = []; o.parts.forEach((part, j) => { const wd = Math.min(255, part.type), nc = Math.ceil(wd / 8), b = new Uint8Array(nc * 8); for (let k = 0; k < nc; k++) b.set(bytesOf(cells[r][part.seg + k]), 8 * k); pieces.push(b.subarray(0, j < o.parts.length - 1 ? 255 : wd)); });
+        const all = new Uint8Array(pieces.reduce((s3, b) => s3 + b.length, 0)); let off = 0; for (const b of pieces) { all.set(b, off); off += b.length; } a[r] = txt(all.subarray(0, Math.min(all.length, o.width))); }
+      cols.push({ k: 's', a });
+    }
+  }
+  // value labels (numeric variables)
+  for (const R of vlRecs) { const m = new Map(); for (const L of R.labs) m.set(L.val, txt(L.txt)); for (const k of R.idx) { const v = slot[k - 1]; const oi = out.findIndex(o => o.v === v); if (oi >= 0 && v.type === 0 && cols[oi].k === 'n') vlabs[names[oi]] = m; } }
+  if (ncases > 0 && n < ncases) throw new Error(SAV_CUT.replace('(it ends before its data does)', '(it holds ' + n + ' of its ' + ncases + ' cases)'));
+  prog(92);
+  return { names, labels, cols, vlabs, n };
 }
 
 // ---------- profiling ----------
@@ -11715,9 +11834,111 @@ function xlRelPath(base, target) {
   return parts.join('/');
 }
 
+
+// ---------- old Excel: .xls (BIFF8 = Excel 97–2003, BIFF5/7 = Excel 5.0 of 1993 and Excel 95) ----------
+// The file is a compound document (OLE2): a small FAT file system holding the "Workbook" (BIFF8) or "Book" (BIFF5)
+// stream. That stream is a list of records: the workbook part (sheets, shared strings, number formats, cell styles)
+// and one part per sheet with its cells. Only values are read: numbers, text, booleans, formula results, dates.
+function xlsCfbStream(u8) {
+  const ss = 1 << xlU16(u8, 0x1E), mss = 1 << xlU16(u8, 0x20), cutoff = xlU32(u8, 0x38), END = 0xFFFFFFFE;
+  // a file cut short (a broken download) must not send the reader round in circles: sectors past the end of the file
+  // and chains that loop back on themselves stop with a plain reason
+  const CUT = 'this .xls file is damaged or incomplete (it ends before its data does). Save it again from Excel, or download it again, and open the new copy.';
+  if (u8.length < 512 || ss < 64 || ss > 65536) throw new Error(CUT);
+  const sec = id => { const o = (id + 1) * ss; if (o >= u8.length) throw new Error(CUT); return o; };
+  const fatSecs = []; for (let i = 0; i < 109; i++) { const v = xlU32(u8, 0x4C + 4 * i); if (v < 0xFFFFFFFA) fatSecs.push(v); }
+  let dif = xlU32(u8, 0x44), guard = 0;
+  while (dif < 0xFFFFFFFA && guard++ < 10000) { const o = sec(dif); for (let i = 0; i < ss / 4 - 1; i++) { const v = xlU32(u8, o + 4 * i); if (v < 0xFFFFFFFA) fatSecs.push(v); } dif = xlU32(u8, o + ss - 4); }
+  const fat = []; for (const fs of fatSecs) { const o = sec(fs); for (let i = 0; i < ss / 4; i++) fat.push(xlU32(u8, o + 4 * i)); }
+  const chain = (start, tbl) => { const out = [], seen = new Set(); let c = start; while (c < 0xFFFFFFFA) { if (seen.has(c) || c >= tbl.length) throw new Error(CUT); seen.add(c); out.push(c); c = tbl[c]; } return out; };
+  const readBig = (start, size) => { const out = new Uint8Array(size); let k = 0; for (const c of chain(start, fat)) { const o = sec(c), n = Math.min(ss, size - k); if (n <= 0) break; if (o + n > u8.length) throw new Error(CUT); out.set(u8.subarray(o, o + n), k); k += n; } if (k < size) throw new Error(CUT); return out; };
+  const dirBytes = readBig(xlU32(u8, 0x30), chain(xlU32(u8, 0x30), fat).length * ss), ents = [];
+  for (let o = 0; o + 128 <= dirBytes.length; o += 128) { const nl = xlU16(dirBytes, o + 0x40); let name = ''; for (let i = 0; i + 1 < Math.max(0, nl - 2); i += 2) name += String.fromCharCode(xlU16(dirBytes, o + i)); ents.push({ name, type: dirBytes[o + 0x42], start: xlU32(dirBytes, o + 0x74), size: xlU32(dirBytes, o + 0x78) }); }
+  const root = ents.find(e => e.type === 5), ent = ents.find(e => e.type === 2 && /^workbook$/i.test(e.name)) || ents.find(e => e.type === 2 && /^book$/i.test(e.name));
+  if (!ent) throw new Error('this .xls file has no Excel workbook inside (it may be a different Office document).');
+  if (ent.size >= cutoff || !root) return readBig(ent.start, ent.size);
+  // small streams live in the mini stream (64-byte sectors)
+  const mini = readBig(root.start, root.size), mfat = []; for (const c of chain(xlU32(u8, 0x3C), fat)) { const o = sec(c); for (let i = 0; i < ss / 4; i++) mfat.push(xlU32(u8, o + 4 * i)); }
+  const out = new Uint8Array(ent.size); let k = 0; for (const c of chain(ent.start, mfat)) { const n = Math.min(mss, ent.size - k); if (n <= 0) break; if (c * mss + n > mini.length) throw new Error(CUT); out.set(mini.subarray(c * mss, c * mss + n), k); k += n; }
+  if (k < ent.size) throw new Error(CUT);
+  return out;
+}
+function xlsDecoder(cp) {
+  const name = cp === 1200 ? 'utf-16le' : cp >= 1250 && cp <= 1258 ? 'windows-' + cp : cp === 10000 || cp === 32768 ? 'macintosh' : cp === 874 ? 'windows-874' : cp === 932 ? 'shift_jis' : cp === 936 ? 'gbk' : cp === 949 ? 'euc-kr' : cp === 950 ? 'big5' : cp === 866 ? 'ibm866' : 'windows-1252';
+  try { return new TextDecoder(name); } catch (e) { return new TextDecoder('windows-1252'); }
+}
+function xlsRK(rk) {
+  let v; if (rk & 2) v = (rk >> 2); else { const b = new DataView(new ArrayBuffer(8)); b.setUint32(4, rk & 0xFFFFFFFC, true); b.setUint32(0, 0, true); v = b.getFloat64(0, true); }
+  return rk & 1 ? v / 100 : v;
+}
+function xlsBook(u8file) {
+  const st = xlsCfbStream(u8file), dv = new DataView(st.buffer, st.byteOffset, st.byteLength);
+  const recs = []; for (let o = 0; o + 4 <= st.length;) { const t = dv.getUint16(o, true), n = dv.getUint16(o + 2, true); recs.push({ t, o: o + 4, n }); o += 4 + n; }
+  let biff = 8, dec = new TextDecoder('windows-1252'), d1904 = false; const fmts = {}, xfFmt = [], sheets = [], sst = [];
+  const u16 = o => dv.getUint16(o, true), u32 = o => dv.getUint32(o, true);
+  // BIFF8 strings: 16-bit length (or 8-bit for short ones), a flags byte (0x01 = two bytes per character)
+  const str8 = (o, lenBytes) => { const cch = lenBytes === 1 ? st[o] : u16(o); let p = o + lenBytes; const fl = st[p++]; let rt = 0, ext = 0; if (fl & 8) { rt = u16(p); p += 2; } if (fl & 4) { ext = u32(p); p += 4; }
+    const wide = fl & 1, s = wide ? new TextDecoder('utf-16le').decode(st.subarray(p, p + 2 * cch)) : new TextDecoder('windows-1252').decode(st.subarray(p, p + cch)); return { s, end: p + (wide ? 2 : 1) * cch + 4 * rt + ext }; };
+  const strOld = (o, lenBytes) => { const cch = lenBytes === 1 ? st[o] : u16(o); return dec.decode(st.subarray(o + lenBytes, o + lenBytes + cch)); };
+  const text = (o, lenBytes) => biff === 8 ? str8(o, lenBytes).s : strOld(o, lenBytes);
+  let i = 0;
+  // workbook part
+  for (; i < recs.length; i++) { const { t, o, n } = recs[i];
+    if (t === 0x0809 || t === 0x0209 || t === 0x0409) { const v = u16(o); biff = v === 0x0600 ? 8 : 5; }
+    else if (t === 0x0042) { const cp = u16(o); if (biff !== 8) dec = xlsDecoder(cp); }
+    else if (t === 0x0022) d1904 = u16(o) === 1;
+    else if (t === 0x041E || t === 0x001E) { const id = u16(o); fmts[id] = biff === 8 ? str8(o + 2, 2).s : strOld(o + 2, 1); }
+    else if (t === 0x00E0) xfFmt.push(u16(o + 2));
+    else if (t === 0x0085) { const pos = u32(o), hid = st[o + 4] !== 0, kind = st[o + 5]; const name = biff === 8 ? str8(o + 6, 1).s : strOld(o + 6, 1); if (kind === 0) sheets.push({ name, hidden: hid, pos }); }
+    else if (t === 0x00FC) {
+      // shared strings: the SST record and the CONTINUE records after it form one list; a string's characters can run on
+      // into the next CONTINUE, which starts with a new flags byte (the characters may switch between 1 and 2 bytes)
+      const parts = [{ o, n }]; while (i + 1 < recs.length && recs[i + 1].t === 0x003C) { i++; parts.push({ o: recs[i].o, n: recs[i].n }); }
+      let pi = 0, p = parts[0].o + 8, pe = parts[0].o + parts[0].n; const total = u32(parts[0].o + 4);
+      const need = () => { while (p >= pe && pi + 1 < parts.length) { pi++; p = parts[pi].o; pe = p + parts[pi].n; } };
+      const skip = k => { while (k > 0) { need(); const m = Math.min(k, pe - p); p += m; k -= m; if (m === 0) break; } };
+      for (let s = 0; s < total; s++) { need(); if (p >= pe) break;
+        const cch = u16(p); p += 2; need(); let fl = st[p++]; let rt = 0, ext = 0; if (fl & 8) { need(); rt = u16(p); p += 2; } if (fl & 4) { need(); ext = u32(p); p += 4; }
+        let out = '', left = cch;
+        while (left > 0) { need(); if (p >= pe) break; const wide = fl & 1, avail = Math.floor((pe - p) / (wide ? 2 : 1)), k = Math.min(left, avail);
+          out += wide ? new TextDecoder('utf-16le').decode(st.subarray(p, p + 2 * k)) : new TextDecoder('windows-1252').decode(st.subarray(p, p + k)); p += k * (wide ? 2 : 1); left -= k;
+          if (left > 0) { pi++; if (pi >= parts.length) break; p = parts[pi].o; pe = p + parts[pi].n; fl = st[p++]; } }
+        skip(4 * rt + ext); sst.push(out); }
+    }
+    else if (t === 0x000A) { i++; break; }
+  }
+  // number formats → which cell styles are dates
+  const builtinDate = id => XL_DATE_IDS.has(id) ? (id >= 18 && id <= 21 || id >= 45 && id <= 47 ? (id === 22 ? 'datetime' : 'time') : id === 22 ? 'datetime' : 'date') : null;
+  const xfKind = xfFmt.map(id => fmts[id] != null ? xlFmtKind(fmts[id]) : builtinDate(id));
+  const byPos = new Map(recs.map((r, k) => [r.o - 4, k]));
+  for (const sh of sheets) {
+    const g = []; let merged = 0, k = byPos.get(sh.pos); if (k == null) { sh.grid = g; sh.merged = 0; continue; }
+    const put = (r, c, v) => { if (v === '' || v == null) return; (g[r] || (g[r] = []))[c] = v; };
+    const num = (r, c, x, xf) => { const kd = xfKind[xf]; put(r, c, kd && isFinite(x) ? { d: x, k: kd } : x); };
+    let pendingStr = null;
+    for (k = k + 1; k < recs.length; k++) { const { t, o, n } = recs[k];
+      if (t === 0x000A) break;
+      if (t === 0x00FD) put(u16(o), u16(o + 2), sst[u32(o + 6)] ?? '');
+      else if (t === 0x0204 || t === 0x00D6) put(u16(o), u16(o + 2), text(o + 6, 2));
+      else if (t === 0x0203) num(u16(o), u16(o + 2), dv.getFloat64(o + 6, true), u16(o + 4));
+      else if (t === 0x027E || t === 0x007E) num(u16(o), u16(o + 2), xlsRK(u32(o + 6)), u16(o + 4));
+      else if (t === 0x00BD) { const r = u16(o), c0 = u16(o + 2), c1 = u16(o + n - 2); for (let c = c0, q = o + 4; c <= c1; c++, q += 6) num(r, c, xlsRK(u32(q + 2)), u16(q)); }
+      else if (t === 0x0205 || t === 0x0005) { if (st[o + 7] === 0) put(u16(o), u16(o + 2), st[o + 6] ? 1 : 0); }
+      else if (t === 0x0006 || t === 0x0406 || t === 0x0206) { const r = u16(o), c = u16(o + 2), xf = u16(o + 4);
+        if (u16(o + 12) === 0xFFFF) { const kind = st[o + 6]; if (kind === 0) pendingStr = [r, c]; else if (kind === 1) put(r, c, st[o + 8] ? 1 : 0); }
+        else num(r, c, dv.getFloat64(o + 6, true), xf); }
+      else if (t === 0x0207 && pendingStr) { put(pendingStr[0], pendingStr[1], text(o, 2)); pendingStr = null; }
+      else if (t === 0x00E5) merged += u16(o);
+    }
+    sh.grid = g; sh.merged = merged;
+  }
+  if (!sheets.length) throw new Error('this .xls workbook has no worksheets.');
+  return { sheets, d1904 };
+}
+
 async function xlWorkbook(buf) {
   const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-  if (u8[0] === 0xD0 && u8[1] === 0xCF && u8[2] === 0x11 && u8[3] === 0xE0) throw new Error('this is an old Excel 97–2003 (.xls) file. Open it in Excel and choose File → Save As → Excel Workbook (.xlsx) or CSV, then load that file.');
+  if (u8[0] === 0xD0 && u8[1] === 0xCF && u8[2] === 0x11 && u8[3] === 0xE0) { const B = xlsBook(u8); return { u8, entries: null, sheets: B.sheets.map(s => ({ name: s.name, hidden: s.hidden, grid: s.grid, merged: s.merged })), d1904: B.d1904, xls: true }; }
   if (xlU32(u8, 0) !== XL_ZIP_SIG) throw new Error('this file is not an Excel workbook.');
   const entries = xlZipEntries(u8);
   if (!entries.has('xl/workbook.xml')) {
@@ -11752,11 +11973,11 @@ export async function parseXLSX(buf, prog, opts) {
   const yieldIf = async p => { if (performance.now() - _ty > 50) { prog(p); await new Promise(r => setTimeout(r, 0)); _ty = performance.now(); } };
   const W = await xlWorkbook(buf);
   prog(5);
-  const sst = [], sstXml = await xlRead(W.u8, W.entries, 'xl/sharedStrings.xml');
+  const sst = [], sstXml = W.xls ? null : await xlRead(W.u8, W.entries, 'xl/sharedStrings.xml');
   if (sstXml) { const re = /<(?:\w+:)?si\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:\w+:)?si>)/g; let m; while ((m = re.exec(sstXml))) sst.push(m[1] ? xlRichText(m[1]) : ''); }
   prog(15);
   const fmtKind = [];
-  const stXml = await xlRead(W.u8, W.entries, 'xl/styles.xml');
+  const stXml = W.xls ? null : await xlRead(W.u8, W.entries, 'xl/styles.xml');
   if (stXml) {
     const custom = {}; let m; const reF = /<(?:\w+:)?numFmt\b([^>]*?)\/?>/g;
     while ((m = reF.exec(stXml))) custom[+xlAttr(m[1], 'numFmtId')] = xlAttr(m[1], 'formatCode');
@@ -11769,6 +11990,7 @@ export async function parseXLSX(buf, prog, opts) {
   const order = idx >= 0 ? [idx] : W.sheets.map((s, i) => i).sort((a, b) => (W.sheets[a].hidden - W.sheets[b].hidden) || a - b);
   let grid = null, used = -1, merged = 0;
   for (const si of order) {
+    if (W.xls) { const g = W.sheets[si].grid; merged += W.sheets[si].merged; if (g.some(r => r && r.length) || idx >= 0) { grid = g; used = si; break; } continue; }   // .xls: cells already read
     const xml = await xlRead(W.u8, W.entries, W.sheets[si].path);
     if (xml == null) continue;
     const g = [], reRow = /<(?:\w+:)?row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/(?:\w+:)?row>)/g, reC = /<(?:\w+:)?c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/(?:\w+:)?c>)/g;
@@ -11841,7 +12063,11 @@ export async function parseXLSX(buf, prog, opts) {
 // Conventions follow statnet (sna/network/ergm) unless stated; every function is pure and runs in the worker.
 
 // text files: UTF-8, or Windows/Excel (cp1252) when the bytes are not valid UTF-8 (e.g. “Sánchez” saved by Excel)
-export function nlDecodeText(buf) { const b = new Uint8Array(buf, 0, Math.min(2, buf.byteLength)); if (b[0] === 0xFF && b[1] === 0xFE) return new TextDecoder('utf-16le').decode(buf); if (b[0] === 0xFE && b[1] === 0xFF) return new TextDecoder('utf-16be').decode(buf); try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (e) { return new TextDecoder('windows-1252').decode(buf); } } // GM26 .66: Excel's Unicode text (UTF-16) too
+export function nlUtf16(buf) { // 'le' / 'be' for UTF-16 text with or without a byte-order mark (Excel's "Unicode text"), else ''
+  const b = new Uint8Array(buf, 0, Math.min(400, buf.byteLength)); if (b[0] === 0xFF && b[1] === 0xFE) return 'le'; if (b[0] === 0xFE && b[1] === 0xFF) return 'be';
+  let z0 = 0, z1 = 0; for (let i = 0; i + 1 < b.length; i += 2) { if (b[i] === 0) z0++; if (b[i + 1] === 0) z1++; } const h = Math.floor(b.length / 2);
+  return h >= 4 && z1 > 0.6 * h && z0 < 0.1 * h ? 'le' : h >= 4 && z0 > 0.6 * h && z1 < 0.1 * h ? 'be' : ''; }
+export function nlDecodeText(buf) { const u = nlUtf16(buf); if (u) return new TextDecoder('utf-16' + u).decode(buf); try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (e) { return new TextDecoder('windows-1252').decode(buf); } } // GM26 .66: Excel's Unicode text (UTF-16) too
 export function nlRng(seed) { let s = (seed >>> 0) || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const NL_JUNK = new Set(['color', 'shape', 'size', 'opacity', 'image file', 'visibility', 'label fill color', 'label position', 'tooltip', 'layout order', 'x', 'y', 'locked?', 'polar r', 'polar angle', 'id', 'dynamic filter', 'add your own columns here', 'custom menu item text', 'custom menu item action', 'custom menu item text 2', 'custom menu item action 2', 'width', 'style', 'label text color', 'label font size', 'reciprocated?', 'vertex 1 group', 'vertex 2 group', 'imported id', 'unified twitter id', 'added by extended analysis', 'corrected by extended analysis', 'place bounding box', 'place id', 'place url', 'twitter page for tweet', 'tweet image file', 'media in tweet', 'in-reply-to tweet id', 'in-reply-to user id', 'quoted status id', 'retweet id', 'user id', 'web', 'time zone utc offset (seconds)', 'time zone', 'user of interest?']);
 const NL_METRIC = new Set(['degree', 'in-degree', 'out-degree', 'betweenness centrality', 'closeness centrality', 'eigenvector centrality', 'pagerank', 'clustering coefficient', 'reciprocated vertex pair ratio', 'vertex group']);

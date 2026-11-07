@@ -176,9 +176,111 @@ function xlRelPath(base, target) {
   return parts.join('/');
 }
 
+
+// ---------- old Excel: .xls (BIFF8 = Excel 97–2003, BIFF5/7 = Excel 5.0 of 1993 and Excel 95) ----------
+// The file is a compound document (OLE2): a small FAT file system holding the "Workbook" (BIFF8) or "Book" (BIFF5)
+// stream. That stream is a list of records: the workbook part (sheets, shared strings, number formats, cell styles)
+// and one part per sheet with its cells. Only values are read: numbers, text, booleans, formula results, dates.
+function xlsCfbStream(u8) {
+  const ss = 1 << xlU16(u8, 0x1E), mss = 1 << xlU16(u8, 0x20), cutoff = xlU32(u8, 0x38), END = 0xFFFFFFFE;
+  // a file cut short (a broken download) must not send the reader round in circles: sectors past the end of the file
+  // and chains that loop back on themselves stop with a plain reason
+  const CUT = 'this .xls file is damaged or incomplete (it ends before its data does). Save it again from Excel, or download it again, and open the new copy.';
+  if (u8.length < 512 || ss < 64 || ss > 65536) throw new Error(CUT);
+  const sec = id => { const o = (id + 1) * ss; if (o >= u8.length) throw new Error(CUT); return o; };
+  const fatSecs = []; for (let i = 0; i < 109; i++) { const v = xlU32(u8, 0x4C + 4 * i); if (v < 0xFFFFFFFA) fatSecs.push(v); }
+  let dif = xlU32(u8, 0x44), guard = 0;
+  while (dif < 0xFFFFFFFA && guard++ < 10000) { const o = sec(dif); for (let i = 0; i < ss / 4 - 1; i++) { const v = xlU32(u8, o + 4 * i); if (v < 0xFFFFFFFA) fatSecs.push(v); } dif = xlU32(u8, o + ss - 4); }
+  const fat = []; for (const fs of fatSecs) { const o = sec(fs); for (let i = 0; i < ss / 4; i++) fat.push(xlU32(u8, o + 4 * i)); }
+  const chain = (start, tbl) => { const out = [], seen = new Set(); let c = start; while (c < 0xFFFFFFFA) { if (seen.has(c) || c >= tbl.length) throw new Error(CUT); seen.add(c); out.push(c); c = tbl[c]; } return out; };
+  const readBig = (start, size) => { const out = new Uint8Array(size); let k = 0; for (const c of chain(start, fat)) { const o = sec(c), n = Math.min(ss, size - k); if (n <= 0) break; if (o + n > u8.length) throw new Error(CUT); out.set(u8.subarray(o, o + n), k); k += n; } if (k < size) throw new Error(CUT); return out; };
+  const dirBytes = readBig(xlU32(u8, 0x30), chain(xlU32(u8, 0x30), fat).length * ss), ents = [];
+  for (let o = 0; o + 128 <= dirBytes.length; o += 128) { const nl = xlU16(dirBytes, o + 0x40); let name = ''; for (let i = 0; i + 1 < Math.max(0, nl - 2); i += 2) name += String.fromCharCode(xlU16(dirBytes, o + i)); ents.push({ name, type: dirBytes[o + 0x42], start: xlU32(dirBytes, o + 0x74), size: xlU32(dirBytes, o + 0x78) }); }
+  const root = ents.find(e => e.type === 5), ent = ents.find(e => e.type === 2 && /^workbook$/i.test(e.name)) || ents.find(e => e.type === 2 && /^book$/i.test(e.name));
+  if (!ent) throw new Error('this .xls file has no Excel workbook inside (it may be a different Office document).');
+  if (ent.size >= cutoff || !root) return readBig(ent.start, ent.size);
+  // small streams live in the mini stream (64-byte sectors)
+  const mini = readBig(root.start, root.size), mfat = []; for (const c of chain(xlU32(u8, 0x3C), fat)) { const o = sec(c); for (let i = 0; i < ss / 4; i++) mfat.push(xlU32(u8, o + 4 * i)); }
+  const out = new Uint8Array(ent.size); let k = 0; for (const c of chain(ent.start, mfat)) { const n = Math.min(mss, ent.size - k); if (n <= 0) break; if (c * mss + n > mini.length) throw new Error(CUT); out.set(mini.subarray(c * mss, c * mss + n), k); k += n; }
+  if (k < ent.size) throw new Error(CUT);
+  return out;
+}
+function xlsDecoder(cp) {
+  const name = cp === 1200 ? 'utf-16le' : cp >= 1250 && cp <= 1258 ? 'windows-' + cp : cp === 10000 || cp === 32768 ? 'macintosh' : cp === 874 ? 'windows-874' : cp === 932 ? 'shift_jis' : cp === 936 ? 'gbk' : cp === 949 ? 'euc-kr' : cp === 950 ? 'big5' : cp === 866 ? 'ibm866' : 'windows-1252';
+  try { return new TextDecoder(name); } catch (e) { return new TextDecoder('windows-1252'); }
+}
+function xlsRK(rk) {
+  let v; if (rk & 2) v = (rk >> 2); else { const b = new DataView(new ArrayBuffer(8)); b.setUint32(4, rk & 0xFFFFFFFC, true); b.setUint32(0, 0, true); v = b.getFloat64(0, true); }
+  return rk & 1 ? v / 100 : v;
+}
+function xlsBook(u8file) {
+  const st = xlsCfbStream(u8file), dv = new DataView(st.buffer, st.byteOffset, st.byteLength);
+  const recs = []; for (let o = 0; o + 4 <= st.length;) { const t = dv.getUint16(o, true), n = dv.getUint16(o + 2, true); recs.push({ t, o: o + 4, n }); o += 4 + n; }
+  let biff = 8, dec = new TextDecoder('windows-1252'), d1904 = false; const fmts = {}, xfFmt = [], sheets = [], sst = [];
+  const u16 = o => dv.getUint16(o, true), u32 = o => dv.getUint32(o, true);
+  // BIFF8 strings: 16-bit length (or 8-bit for short ones), a flags byte (0x01 = two bytes per character)
+  const str8 = (o, lenBytes) => { const cch = lenBytes === 1 ? st[o] : u16(o); let p = o + lenBytes; const fl = st[p++]; let rt = 0, ext = 0; if (fl & 8) { rt = u16(p); p += 2; } if (fl & 4) { ext = u32(p); p += 4; }
+    const wide = fl & 1, s = wide ? new TextDecoder('utf-16le').decode(st.subarray(p, p + 2 * cch)) : new TextDecoder('windows-1252').decode(st.subarray(p, p + cch)); return { s, end: p + (wide ? 2 : 1) * cch + 4 * rt + ext }; };
+  const strOld = (o, lenBytes) => { const cch = lenBytes === 1 ? st[o] : u16(o); return dec.decode(st.subarray(o + lenBytes, o + lenBytes + cch)); };
+  const text = (o, lenBytes) => biff === 8 ? str8(o, lenBytes).s : strOld(o, lenBytes);
+  let i = 0;
+  // workbook part
+  for (; i < recs.length; i++) { const { t, o, n } = recs[i];
+    if (t === 0x0809 || t === 0x0209 || t === 0x0409) { const v = u16(o); biff = v === 0x0600 ? 8 : 5; }
+    else if (t === 0x0042) { const cp = u16(o); if (biff !== 8) dec = xlsDecoder(cp); }
+    else if (t === 0x0022) d1904 = u16(o) === 1;
+    else if (t === 0x041E || t === 0x001E) { const id = u16(o); fmts[id] = biff === 8 ? str8(o + 2, 2).s : strOld(o + 2, 1); }
+    else if (t === 0x00E0) xfFmt.push(u16(o + 2));
+    else if (t === 0x0085) { const pos = u32(o), hid = st[o + 4] !== 0, kind = st[o + 5]; const name = biff === 8 ? str8(o + 6, 1).s : strOld(o + 6, 1); if (kind === 0) sheets.push({ name, hidden: hid, pos }); }
+    else if (t === 0x00FC) {
+      // shared strings: the SST record and the CONTINUE records after it form one list; a string's characters can run on
+      // into the next CONTINUE, which starts with a new flags byte (the characters may switch between 1 and 2 bytes)
+      const parts = [{ o, n }]; while (i + 1 < recs.length && recs[i + 1].t === 0x003C) { i++; parts.push({ o: recs[i].o, n: recs[i].n }); }
+      let pi = 0, p = parts[0].o + 8, pe = parts[0].o + parts[0].n; const total = u32(parts[0].o + 4);
+      const need = () => { while (p >= pe && pi + 1 < parts.length) { pi++; p = parts[pi].o; pe = p + parts[pi].n; } };
+      const skip = k => { while (k > 0) { need(); const m = Math.min(k, pe - p); p += m; k -= m; if (m === 0) break; } };
+      for (let s = 0; s < total; s++) { need(); if (p >= pe) break;
+        const cch = u16(p); p += 2; need(); let fl = st[p++]; let rt = 0, ext = 0; if (fl & 8) { need(); rt = u16(p); p += 2; } if (fl & 4) { need(); ext = u32(p); p += 4; }
+        let out = '', left = cch;
+        while (left > 0) { need(); if (p >= pe) break; const wide = fl & 1, avail = Math.floor((pe - p) / (wide ? 2 : 1)), k = Math.min(left, avail);
+          out += wide ? new TextDecoder('utf-16le').decode(st.subarray(p, p + 2 * k)) : new TextDecoder('windows-1252').decode(st.subarray(p, p + k)); p += k * (wide ? 2 : 1); left -= k;
+          if (left > 0) { pi++; if (pi >= parts.length) break; p = parts[pi].o; pe = p + parts[pi].n; fl = st[p++]; } }
+        skip(4 * rt + ext); sst.push(out); }
+    }
+    else if (t === 0x000A) { i++; break; }
+  }
+  // number formats → which cell styles are dates
+  const builtinDate = id => XL_DATE_IDS.has(id) ? (id >= 18 && id <= 21 || id >= 45 && id <= 47 ? (id === 22 ? 'datetime' : 'time') : id === 22 ? 'datetime' : 'date') : null;
+  const xfKind = xfFmt.map(id => fmts[id] != null ? xlFmtKind(fmts[id]) : builtinDate(id));
+  const byPos = new Map(recs.map((r, k) => [r.o - 4, k]));
+  for (const sh of sheets) {
+    const g = []; let merged = 0, k = byPos.get(sh.pos); if (k == null) { sh.grid = g; sh.merged = 0; continue; }
+    const put = (r, c, v) => { if (v === '' || v == null) return; (g[r] || (g[r] = []))[c] = v; };
+    const num = (r, c, x, xf) => { const kd = xfKind[xf]; put(r, c, kd && isFinite(x) ? { d: x, k: kd } : x); };
+    let pendingStr = null;
+    for (k = k + 1; k < recs.length; k++) { const { t, o, n } = recs[k];
+      if (t === 0x000A) break;
+      if (t === 0x00FD) put(u16(o), u16(o + 2), sst[u32(o + 6)] ?? '');
+      else if (t === 0x0204 || t === 0x00D6) put(u16(o), u16(o + 2), text(o + 6, 2));
+      else if (t === 0x0203) num(u16(o), u16(o + 2), dv.getFloat64(o + 6, true), u16(o + 4));
+      else if (t === 0x027E || t === 0x007E) num(u16(o), u16(o + 2), xlsRK(u32(o + 6)), u16(o + 4));
+      else if (t === 0x00BD) { const r = u16(o), c0 = u16(o + 2), c1 = u16(o + n - 2); for (let c = c0, q = o + 4; c <= c1; c++, q += 6) num(r, c, xlsRK(u32(q + 2)), u16(q)); }
+      else if (t === 0x0205 || t === 0x0005) { if (st[o + 7] === 0) put(u16(o), u16(o + 2), st[o + 6] ? 1 : 0); }
+      else if (t === 0x0006 || t === 0x0406 || t === 0x0206) { const r = u16(o), c = u16(o + 2), xf = u16(o + 4);
+        if (u16(o + 12) === 0xFFFF) { const kind = st[o + 6]; if (kind === 0) pendingStr = [r, c]; else if (kind === 1) put(r, c, st[o + 8] ? 1 : 0); }
+        else num(r, c, dv.getFloat64(o + 6, true), xf); }
+      else if (t === 0x0207 && pendingStr) { put(pendingStr[0], pendingStr[1], text(o, 2)); pendingStr = null; }
+      else if (t === 0x00E5) merged += u16(o);
+    }
+    sh.grid = g; sh.merged = merged;
+  }
+  if (!sheets.length) throw new Error('this .xls workbook has no worksheets.');
+  return { sheets, d1904 };
+}
+
 async function xlWorkbook(buf) {
   const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-  if (u8[0] === 0xD0 && u8[1] === 0xCF && u8[2] === 0x11 && u8[3] === 0xE0) throw new Error('this is an old Excel 97–2003 (.xls) file. Open it in Excel and choose File → Save As → Excel Workbook (.xlsx) or CSV, then load that file.');
+  if (u8[0] === 0xD0 && u8[1] === 0xCF && u8[2] === 0x11 && u8[3] === 0xE0) { const B = xlsBook(u8); return { u8, entries: null, sheets: B.sheets.map(s => ({ name: s.name, hidden: s.hidden, grid: s.grid, merged: s.merged })), d1904: B.d1904, xls: true }; }
   if (xlU32(u8, 0) !== XL_ZIP_SIG) throw new Error('this file is not an Excel workbook.');
   const entries = xlZipEntries(u8);
   if (!entries.has('xl/workbook.xml')) {
@@ -213,11 +315,11 @@ export async function parseXLSX(buf, prog, opts) {
   const yieldIf = async p => { if (performance.now() - _ty > 50) { prog(p); await new Promise(r => setTimeout(r, 0)); _ty = performance.now(); } };
   const W = await xlWorkbook(buf);
   prog(5);
-  const sst = [], sstXml = await xlRead(W.u8, W.entries, 'xl/sharedStrings.xml');
+  const sst = [], sstXml = W.xls ? null : await xlRead(W.u8, W.entries, 'xl/sharedStrings.xml');
   if (sstXml) { const re = /<(?:\w+:)?si\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:\w+:)?si>)/g; let m; while ((m = re.exec(sstXml))) sst.push(m[1] ? xlRichText(m[1]) : ''); }
   prog(15);
   const fmtKind = [];
-  const stXml = await xlRead(W.u8, W.entries, 'xl/styles.xml');
+  const stXml = W.xls ? null : await xlRead(W.u8, W.entries, 'xl/styles.xml');
   if (stXml) {
     const custom = {}; let m; const reF = /<(?:\w+:)?numFmt\b([^>]*?)\/?>/g;
     while ((m = reF.exec(stXml))) custom[+xlAttr(m[1], 'numFmtId')] = xlAttr(m[1], 'formatCode');
@@ -230,6 +332,7 @@ export async function parseXLSX(buf, prog, opts) {
   const order = idx >= 0 ? [idx] : W.sheets.map((s, i) => i).sort((a, b) => (W.sheets[a].hidden - W.sheets[b].hidden) || a - b);
   let grid = null, used = -1, merged = 0;
   for (const si of order) {
+    if (W.xls) { const g = W.sheets[si].grid; merged += W.sheets[si].merged; if (g.some(r => r && r.length) || idx >= 0) { grid = g; used = si; break; } continue; }   // .xls: cells already read
     const xml = await xlRead(W.u8, W.entries, W.sheets[si].path);
     if (xml == null) continue;
     const g = [], reRow = /<(?:\w+:)?row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/(?:\w+:)?row>)/g, reC = /<(?:\w+:)?c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/(?:\w+:)?c>)/g;

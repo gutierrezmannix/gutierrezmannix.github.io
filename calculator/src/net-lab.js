@@ -15,8 +15,8 @@
     const E = await this._engineP;
     try {
       const buf = await file.arrayBuffer(), u8 = new Uint8Array(buf, 0, Math.min(16, buf.byteLength)); let head = ''; for (let i = 0; i < u8.length; i++) head += String.fromCharCode(u8[i]);
-      const isDta = head.startsWith('<stata_dta>') || (/\.dta$/i.test(file.name) && u8[0] >= 102 && u8[0] <= 119), isX = (u8[0] === 0x50 && u8[1] === 0x4B) || /\.xlsx?$/i.test(file.name);
-      const raw = isDta ? await E.parseDTA(buf, () => {}) : isX ? await E.parseXLSX(buf, () => {}) : await E.parseCSV(buf, () => {});
+      const k = this.dataKind(file.name, u8);
+      const raw = k === 'dta' ? await E.parseDTA(buf, () => {}) : k === 'xl' ? await E.parseXLSX(buf, () => {}) : k === 'sav' ? await E.parseSAV(buf, () => {}) : await E.parseCSV(buf, () => {});
       this.nlTake(kind, raw, file.name);
     } catch (e) { this.flash('Could not read ' + file.name + ': ' + (e.message || e)); }
   }
@@ -43,7 +43,7 @@
   nlJob(net, name, fn, args, label) { const J = this.tlJob('nl|' + net.key + '|' + name, fn, () => args, label); if (!J.done && J.p && typeof J.p === 'object') return Object.assign({}, J, { p: J.p.p, label: J.p.msg || label }); return J; }
   nlFile(kind) {
     const h = React.createElement, ref = el => { this['_nlIn' + kind] = el; };
-    return h('input', { type: 'file', accept: '.csv,.tsv,.txt,.xlsx,.xlsm,.dta', style: { display: 'none' }, ref, onChange: e => { const f = e.target.files && e.target.files[0]; if (f) this.nlLoad(kind, f); e.target.value = ''; } });
+    return h('input', { type: 'file', accept: '.csv,.tsv,.txt,.xlsx,.xlsm,.xls,.dta,.sav,.zsav', style: { display: 'none' }, ref, onChange: e => { const f = e.target.files && e.target.files[0]; if (f) this.nlLoad(kind, f); e.target.value = ''; } });
   }
   // ---- the whole tab
   nlRender() {
