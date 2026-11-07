@@ -19,3 +19,20 @@ Validation:
 `PYTHONDONTWRITEBYTECODE=1 python3 calculator/tests/stata-template.test.py`
 
 Primary references: Stata manuals for [regress](https://www.stata.com/manuals/rregress.pdf), [logit](https://www.stata.com/manuals/rlogit.pdf), [ttest](https://www.stata.com/manuals/rttest.pdf), [summarize](https://www.stata.com/manuals/rsummarize.pdf), [correlate](https://www.stata.com/manuals/rcorrelate.pdf) and [SEM](https://www.stata.com/manuals/sem.pdf).
+
+## Compact console and Result | Stata | R tabs — build .87
+
+**Console pane** (right-hand panel). Same features, less space:
+- one command line (prompt `.` or `>`), with **Commands ▾** opening the list of commands (each with a short description);
+  picking one shows the usual fill-in-the-blanks row (Run ▶ · + Do-file · Cancel);
+- the Stata / R switch and three small icons at the top: copy the session log, download the .do / .R file, and clear the
+  screen (like Stata's `cls`: the download and the report still keep every command);
+- ↑ / ↓ in the command line bring back earlier commands;
+- the "Command & results" header and the long instruction line are gone; the same command run again right after itself
+  shows once with ×2; each table takes the font size (8–10.5 px) that fits its longest line in the pane, so tabulate,
+  ttest and pwcorr no longer scroll sideways (very wide ones such as `summarize, detail` still scroll).
+
+**Result | Stata | R tabs** replace the “Stata output” box under Compare means (t-tests) and the Correlation matrix. The
+result card opens on **Result** as before; **Stata** and **R** show the command and the same numbers as each program prints
+them, with Copy. The empty “|” lines Stata prints between variables in pwcorr / correlate are left out.
+

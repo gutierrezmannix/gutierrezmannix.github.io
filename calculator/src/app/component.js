@@ -6973,6 +6973,17 @@ class Component extends DCLogic {
   }
   // GM26 intro page end
   // GM26 compare means begin
+  // ---- Result | Stata | R tabs on a result card (Compare means and the Correlation matrix share them)
+  cmViewTabs(key, textOf) {
+    const h = React.createElement, S = this.state, view = S[key] === 'stata' || S[key] === 'r' ? S[key] : 'result';
+    const txt = view === 'result' ? '' : (view === 'r' ? '> ' : '. ') + textOf(view);
+    const tab = (id, label) => h('button', { type: 'button', role: 'tab', 'aria-selected': view === id ? 'true' : 'false', className: 'cm-vtab' + (view === id ? ' on' : ''), onClick: () => this.setState({ [key]: id }) }, label);
+    const bar = h('div', { className: 'cm-vtabs', role: 'tablist', 'aria-label': 'Show the result, or the same numbers as Stata or R print them' }, tab('result', 'Result'), tab('stata', 'Stata'), tab('r', 'R'), h('span', { className: 'cm-vsp' }),
+      view !== 'result' ? h('button', { type: 'button', className: 'cm-vcopy', title: 'Copy the command and its output', onClick: () => this.copyTSV(key, txt) }, this.state.copied === key ? '✓ Copied' : '⧉ Copy') : null);
+    return { view, bar, code: view === 'result' ? null : h('pre', { className: 'cm-vcode' }, txt) };
+  }
+  // Stata prints a line with only "|" between the variables of pwcorr / correlate: dropped, the box is a third shorter
+  cmTidyOut(t, v) { return v === 'stata' ? String(t || '').split('\n').filter(l => !/^\s*\|\s*$/.test(l)).join('\n') : String(t || ''); }
   // Tests ▾ → Compare means (build .62): one sentence sets up the t-test, the answer comes first. The statistics are
   // the t-test workspace's (ttDetails, ttRecord, ttGroups, ttCommands, the console printouts), which this page reuses.
   // Designs: two groups of a variable (Welch or Student), a second measurement on the same rows (paired), a fixed
@@ -7218,8 +7229,10 @@ class Component extends DCLogic {
           this.tlBtn('Word table (.docx)', () => this.cmDocx(D, r), 'primary'), this.tlBtn('Copy table for Word', () => this.cmCopyWord(D, r)),
           this.tlBtn('Pin to report', () => this.pinTab()), this.tlBtn('Add to console', () => { if (this._ttLast) this.pushLog(Object.assign({}, this._ttLast)); this.flash('Added to the console'); }),
           mode === 'groups' && D.labs && D.labs.length > 2 ? this.tlBtn('All ' + D.labs.length + ' groups: ANOVA →', () => this.setState({ tab: 'two', twoMode: 'means', yVar: xn, xVar: S.ttG })) : null);
-        const code = L ? h('details', { className: 'cm-code' }, h('summary', null, (S.dialect === 'r' ? 'R' : 'Stata') + ' output · ', h('code', null, cmdTxt.split('\n').pop())), h('pre', null, cmdTxt + '\n\n' + ((S.dialect === 'r' ? L.tblR : L.tblStata) || L.tbl || ''))) : null;
-        answer = h('div', { className: 'cm-body' }, h('div', { className: 'tl-row cm-top' }, pill, meta), this.cmHeadline(D, r), stats, charts, this.cmChecks(D, r), actions, code);
+        // Result | Stata | R tabs on the result card (build .87): the same numbers as each program prints them, with Copy
+        const VT = L ? this.cmViewTabs('cmView', v => this.cmdText(L, v) + '\n\n' + this.cmTidyOut(((v === 'r' ? L.tblR : L.tblStata) || L.tbl || ''), v)) : null;
+        answer = VT && VT.view !== 'result' ? h('div', { className: 'cm-body' }, VT.bar, VT.code)
+          : h('div', { className: 'cm-body' }, VT ? VT.bar : null, h('div', { className: 'tl-row cm-top' }, pill, meta), this.cmHeadline(D, r), stats, charts, this.cmChecks(D, r), actions);
       }
     }
     return h('div', { className: 'tl cm' }, setup, h('section', { className: 'tl-panel cm-answer', 'aria-live': 'polite' }, answer));
@@ -7377,7 +7390,9 @@ class Component extends DCLogic {
     })); });
     const legend = h('div', { className: 'cr-legend' }, h('div', { className: 'cr-scale', 'aria-hidden': 'true' }), h('div', { className: 'mono', style: { display: 'flex', justifyContent: 'space-between', width: '72px', fontSize: '10px' } }, '−.6', h('span', null, '0'), '+.6'), h('br'), ...this.starNote().split(', ').flatMap((x, i) => i ? [h('br'), x] : [x]), h('br'), h('br'), h('b', null, 'Click a cell'), h('br'), 'to see the pair');
     const exportsRow = h('div', { className: 'tl-row cm-actions' }, this.tlBtn('Copy matrix (numbers)', () => this.corCopyMatrix(M)), this.tlBtn('Download CSV (r, p, n)', () => this.corCsv(M)), this.tlBtn('Word table (.docx)', () => this.corDocx(M), 'primary'), this.tlBtn('Copy table for Word', () => this.corCopyWord(M)), this.tlBtn('Pin to report', () => this.pinTab()));
-    const matrix = h('section', { className: 'tl-panel cm-answer' }, h('div', { className: 'cm-body' },
+    // Result | Stata | R tabs on the matrix card (build .87), instead of the Stata output box below it
+    const d = this.corDesc(), VT = d ? this.cmViewTabs('corView', v => this.cmdText(this.tagSg(d), v) + '\n\n' + this.cmTidyOut(d.tbl, v)) : null;
+    const matrix = h('section', { className: 'tl-panel cm-answer' }, h('div', { className: 'cm-body' }, VT ? VT.bar : null,
       h('div', { className: 'tl-row cm-top' }, h('span', { className: 'cm-meta' }, (M.method === 'spearman' ? 'Spearman’s ρ' : 'Pearson’s r') + ' · ' + (M.listwise ? this.fmtN(M.nAll) + ' rows complete on all ' + k + ' variables' : 'each pair on its complete rows') + ' · ' + (this.stampText() || ''))),
       this.corHeadline(M), h('div', { className: 'cr-wrap' }, h('table', { className: 'cr-table' }, h('thead', null, head), h('tbody', null, body)), legend), exportsRow));
     // the selected pair
@@ -7393,8 +7408,8 @@ class Component extends DCLogic {
             h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, apa)),
             h('div', { className: 'tl-row' }, this.tlBtn('Copy APA', () => { try { navigator.clipboard.writeText(apa).then(() => this.flash('APA line copied')); } catch (e) {} }), this.tlBtn('Regression →', () => this.setState({ tab: 'reg', regModel: 'ols', depVar: a, predictors: [b] })), this.tlBtn('Pair page →', () => this.setState({ tab: 'two', twoMode: 'corr', xVar: b, yVar: a }))))));
     } else pair = h('section', { className: 'tl-panel' }, h('div', { className: 'cm-body' }, this.tlBanner('warn', a + ' and ' + b + ': ' + (c.err || 'no correlation to compute') + '.')));
-    const d = this.corDesc(), code = d ? h('details', { className: 'cm-code' }, h('summary', null, (S.dialect === 'r' ? 'R' : 'Stata') + ' output · ', h('code', null, this.cmdText(this.tagSg(d), S.dialect).split('\n').pop())), h('pre', null, this.cmdText(this.tagSg(d), S.dialect) + '\n\n' + d.tbl)) : null;
-    return h('div', { className: 'tl cm' }, setup, matrix, pair, code ? h('section', { className: 'tl-panel' }, h('div', { className: 'cm-body' }, code)) : null);
+    if (VT && VT.view !== 'result') return h('div', { className: 'tl cm' }, setup, h('section', { className: 'tl-panel' }, h('div', { className: 'cm-body' }, VT.bar, VT.code)));
+    return h('div', { className: 'tl cm' }, setup, matrix, pair);
   }
   // GM26 correlation matrix end
   // GM26 regression guide begin
@@ -10461,7 +10476,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-06.86') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-07.87') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -10729,7 +10744,7 @@ class Component extends DCLogic {
       two: c => c.distinct === 2
     };
     out.dialectBtns = [['stata', 'STATA'], ['r', 'R']].map(([id, label]) => ({
-      label, pressed: String(S.dialect === id), style: (S.dialect === id ? pillOn : pillOff).replace('padding: 7px 11px', 'padding: 4px 10px'),
+      label, label2: id === 'r' ? 'R' : 'Stata', cls: S.dialect === id ? 'on' : '', pressed: String(S.dialect === id), style: (S.dialect === id ? pillOn : pillOff).replace('padding: 7px 11px', 'padding: 4px 10px'),
       click: () => this.setState({ dialect: id })
     }));
     out.dialectName = S.dialect === 'stata' ? 'Stata' : 'R';
@@ -10737,7 +10752,7 @@ class Component extends DCLogic {
     out.conVerbBtns = Object.entries(VERBS).map(([id, v]) => ({
       label: v.label, title: v.hint,
       style: S.conVerb === id ? pillOn : pillOff,
-      click: () => this.setState({ conVerb: id, conSlots: v.slots.map(([f, l]) => ({ f, l, val: '' })), conActive: 0, conQ: '' })
+      click: () => this.setState({ conVerb: id, conSlots: v.slots.map(([f, l]) => ({ f, l, val: '' })), conActive: 0, conQ: '', conMenu: false })
     }));
     out.conActive = !!S.conVerb;
     if (S.conVerb) {
@@ -10798,15 +10813,24 @@ class Component extends DCLogic {
     const cmdLineStyle = "font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; font-weight: 700; color: var(--c226578, #226578); white-space: pre-wrap; cursor: help;";
     const resLineStyle = "font-family: var(--fMono, 'Space Mono', monospace); font-size: 11.5px; color: var(--c433D31, #433D31); white-space: pre-wrap; padding-left: 18px;";
     const rerun = d => () => this.rerunCmd(d);
-    const tblStyle = "font-family: var(--fMono, 'Space Mono', monospace); font-size: 11.5px; line-height: 1.45; color: var(--c1A1711, #1A1711); white-space: pre; overflow-x: auto; padding: 4px 0 8px 14px; background: linear-gradient(to right, var(--cFFFFFF, #FFFFFF) 50%, rgba(255,255,255,0)) left center / 40px 100% no-repeat local, linear-gradient(to left, var(--cFFFFFF, #FFFFFF) 50%, rgba(255,255,255,0)) right center / 40px 100% no-repeat local, radial-gradient(farthest-side at 0 50%, rgba(43,39,30,0.30), rgba(43,39,30,0)) left center / 12px 100% no-repeat scroll, radial-gradient(farthest-side at 100% 50%, rgba(43,39,30,0.30), rgba(43,39,30,0)) right center / 12px 100% no-repeat scroll; scrollbar-width: thin; scrollbar-color: #B9AE98 transparent;";
-    out.conLogLines = S.conLog.slice(-16).flatMap(d => {
-      const lines = [{ text: out.conPrompt + this.cmdText(d, S.dialect), title: this.explFor(d) + ' — CLICK TO RE-RUN', style: cmdLineStyle, click: rerun(d) }];
-      const tbx = this.conTable(d, S.dialect);
-      if (tbx) lines.push({ text: tbx, title: this.explFor(d), style: tblStyle, click: rerun(d) });
+    const tblStyle = "font-family: var(--fMono, 'Space Mono', monospace); font-size: 10.5px; line-height: 1.42; color: var(--c1A1711, #1A1711); white-space: pre; overflow-x: auto; padding: 4px 0 8px 8px; background: linear-gradient(to right, var(--cFFFFFF, #FFFFFF) 50%, rgba(255,255,255,0)) left center / 40px 100% no-repeat local, linear-gradient(to left, var(--cFFFFFF, #FFFFFF) 50%, rgba(255,255,255,0)) right center / 40px 100% no-repeat local, radial-gradient(farthest-side at 0 50%, rgba(43,39,30,0.30), rgba(43,39,30,0)) left center / 12px 100% no-repeat scroll, radial-gradient(farthest-side at 100% 50%, rgba(43,39,30,0.30), rgba(43,39,30,0)) right center / 12px 100% no-repeat scroll; scrollbar-width: thin; scrollbar-color: #B9AE98 transparent;";
+    // build .87: the screen shows the commands since the last clear (⌫, like Stata's cls); the same command run again
+    // right after itself shows once with ×2; tables use a smaller font so they fit the pane
+    const conFrom = Math.min(S.conFrom || 0, S.conLog.length), groups = [];
+    for (const d of S.conLog.slice(conFrom).slice(-24)) { const cmd = this.cmdText(d, S.dialect), tbx = this.conTable(d, S.dialect) || '', last = groups[groups.length - 1];
+      if (last && last.cmd === cmd && last.tbx === tbx && (last.d.res || '') === (d.res || '')) { last.n++; last.d = d; } else groups.push({ d, cmd, tbx, n: 1 }); }
+    out.conLogLines = groups.slice(-16).flatMap(({ d, cmd, tbx, n }) => {
+      const lines = [{ text: out.conPrompt + cmd + (n > 1 ? '   ×' + n : ''), title: this.explFor(d) + ' — CLICK TO RE-RUN', style: cmdLineStyle, click: rerun(d) }];
+      // each table takes the font size that fits its longest line in the pane (8–10.5px; wider tables still scroll)
+      if (tbx) { const w = Math.max(20, ...tbx.split('\n').map(x => x.length)); lines.push({ text: tbx, title: this.explFor(d), style: tblStyle.replace('font-size: 10.5px;', 'font-size: max(8px, min(10.5px, calc((100cqw - 12px) / ' + (w * 0.61).toFixed(1) + ')));'), click: rerun(d) }); }
       else if (d.res) lines.push({ text: d.res, title: 'Key results from this command', style: resLineStyle, click: rerun(d) });
       return lines;
     }).reverse();
-    out.conLogEmpty = !S.conLog.length;
+    out.conLogEmpty = !groups.length;
+    out.conClear = () => this.setState({ conFrom: S.conLog.length });
+    out.conMenuOpen = String(!!S.conMenu); out.conMenuShow = !!S.conMenu; out.conMenuToggle = () => this.setState({ conMenu: !S.conMenu });
+    out.conPromptBar = S.dialect === 'stata' ? '.' : '>';
+    out.copyLogIcon = /✓/.test(this.cpLabel('log')) ? '✓' : '⧉';
     out.histRows = S.conLog.slice(-40).map(d => ({ text: this.cmdText(d, S.dialect), title: this.explFor(d) + ' — click to re-run', click: () => this.rerunCmd(d) })).reverse();
     out.histEmpty = !S.conLog.length;
     out.doRows = S.doQueue.map((q, i) => ({
@@ -12874,7 +12898,7 @@ class Component extends DCLogic {
       out.plotClear = () => { this._plots = []; this.setState({ plotN: 0, plotCur: -1, mfDl: false }); };
       // output pane
       out.mfCmd = S.mfCmd || ''; out.mfCmdType = e => this.setState({ mfCmd: e.target.value, mfCmdErr: '' });
-      out.mfCmdPh = 'Stata command \u2014 e.g.  tab pobreza year, col   \u00b7   regress y x1 i.x2 [pw=w], vce(robust)';
+      out.mfCmdPh = S.dialect === 'stata' ? 'Stata command \u2014 e.g. tab president \u00b7 regress y x1 x2' : 'R command \u2014 e.g. table(df$president) \u00b7 lm(y ~ x1 + x2)';
       out.mfCmdRun = () => this.runCmdLine(this.state.mfCmd);
       out.mfCmdHasErr = !!S.mfCmdErr; out.mfCmdErr = S.mfCmdErr || ''; out.mfCmdHasOk = !!S.mfCmdOk; out.mfCmdOk = S.mfCmdOk || '';
       { const txt = S.mfCmd || '', mm = txt.match(/([A-Za-z_][\w.]*)$/), tok = mm ? mm[1].toLowerCase() : '', first = !/\s/.test(txt.trim()) && !/\(/.test(txt);
@@ -12885,7 +12909,12 @@ class Component extends DCLogic {
           if (!first || !sug.length) sug = sug.concat(visAll.filter(c => c.name.toLowerCase().startsWith(tok) && c.name.toLowerCase() !== tok).slice(0, 8).map(c => ({ name: c.name, sub: c.label || this.effMeta(c.name).treatAs, pick: () => this.setState({ mfCmd: txt.slice(0, txt.length - mm[1].length) + c.name + (S.dialect === 'stata' ? ' ' : '') }) })));
         }
         out.mfCmdSug = sug.slice(0, 10); out.mfCmdHasSug = sug.length > 0; }
-      out.mfCmdKey = e => { if (e.key === 'Enter') { e.preventDefault(); this.runCmdLine(this.state.mfCmd); } else if (e.key === 'Escape') { this.setState({ mfCmd: '', mfCmdErr: '' }); } else if (e.key === 'Tab' && out.mfCmdSug.length) { e.preventDefault(); out.mfCmdSug[0].pick(); } };
+      out.mfCmdKey = e => { if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !out.mfCmdHasSug) {   // earlier commands, newest first
+          e.preventDefault(); const hist = []; for (const d of (this.state.conLog || []).slice().reverse()) { const t = this.cmdText(d, this.state.dialect) || '', c = this.state.dialect === 'stata' ? t.split('\n')[0] : t.split('\n').join('; '); if (c && !hist.includes(c)) hist.push(c); }   // Stata: the command line itself (its follow-up lines are added by the page)
+          if (!hist.length) return; let k = this._cmdHistK == null ? -1 : this._cmdHistK; k = e.key === 'ArrowUp' ? Math.min(hist.length - 1, k + 1) : k - 1;
+          this._cmdHistK = k < 0 ? null : k; this.setState({ mfCmd: k < 0 ? '' : hist[k], mfCmdErr: '' }); return; }
+        this._cmdHistK = null;
+        if (e.key === 'Enter') { e.preventDefault(); this.runCmdLine(this.state.mfCmd); } else if (e.key === 'Escape') { this.setState({ mfCmd: '', mfCmdErr: '' }); } else if (e.key === 'Tab' && out.mfCmdSug.length) { e.preventDefault(); out.mfCmdSug[0].pick(); } };
       out.mfDoFile = () => this.dlDoFile(); out.mfDoFileLabel = S.dialect === 'stata' ? 'Download as a .do file' : 'Download as an .R script';
       // report pane
       out.pinEmpty = !nPins; out.mfRepTitle = S.mfRepTitle || ''; out.mfRepTitleSet = e => this.setState({ mfRepTitle: e.target.value });

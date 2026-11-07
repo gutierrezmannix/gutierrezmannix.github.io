@@ -1,4 +1,15 @@
   // GM26 compare means begin
+  // ---- Result | Stata | R tabs on a result card (Compare means and the Correlation matrix share them)
+  cmViewTabs(key, textOf) {
+    const h = React.createElement, S = this.state, view = S[key] === 'stata' || S[key] === 'r' ? S[key] : 'result';
+    const txt = view === 'result' ? '' : (view === 'r' ? '> ' : '. ') + textOf(view);
+    const tab = (id, label) => h('button', { type: 'button', role: 'tab', 'aria-selected': view === id ? 'true' : 'false', className: 'cm-vtab' + (view === id ? ' on' : ''), onClick: () => this.setState({ [key]: id }) }, label);
+    const bar = h('div', { className: 'cm-vtabs', role: 'tablist', 'aria-label': 'Show the result, or the same numbers as Stata or R print them' }, tab('result', 'Result'), tab('stata', 'Stata'), tab('r', 'R'), h('span', { className: 'cm-vsp' }),
+      view !== 'result' ? h('button', { type: 'button', className: 'cm-vcopy', title: 'Copy the command and its output', onClick: () => this.copyTSV(key, txt) }, this.state.copied === key ? '✓ Copied' : '⧉ Copy') : null);
+    return { view, bar, code: view === 'result' ? null : h('pre', { className: 'cm-vcode' }, txt) };
+  }
+  // Stata prints a line with only "|" between the variables of pwcorr / correlate: dropped, the box is a third shorter
+  cmTidyOut(t, v) { return v === 'stata' ? String(t || '').split('\n').filter(l => !/^\s*\|\s*$/.test(l)).join('\n') : String(t || ''); }
   // Tests ▾ → Compare means (build .62): one sentence sets up the t-test, the answer comes first. The statistics are
   // the t-test workspace's (ttDetails, ttRecord, ttGroups, ttCommands, the console printouts), which this page reuses.
   // Designs: two groups of a variable (Welch or Student), a second measurement on the same rows (paired), a fixed
@@ -244,8 +255,10 @@
           this.tlBtn('Word table (.docx)', () => this.cmDocx(D, r), 'primary'), this.tlBtn('Copy table for Word', () => this.cmCopyWord(D, r)),
           this.tlBtn('Pin to report', () => this.pinTab()), this.tlBtn('Add to console', () => { if (this._ttLast) this.pushLog(Object.assign({}, this._ttLast)); this.flash('Added to the console'); }),
           mode === 'groups' && D.labs && D.labs.length > 2 ? this.tlBtn('All ' + D.labs.length + ' groups: ANOVA →', () => this.setState({ tab: 'two', twoMode: 'means', yVar: xn, xVar: S.ttG })) : null);
-        const code = L ? h('details', { className: 'cm-code' }, h('summary', null, (S.dialect === 'r' ? 'R' : 'Stata') + ' output · ', h('code', null, cmdTxt.split('\n').pop())), h('pre', null, cmdTxt + '\n\n' + ((S.dialect === 'r' ? L.tblR : L.tblStata) || L.tbl || ''))) : null;
-        answer = h('div', { className: 'cm-body' }, h('div', { className: 'tl-row cm-top' }, pill, meta), this.cmHeadline(D, r), stats, charts, this.cmChecks(D, r), actions, code);
+        // Result | Stata | R tabs on the result card (build .87): the same numbers as each program prints them, with Copy
+        const VT = L ? this.cmViewTabs('cmView', v => this.cmdText(L, v) + '\n\n' + this.cmTidyOut(((v === 'r' ? L.tblR : L.tblStata) || L.tbl || ''), v)) : null;
+        answer = VT && VT.view !== 'result' ? h('div', { className: 'cm-body' }, VT.bar, VT.code)
+          : h('div', { className: 'cm-body' }, VT ? VT.bar : null, h('div', { className: 'tl-row cm-top' }, pill, meta), this.cmHeadline(D, r), stats, charts, this.cmChecks(D, r), actions);
       }
     }
     return h('div', { className: 'tl cm' }, setup, h('section', { className: 'tl-panel cm-answer', 'aria-live': 'polite' }, answer));

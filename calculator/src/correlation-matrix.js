@@ -150,7 +150,9 @@
     })); });
     const legend = h('div', { className: 'cr-legend' }, h('div', { className: 'cr-scale', 'aria-hidden': 'true' }), h('div', { className: 'mono', style: { display: 'flex', justifyContent: 'space-between', width: '72px', fontSize: '10px' } }, '−.6', h('span', null, '0'), '+.6'), h('br'), ...this.starNote().split(', ').flatMap((x, i) => i ? [h('br'), x] : [x]), h('br'), h('br'), h('b', null, 'Click a cell'), h('br'), 'to see the pair');
     const exportsRow = h('div', { className: 'tl-row cm-actions' }, this.tlBtn('Copy matrix (numbers)', () => this.corCopyMatrix(M)), this.tlBtn('Download CSV (r, p, n)', () => this.corCsv(M)), this.tlBtn('Word table (.docx)', () => this.corDocx(M), 'primary'), this.tlBtn('Copy table for Word', () => this.corCopyWord(M)), this.tlBtn('Pin to report', () => this.pinTab()));
-    const matrix = h('section', { className: 'tl-panel cm-answer' }, h('div', { className: 'cm-body' },
+    // Result | Stata | R tabs on the matrix card (build .87), instead of the Stata output box below it
+    const d = this.corDesc(), VT = d ? this.cmViewTabs('corView', v => this.cmdText(this.tagSg(d), v) + '\n\n' + this.cmTidyOut(d.tbl, v)) : null;
+    const matrix = h('section', { className: 'tl-panel cm-answer' }, h('div', { className: 'cm-body' }, VT ? VT.bar : null,
       h('div', { className: 'tl-row cm-top' }, h('span', { className: 'cm-meta' }, (M.method === 'spearman' ? 'Spearman’s ρ' : 'Pearson’s r') + ' · ' + (M.listwise ? this.fmtN(M.nAll) + ' rows complete on all ' + k + ' variables' : 'each pair on its complete rows') + ' · ' + (this.stampText() || ''))),
       this.corHeadline(M), h('div', { className: 'cr-wrap' }, h('table', { className: 'cr-table' }, h('thead', null, head), h('tbody', null, body)), legend), exportsRow));
     // the selected pair
@@ -166,7 +168,7 @@
             h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, apa)),
             h('div', { className: 'tl-row' }, this.tlBtn('Copy APA', () => { try { navigator.clipboard.writeText(apa).then(() => this.flash('APA line copied')); } catch (e) {} }), this.tlBtn('Regression →', () => this.setState({ tab: 'reg', regModel: 'ols', depVar: a, predictors: [b] })), this.tlBtn('Pair page →', () => this.setState({ tab: 'two', twoMode: 'corr', xVar: b, yVar: a }))))));
     } else pair = h('section', { className: 'tl-panel' }, h('div', { className: 'cm-body' }, this.tlBanner('warn', a + ' and ' + b + ': ' + (c.err || 'no correlation to compute') + '.')));
-    const d = this.corDesc(), code = d ? h('details', { className: 'cm-code' }, h('summary', null, (S.dialect === 'r' ? 'R' : 'Stata') + ' output · ', h('code', null, this.cmdText(this.tagSg(d), S.dialect).split('\n').pop())), h('pre', null, this.cmdText(this.tagSg(d), S.dialect) + '\n\n' + d.tbl)) : null;
-    return h('div', { className: 'tl cm' }, setup, matrix, pair, code ? h('section', { className: 'tl-panel' }, h('div', { className: 'cm-body' }, code)) : null);
+    if (VT && VT.view !== 'result') return h('div', { className: 'tl cm' }, setup, h('section', { className: 'tl-panel' }, h('div', { className: 'cm-body' }, VT.bar, VT.code)));
+    return h('div', { className: 'tl cm' }, setup, matrix, pair);
   }
   // GM26 correlation matrix end
