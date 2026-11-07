@@ -54,3 +54,15 @@ printouts for `by()` and `welch` are in `src/console-stata.js` (`cxTtestPooled`)
 
 Build .64: a one-sided test after ⇄ swap (or with groups picked high-to-low) exports R's alternative in R's own order
 ("first > second" on the page is `alternative = "less"` in R), checked in `tests/regression-numerics.test.mjs`.
+
+## Build .89: simulation against R
+
+`tests/ttest-sim-reference.R` simulates 400 cases and keeps 313 small ones in `tests/data/ttest-sim-reference.json`:
+two groups (Welch and Student; numeric codes and text names that R and Stata sort differently; 2 to 5 groups), paired,
+one value (some typed with a decimal comma) and summary numbers; normal, skewed, heavy-tailed, Likert and income-like
+data; n from 2 to 2,000; 5% missing values; two- and one-sided; 90, 95 and 99%. The answers come from
+`stats::t.test`, `effectsize::cohens_d` and `BSDA::tsum.test`. `tests/ttest-sim.test.mjs` runs the page's own code
+on every case: t, df, p, both limits and d agree within 10⁻⁶ (worst seen: 5 × 10⁻¹⁰), and where R gives no t
+(constant data) the page says why. During the audit, every R command the page prints was also run in R on the same
+data: all 390 give the page's t and p (13 one-sided commands did not before the fix). The same test file checks the
+fixes listed in `COMPARE-MEANS.md` (build .89), including Stata's `ttesti` and BSDA's printouts.

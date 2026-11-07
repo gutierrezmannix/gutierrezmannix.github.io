@@ -166,9 +166,10 @@
     const gci = g => { const c = this._E.ttCritical(r.alpha, g.n - 1) * g.sd / Math.sqrt(g.n); return ci(g.mean - c, g.mean + c); };
     const rows = r.groups.map((g, i) => [D.labels[i] || '', this.fmtN(g.n), f(g.mean), f(g.sd), gci(g)]);
     const diffLab = N.mode === 'groups' ? 'Difference (' + D.labels[0] + ' − ' + D.labels[1] + ')' : N.mode === 'paired' ? 'Mean difference' : 'Difference from ' + f(r.mu);
-    rows.push({ c: [diffLab, '', this.cmSigned(r.estimate), '', ci(r.lo, r.hi)], rule: true });
+    // the difference carries its significance stars (Settings → Stars), explained at the end of the note, as in the regression tables
+    rows.push({ c: [diffLab, '', this.cmSigned(r.estimate) + this.starsOf(r.p), '', ci(r.lo, r.hi)], rule: true });
     const xn = this.state.exploreVar, title = (D.summary ? 'Comparison of means from summary statistics' : N.mode === 'groups' ? 'Mean ' + xn + ' by ' + D.gv : N.mode === 'paired' ? xn + ' and ' + D.labels[1] + ' on the same cases' : 'Mean ' + xn + ' compared with ' + f(r.mu));
-    const note = 'Note. ' + N.test + ', ' + (r.alt === 'two' ? 'two-sided' : 'one-sided') + ': ' + this.cmApa(D, r) + '. Brackets: ' + pct + '% confidence intervals.' + (D.summary ? '' : ' ' + (this.stampText() || '') + '.');
+    const note = 'Note. ' + N.test + ', ' + (r.alt === 'two' ? 'two-sided' : 'one-sided') + ': ' + this.cmApa(D, r) + '. Brackets: ' + pct + '% confidence intervals. ' + this.starNote().split(', ').map(x => x.replace(/^(\*+) p < /, '$1p\u00a0<\u00a0')).join('. ') + ' (' + (r.alt === 'two' ? 'two-sided' : 'one-sided') + ').' + (D.summary ? '' : ' ' + (this.stampText() || '') + '.');
     return { title, head: [['', 'n', 'M', 'SD', pct + '% CI']], rows, note: note.replace(/\.\.$/, '.') };
   }
   async cmCopyWord(D, r) {
@@ -185,7 +186,35 @@
     const alt = r.alt === 'two' ? '' : ', alternative = "' + (r.alt === 'gt' ? 'greater' : 'less') + '"';
     const rc = N.mode === 'groups' ? 'BSDA::tsum.test(mean.x = ' + n(D.g1.mean) + ', s.x = ' + n(D.g1.sd) + ', n.x = ' + D.g1.n + ', mean.y = ' + n(D.g2.mean) + ', s.y = ' + n(D.g2.sd) + ', n.y = ' + D.g2.n + ', var.equal = ' + (this.state.ttEqual ? 'TRUE' : 'FALSE') + alt + ', conf.level = ' + (1 - r.alpha) + ')' : 'BSDA::tsum.test(mean.x = ' + n(D.g1.mean) + ', s.x = ' + n(D.g1.sd) + ', n.x = ' + D.g1.n + ', mu = ' + n(r.mu) + alt + ', conf.level = ' + (1 - r.alpha) + ')';
     const tbl = [N.test + ' from summary statistics', ...r.groups.map((g, i) => (D.labels[i] || '') + '\tn = ' + g.n + '\tmean = ' + g.mean + '\tsd = ' + g.sd), 'difference\t' + r.estimate + '\t[' + r.lo + ', ' + r.hi + ']', 't = ' + this.fmt(r.t, 4) + '\tdf = ' + this.fmt(r.df, 4) + '\tp = ' + (r.p < 1e-4 ? r.p.toExponential(2) : r.p.toFixed(4)) + (r.alt === 'two' ? '' : ' (one-sided)')].join('\n');
-    return { t: 'ttestx', sg: [], stata, r: rc, tbl, tblStata: tbl, tblR: tbl, res: N.test + ' (summaries): ' + this.cmApa(D, r), setup: { tab: 'ttest', ttMode: 'summary', ttSum: T, ttEqual: this.state.ttEqual, ttAlt: r.alt } };
+    const X = this.cmSummaryText(D, r);
+    return { t: 'ttestx', sg: [], stata, r: rc, tbl, tblStata: X.stata, tblR: X.r, res: N.test + ' (summaries): ' + this.cmApa(D, r), setup: { tab: 'ttest', ttMode: 'summary', ttSum: T, ttEqual: this.state.ttEqual, ttAlt: r.alt } };
+  }
+  // build .88: the summary test as Stata's ttesti and R's BSDA::tsum.test print it (it was a plain list of numbers)
+  cmSummaryText(D, r) {
+    const E = this._E, two = !!D.g2, lv = Number((100 * (1 - r.alpha)).toFixed(4)), mu = two ? 0 : r.mu, R = (v, w) => String(v).padStart(w);
+    // Stata: up to 7 significant digits in a 9-character column, no leading zero
+    const g = v => { if (!Number.isFinite(v)) return '.'; if (v !== 0 && (Math.abs(v) >= 1e9 || Math.abs(v) < 1e-5)) return v.toExponential(3).replace(/e([+-])(\d)$/, 'e$10$2'); for (let d = 7; d >= 1; d--) { const t = Number(v.toPrecision(d)).toString().replace(/^(-?)0\./, '$1.'); if (t.length <= 9) return t; } return String(Math.round(v)); };
+    const p4 = v => Number.isFinite(v) ? v.toFixed(4) : '.', dash = '-'.repeat(78), mid = '---------+' + '-'.repeat(68);
+    const row = (label, d) => { const se = d.sd / Math.sqrt(d.n), cr = E.ttCritical(r.alpha, d.n - 1); return R(label, 8) + ' |' + R(Number(d.n).toLocaleString('en-US'), 8) + R(g(d.mean), 12) + R(g(se), 12) + R(g(d.sd), 12) + R(g(d.mean - cr * se), 12) + R(g(d.mean + cr * se), 12); };
+    const head = R('', 8) + ' |     Obs        Mean    Std. err.   Std. dev.   [' + lv + '% conf. interval]';
+    const pTwo = r.pTwo, tails = (t, h, w0) => { const lo = t < 0 ? pTwo / 2 : 1 - pTwo / 2; return [h[0].padEnd(w0) + h[1].padEnd(30) + h[2], ' Pr(T < t) = ' + p4(lo) + '         Pr(|T| > |t|) = ' + p4(pTwo) + '          Pr(T > t) = ' + p4(1 - lo)]; };
+    const c2 = E.ttCritical(r.alpha, r.df), lo2 = r.estimate - c2 * r.se, hi2 = r.estimate + c2 * r.se, S = [];
+    if (two) {
+      const a = D.g1, b = D.g2, nC = a.n + b.n, mC = (a.n * a.mean + b.n * b.mean) / nC, sdC = Math.sqrt(((a.n - 1) * a.sd ** 2 + (b.n - 1) * b.sd ** 2 + a.n * (a.mean - mC) ** 2 + b.n * (b.mean - mC) ** 2) / (nC - 1));
+      S.push('Two-sample t test with ' + (r.equal ? 'equal' : 'unequal') + ' variances', dash, head, mid, row('x', a), row('y', b), mid, row('Combined', { n: nC, mean: mC, sd: sdC }), mid, R('diff', 8) + ' |' + R('', 8) + R(g(r.estimate), 12) + R(g(r.se), 12) + R('', 12) + R(g(lo2), 12) + R(g(hi2), 12), dash,
+        '    diff = mean(x) - mean(y)'.padEnd(66) + 't = ' + R(p4(r.t), 8), r.equal ? 'H0: diff = 0'.padEnd(49) + 'Degrees of freedom = ' + R(r.df, 8) : 'H0: diff = 0'.padEnd(33) + "Satterthwaite's degrees of freedom = " + R(g(r.df), 8), '', ...tails(r.t, ['    Ha: diff < 0', 'Ha: diff != 0', 'Ha: diff > 0'], 33));
+    } else {
+      S.push('One-sample t test', dash, head, mid, row('x', D.g1), dash, '    mean = mean(x)'.padEnd(66) + 't = ' + R(p4(r.t), 8), ('H0: mean = ' + g(mu)).padEnd(47) + 'Degrees of freedom = ' + R(r.df, 8), '', ...tails(r.t, ['   Ha: mean < ' + g(mu), 'Ha: mean != ' + g(mu), 'Ha: mean > ' + g(mu)], 29));
+    }
+    // R: print.htest's rounding (5 significant digits for t and df, 4 for p, 7 for the interval); BSDA prints NA at the
+    // open end of a one-sided interval
+    const sig = (v, d) => { if (!Number.isFinite(v)) return 'NA'; const t = Number(v.toPrecision(d)); return String(t).replace(/e\+?(-?)(\d)$/, 'e$10$2'); };
+    const pv = p => p < 2.2e-16 ? '< 2.2e-16' : '= ' + sig(p, 4), alt = r.alt === 'two' ? 'not equal to' : r.alt === 'gt' ? 'greater than' : 'less than';
+    const ci = [r.lo + mu, r.hi + mu].map(v => Number.isFinite(v) ? sig(v, 7) : 'NA'), w = Math.max(...ci.map(x => x.length));
+    const est = two ? [['mean of x', 'mean of y'], [D.g1.mean, D.g2.mean]] : [['mean of x'], [D.g1.mean]], ew = Math.max(...est[0].map(x => x.length), ...est[1].map(v => String(v).length));
+    const Rt = ['', '\t' + (two ? (r.equal ? 'Standard Two-Sample t-Test' : 'Welch Modified Two-Sample t-Test') : 'One-sample t-Test'), '', 'data:  Summarized x' + (two ? ' and y' : ''), 't = ' + sig(r.t, 5) + ', df = ' + sig(r.df, 5) + ', p-value ' + pv(r.p),
+      'alternative hypothesis: true ' + (two ? 'difference in means' : 'mean') + ' is ' + alt + ' ' + sig(mu, 7), lv + ' percent confidence interval:', ' ' + ci.map(x => x.padStart(w)).join(' '), 'sample estimates:', est[0].map(x => x.padStart(ew)).join(' ') + ' ', est[1].map(v => String(v).padStart(ew)).join(' ') + ' '];
+    return { stata: S.join('\n'), r: Rt.join('\n') };
   }
   // ---- the page
   cmRender(out) {
@@ -240,8 +269,9 @@
         else if (this._ttLast && r.alt !== 'two') {
           // R's t.test(y ~ g) subtracts in its own order (lower code first). When the page's order is the reverse (swapped,
           // or the groups picked high-to-low), "first > second" on the page is "less" in R.
-          const L = this._ttLast, flip = mode === 'groups' && this.ttGroups().flip, rAlt = (r.alt === 'gt') !== flip ? 'greater' : 'less';
-          this._ttLast = Object.assign({}, L, { r: String(L.r).replace(/\)$/, ', alternative = "' + rAlt + '")') + (flip ? '\n# R subtracts ' + this.ttGroups().lo + ' minus ' + this.ttGroups().hi + ', the reverse of the page, so the one-sided alternative is reversed too' : ''), res: L.res + ' (one-sided p ' + this.apaP(r.p).replace(/^p /, '') + ')' });
+          // (from the command as first recorded, so drawing the page twice never adds the alternative twice)
+          const L = this._ttLast, flip = mode === 'groups' && this.ttGroups().flip, rAlt = (r.alt === 'gt') !== flip ? 'greater' : 'less', g0 = this.ttGroups(), rBase = L.rBase || L.r, resBase = L.resBase || L.res;
+          this._ttLast = Object.assign({}, L, { rBase, resBase, r: String(rBase).replace(/\)$/, ', alternative = "' + rAlt + '")') + (flip ? '\n# R subtracts ' + this.vlabel(S.ttG, g0.lo) + ' minus ' + this.vlabel(S.ttG, g0.hi) + ', the reverse of the page, so the one-sided alternative is reversed too' : ''), res: resBase + ' (one-sided p ' + this.apaP(r.p).replace(/^p /, '') + ')' });
         }
         const L = this._ttLast, used = N.mode === 'paired' ? r.groups[0].n : r.groups.reduce((t, g) => t + g.n, 0);
         const pill = h('span', { className: 'cm-pill ' + (r.sig ? 'sig' : 'ns') }, (r.sig ? 'SIGNIFICANT · ' : 'NOT SIGNIFICANT · ') + this.apaP(r.p) + (r.alt === 'two' ? '' : ' one-sided'));

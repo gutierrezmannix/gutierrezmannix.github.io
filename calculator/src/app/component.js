@@ -164,13 +164,23 @@ class Component extends DCLogic {
   // by the console (withIf); the data are not embedded.
   ttCommands(options){
     const S=this.state,xn=S.exploreVar,alpha=this.alpha(),lv=Number((100*(1-alpha)).toFixed(4)),lev=lv===95?'':', level('+lv+')',conf=lv===95?'':', conf.level = '+Number((1-alpha).toFixed(6));
-    if(options.mode==='value'){const mu=Number(S.ttMu);return {stata:'ttest '+xn+' == '+mu+lev,r:'t.test(df$'+xn+', mu = '+mu+conf+')'};}
+    if(options.mode==='value'){const mu=this.ttMuNum();return {stata:'ttest '+xn+' == '+mu+lev,r:'t.test(df$'+xn+', mu = '+mu+conf+')'};}
     if(options.mode==='paired'){const y2=S.ttY2;return {stata:'ttest '+xn+' == '+y2+lev,r:'t.test(df$'+xn+', df$'+y2+', paired = TRUE'+conf+')'};}
-    const gv=S.ttG,g=this.ttGroups(),num=this.effMeta(gv)?.type==='numeric',q=v=>num?v:'"'+String(v).replace(/"/g,'\\"')+'"';
+    // build .88: a group with value labels is shown by its labels (Norte, Sur) but Stata and R need its codes (1, 3);
+    // text groups are quoted
+    const gv=S.ttG,g=this.ttGroups(),num=this.effMeta(gv)?.type==='numeric',vl=num&&this._raw&&this._raw.vlabs&&this._raw.vlabs[gv];
+    const code=v=>{if(vl)for(const [k,l] of vl)if(String(l)===String(v))return this._E.numLab(k);return v;};
+    const q=v=>num?code(v):'"'+String(v).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"';
     const sel=g.levels>2?' if inlist('+gv+', '+q(g.lo)+', '+q(g.hi)+')':'',rsel=g.levels>2?'subset(df, '+gv+' %in% c('+q(g.lo)+', '+q(g.hi)+'))':'df';
+    // R orders text groups alphabetically in the computer's language (b before B, Ángela before Zoe), Stata and this page
+    // by character code (B before b, Zoe before Ángela): the levels are then given, so R subtracts in the same order
+    const lo=String(g.lo),hi=String(g.hi),rOrd=!num&&(lo.localeCompare(hi)>0||/[^A-Za-z0-9 ]/.test(lo+hi)||lo.toLowerCase()===hi.toLowerCase());
+    const rg=rOrd?'factor('+gv+', levels = c('+q(g.lo)+', '+q(g.hi)+'))':gv;
     const eq=!!S.ttEqual,ol=[eq?'':'unequal',lev?lev.slice(2):''].filter(Boolean).join(' ');
-    return {stata:'ttest '+xn+sel+', by('+gv+')'+(ol?' '+ol:''),r:'t.test('+xn+' ~ '+gv+', data = '+rsel+', var.equal = '+(eq?'TRUE':'FALSE')+conf+')'};
+    return {stata:'ttest '+xn+sel+', by('+gv+')'+(ol?' '+ol:''),r:'t.test('+xn+' ~ '+rg+', data = '+rsel+', var.equal = '+(eq?'TRUE':'FALSE')+conf+')'};
   }
+  // the value typed for a one-sample test: a decimal comma (5,2) is read as a decimal point, as on the rest of the page
+  ttMuNum(){const t=String(this.state.ttMu??'').trim();return t===''?NaN:Number(t.replace(',','.'));}
   // The two compared groups in the order Stata and R report them (sorted codes), and whether that reverses
   // the order chosen on the page (first minus second).
   ttGroups(){
@@ -479,7 +489,7 @@ class Component extends DCLogic {
       L.push('Paired t test',dash,head,mid,row(S.exploreVar,data.a),row(S.ttY2,data.b),mid,R('diff',8)+' |'+R(n(result.nA),8)+R(g(result.estimate),12)+R(g(result.se),12)+R(g(result.sd),12)+R(g(result.lo),12)+R(g(result.hi),12),dash);
       L.push(('     mean(diff) = mean('+ab(S.exploreVar)+' - '+ab(S.ttY2)+')').padEnd(66)+'t = '+R(p4(result.t),8),' H0: mean(diff) = 0'.padEnd(47)+'Degrees of freedom = '+R(result.df,8),'',...tails(result.t,result.p,[' Ha: mean(diff) < 0','Ha: mean(diff) != 0','Ha: mean(diff) > 0']));
     }else{
-      const mu=Number(S.ttMu);
+      const mu=this.ttMuNum();
       L.push('One-sample t test',dash,head,mid,row(S.exploreVar,data.a),dash);
       L.push(('    mean = mean('+ab(S.exploreVar)+')').padEnd(66)+'t = '+R(p4(result.t),8),('H0: mean = '+g(mu)).padEnd(47)+'Degrees of freedom = '+R(result.df,8),'',...tails(result.t,result.p,['   Ha: mean < '+g(mu),'Ha: mean != '+g(mu),'Ha: mean > '+g(mu)]));
     }
@@ -491,19 +501,24 @@ class Component extends DCLogic {
     // scientific notation whichever is narrower, padded to a common width.
     const need=(v,d)=>{const t=Number(v.toPrecision(d));for(let k=1;k<=d;k++)if(Number(v.toPrecision(k))===t)return k;return d;};
     const rfmt=(vals,d=7)=>{const f=vals.filter(v=>Number.isFinite(v)&&v!==0);let rgt=0,sg=1;for(const v of f){const k=need(v,d),e=Math.floor(Math.log10(Math.abs(Number(v.toPrecision(k)))));rgt=Math.max(rgt,k-1-e);sg=Math.max(sg,k);}
-      const fixed=vals.map(v=>Number.isFinite(v)?v.toFixed(Math.min(rgt,20)):'NA'),sci=vals.map(v=>Number.isFinite(v)?v.toExponential(sg-1).replace(/e([+-])(\d)$/,'e$10$2'):'NA');
+      const nf=v=>v===Infinity?'Inf':v===-Infinity?'-Inf':'NA',fixed=vals.map(v=>Number.isFinite(v)?v.toFixed(Math.min(rgt,20)):nf(v)),sci=vals.map(v=>Number.isFinite(v)?v.toExponential(sg-1).replace(/e([+-])(\d)$/,'e$10$2'):nf(v));
       const fw=Math.max(...fixed.map(x=>x.length)),sw=Math.max(...sci.map(x=>x.length)),use=fw<=sw?fixed:sci,w=Math.max(...use.map(x=>x.length));return use.map(x=>x.padStart(w));};
     const sig=(v,d=7)=>rfmt([v],d)[0],pv=p=>p<2.2e-16?'< 2.2e-16':'= '+sig(p,4),ci=(a,b)=>' '+rfmt([a,b]).join(' ');
     const est=(names,vals)=>{const v=rfmt(vals),w=Math.max(...names.map(n=>n.length),...v.map(x=>x.length));return [names.map(n=>n.padStart(w)).join(' ')+' ',v.map(x=>x.padStart(w)).join(' ')+' '];};
     const L=[''];
+    // build .88: a one-sided test prints as R prints it: the alternative in R's own order of the groups, one tail's p and
+    // the one-sided interval (Inf at the open end); it used to print the two-sided p under a one-sided command
+    const alt=S.ttAlt||'two',fl=groups&&this.ttGroups().flip,sR=fl?-1:1,rAlt=alt==='two'?'two':((alt==='gt')!==fl?'greater':'less');
+    const tR=sR*result.t,pR=rAlt==='two'?result.p:rAlt==='greater'?(tR>0?result.p/2:1-result.p/2):(tR<0?result.p/2:1-result.p/2),hyp=rAlt==='two'?'is not equal to ':rAlt==='greater'?'is greater than ':'is less than ';
+    const c1=this._E.ttCritical(2*result.alpha,result.df),oneCI=(e,lo,hi)=>rAlt==='two'?[lo,hi]:rAlt==='greater'?[e-c1*result.se,Infinity]:[-Infinity,e+c1*result.se];
     if(groups){
       const gg=this.ttGroups(),flip=gg.flip,s=flip?-1:1,a=flip?data.b:data.a,b=flip?data.a:data.b,la=this.vlabel(S.ttG,gg.lo),lb=this.vlabel(S.ttG,gg.hi);
       const lo=flip?-result.hi:result.lo,hi=flip?-result.lo:result.hi,e1='mean in group '+la,e2='mean in group '+lb,w=Math.max(e1.length,e2.length);
-      L.push(options.equal?'\t Two Sample t-test':'\tWelch Two Sample t-test','','data:  '+S.exploreVar+' by '+S.ttG,'t = '+sig(s*result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(result.p),'alternative hypothesis: true difference in means between group '+la+' and group '+lb+' is not equal to 0',conf+' percent confidence interval:',ci(lo,hi),'sample estimates:',...est([e1,e2],[a.mean,b.mean]));void w;
+      L.push(options.equal?'\t Two Sample t-test':'\tWelch Two Sample t-test','','data:  '+S.exploreVar+' by '+S.ttG,'t = '+sig(s*result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(pR),'alternative hypothesis: true difference in means between group '+la+' and group '+lb+' '+hyp+'0',conf+' percent confidence interval:',ci(...oneCI(s*result.estimate,lo,hi)),'sample estimates:',...est([e1,e2],[a.mean,b.mean]));void w;
     }else if(paired){
-      L.push('\tPaired t-test','','data:  df$'+S.exploreVar+' and df$'+S.ttY2,'t = '+sig(result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(result.p),'alternative hypothesis: true mean difference is not equal to 0',conf+' percent confidence interval:',ci(result.lo,result.hi),'sample estimates:',...est(['mean difference'],[result.estimate]));
+      L.push('\tPaired t-test','','data:  df$'+S.exploreVar+' and df$'+S.ttY2,'t = '+sig(result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(pR),'alternative hypothesis: true mean difference '+hyp+'0',conf+' percent confidence interval:',ci(...oneCI(result.estimate,result.lo,result.hi)),'sample estimates:',...est(['mean difference'],[result.estimate]));
     }else{
-      L.push('\tOne Sample t-test','','data:  df$'+S.exploreVar,'t = '+sig(result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(result.p),'alternative hypothesis: true mean is not equal to '+Number(S.ttMu),conf+' percent confidence interval:',ci(result.lo,result.hi),'sample estimates:',...est(['mean of x'],[result.estimate]));
+      L.push('\tOne Sample t-test','','data:  df$'+S.exploreVar,'t = '+sig(result.t,5)+', df = '+sig(result.df,5)+', p-value '+pv(pR),'alternative hypothesis: true mean '+hyp+this.ttMuNum(),conf+' percent confidence interval:',ci(...oneCI(result.estimate,result.lo,result.hi)),'sample estimates:',...est(['mean of x'],[result.estimate]));
     }
     return L.join('\n');
   }
@@ -6645,7 +6660,7 @@ class Component extends DCLogic {
   cxImportCmd(dial) {
     const S = this.state, f = S.fileName || 'data.csv', c = (this._raw && this._raw.csv) || {}, xl = /\.(xlsx|xlsm|xltx|xltm|xls)$/i.test(f), sheet = this._xlsx && this._xlsx.name === f ? this._xlsx.sheet : '';
     const sav = /\.z?sav$/i.test(f);
-    if (sav) return dial === 'stata' ? 'import spss using "' + f + '", clear' : 'df <- as.data.frame(haven::as_factor(haven::read_sav("' + f + '")))';
+    if (sav) return dial === 'stata' ? 'import spss using "' + f + '", clear' : 'library(haven); df <- read_sav("' + f + '")   # value labels kept with their codes, as read_dta does';
     if (dial === 'stata') {
       if (xl) return 'import excel "' + f + '",' + (sheet ? ' sheet("' + sheet + '")' : '') + ' firstrow clear';
       return 'import delimited "' + f + '",' + (c.delim === ';' ? ' delimiters(";")' : c.delim === '|' ? ' delimiters("|")' : '') + (c.decComma ? ' decimalseparator(,) groupseparator(.)' : '') + ' clear';
@@ -7143,9 +7158,10 @@ class Component extends DCLogic {
     const gci = g => { const c = this._E.ttCritical(r.alpha, g.n - 1) * g.sd / Math.sqrt(g.n); return ci(g.mean - c, g.mean + c); };
     const rows = r.groups.map((g, i) => [D.labels[i] || '', this.fmtN(g.n), f(g.mean), f(g.sd), gci(g)]);
     const diffLab = N.mode === 'groups' ? 'Difference (' + D.labels[0] + ' − ' + D.labels[1] + ')' : N.mode === 'paired' ? 'Mean difference' : 'Difference from ' + f(r.mu);
-    rows.push({ c: [diffLab, '', this.cmSigned(r.estimate), '', ci(r.lo, r.hi)], rule: true });
+    // the difference carries its significance stars (Settings → Stars), explained at the end of the note, as in the regression tables
+    rows.push({ c: [diffLab, '', this.cmSigned(r.estimate) + this.starsOf(r.p), '', ci(r.lo, r.hi)], rule: true });
     const xn = this.state.exploreVar, title = (D.summary ? 'Comparison of means from summary statistics' : N.mode === 'groups' ? 'Mean ' + xn + ' by ' + D.gv : N.mode === 'paired' ? xn + ' and ' + D.labels[1] + ' on the same cases' : 'Mean ' + xn + ' compared with ' + f(r.mu));
-    const note = 'Note. ' + N.test + ', ' + (r.alt === 'two' ? 'two-sided' : 'one-sided') + ': ' + this.cmApa(D, r) + '. Brackets: ' + pct + '% confidence intervals.' + (D.summary ? '' : ' ' + (this.stampText() || '') + '.');
+    const note = 'Note. ' + N.test + ', ' + (r.alt === 'two' ? 'two-sided' : 'one-sided') + ': ' + this.cmApa(D, r) + '. Brackets: ' + pct + '% confidence intervals. ' + this.starNote().split(', ').map(x => x.replace(/^(\*+) p < /, '$1p\u00a0<\u00a0')).join('. ') + ' (' + (r.alt === 'two' ? 'two-sided' : 'one-sided') + ').' + (D.summary ? '' : ' ' + (this.stampText() || '') + '.');
     return { title, head: [['', 'n', 'M', 'SD', pct + '% CI']], rows, note: note.replace(/\.\.$/, '.') };
   }
   async cmCopyWord(D, r) {
@@ -7162,7 +7178,35 @@ class Component extends DCLogic {
     const alt = r.alt === 'two' ? '' : ', alternative = "' + (r.alt === 'gt' ? 'greater' : 'less') + '"';
     const rc = N.mode === 'groups' ? 'BSDA::tsum.test(mean.x = ' + n(D.g1.mean) + ', s.x = ' + n(D.g1.sd) + ', n.x = ' + D.g1.n + ', mean.y = ' + n(D.g2.mean) + ', s.y = ' + n(D.g2.sd) + ', n.y = ' + D.g2.n + ', var.equal = ' + (this.state.ttEqual ? 'TRUE' : 'FALSE') + alt + ', conf.level = ' + (1 - r.alpha) + ')' : 'BSDA::tsum.test(mean.x = ' + n(D.g1.mean) + ', s.x = ' + n(D.g1.sd) + ', n.x = ' + D.g1.n + ', mu = ' + n(r.mu) + alt + ', conf.level = ' + (1 - r.alpha) + ')';
     const tbl = [N.test + ' from summary statistics', ...r.groups.map((g, i) => (D.labels[i] || '') + '\tn = ' + g.n + '\tmean = ' + g.mean + '\tsd = ' + g.sd), 'difference\t' + r.estimate + '\t[' + r.lo + ', ' + r.hi + ']', 't = ' + this.fmt(r.t, 4) + '\tdf = ' + this.fmt(r.df, 4) + '\tp = ' + (r.p < 1e-4 ? r.p.toExponential(2) : r.p.toFixed(4)) + (r.alt === 'two' ? '' : ' (one-sided)')].join('\n');
-    return { t: 'ttestx', sg: [], stata, r: rc, tbl, tblStata: tbl, tblR: tbl, res: N.test + ' (summaries): ' + this.cmApa(D, r), setup: { tab: 'ttest', ttMode: 'summary', ttSum: T, ttEqual: this.state.ttEqual, ttAlt: r.alt } };
+    const X = this.cmSummaryText(D, r);
+    return { t: 'ttestx', sg: [], stata, r: rc, tbl, tblStata: X.stata, tblR: X.r, res: N.test + ' (summaries): ' + this.cmApa(D, r), setup: { tab: 'ttest', ttMode: 'summary', ttSum: T, ttEqual: this.state.ttEqual, ttAlt: r.alt } };
+  }
+  // build .88: the summary test as Stata's ttesti and R's BSDA::tsum.test print it (it was a plain list of numbers)
+  cmSummaryText(D, r) {
+    const E = this._E, two = !!D.g2, lv = Number((100 * (1 - r.alpha)).toFixed(4)), mu = two ? 0 : r.mu, R = (v, w) => String(v).padStart(w);
+    // Stata: up to 7 significant digits in a 9-character column, no leading zero
+    const g = v => { if (!Number.isFinite(v)) return '.'; if (v !== 0 && (Math.abs(v) >= 1e9 || Math.abs(v) < 1e-5)) return v.toExponential(3).replace(/e([+-])(\d)$/, 'e$10$2'); for (let d = 7; d >= 1; d--) { const t = Number(v.toPrecision(d)).toString().replace(/^(-?)0\./, '$1.'); if (t.length <= 9) return t; } return String(Math.round(v)); };
+    const p4 = v => Number.isFinite(v) ? v.toFixed(4) : '.', dash = '-'.repeat(78), mid = '---------+' + '-'.repeat(68);
+    const row = (label, d) => { const se = d.sd / Math.sqrt(d.n), cr = E.ttCritical(r.alpha, d.n - 1); return R(label, 8) + ' |' + R(Number(d.n).toLocaleString('en-US'), 8) + R(g(d.mean), 12) + R(g(se), 12) + R(g(d.sd), 12) + R(g(d.mean - cr * se), 12) + R(g(d.mean + cr * se), 12); };
+    const head = R('', 8) + ' |     Obs        Mean    Std. err.   Std. dev.   [' + lv + '% conf. interval]';
+    const pTwo = r.pTwo, tails = (t, h, w0) => { const lo = t < 0 ? pTwo / 2 : 1 - pTwo / 2; return [h[0].padEnd(w0) + h[1].padEnd(30) + h[2], ' Pr(T < t) = ' + p4(lo) + '         Pr(|T| > |t|) = ' + p4(pTwo) + '          Pr(T > t) = ' + p4(1 - lo)]; };
+    const c2 = E.ttCritical(r.alpha, r.df), lo2 = r.estimate - c2 * r.se, hi2 = r.estimate + c2 * r.se, S = [];
+    if (two) {
+      const a = D.g1, b = D.g2, nC = a.n + b.n, mC = (a.n * a.mean + b.n * b.mean) / nC, sdC = Math.sqrt(((a.n - 1) * a.sd ** 2 + (b.n - 1) * b.sd ** 2 + a.n * (a.mean - mC) ** 2 + b.n * (b.mean - mC) ** 2) / (nC - 1));
+      S.push('Two-sample t test with ' + (r.equal ? 'equal' : 'unequal') + ' variances', dash, head, mid, row('x', a), row('y', b), mid, row('Combined', { n: nC, mean: mC, sd: sdC }), mid, R('diff', 8) + ' |' + R('', 8) + R(g(r.estimate), 12) + R(g(r.se), 12) + R('', 12) + R(g(lo2), 12) + R(g(hi2), 12), dash,
+        '    diff = mean(x) - mean(y)'.padEnd(66) + 't = ' + R(p4(r.t), 8), r.equal ? 'H0: diff = 0'.padEnd(49) + 'Degrees of freedom = ' + R(r.df, 8) : 'H0: diff = 0'.padEnd(33) + "Satterthwaite's degrees of freedom = " + R(g(r.df), 8), '', ...tails(r.t, ['    Ha: diff < 0', 'Ha: diff != 0', 'Ha: diff > 0'], 33));
+    } else {
+      S.push('One-sample t test', dash, head, mid, row('x', D.g1), dash, '    mean = mean(x)'.padEnd(66) + 't = ' + R(p4(r.t), 8), ('H0: mean = ' + g(mu)).padEnd(47) + 'Degrees of freedom = ' + R(r.df, 8), '', ...tails(r.t, ['   Ha: mean < ' + g(mu), 'Ha: mean != ' + g(mu), 'Ha: mean > ' + g(mu)], 29));
+    }
+    // R: print.htest's rounding (5 significant digits for t and df, 4 for p, 7 for the interval); BSDA prints NA at the
+    // open end of a one-sided interval
+    const sig = (v, d) => { if (!Number.isFinite(v)) return 'NA'; const t = Number(v.toPrecision(d)); return String(t).replace(/e\+?(-?)(\d)$/, 'e$10$2'); };
+    const pv = p => p < 2.2e-16 ? '< 2.2e-16' : '= ' + sig(p, 4), alt = r.alt === 'two' ? 'not equal to' : r.alt === 'gt' ? 'greater than' : 'less than';
+    const ci = [r.lo + mu, r.hi + mu].map(v => Number.isFinite(v) ? sig(v, 7) : 'NA'), w = Math.max(...ci.map(x => x.length));
+    const est = two ? [['mean of x', 'mean of y'], [D.g1.mean, D.g2.mean]] : [['mean of x'], [D.g1.mean]], ew = Math.max(...est[0].map(x => x.length), ...est[1].map(v => String(v).length));
+    const Rt = ['', '\t' + (two ? (r.equal ? 'Standard Two-Sample t-Test' : 'Welch Modified Two-Sample t-Test') : 'One-sample t-Test'), '', 'data:  Summarized x' + (two ? ' and y' : ''), 't = ' + sig(r.t, 5) + ', df = ' + sig(r.df, 5) + ', p-value ' + pv(r.p),
+      'alternative hypothesis: true ' + (two ? 'difference in means' : 'mean') + ' is ' + alt + ' ' + sig(mu, 7), lv + ' percent confidence interval:', ' ' + ci.map(x => x.padStart(w)).join(' '), 'sample estimates:', est[0].map(x => x.padStart(ew)).join(' ') + ' ', est[1].map(v => String(v).padStart(ew)).join(' ') + ' '];
+    return { stata: S.join('\n'), r: Rt.join('\n') };
   }
   // ---- the page
   cmRender(out) {
@@ -7217,8 +7261,9 @@ class Component extends DCLogic {
         else if (this._ttLast && r.alt !== 'two') {
           // R's t.test(y ~ g) subtracts in its own order (lower code first). When the page's order is the reverse (swapped,
           // or the groups picked high-to-low), "first > second" on the page is "less" in R.
-          const L = this._ttLast, flip = mode === 'groups' && this.ttGroups().flip, rAlt = (r.alt === 'gt') !== flip ? 'greater' : 'less';
-          this._ttLast = Object.assign({}, L, { r: String(L.r).replace(/\)$/, ', alternative = "' + rAlt + '")') + (flip ? '\n# R subtracts ' + this.ttGroups().lo + ' minus ' + this.ttGroups().hi + ', the reverse of the page, so the one-sided alternative is reversed too' : ''), res: L.res + ' (one-sided p ' + this.apaP(r.p).replace(/^p /, '') + ')' });
+          // (from the command as first recorded, so drawing the page twice never adds the alternative twice)
+          const L = this._ttLast, flip = mode === 'groups' && this.ttGroups().flip, rAlt = (r.alt === 'gt') !== flip ? 'greater' : 'less', g0 = this.ttGroups(), rBase = L.rBase || L.r, resBase = L.resBase || L.res;
+          this._ttLast = Object.assign({}, L, { rBase, resBase, r: String(rBase).replace(/\)$/, ', alternative = "' + rAlt + '")') + (flip ? '\n# R subtracts ' + this.vlabel(S.ttG, g0.lo) + ' minus ' + this.vlabel(S.ttG, g0.hi) + ', the reverse of the page, so the one-sided alternative is reversed too' : ''), res: resBase + ' (one-sided p ' + this.apaP(r.p).replace(/^p /, '') + ')' });
         }
         const L = this._ttLast, used = N.mode === 'paired' ? r.groups[0].n : r.groups.reduce((t, g) => t + g.n, 0);
         const pill = h('span', { className: 'cm-pill ' + (r.sig ? 'sig' : 'ns') }, (r.sig ? 'SIGNIFICANT · ' : 'NOT SIGNIFICANT · ') + this.apaP(r.p) + (r.alt === 'two' ? '' : ' one-sided'));
@@ -8652,13 +8697,15 @@ class Component extends DCLogic {
   condExpr(c, dial) {
     const m = this.effMeta(c.v), isCat = !m || m.treatAs !== 'numeric', ci = this._raw ? this._raw.names.indexOf(c.v) : -1, numStore = ci >= 0 && this._raw.cols[ci].k === 'n';
     const bare = x => numStore && (x === '.' || (String(x).trim() !== '' && isFinite(Number(x))));
-    const q = x => isCat && !bare(x) ? '"' + x + '"' : x;
+    // build .88: a value label (Sur) is written as its code (3): Stata and R (read_dta / read_sav) keep the codes
+    const vl = numStore && this._raw.vlabs && this._raw.vlabs[c.v], code = x => { if (vl && !bare(x)) for (const [k, l] of vl) if (String(l) === String(x)) return this._E.numLab(k); return x; };
+    const q = x => { x = code(x); return isCat && !bare(x) ? '"' + x + '"' : x; };
     if (c.t === 'in') {
       if (c.vals.length === 1) return c.v + ' == ' + q(c.vals[0]);
       return dial === 'stata' ? 'inlist(' + c.v + ', ' + c.vals.map(q).join(', ') + ')' : c.v + ' %in% c(' + c.vals.map(q).join(', ') + ')';
     }
     if (c.t === 'rng') { const a = []; if (c.lo !== '') a.push(c.v + ' >= ' + c.lo); if (c.hi !== '') a.push(c.v + ' <= ' + c.hi); return a.join(dial === 'stata' ? ' & ' : ' & '); }
-    return c.v + ' ' + c.op + ' ' + (c.cat && !bare(c.val) ? '"' + c.val + '"' : c.val);
+    return c.v + ' ' + c.op + ' ' + (c.cat && !bare(code(c.val)) ? '"' + c.val + '"' : code(c.val));
   }
   withIf(base, sg, dial) {
     if (!sg || !sg.length || !base) return base;
@@ -9990,8 +10037,8 @@ class Component extends DCLogic {
       if (v0 === 'graph' || v0 === 'gr') v0 = 'graph ' + (toks.shift() || '').toLowerCase();
       if (v0 === 'twoway' || v0 === 'tw') { const sm = toks.join(' ').match(/\(?\s*(scatter|lfit|line|connected)\s+([A-Za-z_]\w*)\s+([A-Za-z_]\w*)/); if (!sm) return fail('twoway: use  twoway (scatter y x)'); v0 = sm[1] === 'line' || sm[1] === 'connected' ? 'line' : 'scatter'; toks.length = 0; toks.push(sm[2], sm[3]); }
       const O = {}; optStr.replace(/(\w+)\s*\(([^)]*)\)|(\w+)/g, (all, k, v, flag) => { if (k) O[k.toLowerCase()] = v.trim(); else if (flag) O[flag.toLowerCase()] = true; return ''; });
-      const A = { summarize: 'summarize', summ: 'summarize', sum: 'summarize', su: 'summarize', tabstat: 'summarize', mean: 'summarize', fre: 'tab', tabul: 'tab', tabu: 'tab', twoway: 'scatter', tabulate: 'tab', tab: 'tab', ta: 'tab', tab1: 'tabulate', tab2: 'crosstab', pwcorr: 'correlate', correlate: 'correlate', corr: 'correlate', cor: 'correlate', ttest: 'ttest', oneway: 'oneway', anova: 'oneway', regress: 'regress', reg: 'regress', logit: 'logit', logistic: 'logit', ologit: 'ologit', poisson: 'poisson', histogram: 'hist', hist: 'hist', scatter: 'scatter', line: 'line', tsline: 'line', 'graph box': 'box', 'graph bar': 'bar', 'graph hbar': 'bar', describe: 'describe', des: 'describe', d: 'describe', codebook: 'codebook' };
-      const vb = A[v0]; if (!vb) return fail('"' + v0 + '" is not a Stata command this calculator runs. Try summarize, tabulate, pwcorr, ttest, oneway, regress, logit, ologit, poisson, margins, histogram, scatter, line, graph box, graph bar, graph matrix, xtline, generate, replace, recode, rename, drop, keep, destring, label, mvdecode, svyset, sem, tsset, count, display, describe or codebook (type help for the list).');
+      const A = { summarize: 'summarize', summ: 'summarize', sum: 'summarize', su: 'summarize', tabstat: 'summarize', mean: 'summarize', fre: 'tab', tabul: 'tab', tabu: 'tab', twoway: 'scatter', tabulate: 'tab', tab: 'tab', ta: 'tab', tab1: 'tabulate', tab2: 'crosstab', pwcorr: 'correlate', correlate: 'correlate', corr: 'correlate', cor: 'correlate', ttest: 'ttest', ttesti: 'ttesti', oneway: 'oneway', anova: 'oneway', regress: 'regress', reg: 'regress', logit: 'logit', logistic: 'logit', ologit: 'ologit', poisson: 'poisson', histogram: 'hist', hist: 'hist', scatter: 'scatter', line: 'line', tsline: 'line', 'graph box': 'box', 'graph bar': 'bar', 'graph hbar': 'bar', describe: 'describe', des: 'describe', d: 'describe', codebook: 'codebook' };
+      const vb = A[v0]; if (!vb) return fail('"' + v0 + '" is not a Stata command this calculator runs. Try summarize, tabulate, pwcorr, ttest, ttesti, oneway, regress, logit, ologit, poisson, margins, histogram, scatter, line, graph box, graph bar, graph matrix, xtline, generate, replace, recode, rename, drop, keep, destring, label, mvdecode, svyset, sem, tsset, count, display, describe or codebook (type help for the list).');
       if (O.vce) { const vm = String(O.vce).match(/^(robust|cluster)\s*(\S*)/i); if (vm) { opts.vce = vm[1].toLowerCase(); opts.cl = vm[2]; } }
       if (O.robust === true || O.r === true) opts.vce = 'robust';
       if (O.cluster) { opts.vce = 'cluster'; opts.cl = O.cluster; }
@@ -10002,6 +10049,16 @@ class Component extends DCLogic {
       else if (vb === 'crosstab') { if (toks.length < 2) return fail('tab2 needs two variables'); if (toks.length > 2) return this.cxRun('tab2', s, { done, fail }); verb = 'crosstab'; vars = [toks[0], toks[1]]; this.cxPend('ct', toks, s); }
       else if (vb === 'correlate') return this.cxRun(v0 === 'pwcorr' ? 'pwcorr' : 'correlate', s, { done, fail });
       else if (vb === 'ttest') { const badO = Object.keys(O).filter(k => !(k === 'by' || k === 'level' || k === 'welch' || /^une(q(u(a(l)?)?)?)?$/.test(k))); if (badO.length) return fail('option ' + badO[0] + (O[badO[0]] === true ? '' : '()') + ' not allowed — ttest takes by(), unequal, welch and level(#), as in Stata'); const em = body.match(/^\S+\s+([A-Za-z_]\w*)\s*==?\s*(\S+)/); if (O.level !== undefined) { const lv = Number(O.level); if (!(lv >= 10 && lv <= 99.99)) return fail('level() takes a confidence level between 10 and 99.99, e.g. level(90)'); opts.ttAlpha = +(1 - lv / 100).toFixed(8); } if (opts.by) { if (!toks.length) return fail('ttest needs a variable'); if (O.welch) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by, welch: true }); if (!O.unequal && !O.une && !O.uneq) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by }); verb = 'ttest'; vars = [toks[0], opts.by]; } else if (em && V(em[2])) { verb = 'ttestp'; vars = [em[1], em[2]]; } else if (em) { verb = 'ttest1'; vars = [em[1]]; opts.mu = em[2]; } else return fail(toks.length >= 2 ? 'In Stata the group goes inside by():   ttest ' + toks[0] + ', by(' + toks[1] + ')' : 'ttest: use  ttest y, by(group)   or   ttest y == 50'); }
+      else if (vb === 'ttesti') { // build .88: the t-test from summary numbers, as in Stata; it opens the page's summary mode
+        const badO = Object.keys(O).filter(k => !(k === 'level' || /^une(q(u(a(l)?)?)?)?$/.test(k))); if (badO.length) return fail('option ' + badO[0] + (O[badO[0]] === true ? '' : '()') + ' not allowed here — ttesti takes unequal and level(#)');
+        if (opts.if || opts.w) return fail('ttesti uses the numbers typed after it, so it takes no if or weights');
+        const x = toks.map(Number); if (!(toks.length === 4 || toks.length === 6) || x.some(v => !Number.isFinite(v))) return fail('ttesti: use  ttesti #obs #mean #sd #value   (one sample)   or   ttesti #obs1 #mean1 #sd1 #obs2 #mean2 #sd2   (two groups)');
+        const bad = (n, sd) => !(Number.isInteger(n) && n >= 2) ? 'the number of observations must be a whole number of 2 or more' : !(sd > 0) ? 'the standard deviation must be above 0' : '';
+        const why = bad(x[0], x[2]) || (toks.length === 6 ? bad(x[3], x[5]) : ''); if (why) return fail('ttesti: ' + why);
+        if (O.level !== undefined) { const lv = Number(O.level); if (!(lv >= 10 && lv <= 99.99)) return fail('level() takes a confidence level between 10 and 99.99, e.g. level(90)'); opts.ttAlpha = +(1 - lv / 100).toFixed(8); }
+        verb = 'ttesti'; opts.ttEq = !Object.keys(O).some(k => /^une/.test(k));
+        opts.ttSum = toks.length === 6 ? { kind: 'two', n1: toks[0], m1: toks[1], s1: toks[2], n2: toks[3], m2: toks[4], s2: toks[5], mu: '0', l1: 'x', l2: 'y' } : { kind: 'one', n1: toks[0], m1: toks[1], s1: toks[2], mu: toks[3], n2: '', m2: '', s2: '', l1: 'x', l2: 'y' };
+      }
       else if (vb === 'oneway') { if (toks.length < 2) return fail('oneway needs  oneway y group'); verb = 'oneway'; vars = [toks[0], toks[1]]; }
       else if (['regress', 'logit', 'ologit', 'poisson'].includes(vb)) { if (toks.length < 2) return fail(vb + ' needs an outcome and at least one predictor'); verb = vb; vars = [toks[0]]; opts.terms = toks.slice(1); }
       else if (vb === 'hist' || vb === 'box') { if (!toks.length) return fail(v0 + ' needs a variable'); verb = 'plot'; const grouped = vb === 'box' && opts.over; opts.kind = grouped ? 'gbox' : vb; vars = grouped ? [opts.over, toks[0]] : [toks[0]]; }
@@ -10048,6 +10105,7 @@ class Component extends DCLogic {
     if (verb === 'ttest') return done(label, Object.assign(patch,{tab:'ttest',ttMode:'groups',ttG:vars[1],exploreVar:vars[0]}));
     if (verb === 'oneway') return done(label, Object.assign(patch, { tab: 'two', twoMode: 'means', yVar: vars[0], xVar: vars[1] }));
     const clickBtn = re => () => { const b = this._mainEl && [...this._mainEl.querySelectorAll('button')].find(x => re.test(x.textContent.trim())); if (b) b.click(); };
+    if (verb === 'ttesti') return done(label, Object.assign(patch, { tab: 'ttest', ttMode: 'summary', ttSum: opts.ttSum, ttEqual: opts.ttEq, ttAlt: 'two' }));
     if (verb === 'ttest1') return done(label, Object.assign(patch, { tab: 'ttest', exploreVar: vars[0], ttMode: 'value', ttMu: String(opts.mu) }));
     if (verb === 'ttestp') return done(label, Object.assign(patch, { tab: 'ttest', exploreVar: vars[0], ttMode: 'paired', ttY2: vars[1] }));
     if (['regress', 'logit', 'ologit', 'poisson'].includes(verb)) {
@@ -10487,7 +10545,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-07.88') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-07.89') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -11260,7 +11318,7 @@ class Component extends DCLogic {
         const ciPts = (lab, d2) => { const c2 = E.ttCritical(a, Math.max(1, d2.n - 1)) * d2.sd / Math.sqrt(d2.n); return { x: lab, y: d2.mean, lo: d2.mean - c2, hi: d2.mean + c2 }; };
         const pct = Math.round(100 * (1 - a));
         if (mode === 'value') {
-          const mu = String(S.ttMu ?? '').trim() === '' ? NaN : Number(S.ttMu);
+          const mu = this.ttMuNum();
           if (!isFinite(mu)) { out.ttHasErr = true; out.ttErr = 'Type the value to compare the mean with (e.g. the midpoint of the scale, or a target).'; }
           else { const r2 = E.oneSampleT(X, w, mu); if (r2.error) { out.ttHasErr = true; out.ttErr = r2.error; } else {
             const se = r2.sd / Math.sqrt(r2.n), cr = E.ttCritical(a, r2.df), dd = (r2.mean - mu) / r2.sd, sig = r2.p < a;

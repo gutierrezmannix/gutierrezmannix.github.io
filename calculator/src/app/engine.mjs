@@ -641,7 +641,7 @@ export function groupsOf(catA, numA, w, cap) {
 export function welch(g1, g2) {
   const v1 = g1.sd * g1.sd, v2 = g2.sd * g2.sd, n1 = g1.n, n2 = g2.n;
   const se = Math.sqrt(v1 / n1 + v2 / n2);
-  if (!(se > 0)) return { t: NaN, df: NaN, p: NaN, d: NaN, error: 'no variation inside the groups' };
+  if (!(se > 0)) return { t: NaN, df: NaN, p: NaN, d: NaN, error: 'Every value inside each group is the same, so there is no variation to test: a t-test cannot be computed.' };
   const t = (g1.mean - g2.mean) / se;
   const df = Math.pow(v1 / n1 + v2 / n2, 2) / (Math.pow(v1 / n1, 2) / (n1 - 1) + Math.pow(v2 / n2, 2) / (n2 - 1));
   const sp = Math.sqrt(((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2));

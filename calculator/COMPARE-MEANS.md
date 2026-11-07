@@ -77,3 +77,29 @@ Settings.
 - Stars follow Settings → Stars (`* .05 ** .01 *** .001` by default).
 
 See `REGRESSION.md`.
+
+## Build .89 — t-test audit
+
+The t-test page was used in a real browser on every design (two groups with Welch and Student, swapped, one-sided,
+90/99%; a labelled group with four values picked high-to-low; a text group; paired; one value; summary numbers; and
+broken setups), and 400 simulated datasets were checked against R (see `tests/TTEST_VALIDATION.md`). The page's
+numbers were right everywhere; the commands and printouts around them were not always:
+
+| Problem | Before | Now |
+| --- | --- | --- |
+| One-sided test with text groups that R and Stata sort differently (b/B, Ángela/Zoe, mujer/Hombre) | R's own order made `alternative = "greater"` the wrong tail: in 13 of 400 simulated cases the R command gave p = .98 where the page said .02 | the R command names the order, `factor(g, levels = c("B", "b"))`, only when the two orders can differ |
+| A group with value labels and more than two values | `subset(df, region %in% c(Norte, Sur))` and `inlist(region, Norte, Sur)`: both fail | the codes: `region %in% c(1, 3)`, `inlist(region, 1, 3)` |
+| An `if` on a labelled variable in the console (`ttest y if region == 3, by(sexo)`) | logged as `region == "Sur"`, which Stata refuses for a number | logged as `region == 3`, on every page that writes an if |
+| R tab of a one-sided test | the one-sided command over a two-sided printout (p = .108 under `alternative = "greater"`) | R's own printout: one tail's p, "is greater than 0", the interval to Inf |
+| Test value typed with a decimal comma (5,2) | the result showed, but the Stata and R tabs and Add to console were empty; Stata's printout read `H0: mean = .` | read as 5.2 everywhere |
+| `ttesti` in the console | "not a Stata command this calculator runs", although summary mode writes it to the log | runs: one sample (`ttesti 25 4.2 1.1 4`) or two groups, `unequal`, `level(#)`; it opens summary mode |
+| Stata and R tabs of summary numbers | a plain list of numbers | Stata's `ttesti` table and BSDA's `tsum.test` printout (checked against R) |
+| Word table and Copy table for Word | no sign of significance | the difference carries stars (Settings → Stars) and the note explains them: `*p < .05. **p < .01. ***p < .001 (two-sided)` |
+| Constant outcome in both groups | "no variation inside the groups" | a full sentence saying why there is no test |
+| Drawing the page twice with a one-sided test | could add `alternative = …` to the R command twice | built from the command as first recorded |
+
+Also checked and unchanged: Welch and Student t, df, p and CI, Cohen's d (pooled SD) and d_z, the group order
+(Stata's: codes, then character order), paired rows missing either value, the weight block, the checks, the Combined
+row, Stata's `welch` option (Welch's 1947 df), refusals for a text outcome or more than two groups, the .docx file.
+SPSS files now load into R with `read_sav()` keeping the codes, as `read_dta()` does, so the codes in these commands
+work there too.

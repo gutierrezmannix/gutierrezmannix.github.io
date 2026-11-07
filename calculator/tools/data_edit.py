@@ -172,10 +172,12 @@ def integrate_component(c):
     c = _one(c, """    const m = this.effMeta(c.v), isCat = !m || m.treatAs !== 'numeric';
     const q = x => isCat ? '"' + x + '"' : x;""", """    const m = this.effMeta(c.v), isCat = !m || m.treatAs !== 'numeric', ci = this._raw ? this._raw.names.indexOf(c.v) : -1, numStore = ci >= 0 && this._raw.cols[ci].k === 'n';
     const bare = x => numStore && (x === '.' || (String(x).trim() !== '' && isFinite(Number(x))));
-    const q = x => isCat && !bare(x) ? '"' + x + '"' : x;""", 'condExpr quoting')
+    // build .88: a value label (Sur) is written as its code (3): Stata and R (read_dta / read_sav) keep the codes
+    const vl = numStore && this._raw.vlabs && this._raw.vlabs[c.v], code = x => { if (vl && !bare(x)) for (const [k, l] of vl) if (String(l) === String(x)) return this._E.numLab(k); return x; };
+    const q = x => { x = code(x); return isCat && !bare(x) ? '"' + x + '"' : x; };""", 'condExpr quoting')
     c = _one(c, """    return c.v + ' ' + c.op + ' ' + (c.cat ? '"' + c.val + '"' : c.val);
   }
-  withIf(base, sg, dial) {""", """    return c.v + ' ' + c.op + ' ' + (c.cat && !bare(c.val) ? '"' + c.val + '"' : c.val);
+  withIf(base, sg, dial) {""", """    return c.v + ' ' + c.op + ' ' + (c.cat && !bare(code(c.val)) ? '"' + c.val + '"' : code(c.val));
   }
   withIf(base, sg, dial) {""", 'condExpr op quoting')
     c = _one(c, '"route":{"tab":"data"}', '"route":{"tab":"data","deTask":"scale"}', 'model guide route')
