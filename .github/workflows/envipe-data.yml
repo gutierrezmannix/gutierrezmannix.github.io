@@ -1,0 +1,35 @@
+# Rebuilds the ENVIPE dashboard's data scripts whenever new CSVs from
+# envipe_dashboard_aggregates.do are uploaded to dashboards/envipe/data/.
+# Only touches files inside dashboards/envipe/data/.
+name: Rebuild ENVIPE dashboard data
+
+on:
+  push:
+    paths:
+      - "dashboards/envipe/data/*.csv"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Wrap CSVs as JavaScript
+        run: python3 dashboards/envipe/data/build_data.py
+      - name: Commit if anything changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add dashboards/envipe/data/*.js
+          if git diff --cached --quiet; then
+            echo "Data scripts already up to date."
+          else
+            git commit -m "Rebuild ENVIPE dashboard data from uploaded CSVs"
+            git push
+          fi

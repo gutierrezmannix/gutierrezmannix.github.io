@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Texas Colonias Dashboard</title>
+<meta name="description" content="Demographic, economic and infrastructure profiles for 1,716 Texas colonias along the Rio Grande. Works offline.">
+<link rel="stylesheet" href="../shared/dash.css">
+<style>
+  a { color: var(--teal-2); } a:hover { color: #C8E0E6; }
+  .filters { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 20px; align-self: flex-start; }
+  .filters .grp { display: flex; flex-direction: column; gap: 8px; }
+  .chip[aria-pressed="true"] { background: var(--teal); border-color: var(--teal); color: var(--fg); }
+  .tag[aria-pressed="true"] { background: var(--teal-soft); color: #C8E0E6; }
+  .cv-desc { font-size: 13px; color: var(--fg-2); margin: 0; }
+  .map-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+  #map { background: var(--bg-deep); border-radius: 10px; cursor: grab; aspect-ratio: 4 / 3; height: auto; }
+  #map.dragging { cursor: grabbing; }
+  #map .cty { fill: #35312C; stroke: #57524A; }
+  #map .oth { fill: #262422; stroke: #3D3934; }
+  #map .dot { stroke: #1C1B1A; cursor: pointer; }
+  #map .dot:hover { stroke: #fff; }
+  #map .clab { fill: #7E7563; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.06em; pointer-events: none; }
+  #map .city circle { fill: #1C1B1A; stroke: #F7F3EC; cursor: pointer; }
+  #map .city text { fill: #F7F3EC; font-family: var(--font-sans); font-weight: 600; paint-order: stroke; stroke: #1C1B1A; stroke-linejoin: round; pointer-events: none; }
+  #map .ring { fill: none; stroke: var(--accent); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .kpi .big { font-size: 28px; }
+  .kpi .l { font-size: 13px; color: var(--fg-2); }
+  .about p { margin: 0; color: var(--fg-2); font-size: 14px; line-height: 1.6; }
+  .about strong { color: var(--fg); }
+  /* analysis */
+  .an-body { display: flex; flex-wrap: wrap; gap: 20px; }
+  .picklist { flex: 1 1 240px; max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg-deep); }
+  .picklist h4 { margin: 10px 0 4px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-4); }
+  .picklist label { display: flex; gap: 8px; align-items: center; padding: 3px 0; font-size: 13px; cursor: pointer; }
+  .picklist input { accent-color: var(--teal); }
+  .tb { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .tb ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+  .tb li button { display: flex; width: 100%; gap: 10px; align-items: baseline; padding: 6px 8px; border: none; border-radius: 8px; background: transparent; color: var(--fg); text-align: left; font-size: 14px; }
+  .tb li button:hover { background: var(--panel-2); }
+  .tb .rk { width: 40px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-4); }
+  .tb .nm { flex: 1; } .tb .co { font-size: 12px; color: var(--fg-3); margin-left: 6px; }
+  .tb .vv { font-family: var(--font-mono); font-size: 13px; }
+  /* profile */
+  .infra-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .infra-row .ic { width: 24px; height: 24px; flex-shrink: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .infra-row .lb { flex: 1; } .infra-row .vl { font-size: 13px; font-weight: 600; color: var(--fg-2); }
+  .cmp { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 4px 0; }
+  .cmp .lb { width: 190px; font-size: 14px; }
+  .cmp .vl { width: 90px; font-family: var(--font-mono); font-size: 14px; font-weight: 700; text-align: right; }
+  .cmp .tr { flex: 1 1 180px; position: relative; height: 22px; min-width: 140px; }
+  .cmp .tr .ax { position: absolute; left: 0; right: 0; top: 8px; height: 6px; border-radius: 999px; background: linear-gradient(90deg, #163F4C, #357F93 50%, #95C3CE); }
+  .cmp .tr .md { position: absolute; top: 3px; width: 2px; height: 16px; margin-left: -1px; background: var(--accent); }
+  .cmp .tr .pin { position: absolute; top: 2px; width: 18px; height: 18px; margin-left: -9px; border-radius: 999px; background: var(--fg); border: 3px solid var(--accent); }
+  .cmp .pc { width: 64px; font-family: var(--font-mono); font-size: 12px; color: var(--fg-2); text-align: right; }
+  .cmp .cm { width: 130px; font-size: 12px; color: var(--fg-3); }
+  details.allvars summary { cursor: pointer; font-weight: 600; color: var(--teal-2); }
+  .kvgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px 18px; margin: 10px 0 14px; }
+  .kvgrid .k { font-size: 12px; color: var(--fg-3); } .kvgrid .v { font-family: var(--font-mono); font-size: 15px; font-weight: 700; }
+  #loc { background: var(--bg-deep); border-radius: 10px; aspect-ratio: 4 / 3; height: auto; }
+  [hidden] { display: none !important; }
+  @media (max-width: 640px) { .cmp .lb { width: 100%; } .cmp .cm { width: auto; } }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="../../index.html">
+      <svg width="26" height="27" viewBox="0 0 30 31" aria-hidden="true"><path d="M9 1.5 H14.5 V9.3 L26.3 10.3 L28.3 16.6 L24.3 21.8 L18.4 29.4 L15.2 24.8 L12 21.8 L9 19 H6.2 L1.7 13.4 V10.4 H9 Z" fill="#E5912A"/><circle cx="18" cy="26.6" r="2.6" fill="#143E2D" stroke="#fff" stroke-width="1.4"/></svg>
+      <span>Carlos Gutiérrez-Mannix</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../../index.html#pubs" data-i18n="navPubs">Publications</a>
+      <a href="../../index.html#teaching" data-i18n="navTeach">Teaching</a>
+      <a href="../../index.html#data" data-i18n="navData">Data</a>
+      <a href="../../Documentaries/" data-i18n="navDocs">Recommendations</a>
+      <a href="../../calculator/index.html" data-i18n="navCalc">Calculator</a>
+      <a href="../index.html" aria-current="page" data-i18n="navDash">Dashboards</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en">EN</button><button type="button" data-lang="es">ES</button></div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="head-row">
+    <div class="grow">
+      <p class="crumbs"><a href="../index.html" data-i18n="navDash">Dashboards</a> / <a href="#" id="crumb-home" data-i18n="title">Texas Colonias</a><span id="crumb-col"></span></p>
+      <p class="eyebrow teal" style="margin-top:8px">Texas · Border · 2020 ACS &amp; CGD</p>
+      <h1 class="title" data-i18n="titleLong">Texas Colonias Dashboard</h1>
+      <p class="lede" id="lede"></p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#80B79B" stroke-width="2.4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="offline">Works offline</span></span>
+      <a class="btn" href="#analysis" id="go-analysis"><span data-i18n="openAnalysis">Open analysis</span> ↓</a>
+    </div>
+  </div>
+
+  <div id="error" class="err" hidden></div>
+
+  <!-- ===================== MAP VIEW ===================== -->
+  <div id="view-map" class="stack" style="gap:20px">
+    <div class="row">
+      <aside class="card filters" aria-label="Filters">
+        <div class="grp">
+          <label class="label" for="s" data-i18n="find">Find a colonia</label>
+          <div class="combo">
+            <div class="field">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B5ADA2" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input id="s" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="hits" data-i18n-attr="placeholder:searchPh">
+            </div>
+            <div class="hits" id="hits" role="listbox"></div>
+          </div>
+        </div>
+        <div class="grp">
+          <label class="label" for="v" data-i18n="colorBy">Color the map by</label>
+          <select id="v" class="select"></select>
+          <div class="chips" id="cats"></div>
+          <p class="cv-desc" id="cv-desc"></p>
+        </div>
+        <div class="grp">
+          <span class="label" data-i18n="county">County</span>
+          <div class="chips" id="counties"></div>
+        </div>
+        <div class="grp">
+          <span class="label" data-i18n="infra">Infrastructure flags</span>
+          <div class="chips" id="infra"></div>
+        </div>
+        <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--fg-2)">
+          <span id="showing"></span>
+          <button type="button" class="btn" id="reset" style="padding:6px 12px" data-i18n="clearFilters">Clear filters</button>
+        </div>
+      </aside>
+
+      <section class="grow stack" style="gap:14px" aria-label="Map">
+        <div class="card deep stack" style="padding:16px">
+          <div class="map-top">
+            <div class="seg teal" role="group" aria-label="Region" id="regions"></div>
+            <div style="display:flex;gap:6px">
+              <button type="button" class="icon-btn" id="zin" data-i18n-attr="aria-label:zoomIn">+</button>
+              <button type="button" class="icon-btn" id="zout" data-i18n-attr="aria-label:zoomOut">−</button>
+            </div>
+          </div>
+          <svg id="map" class="map-svg" role="img" aria-label="Map of Texas border colonias"></svg>
+          <div class="legend" id="legend"></div>
+          <p class="small" style="margin:0" data-i18n="mapHelp">Scroll or pinch to zoom, drag to move. Click a dot to open that colonia’s profile.</p>
+        </div>
+        <div class="kpis" id="kpis"></div>
+        <p class="small" style="margin:0" id="kpi-note"></p>
+      </section>
+    </div>
+
+    <section class="card about stack" aria-label="About the colonias">
+      <h2 class="h2" data-i18n="aboutT">About the colonias</h2>
+      <p data-i18n-html="about1"></p>
+      <p data-i18n-html="about2"></p>
+    </section>
+
+    <section class="card stack" id="analysis" aria-label="Analysis">
+      <div class="card-head">
+        <h2 class="h2" data-i18n="analysis">Analysis</h2>
+        <div class="seg teal wrap" role="tablist" id="an-tabs">
+          <button type="button" role="tab" data-t="sum" data-i18n="tSum">Summary statistics</button>
+          <button type="button" role="tab" data-t="tb" data-i18n="tTb">Top &amp; bottom</button>
+          <button type="button" role="tab" data-t="cor" data-i18n="tCor">Correlation</button>
+          <button type="button" role="tab" data-t="co" data-i18n="tCo">By county</button>
+        </div>
+      </div>
+      <p class="small" style="margin:0" id="an-note"></p>
+      <div id="an-sum" class="an-body">
+        <div class="picklist" id="picklist"></div>
+        <div class="tbl-wrap" style="flex:3 1 520px"><table class="tbl" id="sum-table"></table></div>
+      </div>
+      <div id="an-tb" class="stack" hidden>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><label for="tb-var" class="label" data-i18n="variable">Variable</label><select id="tb-var" class="select"></select><label for="tb-n" class="label" data-i18n="show">Show</label><select id="tb-n" class="select"><option>5</option><option selected>10</option><option>20</option></select></div>
+        <div class="tb" id="tb"></div>
+      </div>
+      <div id="an-cor" class="stack" hidden>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><label for="x-var" class="label">X</label><select id="x-var" class="select"></select><label for="y-var" class="label">Y</label><select id="y-var" class="select"></select><span class="mono" id="r-out" style="font-size:14px"></span></div>
+        <svg id="scatter" width="100%" role="img" style="display:block"></svg>
+      </div>
+      <div id="an-co" class="stack" hidden>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><label for="co-var" class="label" data-i18n="variable">Variable</label><select id="co-var" class="select"></select></div>
+        <div class="tbl-wrap"><table class="tbl" id="co-table"></table></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================== PROFILE VIEW ===================== -->
+  <div id="view-profile" class="stack" style="gap:20px" hidden>
+    <div class="head-row">
+      <div class="grow">
+        <p class="eyebrow teal" id="p-eyebrow"></p>
+        <h1 class="title" id="p-name" style="font-size:clamp(34px,5vw,52px)"></h1>
+        <p class="lede" id="p-sub"></p>
+      </div>
+      <a href="#" class="btn" id="back">← <span data-i18n="backMap">Back to map</span></a>
+    </div>
+    <div class="row" style="align-items:flex-start">
+      <div class="stack" style="flex:1 1 380px;min-width:0;gap:20px">
+        <section class="card deep" style="padding:12px"><svg id="loc" class="map-svg" role="img"></svg></section>
+        <section class="card stack" style="gap:4px">
+          <h2 class="h2" style="margin-bottom:8px" data-i18n="infraT">Infrastructure (Texas OAG)</h2>
+          <div id="p-infra"></div>
+          <p class="small" style="margin:8px 0 0" data-i18n="infraNote">From the Texas OAG Colonia Geographic Database.</p>
+        </section>
+      </div>
+      <section class="card stack" style="flex:2 1 560px;min-width:0" aria-label="How it compares">
+        <div class="card-head"><h2 class="h2" data-i18n="compares">How it compares</h2><span class="small" data-i18n-html="cmpKey"></span></div>
+        <div id="p-cmp"></div>
+        <details class="allvars"><summary data-i18n="allVars">All variables</summary><div id="p-all"></div></details>
+        <p class="small" style="margin:0" data-i18n="tractNote">Census values describe the colonia’s host tract, not the colonia itself. Percentages on small subpopulations can be noisy.</p>
+      </section>
+    </div>
+  </div>
+
+  <footer class="foot" data-i18n="foot">Sources: Texas OAG Colonia Geographic Database; ACS 5-year tract estimates (merged on coordinates). Census values describe the colonia’s host tract, not the colonia itself. Base map: US Census county boundaries (us-atlas). Data, map and fonts are stored with this page — no internet connection needed.</footer>
+</main>
+
+<script src="../shared/dash.js"></script>
+<script src="tx-geo.js"></script>
+<script src="data/colonias-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

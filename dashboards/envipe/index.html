@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crime &amp; Insecurity in Mexico — ENVIPE Dashboard</title>
+<meta name="description" content="Weighted ENVIPE (INEGI) estimates for Mexico's 32 states, 2011–2026 editions. Works offline.">
+<link rel="stylesheet" href="../shared/dash.css">
+<style>
+  .controls { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-end; }
+  .controls .q { flex: 3 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .controls .c { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .answers { display: flex; flex-wrap: wrap; gap: 6px; }
+  .headline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+  .headline .big { font-size: clamp(40px, 6vw, 54px); color: var(--accent-2); }
+  .headline .txt { font-size: 15px; color: var(--fg-2); max-width: 560px; }
+  .headline .txt strong { color: var(--fg); }
+  #map path.st { stroke: var(--bg-deep); stroke-width: 1; cursor: pointer; transition: opacity 120ms; }
+  #map path.st:hover { stroke: var(--fg); stroke-width: 1.6; }
+  #map path.st.sel { stroke: #fff; stroke-width: 2.6; }
+  #map path.st.na { fill: #34302C; }
+  .years-row { border-top: 1px solid #2E2B28; padding-top: 14px; display: flex; align-items: center; gap: 14px; }
+  .years-row .ticks { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); }
+  .years-row .ticks .on { color: var(--fg); font-weight: 700; }
+  .rank { display: flex; flex-direction: column; gap: 2px; }
+  .rank button { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--fg); text-align: left; }
+  .rank button:hover { background: var(--panel-2); }
+  .rank button.sel { background: #46413A; border-color: var(--accent); }
+  .rank .r { width: 20px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-4); text-align: right; }
+  .rank .nm { width: 132px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank .bar { flex: 1; height: 8px; background: #24221F; border-radius: 2px; position: relative; }
+  .rank .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; }
+  .rank .v { width: 52px; font-family: var(--font-mono); font-size: 12px; text-align: right; }
+  .sel-card { display: none; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+  .sel-card.on { display: flex; }
+  .kv { display: flex; gap: 24px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--line); }
+  .kv .k { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--fg); }
+  .kv .l { font-size: 12px; color: var(--fg-2); }
+  /* state profile */
+  .tiles { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; }
+  .tiles button { aspect-ratio: 1; min-height: 34px; border-radius: 6px; border: 1px solid var(--bg-deep); padding: 0; font: 700 10px var(--font-mono); }
+  .tiles button.sel { border: 3px solid #fff; box-shadow: 0 0 0 2px var(--accent); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .kpi .big { font-size: 38px; }
+  .delta { font-family: var(--font-mono); font-size: 12px; }
+  .dumb { display: flex; align-items: center; gap: 12px; }
+  .dumb .lb { width: 170px; font-size: 14px; }
+  .dumb .tr { flex: 1; position: relative; height: 22px; min-width: 120px; }
+  .dumb .tr .ax { position: absolute; left: 0; right: 0; top: 10px; height: 2px; background: var(--line); }
+  .dumb .tr .ln { position: absolute; top: 9px; height: 4px; background: var(--line-strong); }
+  .dumb .tr .n, .dumb .tr .s { position: absolute; top: 4px; width: 14px; height: 14px; margin-left: -7px; border-radius: 999px; }
+  .dumb .tr .n { border: 2.5px solid var(--accent); background: var(--panel); }
+  .dumb .tr .s { background: var(--teal-2); }
+  .dumb .vv { width: 100px; text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--fg-2); }
+  .hbar { position: relative; height: 10px; background: #24221F; border-radius: 3px; }
+  .hbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--teal); }
+  .hbar b { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1px; background: var(--accent); }
+  .stack100 { display: flex; height: 26px; border-radius: 6px; overflow: hidden; font: 700 11px var(--font-mono); flex: 1 1 300px; }
+  .stack100 span { display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; }
+  .na-note { font-size: 13px; color: var(--fg-4); font-style: italic; }
+  [hidden] { display: none !important; }
+  @media (max-width: 640px) { .dumb .lb { width: 110px; font-size: 13px; } .rank .nm { width: 104px; } }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="../../index.html">
+      <svg width="26" height="27" viewBox="0 0 30 31" aria-hidden="true"><path d="M9 1.5 H14.5 V9.3 L26.3 10.3 L28.3 16.6 L24.3 21.8 L18.4 29.4 L15.2 24.8 L12 21.8 L9 19 H6.2 L1.7 13.4 V10.4 H9 Z" fill="#E5912A"/><circle cx="18" cy="26.6" r="2.6" fill="#143E2D" stroke="#fff" stroke-width="1.4"/></svg>
+      <span>Carlos Gutiérrez-Mannix</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../../index.html#pubs" data-i18n="navPubs">Publications</a>
+      <a href="../../index.html#teaching" data-i18n="navTeach">Teaching</a>
+      <a href="../../index.html#data" data-i18n="navData">Data</a>
+      <a href="../../Documentaries/" data-i18n="navDocs">Recommendations</a>
+      <a href="../../calculator/index.html" data-i18n="navCalc">Calculator</a>
+      <a href="../index.html" aria-current="page" data-i18n="navDash">Dashboards</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en">EN</button><button type="button" data-lang="es">ES</button></div>
+  </div>
+</header>
+
+<main class="page" id="top">
+  <div class="head-row">
+    <div class="grow">
+      <p class="crumbs"><a href="../index.html" data-i18n="navDash">Dashboards</a> / <a href="#" id="crumb-home" data-i18n="title">Crime &amp; Insecurity in Mexico</a><span id="crumb-state"></span></p>
+      <p class="eyebrow" style="margin-top:8px">México · INEGI ENVIPE · <span id="yr-span">2011–2026</span></p>
+      <h1 class="title" data-i18n="title">Crime &amp; Insecurity in Mexico</h1>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#80B79B" stroke-width="2.4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="offline">Works offline</span></span>
+      <button type="button" class="btn" id="dl"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 21h16"/></svg><span data-i18n="download">Download CSV</span></button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading" data-i18n="loading">Loading 16 editions of ENVIPE…</div>
+  <div id="error" class="err" hidden></div>
+
+  <!-- ===================== MAP VIEW ===================== -->
+  <div id="view-map" class="stack" style="gap:20px" hidden>
+    <section class="card controls" aria-label="Controls">
+      <div class="q">
+        <label class="label" for="q"><span data-i18n="question">Question</span> · <span id="nq"></span> <span data-i18n="available">available</span></label>
+        <div class="combo">
+          <div class="field">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B5ADA2" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="q" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="hits" data-i18n-attr="placeholder:searchPh">
+            <span class="mono small" id="qvar"></span>
+          </div>
+          <div class="hits" id="hits" role="listbox"></div>
+        </div>
+        <div class="chips" id="sections"></div>
+      </div>
+      <div class="c" id="answer-box">
+        <span class="label" data-i18n="answer">Show answer</span>
+        <div class="answers" id="answers"></div>
+      </div>
+      <div class="c" id="base-box">
+        <span class="label" data-i18n="base">Base</span>
+        <div class="seg neutral" id="base">
+          <button type="button" data-b="p" data-i18n="baseValid">Valid answers</button>
+          <button type="button" data-b="pa" data-i18n="baseAll">Incl. “No sabe”</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="row" style="align-items:flex-start">
+      <section class="card deep grow stack" aria-label="Map">
+        <div class="headline"><span class="big" id="hl-v">—</span><span class="txt" id="hl-t"></span></div>
+        <div class="map-wrap"><svg id="map" class="map-svg" role="img"></svg></div>
+        <div class="legend" id="legend"></div>
+        <div class="sel-card" id="sel-card">
+          <div><b id="sel-name"></b> <span class="mono" id="sel-val"></span> <span class="small" id="sel-sub"></span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn" id="sel-clear" data-i18n="clear">Clear</button>
+            <a class="btn primary" id="sel-open" href="#"><span data-i18n="openProfile">Open state profile</span> →</a>
+          </div>
+        </div>
+        <div class="years-row">
+          <button type="button" class="play" id="play" data-i18n-attr="aria-label:play"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" id="play-ic"><path d="M7 4v16l13-8z"/></svg></button>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+            <label class="sr-only" for="yr" data-i18n="edition">Survey edition</label>
+            <input type="range" class="years" id="yr" min="0" max="0" step="1" value="0">
+            <div class="ticks" id="ticks"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card side stack" aria-label="Ranking">
+        <div class="card-head"><h2 class="h2" data-i18n="all32">All 32 states</h2><span class="label" id="rank-sub"></span></div>
+        <div class="rank" id="rank"></div>
+      </section>
+    </div>
+
+    <div class="row">
+      <section class="card grow" aria-label="Trend">
+        <div class="card-head"><h2 class="h2" id="trend-title"></h2><div class="legend" id="trend-legend"></div></div>
+        <svg id="trend" viewBox="0 0 640 250" width="100%" role="img" style="display:block;margin-top:10px"></svg>
+      </section>
+      <section class="card side stack" aria-label="About this number" style="font-size:14px;line-height:1.55">
+        <h2 class="h2" data-i18n="about">About this number</h2>
+        <p class="muted" style="margin:0" id="about-q"></p>
+        <p class="muted" style="margin:0" id="about-base"></p>
+        <div class="kv"><div><div class="k" id="about-n">—</div><div class="l" data-i18n="respNat">respondents (national)</div></div><div><div class="k" id="about-min">—</div><div class="l" data-i18n="smallestN">smallest state n</div></div></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ===================== STATE PROFILE VIEW ===================== -->
+  <div id="view-state" class="stack" style="gap:20px" hidden>
+    <div class="row" style="align-items:stretch">
+      <section class="card deep stack" style="flex:1 1 400px;min-width:0" aria-label="Pick a state">
+        <div class="card-head"><span class="label" data-i18n="pickState">Pick a state</span><a href="#" id="back-map" style="font-size:13px">← <span data-i18n="backMap">Back to map</span></a></div>
+        <div class="tiles" id="tiles"></div>
+        <p class="small" style="margin:0" data-i18n="tilesNote">Tiles placed roughly by geography · shaded by % who feel unsafe in their state</p>
+      </section>
+      <section style="flex:2 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px;justify-content:center">
+        <div>
+          <p class="eyebrow"><span data-i18n="profileEyebrow">State profile · vs. national</span> · <label for="p-year" class="sr-only" data-i18n="edition">Survey edition</label><select id="p-year" class="select" style="padding:4px 8px;font-size:12px"></select></p>
+          <h1 class="title" id="p-name" style="font-size:clamp(36px,5vw,52px)">—</h1>
+          <p class="lede" id="p-sub"></p>
+        </div>
+        <div class="kpis" id="kpis"></div>
+      </section>
+    </div>
+
+    <div class="row">
+      <section class="card stack" style="flex:1 1 560px" aria-label="Top concerns">
+        <div class="card-head"><h2 class="h2" data-i18n="worries">What worries people most</h2>
+          <div class="legend"><span class="sw"><i class="dot" style="background:#95C3CE"></i><span id="lg-state"></span></span><span class="sw"><i class="dot" style="border:2px solid #E5912A"></i><span data-i18n="mexico">Mexico</span></span></div></div>
+        <div class="stack" id="concerns"></div>
+        <p class="small" style="margin:0" data-i18n="worriesNote">% naming each topic among their top concerns (several answers allowed).</p>
+      </section>
+      <div class="stack" style="flex:1 1 400px;min-width:0;gap:20px">
+        <section class="card stack" aria-label="Changed habits"><h2 class="h2" data-i18n="habits">Stopped doing, out of fear</h2><div class="stack" id="habits"></div></section>
+        <section class="card stack" aria-label="Neighborhood"><h2 class="h2" data-i18n="hood">Seen in the neighborhood</h2><div id="hood" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px"></div></section>
+      </div>
+    </div>
+
+    <section class="card stack" aria-label="Trust in authorities">
+      <div class="card-head"><h2 class="h2" id="trust-title"></h2><div class="legend" id="trust-legend"></div></div>
+      <div class="stack" id="trust"></div>
+      <p class="small" style="margin:0" id="trust-note"></p>
+    </section>
+
+    <section class="card" aria-label="Trend">
+      <div class="card-head"><h2 class="h2" id="p-trend-title"></h2><div class="legend" id="p-trend-legend"></div></div>
+      <svg id="p-trend" viewBox="0 0 640 250" width="100%" role="img" style="display:block;margin-top:10px"></svg>
+    </section>
+  </div>
+
+  <footer class="foot" data-i18n="foot">Source: INEGI, Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE), 2011–2026 editions. Recoded master files and weighted estimates (person weight fac_ele) by Dr. Gutiérrez-Mannix. Years are survey editions. Map: Natural Earth (public domain). Data, map and fonts are stored with this page — no internet connection needed.</footer>
+</main>
+
+<script src="../shared/dash.js"></script>
+<script src="mx-states.js"></script>
+<script src="data/envipe-meta.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
