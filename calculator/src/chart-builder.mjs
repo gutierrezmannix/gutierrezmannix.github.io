@@ -10,7 +10,7 @@ export const CB_PALETTES = {
 // one-line description for the gallery
 export const CB_FAMILIES = [
   { id: 'amounts', q: 'Bar charts', d: 'Counts, percentages, means or sums for each category.', icon: 'bars', kinds: [['bar', 'Bar chart'], ['groupbar', 'Grouped bars'], ['stackcount', 'Stacked bars'], ['stack', '100% stacked bars'], ['dot', 'Dot plot']] },
-  { id: 'time', q: 'Timelines (line charts)', d: 'A mean, sum or share over the years, one line per group if you like.', icon: 'line', kinds: [['line', 'Timeline'], ['area', 'Area chart'], ['panel', 'One panel per group']] },
+  { id: 'time', q: 'Timelines (line charts)', d: 'The % giving each answer, a mean score, a mean or a total over time — smoothed if you like, one line per group.', icon: 'line', kinds: [['line', 'Timeline'], ['area', 'Area chart'], ['panel', 'One panel per group']] },
   { id: 'spread', q: 'Histograms & box plots', d: 'How the values of a number are spread.', icon: 'hist', kinds: [['hist', 'Histogram'], ['density', 'Density curve'], ['box', 'Box plot'], ['gbox', 'Box plots by group'], ['violin', 'Violin plot']] },
   { id: 'xy', q: 'Scatter plots', d: 'Two numbers together, with a fitted line or a smoother.', icon: 'scatter', kinds: [['scatterplain', 'Scatter plot'], ['scatter', 'Scatter + fitted line'], ['smooth', 'Scatter + smoother'], ['hexbin', 'Hexbin (many points)'], ['matrix', 'Scatter-plot matrix']] },
   { id: 'ci', q: 'Error bars: means & proportions', d: 'Group means or shares with their confidence intervals.', icon: 'ci', kinds: [['mean', 'Means with CIs'], ['proportion', 'Proportions with CIs']] },
@@ -83,7 +83,11 @@ function cbHead(C, model, W, legendKeys) {
   const o = C.o, out = [], title = o.title != null ? o.title : model.title || '', sub = o.subtitle != null ? o.subtitle : model.subtitle || '';
   let y = 14;
   if (title) { y += C.F.title; out.push(C.T(24, y, title, `fill="${CBC.ink}"`, C.F.title, false, 800)); y += 6; }
-  if (sub) { y += C.F.sub + 2; out.push(C.T(24, y, sub, `fill="${CBC.mut}"`, C.F.sub)); y += 4; }
+  if (sub) { // GM26 .95: a long subtitle wraps (at most 3 lines) instead of running off the chart
+    const words = String(sub).split(' '), lines = []; let cur = '';
+    for (const wd of words) { const t = cur ? cur + ' ' + wd : wd; if (cur && cbTextW(t, C.F.sub) > W - 48) { lines.push(cur); cur = wd; } else cur = t; }
+    if (cur) lines.push(cur); if (lines.length > 3) { lines.length = 3; lines[2] += ' …'; }
+    lines.forEach(l => { y += C.F.sub + 2; out.push(C.T(24, y, l, `fill="${CBC.mut}"`, C.F.sub)); }); y += 4; }
   if (legendKeys && legendKeys.length) {
     y += 12; let x = 24; const rowH = C.F.leg + 10;
     legendKeys.forEach((k, i) => { const t = C.nm(k), w = 18 + cbTextW(t, C.F.leg) + 18; if (x + w > W - 16 && x > 24) { x = 24; y += rowH; } out.push(`<rect x="${x}" y="${(y - C.F.leg * 0.8).toFixed(1)}" width="12" height="12" rx="2.5" fill="${C.fill(k, i)}" stroke="#9A917F" stroke-width=".5"/>`, C.T(x + 18, y + 1, t, `fill="${CBC.ink}"`, C.F.leg)); x += w; });
@@ -259,10 +263,10 @@ function cbDrawXY(C, M) {
   const head = cbHead(C, M, W, topLegend ? keys : null);
   const foot = cbFoot(C, M, W, 0), xTitle = o.xTitle != null ? o.xTitle : M.xTitle || '', yTitle = o.yTitle != null ? o.yTitle : M.yTitle || '';
   const bottomLeg = multi && legendMode === 'bottom' ? Math.ceil(keys.length / 4) * (C.F.leg + 10) + 8 : 0;
-  const H = C.SZ ? C.SZ[1] : Math.round(Math.max(440, head.h + 360 + foot.h + (xTitle ? C.F.lab + 16 : 0) + bottomLeg));
+  const H = C.SZ ? C.SZ[1] : Math.round(Math.max(o.short ? 200 : 440, head.h + (o.short ? 130 : 360) + foot.h + (xTitle ? C.F.lab + 16 : 0) + bottomLeg));
   // ranges
   const xs = [], ys = [];
-  series.forEach(s => s.pts.forEach(p => { xs.push(p.x); ys.push(p.y); if (cbNum(p.lo)) ys.push(p.lo); if (cbNum(p.hi)) ys.push(p.hi); if (s.stackBase) ys.push(p.y0); }));
+  series.forEach(s => s.pts.forEach(p => { xs.push(p.x); ys.push(p.y); if (cbNum(p.lo)) ys.push(p.lo); if (cbNum(p.hi)) ys.push(p.hi); if (s.stackBase) ys.push(p.y0); if (M.rawDots && cbNum(p.single)) ys.push(p.single); }));
   (M.points || []).forEach(p => { xs.push(p.x); ys.push(p.y); });
   (M.bins || []).forEach(b => { xs.push(b.a, b.b); ys.push(b.c, 0); });
   if (M.hex) for (const p of M.hex.pts) { xs.push(p.x); ys.push(p.y); }
@@ -316,6 +320,7 @@ function cbDrawXY(C, M) {
   if (M.points && M.points.length) { const r = M.points.length > 2000 ? 2.2 : M.points.length > 300 ? 3 : 4.2, op = M.points.length > 2000 ? 0.45 : M.points.length > 300 ? 0.65 : 0.85; for (const p of M.points) { const c = C.col(p.k, 0); plot.push(`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${r}" fill="${c}" fill-opacity="${op}"${p.t ? `><title>${cbEsc(p.t)}</title></circle>` : '/>'}`); } if (M.pointLabels) for (const p of M.points) if (p.lab) plot.push(C.T(X(p.x) + 6, Y(p.y) + 4, p.lab, `fill="${CBC.ink}" stroke="#FFFFFF" stroke-width="3" paint-order="stroke"`, C.F.val)); }
   // series: bands first, then lines/areas, then markers and values
   series.forEach((s, si) => { if (!s.band) return; const pts = s.pts.filter(p => cbNum(p.lo) && cbNum(p.hi)); if (pts.length < 2) return; const d = 'M' + pts.map(p => X(p.x).toFixed(1) + ',' + Y(p.hi).toFixed(1)).join('L') + 'L' + pts.slice().reverse().map(p => X(p.x).toFixed(1) + ',' + Y(p.lo).toFixed(1)).join('L') + 'Z'; plot.push(`<path d="${d}" fill="${C.col(s.key, si)}" fill-opacity=".16" stroke="none"/>`); });
+  if (M.rawDots) series.forEach((s, si) => s.pts.forEach(p => { if (cbNum(p.single)) plot.push(`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.single).toFixed(1)}" r="3.4" fill="${C.col(s.key, si)}" fill-opacity=".32"><title>${cbEsc((multi ? C.nm(s.key) + ' · ' : '') + p.x + ' alone: ' + C.vfmt(p.single, pct))}</title></circle>`); }));
   series.forEach((s, si) => {
     const c = C.col(s.key, si), segs = s.segments || [s.pts];
     if (s.style === 'area') segs.forEach(seg => { if (seg.length < 2) return; const base = seg.map(p => cbNum(p.y0) ? p.y0 : Math.max(yr[0], 0)); const d = 'M' + seg.map(p => X(p.x).toFixed(1) + ',' + Y(p.y).toFixed(1)).join('L') + 'L' + seg.slice().reverse().map((p, i) => X(p.x).toFixed(1) + ',' + Y(base[seg.length - 1 - i]).toFixed(1)).join('L') + 'Z'; plot.push(`<path d="${d}" fill="${C.fill(s.key, si)}" fill-opacity="${s.stacked ? 0.85 : 0.28}" stroke="none"/>`); });
@@ -324,7 +329,7 @@ function cbDrawXY(C, M) {
     if (s.style === 'fit') plot.push(`<line x1="${X(s.pts[0].x).toFixed(1)}" y1="${Y(s.pts[0].y).toFixed(1)}" x2="${X(s.pts[s.pts.length - 1].x).toFixed(1)}" y2="${Y(s.pts[s.pts.length - 1].y).toFixed(1)}" stroke="${C.col(s.key, si) === CBC.dim ? CBC.dim : s.color || CBC.ink}" stroke-width="2.4"/>`);
     if (s.ciBars) s.pts.forEach(p => { if (cbNum(p.lo) && cbNum(p.hi)) plot.push(`<line x1="${X(p.x).toFixed(1)}" x2="${X(p.x).toFixed(1)}" y1="${Y(p.lo).toFixed(1)}" y2="${Y(p.hi).toFixed(1)}" stroke="${c}" stroke-width="2"/>`); });
     const markers = s.markers != null ? s.markers : (o.markers !== false && (s.style === 'line' || s.style === 'area') && s.pts.length <= 60);
-    if (markers || s.ciBars) s.pts.forEach(p => plot.push(`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${s.pts.length > 30 ? 3 : 4.2}" fill="${c}" stroke="#FFFFFF" stroke-width="1.4"><title>${cbEsc((multi ? C.nm(s.key) + ' · ' : '') + (M.xTime ? p.x : cbFmt(p.x)) + ': ' + C.vfmt(p.y, pct) + (cbNum(p.lo) ? ' [' + C.vfmt(p.lo, pct) + ', ' + C.vfmt(p.hi, pct) + ']' : '') + (p.n != null ? ' (n = ' + p.n.toLocaleString('en-US') + ')' : ''))}</title></circle>`));
+    if (markers || s.ciBars) s.pts.forEach(p => plot.push(`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${s.pts.length > 30 ? 3 : 4.2}" fill="${p.part ? '#FFFFFF' : c}" stroke="${p.part ? c : '#FFFFFF'}" stroke-width="${p.part ? 2 : 1.4}"><title>${cbEsc((multi ? C.nm(s.key) + ' · ' : '') + (M.xTime ? p.x : cbFmt(p.x)) + ': ' + C.vfmt(p.y, pct) + (cbNum(p.lo) ? ' [' + C.vfmt(p.lo, pct) + ', ' + C.vfmt(p.hi, pct) + ']' : '') + (p.n != null ? ' (n = ' + p.n.toLocaleString('en-US') + ')' : '') + (p.win ? ' · ' + p.win + (p.part ? ' times pooled (window cut at the edge)' : ' times pooled') : ''))}</title></circle>`));
   });
   // values on the chart
   const vk = o.valueKeys && o.valueKeys.length ? new Set(o.valueKeys.map(String)) : null;

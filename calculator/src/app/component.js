@@ -5823,7 +5823,7 @@ class Component extends DCLogic {
   cbSet(p) { this.csSet(typeof p === 'function' ? p(this.cbC()) : p); }
   cbSwitch(k) {
     const S = this.state, cur = this.cbC(), next = (S.csPages || {})[k] || {}, keep = {};
-    ['x', 'y', 'group', 'facet', 'lo', 'hi', 'vars', 'stat', 'sel', 'ys', 't0', 't1', 'title', 'subtitle', 'source'].forEach(f => { if (cur[f] != null && next[f] == null) keep[f] = cur[f]; });
+    ['x', 'y', 'group', 'facet', 'lo', 'hi', 'vars', 'stat', 'sel', 'ys', 't0', 't1', 'title', 'subtitle', 'source', 'ans', 'drop', 'smooth', 'raw', 'rev', 'axis', 'ci'].forEach(f => { if (cur[f] != null && next[f] == null) keep[f] = cur[f]; });
     this.setState(s => ({ csPages: Object.assign({}, s.csPages, { [k]: Object.assign({}, keep, next) }) }), () => this.csOpen(k));
   }
   cbNumeric() { return (this.state.cols || []).filter(v => { const m = this.effMeta(v.name); return m && (m.type === 'numeric' || m.treatAs === 'numeric'); }); }
@@ -5912,6 +5912,92 @@ class Component extends DCLogic {
   }
   cbRangeW(w) { return Math.abs(w) >= 1000 ? w.toLocaleString('en-US') : String(w); }
 
+  // ---- Timeline (GM26 .95): a coded question is counted by its answers. Show → the % giving each answer, the % giving one
+  // answer, the mean score (answers in order) or the number giving each answer; Leave out drops answers from the chart and
+  // from the 100% (nothing by default: No aplica and No sabe are lines too); Smooth pools each time with its neighbours.
+  cbCoded(v) {
+    const raw = this._raw, idx = raw && v ? raw.names.indexOf(v) : -1; if (idx < 0 || !this.effMeta(v)) return null;
+    return this.memo('cbcoded|' + v + '|' + (this.state.dver || 0) + '|' + this.filterSig(), () => {
+      const col = raw.cols[idx], a = col.a, mk = this.mask(), vl = raw.vlabs && raw.vlabs[v], numeric = col.k === 'n';
+      const labOf = k => vl instanceof Map ? vl.get(k) : vl ? vl[k] : undefined, labelled = !!(vl && (vl instanceof Map ? vl.size : Object.keys(vl).length));
+      const cnt = new Map(), key = new Array(a.length), codeOf = new Map();
+      for (let i = 0; i < a.length; i++) {
+        key[i] = null; if (mk && !mk[i]) continue; const x = a[i];
+        if (x == null || x === '' || (typeof x === 'number' && !isFinite(x))) continue;
+        const k = numeric ? this._E.numLab(x) : String(x); key[i] = k; cnt.set(k, (cnt.get(k) || 0) + 1); if (numeric && !codeOf.has(k)) codeOf.set(k, x);
+        if (cnt.size > (labelled ? 60 : 30)) return null;
+      }
+      if (!cnt.size) return null;
+      const MISS = /no aplica|no sabe|no respond|ns\s*\/\s*nr|no contest|no recuerda|no especificad|sin respuesta|not applicable|n\/a\b|don.?t know|dk\b|refus|no answer|missing|prefer not/i;
+      const codes = [...cnt.keys()].map(k => { const code = numeric ? codeOf.get(k) : null, l = numeric ? labOf(code) : null, label = l != null && String(l).trim() !== '' ? String(l) : k; return { key: k, code, label, n: cnt.get(k), miss: MISS.test(label) }; });
+      codes.sort((p, q) => numeric ? p.code - q.code : this._E.cbNatural(p.key, q.key));
+      const subst = codes.filter(k => !k.miss);
+      return { numeric, labelled, prefer: labelled || !numeric, ordered: numeric && subst.length >= 3, codes, keyArr: key };
+    });
+  }
+  cbOneName(c) { const cd = this.cbCoded(c.y); if (!cd) return ''; const st = this.cbTlStat(c, cd), dr = this.cbDropSet(cd, c, st); return this.cbAns(cd, c, cd.codes.filter(k => !dr.has(k.key))).map(k => k.label).join(' + '); }
+  cbRawWeight() { const wv = this.state.weightVar, raw = this._raw, i = raw && wv ? raw.names.indexOf(wv) : -1; if (i < 0) return null; const col = raw.cols[i], mk = this.mask(), a = new Float64Array(raw.n); for (let r = 0; r < raw.n; r++) { const v = col.k === 'n' ? col.a[r] : Number(col.a[r]); a[r] = (mk && !mk[r]) || !(isFinite(v) && v > 0) ? NaN : v; } return a; }
+  cbTlStat(c, cd) { return c.stat || (cd && cd.prefer ? 'each' : 'mean'); }
+  cbTlCoded(st) { return st === 'each' || st === 'one' || st === 'eachn' || st === 'score'; }
+  cbDropSet(cd, c, st) { const keys = new Set(cd.codes.map(k => k.key)), d = new Set((c.drop || []).map(String).filter(k => keys.has(k))); if (st === 'score') cd.codes.forEach(k => { if (k.miss) d.add(k.key); }); return d; }
+  cbAns(cd, c, kept) { const ks = new Set(kept.map(k => k.key)), a = (c.ans || []).map(String).filter(k => ks.has(k)); if (a.length) return kept.filter(k => a.includes(k.key)); if ((c.ans || []).length) return []; const first = kept.find(k => !k.miss) || kept[0]; return first ? [first] : []; }
+  cbScore(cd, c, kept) { const sub = kept.filter(k => k.code != null), lo = Math.min(...sub.map(k => k.code)), hi = Math.max(...sub.map(k => k.code)), m = new Map(); sub.forEach(k => m.set(k.key, c.rev ? lo + hi - k.code : k.code)); return { map: m, lo, hi, sub }; }
+  cbTimeUnit(v) {
+    return this.memo('cbtu|' + v + '|' + (this.state.dver || 0), () => { const a = v ? this.nvA(v) : null; if (!a) return 'time'; const ts = new Set(); for (const x of a) if (isFinite(x)) { ts.add(x); if (ts.size > 400) break; } const s = [...ts].sort((p, q) => p - q); return s.length && s.every(x => Number.isInteger(x) && x >= 1000 && x <= 3000) ? 'year' : 'time'; });
+  }
+  cbTlFields(id, c) {
+    const h = React.createElement, f = [], cd = c.y ? this.cbCoded(c.y) : null, st = this.cbTlStat(c, cd), coded = this.cbTlCoded(st);
+    const yLab = cd && cd.prefer, opts = [];
+    if (!c.y || cd) opts.push(['each', 'the % giving each answer'], ['one', 'the % giving one answer…']);
+    if (!c.y || (cd && cd.ordered)) opts.push(['score', 'the mean score of (answers in order)']);
+    if (!c.y || cd) opts.push(['eachn', 'the number giving each answer']);
+    opts.push(['mean', yLab ? 'the mean of the codes' : 'the mean of'], ['sum', yLab ? 'the sum of the codes' : 'the sum of'], ['pct', 'the % equal to 1 of'], ['count', 'the number of rows']);
+    if (!opts.some(o => o[0] === st)) opts.unshift([st, st]);
+    f.push(this.tlField('Show', this.tlSelect(st, opts, val => this.cbSet({ stat: val }), 'Show')));
+    if (st !== 'count') f.push(this.cbVarSel('y', 'Variable', 'any', false, { ans: [], drop: [] }));
+    f.push(this.cbVarSel('x', 'Over (time)', 'num'), this.cbVarSel('group', id === 'panel' ? 'One panel per' : 'Compare groups', 'any', id !== 'panel', { sel: [] }));
+    if (c.group) { const lv = this.cbLevels(c.group, 60), auto = lv.slice(0, id === 'panel' ? 24 : 10), sel0 = (c.sel || []).filter(k => lv.includes(k)), sel = sel0.length ? sel0 : auto, max = id === 'panel' ? 24 : 12;
+      f.push(this.tlField('Which ' + c.group + ' (' + sel.length + ' of ' + lv.length + ')', h('div', { className: 'tl-row cb-sel' }, lv.map(k => this.tlChip(this.cbDisplay(this.cbKeySetsLite(c.group), 'series', k), sel.includes(k), () => { const cur = sel; this.cbSet({ sel: cur.includes(k) ? cur.filter(x => x !== k) : cur.length >= max ? cur : [...cur, k] }); }, { key: k }))))); }
+    if (coded && cd) {
+      const drop = this.cbDropSet(cd, c, st), kept = cd.codes.filter(k => !drop.has(k.key));
+      if (st === 'one') { const ans = this.cbAns(cd, c, kept), on = new Set(ans.map(k => k.key));
+        f.push(this.tlField('Answer (click more than one to add them up)', h('div', { className: 'tl-row cb-sel' }, kept.map(k => this.tlChip(k.label + (k.code != null ? ' (' + k.key + ')' : ''), on.has(k.key), () => { const cur = [...on]; this.cbSet({ ans: on.has(k.key) ? (cur.length > 1 ? cur.filter(x => x !== k.key) : cur) : [...cur, k.key] }); }, { key: k.key }))))); }
+      if (st === 'score' && kept.some(k => k.code != null)) { const sc = this.cbScore(cd, c, kept), first = sc.sub[0], last = sc.sub[sc.sub.length - 1];
+        f.push(this.tlField('The score', h('div', { className: 'tl-row cb-score' }, sc.sub.slice().sort((p, q) => sc.map.get(q.key) - sc.map.get(p.key)).map(k => h('span', { key: k.key, className: 'cb-scorev' }, k.label + ' = ' + this._E.numLab(sc.map.get(k.key)))))),
+          this.tlField('Direction', this.cbSeg('rev', [['', 'as coded (' + first.key + ' = ' + first.label + ')'], ['1', 'reversed (' + last.key + ' = ' + first.label + ')']], '', 'Direction of the score')),
+          this.tlField('Axis', this.cbSeg('axis', [['', 'zoomed'], ['full', 'whole scale ' + this._E.numLab(sc.lo) + '–' + this._E.numLab(sc.hi)]], '', 'Axis'))); }
+      f.push(this.cbDropCtl(cd, c, st, drop, kept));
+      if (st === 'each' && (id === 'line' || id === 'area')) f.push(this.tlField('Style', this.tlSeg([['line', 'Lines'], ['area', 'Stacked 100%']], id, k => { if (k !== id) this.cbSwitch(k); }, { 'aria-label': 'Style' })));
+    }
+    const unit = this.cbTimeUnit(c.x);
+    f.push(this.tlField('Smooth', this.cbSeg('smooth', [['', 'Each ' + unit], ['3', unit === 'year' ? '3-year average' : '3 times pooled'], ['5', unit === 'year' ? '5-year average' : '5 times pooled']], '', 'Smooth')));
+    if (+c.smooth > 1) f.push(this.tlField('Single ' + unit + 's', this.cbSeg('raw', [['', 'faint dots'], ['hide', 'hide']], '', 'Single ' + unit + 's')));
+    f.push(this.cbText('t0', 'From', 'first', 80), this.cbText('t1', 'To', 'last', 80));
+    if (['mean', 'pct', 'each', 'one', 'score'].includes(st)) f.push(this.cbCheck('ci', 'Shade the ' + Math.round(100 * (1 - this.alpha())) + '% interval'));
+    if (['mean', 'sum', 'pct'].includes(st)) { const ys = c.ys || []; f.push(this.tlField('More outcomes (optional)', this.tlSelect('', [['', '+ add an outcome']].concat(this.cbNumeric().filter(v => v.name !== c.y && !ys.includes(v.name)).map(v => [v.name, v.name])), val => { if (val) this.cbSet({ ys: [...ys, val] }); }, 'Add an outcome'), ys.length ? h('div', { className: 'tl-row' }, ys.map(v => this.tlChip(v + ' ×', true, () => this.cbSet({ ys: ys.filter(x => x !== v) }), { key: v }))) : null)); }
+    return f;
+  }
+  cbDropCtl(cd, c, st, drop, kept) {
+    const h = React.createElement, forced = st === 'score' ? new Set(cd.codes.filter(k => k.miss).map(k => k.key)) : new Set();
+    const names = cd.codes.filter(k => drop.has(k.key)).map(k => k.label), txt = names.length ? names.join(', ') : 'nothing';
+    const toggle = k => { if (forced.has(k)) return; const cur = new Set((c.drop || []).map(String)); if (cur.has(k)) cur.delete(k); else cur.add(k); this.cbSet({ drop: [...cur] }); };
+    const miss = cd.codes.filter(k => k.miss), quick = [];
+    if (miss.length && st !== 'score') quick.push([miss.map(k => k.label.replace(/\s*\/.*$/, '')).join(' + '), miss.map(k => k.key)]);
+    if (miss.length > 1 && st !== 'score') miss.forEach(k => quick.push(['only ' + k.label.replace(/\s*\/.*$/, ''), [k.key]]));
+    quick.push(['nothing', []]);
+    const base = st === 'score' ? (forced.size ? 'can’t be scored · shown under the chart' : '') : !drop.size ? '100% = everyone who answered' : '100% = ' + (kept.length <= 3 ? 'those answering ' + kept.map(k => k.label).join(' / ') : 'the other answers');
+    return this.tlField('Leave out',
+      h('details', { className: 'cb-drop' + (drop.size ? ' set' : '') },
+        h('summary', { title: txt }, txt.length > 42 ? txt.slice(0, 41) + '…' : txt),
+        h('div', { className: 'cb-drop-pop' },
+          h('div', { className: 'cb-drop-h' }, st === 'score' ? 'Leave out of the score' : 'Leave out of the chart and of the 100%'),
+          cd.codes.map(k => h('label', { key: k.key, className: 'cb-drop-row' + (forced.has(k.key) ? ' lock' : '') },
+            h('input', { type: 'checkbox', checked: drop.has(k.key), disabled: forced.has(k.key), onChange: () => toggle(k.key), 'aria-label': 'Leave out ' + k.label }),
+            h('span', { className: 'c' }, k.code != null ? k.key : ''), h('span', { className: 'l' }, k.label), h('span', { className: 'n' }, k.n.toLocaleString('en-US')))),
+          h('div', { className: 'cb-drop-q' }, quick.map(([t, keys]) => h('button', { type: 'button', key: t, className: 'tl-chip', onClick: e => { this.cbSet({ drop: keys }); const d = e.currentTarget && e.currentTarget.closest && e.currentTarget.closest('details'); if (d) d.open = false; } }, t))))),
+      base ? h('span', { className: 'tl-hint cb-drop-note' }, base) : null);
+  }
+
   // the data sentence for each chart
   cbFields(id) {
     const h = React.createElement, c = this.cbC(), f = [], E = this._E, est = ['coefficient', 'modelcompare', 'prediction', 'marginal', 'interaction', 'event', 'conjoint'].includes(id);
@@ -5924,17 +6010,7 @@ class Component extends DCLogic {
     else if (id === 'box') f.push(this.cbVarSel('x', 'Numeric variable', 'num'));
     else if (id === 'gbox' || id === 'violin') { f.push(this.cbVarSel('x', 'Groups', 'any'), this.cbVarSel('y', 'Numeric variable', 'num')); if (id === 'violin') f.push(this.cbCheck('points', 'Show individual points')); }
     else if (id === 'density') f.push(this.cbVarSel('x', 'Numeric variable', 'num'), this.cbVarSel('group', 'Compare groups', 'any', true));
-    else if (['line', 'area', 'panel', 'multiline'].includes(id)) {
-      const st = c.stat || 'mean';
-      f.push(this.cbChoice('stat', 'Show', [['mean', 'the mean of'], ['sum', 'the sum of'], ['pct', 'the % equal to 1 of'], ['count', 'the number of rows']], 'mean'));
-      if (st !== 'count') f.push(this.cbVarSel('y', 'Outcome', 'num'));
-      f.push(this.cbVarSel('x', 'Over (time)', 'num'), this.cbVarSel('group', id === 'panel' ? 'One panel per' : 'Split by', 'any', id !== 'panel', { sel: [] }));
-      if (c.group) { const lv = this.cbLevels(c.group, 60), auto = lv.slice(0, id === 'panel' ? 24 : 10), sel0 = (c.sel || []).filter(k => lv.includes(k)), sel = sel0.length ? sel0 : auto, max = id === 'panel' ? 24 : 12;
-        f.push(this.tlField('Which ' + c.group + ' (' + sel.length + ' of ' + lv.length + ')', h('div', { className: 'tl-row cb-sel' }, lv.map(k => this.tlChip(this.cbDisplay(this.cbKeySetsLite(c.group), 'series', k), sel.includes(k), () => { const cur = sel; this.cbSet({ sel: cur.includes(k) ? cur.filter(x => x !== k) : cur.length >= max ? cur : [...cur, k] }); }, { key: k }))))); }
-      f.push(this.cbText('t0', 'From', 'first', 80), this.cbText('t1', 'To', 'last', 80));
-      if (st === 'mean' || st === 'pct') f.push(this.cbCheck('ci', 'Shade the 95% interval'));
-      if (st !== 'count') { const ys = c.ys || []; f.push(this.tlField('More outcomes (optional)', this.tlSelect('', [['', '+ add an outcome']].concat(this.cbNumeric().filter(v => v.name !== c.y && !ys.includes(v.name)).map(v => [v.name, v.name])), val => { if (val) this.cbSet({ ys: [...ys, val] }); }, 'Add an outcome'), ys.length ? h('div', { className: 'tl-row' }, ys.map(v => this.tlChip(v + ' ×', true, () => this.cbSet({ ys: ys.filter(x => x !== v) }), { key: v }))) : null)); }
-    }
+    else if (['line', 'area', 'panel', 'multiline'].includes(id)) f.push(...this.cbTlFields(id, c));
     else if (['scatterplain', 'smooth', 'hexbin', 'scatter'].includes(id)) { f.push(this.cbVarSel('x', 'Across (X)', 'num'), this.cbVarSel('y', 'Up (Y)', 'num')); if (id !== 'hexbin' && id !== 'scatter') f.push(this.cbVarSel('group', 'Color by', 'any', true)); if (id === 'scatter') f.push(this.cbCheck('labels', 'Label points with')); if (id === 'scatter' && c.labels) f.push(this.cbVarSel('labVar', 'Label variable', 'any')); }
     else if (id === 'matrix' || id === 'corrmap') { const vars = c.vars || [], max = id === 'matrix' ? 6 : 12; f.push(this.tlField('Numeric variables (' + (id === 'matrix' ? '2–6' : '2–12') + ')', this.tlSelect('', [['', vars.length >= max ? 'Maximum reached' : '+ add a variable']].concat(this.cbNumeric().filter(v => !vars.includes(v.name)).map(v => [v.name, v.name])), val => { if (val && vars.length < max) this.cbSet({ vars: [...vars, val] }); }, 'Add a variable'), vars.length ? h('div', { className: 'tl-row' }, vars.map(v => this.tlChip(v + ' ×', true, () => this.cbSet({ vars: vars.filter(x => x !== v) }), { key: v }))) : null)); }
     else if (id === 'heatmap') f.push(this.cbVarSel('x', 'Columns', 'any'), this.cbVarSel('group', 'Rows', 'any'), this.cbVarSel('y', 'Mean of', 'num'));
@@ -5953,10 +6029,77 @@ class Component extends DCLogic {
     return f;
   }
 
+  cbTlCompute(id, c, w, mask, need, num, lab, roles) {
+    const E = this._E, cd = c.y ? this.cbCoded(c.y) : null, st = this.cbTlStat(c, cd), coded = this.cbTlCoded(st), unit = this.cbTimeUnit(c.x);
+    need('x'); if (st !== 'count') need('y');
+    if (coded && !cd) throw Error('“' + c.y + '” has too many different values to count its answers. Pick a question with a few answers (or value labels), or show the mean of it.');
+    const t = num(c.x), g = c.group ? lab(c.group) : null, lvAll = c.group ? this.cbLevels(c.group, 400) : [];
+    const sel0 = c.group ? (c.sel || []).filter(v => lvAll.includes(v)) : [], sel = c.group ? (sel0.length ? sel0 : lvAll.slice(0, id === 'panel' ? 24 : 10)) : null;
+    let outs, drop = null, kept = null, sc = null;
+    if (coded) {
+      drop = this.cbDropSet(cd, c, st); kept = cd.codes.filter(k => !drop.has(k.key));
+      if (!kept.length) throw Error('Every answer of ' + c.y + ' is left out: untick some under “Leave out”.');
+      const K = cd.keyArr, keep = new Set(kept.map(k => k.key));
+      const ind = (hit, v1) => { const a = new Float64Array(K.length); for (let i = 0; i < K.length; i++) { const k = K[i]; a[i] = k == null || !keep.has(k) ? NaN : hit(k) ? v1 : 0; } return a; };
+      if (st === 'each' || st === 'eachn') outs = kept.map(k => ({ name: k.label, a: ind(q => q === k.key, st === 'each' ? 100 : 1), st: st === 'each' ? 'mean' : 'sum' }));
+      else if (st === 'one') { const ans = this.cbAns(cd, c, kept); if (!ans.length) throw Error('The answer to show is left out: pick another answer, or untick it under “Leave out”.'); const as = new Set(ans.map(k => k.key)); outs = [{ name: ans.map(k => k.label).join(' + '), a: ind(q => as.has(q), 100), st: 'mean' }]; }
+      else { sc = this.cbScore(cd, c, kept); if (sc.sub.length < 2) throw Error('The score needs at least two answers that are not left out.'); outs = [{ name: c.y, a: Float64Array.from(K, k => k == null || !sc.map.has(k) ? NaN : sc.map.get(k)), st: 'mean' }]; }
+    } else outs = (st === 'count' ? [null] : [c.y, ...(c.ys || [])].filter(Boolean)).map(yv => ({ name: yv, a: yv ? num(yv) : new Float64Array(t.length), st }));
+    const series = []; let n = 0, excl = 0, k = 1;
+    // GM26 .70: when no time has both the outcome and the split, say which times each one has (merged surveys)
+    const why = () => { const cov = (get, isLab) => { const ys = new Set(); for (let i = 0; i < t.length; i++) { if (mask && !mask[i]) continue; const tv = t[i]; if (!isFinite(tv)) continue; const v = get(i); if (isLab ? (v != null && v !== '') : isFinite(v)) ys.add(tv); } return [...ys].sort((a2, b2) => a2 - b2); }, list = a2 => a2.length ? a2.join(', ') : 'none';
+      const yA = outs[0] && outs[0].name && st !== 'count' ? outs[0].a : null, yc = yA ? cov(i => yA[i], false) : null, gc = g ? cov(i => g[i], true) : null, yv0 = c.y;
+      if (yc && gc) { const both = yc.filter(x => gc.includes(x)); if (!both.length) return 'No ' + c.x + ' has both ' + yv0 + ' and ' + c.group + ': ' + yv0 + ' has data in ' + list(yc) + '; ' + c.group + ' in ' + list(gc) + '. Compare by another variable, or by none.'; }
+      if (yc && !yc.length) return yv0 + ' has no values with a ' + c.x + ' here.';
+      return 'No rows with both a time and an outcome for these selections.'; };
+    try {
+      // the number giving each answer counts the people represented: the weight as stored, not rescaled to a mean of 1
+      const wN = st === 'eachn' && w ? this.cbRawWeight() || w : w;
+      outs.forEach(O => { const r = E.cbTimeAgg(t, O.a, g, O.st === 'sum' && coded ? wN : w, mask, { stat: O.st, sel, t0: c.t0, t1: c.t1, ci: !!c.ci, alpha: this.alpha(), smooth: c.smooth }); k = r.smooth || 1;
+        if (coded) { n = Math.max(n, r.n); excl = Math.max(excl, r.excluded); } else { n += r.n; excl += r.excluded; }
+        r.series.forEach(s => series.push(Object.assign({}, s, { key: st === 'each' || st === 'eachn' ? (g ? s.key + ' · ' + O.name : O.name) : outs.length > 1 ? (O.name + (g ? ' · ' + s.key : '')) : s.key, group: s.key, outcome: O.name }))); });
+    } catch (e0) { if (/No rows with both a time/.test(e0.message)) throw Error(why()); throw e0; }
+    if (!series.length) throw Error(why());
+    roles.series = st === 'each' || st === 'eachn' || outs.length > 1 ? null : (c.group || null);
+    const pct = st === 'pct' || st === 'each' || st === 'one', ciOn = !!c.ci && ['mean', 'pct', 'each', 'one', 'score'].includes(st);
+    const statT = st === 'each' ? '% giving each answer' : st === 'one' ? '% answering ' + outs[0].name : st === 'eachn' ? 'Number giving each answer' : st === 'score' ? 'Mean score of ' + c.y : ({ mean: 'Mean of ', sum: 'Sum of ', pct: '% equal to 1 of ', count: 'Number of rows' }[st] + (st === 'count' ? '' : outs.map(o => o.name).join(', ')));
+    // the subtitle says what the 100% is, what was smoothed and how the score runs
+    const sub = [], lev = Math.round(100 * (1 - this.alpha()));
+    if (coded && st !== 'score') sub.push(drop.size ? 'left out: ' + cd.codes.filter(q => drop.has(q.key)).map(q => q.label).join(', ') : 'all answers, nothing left out');
+    if (st === 'score') { const byV = sc.sub.slice().sort((p, q) => sc.map.get(p.key) - sc.map.get(q.key)), a0 = byV[0], a1 = byV[byV.length - 1]; sub.push('mean score, ' + E.numLab(sc.map.get(a0.key)) + ' = ' + a0.label + ' … ' + E.numLab(sc.map.get(a1.key)) + ' = ' + a1.label); if (drop.size) sub.push('left out of the score: ' + cd.codes.filter(q => drop.has(q.key)).map(q => q.label).join(', ')); }
+    if (k > 1) sub.push('line: ' + (unit === 'year' ? k + '-year moving average' : 'moving average of ' + k + ' times') + (c.raw === 'hide' ? '' : ' · dots: single ' + unit + 's'));
+    if (ciOn) sub.push('shaded: ' + lev + '% interval');
+    if (st === 'score' && c.axis !== 'full') sub.push('axis zoomed (scale runs ' + E.numLab(sc.lo) + '–' + E.numLab(sc.hi) + ')');
+    const notes = [];
+    if (st === 'mean' && cd && cd.prefer) notes.push('These are means of the codes (' + cd.codes.slice(0, 4).map(q => q.key + ' = ' + q.label).join(', ') + (cd.codes.length > 4 ? ' …' : '') + '): to count the answers, choose Show → “the % giving each answer”' + (cd.ordered ? ' or “the mean score of”' : '') + '.');
+    if (st === 'each' || st === 'one') notes.push('Each point is the ' + (w ? 'weighted ' : '') + '% of the people at that ' + unit + ' who gave the answer, out of ' + (drop.size ? 'those whose answer is not left out' : 'everyone who answered') + '.');
+    if (st === 'eachn') notes.push('Each point is the ' + (w ? 'number of people represented (the sum of ' + this.state.weightVar + ')' : 'number of rows') + ' giving that answer.');
+    if (st === 'score') notes.push('The score is the answer’s code' + (c.rev ? ', reversed so that ' + sc.sub[0].label + ' is highest' : '') + '; answers that are left out are not scored.');
+    if (st === 'mean') notes.push('Each point is the ' + (w ? 'weighted ' : '') + 'mean at that ' + unit + '.');
+    if (st === 'sum') notes.push('Each point is the ' + (w ? 'weighted ' : '') + 'sum at that ' + unit + '.');
+    if (k > 1) notes.push('Smoothed: each point pools the people of that ' + unit + ' with the ' + (k - 1) / 2 + ' before and after (a pooled ' + (['sum', 'count', 'eachn'].includes(st) ? 'total divided by the number of ' + unit + 's' : 'estimate, not an average of the ' + unit + 'ly values') + '); hollow points pool fewer ' + unit + 's because the window reaches the first or last one.');
+    if (ciOn && w) notes.push('Intervals use the weight as a sampling weight, as Stata’s mean [pw=] and R’s survey::svymean.');
+    notes.push('Lines break where a series has no observation.');
+    if (c.group && !(c.sel && c.sel.length) && lvAll.length > sel.length) notes.push('Showing the ' + sel.length + ' most frequent of ' + lvAll.length + ' groups — pick others above.');
+    const smoothCols = k > 1, M0 = { type: 'xy', xTime: true, pct, zero: !(st === 'mean' || st === 'score'), yTitle: statT, xTitle: c.x, n, excluded: excl, weighted: !!w, rawDots: k > 1 && c.raw !== 'hide', subtitle: sub.join(' · '),
+      headers: ['Series', c.x, statT, 'n'].concat(ciOn ? ['Lower', 'Upper'] : []).concat(smoothCols ? ['Single ' + unit, unit === 'year' ? 'Years pooled' : 'Times pooled'] : []), note: notes.join(' ') };
+    if (st === 'score' && c.axis === 'full') M0.yr = [sc.lo, sc.hi];
+    const mk = ss => Object.assign({}, M0, { series: ss.map(s => Object.assign({}, s, { style: id === 'area' ? 'area' : 'line', band: ciOn && id !== 'area' })), seriesKeys: ss.map(s => s.key), table: ss.flatMap(s => s.pts.map(p => [s.key, p.x, p.y, p.n].concat(ciOn ? [p.lo, p.hi] : []).concat(smoothCols ? [p.single, p.win] : []))) });
+    const autoColors = {}; if (coded) { const greys = ['#A79E8C', '#5D5648', '#C9C0AE', '#8C8372']; cd.codes.filter(q => q.miss).forEach((q, i) => { autoColors[q.label] = greys[i % greys.length]; }); }
+    let strip = null;
+    if (st === 'score' && drop.size) { // the answers left out of the score, as a % of everyone who answered, each time
+      const K = cd.keyArr, outD = cd.codes.filter(q => drop.has(q.key)), ss = [];
+      outD.forEach(q => { const a = Float64Array.from(K, x => x == null ? NaN : x === q.key ? 100 : 0); const r = E.cbTimeAgg(t, a, null, w, mask, { stat: 'mean', t0: c.t0, t1: c.t1 }); r.series.forEach(s => ss.push(Object.assign({}, s, { key: q.label, style: 'line' }))); });
+      if (ss.length) strip = { type: 'xy', xTime: true, pct: true, zero: true, series: ss, seriesKeys: ss.map(s => s.key), yTitle: '% left out', xTitle: '', n, excluded: 0, weighted: !!w, table: ss.flatMap(s => s.pts.map(p => [s.key, p.x, p.y, p.n])), headers: ['Left out', c.x, '% of those who answered', 'n'] };
+    }
+    if (id === 'panel') { if (!c.group) throw Error('Choose the variable that makes one panel per category.'); const groupsP = [...new Set(series.map(s => s.group))]; roles.panels = c.group; roles.series = null; return { models: groupsP.map(gk => Object.assign(mk(series.filter(s => s.group === gk).map(s => Object.assign({}, s, { key: s.outcome || 'All' }))), { panel: gk })), data: null, roles, sel, levels: lvAll, strip, autoColors }; }
+    let ss = series; if (id === 'area' && (st === 'sum' || st === 'count' || st === 'each' || st === 'eachn')) ss = E.cbStackSeries(series);
+    return { models: [mk(ss)], data: null, roles, sel, levels: lvAll, strip, autoColors };
+  }
   // compute the chart model(s) — memoized on everything that changes the numbers, so restyling is instant
   cbBuild(id) {
     const S = this.state, E = this._E, c = this.cbC(), w = this.wArr(), mask = this.mask();
-    const dataKey = JSON.stringify([id, ['x', 'y', 'group', 'facet', 'lo', 'hi', 'vars', 'stat', 'sel', 'ys', 't0', 't1', 'ci', 'order', 'neutral', 'sort', 'other', 'missing', 'bins', 'points', 'source', 'attr', 'refLine', 'labVar', 'labels', 'grp'].map(k => c[k]), S.weightVar, this.filterSig(), S.dver || 0, this.alpha()]);
+    const dataKey = JSON.stringify([id, ['x', 'y', 'group', 'facet', 'lo', 'hi', 'vars', 'stat', 'sel', 'ys', 't0', 't1', 'ci', 'ans', 'drop', 'smooth', 'raw', 'rev', 'axis', 'order', 'neutral', 'sort', 'other', 'missing', 'bins', 'points', 'source', 'attr', 'refLine', 'labVar', 'labels', 'grp'].map(k => c[k]), S.weightVar, this.filterSig(), S.dver || 0, this.alpha()]);
     return this.memo('cb|' + dataKey, () => this.cbCompute(id, c, w, mask));
   }
   cbCompute(id, c, w, mask) {
@@ -5978,29 +6121,7 @@ class Component extends DCLogic {
       return { models: [{ type: 'xy', bins, series: [], seriesKeys: ['All'], zero: true, pct, xTitle: c.x, yTitle: pct ? 'Percent' : (w ? 'Weighted count' : 'Count'), n: d.n, excluded: d.missing, table: bins.map(b => [b.a, b.b, b.c]), headers: ['From', 'To', pct ? 'Percent' : 'Count'], note: bins.length + ' bars of equal width' + (+c.bins ? '' : ' (Freedman–Diaconis rule)') + '.' }], data: d, roles }; }
     if (id === 'gbox') { need('x', 'y'); const G = E.groupsOf(lab(c.x), this.nvA(c.y), w, 40), L = G.levels.filter(g => g.n >= 2 && isFinite(g.sd)).sort((a, b) => E.cbNatural(a.label, b.label)); if (L.length < 1) throw Error('Need at least one group with 2 or more values.'); roles.series = c.x;
       return { models: [{ type: 'box', groups: L.map(g => E.cbBoxStats(String(g.label), g)), seriesKeys: L.map(g => String(g.label)), showN: true, yTitle: c.y, xTitle: c.x, n: L.reduce((t, g) => t + g.n, 0), excluded: 0, table: L.map(g => [g.label, g.n, g.q1, g.med, g.q3, g.mean]), headers: ['Group', 'n', 'Q1', 'Median', 'Q3', 'Mean'], note: G.capped ? 'Showing the 40 largest of ' + G.totalLevels + ' groups.' : '' }], data: G, roles }; }
-    if (['line', 'area', 'panel', 'multiline'].includes(id)) {
-      const st = c.stat || 'mean'; need('x'); if (st !== 'count') need('y');
-      const t = num(c.x), g = c.group ? lab(c.group) : null, lvAll = c.group ? this.cbLevels(c.group, 400) : [];
-      const sel0 = c.group ? (c.sel || []).filter(v => lvAll.includes(v)) : [], sel = c.group ? (sel0.length ? sel0 : lvAll.slice(0, id === 'panel' ? 24 : 10)) : null;
-      const outcomes = st === 'count' ? [null] : [c.y, ...(c.ys || [])].filter(Boolean);
-      const series = []; let n = 0, excl = 0, times = [];
-      // GM26 .70: when no time has both the outcome and the split, say which times each one has (merged surveys)
-      const why = () => { const cov = (get, isLab) => { const ys = new Set(); for (let i = 0; i < t.length; i++) { if (mask && !mask[i]) continue; const tv = t[i]; if (!isFinite(tv)) continue; const v = get(i); if (isLab ? (v != null && v !== '') : isFinite(v)) ys.add(tv); } return [...ys].sort((a2, b2) => a2 - b2); }, list = a2 => a2.length ? a2.join(', ') : 'none';
-        const yv0 = outcomes[0], yA = yv0 ? num(yv0) : null, yc = yA ? cov(i => yA[i], false) : null, gc = g ? cov(i => g[i], true) : null;
-        if (yc && gc) { const both = yc.filter(x => gc.includes(x)); if (!both.length) return 'No ' + c.x + ' has both ' + yv0 + ' and ' + c.group + ': ' + yv0 + ' has data in ' + list(yc) + '; ' + c.group + ' in ' + list(gc) + '. Split by another variable, or by none.'; }
-        if (yc && !yc.length) return yv0 + ' has no values with a ' + c.x + ' here.';
-        return 'No rows with both a time and an outcome for these selections.'; };
-      try {
-      outcomes.forEach(yv => { const r = E.cbTimeAgg(t, yv ? num(yv) : new Float64Array(t.length), g, w, mask, { stat: st, sel, t0: c.t0, t1: c.t1, ci: !!c.ci, alpha: this.alpha() }); n += r.n; excl += r.excluded; times = times.concat(r.times); r.series.forEach(s => series.push(Object.assign({}, s, { key: outcomes.length > 1 ? (yv + (g ? ' · ' + s.key : '')) : s.key, group: s.key, outcome: yv }))); });
-      } catch (e0) { if (/No rows with both a time/.test(e0.message)) throw Error(why()); throw e0; }
-      if (!series.length) throw Error(why());
-      roles.series = outcomes.length > 1 ? null : (c.group || null);
-      const statT = { mean: 'Mean of ', sum: 'Sum of ', pct: '% equal to 1 of ', count: 'Number of rows' }[st] + (st === 'count' ? '' : outcomes.join(', '));
-      const mk = ss => ({ type: 'xy', xTime: true, series: ss.map(s => Object.assign({}, s, { style: id === 'area' ? 'area' : 'line', band: !!c.ci && (st === 'mean' || st === 'pct') && id !== 'area' })), seriesKeys: ss.map(s => s.key), pct: st === 'pct', zero: st !== 'mean', yTitle: statT, xTitle: c.x, n, excluded: excl, weighted: !!w, table: ss.flatMap(s => s.pts.map(p => [s.key, p.x, p.y, p.n].concat(c.ci ? [p.lo, p.hi] : []))), headers: ['Series', c.x, statT, 'n'].concat(c.ci ? ['Lower', 'Upper'] : []), note: (st === 'mean' ? 'Each point is the ' + (w ? 'weighted ' : '') + 'mean at that time. ' : st === 'sum' ? 'Each point is the ' + (w ? 'weighted ' : '') + 'sum at that time. ' : '') + 'Lines break where a series has no observation.' + (c.group && !(c.sel && c.sel.length) && lvAll.length > sel.length ? ' Showing the ' + sel.length + ' most frequent of ' + lvAll.length + ' groups — pick others below.' : '') });
-      if (id === 'panel') { if (!c.group) throw Error('Choose the variable that makes one panel per category.'); const groupsP = [...new Set(series.map(s => s.group))]; roles.panels = c.group; roles.series = null; return { models: groupsP.map(gk => Object.assign(mk(series.filter(s => s.group === gk).map(s => Object.assign({}, s, { key: s.outcome || 'All' }))), { panel: gk })), data: null, roles, sel, levels: lvAll }; }
-      let ss = series; if (id === 'area' && (st === 'sum' || st === 'count')) ss = E.cbStackSeries(series);
-      return { models: [mk(ss)], data: null, roles, sel, levels: lvAll };
-    }
+    if (['line', 'area', 'panel', 'multiline'].includes(id)) return this.cbTlCompute(id, c, w, mask, need, num, lab, roles);
     if (id === 'scatter') {
       need('x', 'y'); const cr = this.bgMemo('pcorr|' + c.x + '|' + c.y, 'corr', () => [this.nvA(c.x), this.nvA(c.y), w], 'Computing the scatterplot');
       if (cr.pending) return { pending: true }; if (cr.error) throw Error(cr.error);
@@ -6108,7 +6229,7 @@ class Component extends DCLogic {
       title: c.title != null && c.title !== '' ? c.title : auto, subtitle: c.subtitle || undefined, source: c.source2 != null && c.source2 !== '' ? c.source2 : src.join(' · '),
       xTitle: c.xlabel ? c.xlabel : undefined, yTitle: c.ylabel ? c.ylabel : (id === 'bar' || id === 'dot' ? statT : undefined), description: c.description || '',
       names: Object.assign({}, merge(roles.series, null), c.names || {}), catNames: Object.assign({}, merge(roles.cats, null), c.names || {}), panelNames: Object.assign({}, merge(roles.panels, null), c.names || {}),
-      colors: Object.assign({}, this.cbColorMap(roles.series), c.colors || {}), catColors: Object.assign({}, this.cbColorMap(roles.cats), c.colors || {}),
+      colors: Object.assign({}, res.autoColors || {}, this.cbColorMap(roles.series), c.colors || {}), catColors: Object.assign({}, this.cbColorMap(roles.cats), c.colors || {}),
       palette: pal2, highlight: c.highlight || '', eachColor: !!c.eachColor, patterns: !!c.patterns,
       values: c.values || 'none', valueKeys: c.valueKeys || null, fmt: c.fmt || 'auto', decimals: c.decimals === '' || c.decimals == null ? null : +c.decimals,
       legend: c.legend || 'auto', size: c.size || 'auto', text: c.text || (c.font ? (+c.font <= 11 ? 's' : +c.font >= 14 ? 'l' : 'm') : 'm'), zero: c.zero === '1' || c.zero === true ? true : c.zero === '0' || c.zero === false ? false : undefined, log: !!c.log, grid: c.grid !== false,
@@ -6121,7 +6242,9 @@ class Component extends DCLogic {
     if (id === 'pie' || id === 'donut') return 'Share of ' + (c.x || '…') + (c.facet ? ' by ' + c.facet : '');
     if (id === 'bar' || id === 'dot') return ({ count: 'Number of rows', percent: '% of rows', mean: 'Mean of ' + (c.y || '…'), sum: 'Sum of ' + (c.y || '…') }[st]) + ' by ' + (c.x || '…');
     if (['groupbar', 'stackcount', 'stack', 'likert'].includes(id)) return (c.y || '…') + ' by ' + (c.x || '…');
-    if (['line', 'area', 'panel', 'multiline'].includes(id)) return ({ mean: 'Mean of ', sum: 'Sum of ', pct: '% equal to 1 of ', count: 'Number of rows' }[st]) + (st === 'count' ? '' : y || '…') + ' by ' + (c.x || '…') + (c.group ? ' and ' + c.group : '');
+    if (['line', 'area', 'panel', 'multiline'].includes(id)) { const cd = c.y && !c.stat ? this.cbCoded(c.y) : null, s2 = this.cbTlStat(c, cd), lb = c.y ? (this.effMeta(c.y) || {}).label : '', q = lb ? String(lb) : (y || '…');
+      if (this.cbTlCoded(s2)) return (s2 === 'score' ? 'Mean score: ' : s2 === 'eachn' ? 'Number giving each answer: ' : s2 === 'one' ? '% answering ' + this.cbOneName(c) + ': ' : '') + q + ', by ' + (c.x || '…') + (c.group ? ' and ' + c.group : '');
+      return ({ mean: 'Mean of ', sum: 'Sum of ', pct: '% equal to 1 of ', count: 'Number of rows' }[s2]) + (s2 === 'count' ? '' : y || '…') + ' by ' + (c.x || '…') + (c.group ? ' and ' + c.group : ''); }
     if (id === 'hist' || id === 'box') return 'Distribution of ' + (c.x || '…');
     if (['gbox', 'violin', 'mean', 'proportion'].includes(id)) return (id === 'proportion' ? '% equal to 1 of ' : id === 'mean' ? 'Mean of ' : '') + (c.y || '…') + ' by ' + (c.x || '…');
     if (['scatter', 'scatterplain', 'smooth', 'hexbin'].includes(id)) return (c.y || '…') + ' and ' + (c.x || '…');
@@ -6160,6 +6283,8 @@ class Component extends DCLogic {
           figs.push(h('figure', { key, className: 'cb-fig' }, h('svg', { viewBox: '0 0 ' + sc.width + ' ' + sc.height, role: 'img', 'aria-label': oo.description || oo.title || 'Chart', ref: this.svgRef(key), dangerouslySetInnerHTML: { __html: sc.markup } }), this.tlExportRow(key, String(oo.title || 'chart').replace(/[^\w\-áéíóúñÁÉÍÓÚÑ ]+/g, '').trim().replace(/\s+/g, '-').slice(0, 60) + (models.length > 1 ? '-' + (i + 1) : ''))));
         } catch (e) { errs.push(e.message); }
       });
+      // GM26 .95: under a mean score, the answers left out of it, as a % each time (they are not hidden)
+      if (res.strip && figs.length) { const key = 'cb-' + id + '-strip'; try { const sc = E.cbScene(res.strip, Object.assign({}, o, { clipId: 'cbcs' + id.replace(/\W/g, ''), title: 'Left out of the score: % of those who answered', subtitle: '', source: '', xTitle: '', yTitle: '', short: true, values: 'none', ymin: undefined, ymax: undefined, zero: true, log: false, names: {}, legend: 'auto' })); figs.push(h('figure', { key, className: 'cb-fig cb-strip' }, h('svg', { viewBox: '0 0 ' + sc.width + ' ' + sc.height, role: 'img', 'aria-label': 'Answers left out of the score', dangerouslySetInnerHTML: { __html: sc.markup } }))); } catch (e) { errs.push(e.message); } }
       const m0 = models[0] || {}, table = models.length > 1 ? models.flatMap(m => (m.table || []).map(r => [m.panel, ...r])) : (m0.table || []), headers = (models.length > 1 ? ['Panel'] : []).concat(m0.headers || []);
       const fmtCell = v => typeof v === 'number' ? (Number.isInteger(v) ? v.toLocaleString('en-US') : Number(v.toPrecision(6)).toLocaleString('en-US', { maximumFractionDigits: 6 })) : v == null ? '' : String(v);
       chart = h('section', { className: 'tl-panel cb-chart' },
@@ -10613,7 +10738,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-07.94') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-08.95') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {

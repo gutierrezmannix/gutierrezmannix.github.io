@@ -201,3 +201,58 @@ Colors set for a variable are also shared by every chart of that variable. Names
   ```bash
   NODE_PATH=$(npm root -g) node calculator/tests/chart-builder-e2e.cjs
   ```
+
+## Build .95 — Timelines for coded survey questions
+
+The Timeline page (Charts → Timelines) now counts a coded question by its answers. Before, you had to split a variable
+by itself, and the chart still showed no percentages.
+
+- **Show** adapts to the variable. A question with value labels (or a text variable) offers:
+  - *the % giving each answer* (the default for labelled questions): one line per answer, each year adds to 100%;
+  - *the % giving one answer…*: pick the answer by its label; several answers add up (Mucha + Alguna);
+  - *the mean score of*: only for answers in order (three or more scale answers);
+  - *the number giving each answer*: people represented, i.e. the sum of the weight as stored.
+
+  The mean of a labelled variable is called *the mean of the codes*, and its note says how to count the answers instead.
+- **Leave out**: a checklist of every answer with its code and how many people gave it.
+  - Nothing is left out by default, so No aplica and No sabe are lines too, drawn in grey.
+  - A ticked answer leaves both the chart and the 100%. Quick picks: *No aplica + No sabe*, *only No sabe*, *nothing*.
+  - The field says what the 100% now is, and the subtitle always names what was left out.
+- **Mean score**:
+  - The score is the answer's code. *Direction* reverses it, e.g. Mucha = 4 for *higher = more trust*, and the chips
+    show the values.
+  - No aplica and No sabe can't be scored, so they are left out of the score. They still appear: a small chart under
+    the main one plots their % each year.
+  - *Axis* switches between a zoomed axis (said in the subtitle) and the whole scale.
+- **Smooth**: *Each year / 3-year average / 5-year average*.
+  - Each point pools the people of that year with its neighbours. Neighbours are taken by position among the years in
+    the data, so a year that was not asked is skipped. The weighted estimate covers everyone in the window; it is not
+    an average of the yearly values.
+  - Points whose window is cut at the first or last year are hollow.
+  - The single years stay as faint dots, or can be hidden.
+  - Sums and counts are averaged per year in the window.
+- **Compare groups** replaces *Split by*. With *the % giving each answer*, *Style* switches between lines and stacked
+  100% (the Area chart).
+- **Intervals**: the interval of a weighted mean or % is now the survey one, as Stata's `mean [pw=]` and R's
+  `survey::svymean`: se = √(n/(n−1) · Σw²(y−ȳ)²) / Σw, with Stata's t(n−1). Unweighted it is s/√n, as before. Before
+  this build, weighted intervals treated the weight as an analytic weight.
+- Long chart subtitles wrap, up to three lines.
+
+Tests:
+
+- `tests/timeline-coded.test.mjs` uses `tests/data/timeline-coded.dta`, a labelled survey over seven years with 2019
+  not asked, written by `tests/timeline-coded-reference.R`. It compares the page with R's `survey` package
+  (`tests/data/timeline-coded-reference.json`) on:
+  - the % giving each answer, with and without No sabe;
+  - one answer by sex, with the standard error and interval;
+  - the pooled 3-year windows (2018 pooled with 2017 and 2020) and the hollow ends;
+  - the reversed score and its pooled version;
+  - the left-out strip;
+  - weighted and unweighted standard errors;
+  - weighted counts.
+
+  It also checks what the page offers: no mean score for Sí / No, and the score's checklist with No aplica and No sabe
+  locked.
+- Checked by hand on the ENVIPE sample (samplevic.dta, weighted by fac_ele), where every number matched R `svymean`:
+  - % Sí among taxi users, pooled 3-year: 33.9 (2017, 2-year window), 37.8 (2019) and 31.8 (2026);
+  - trust in neighbours reversed: 2.96 to 3.09.

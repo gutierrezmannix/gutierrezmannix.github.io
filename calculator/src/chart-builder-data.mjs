@@ -35,11 +35,16 @@ export function cbAggCat(x, s, y, w, mask, o = {}) {
   return { cats, series, vals, n: used, excluded: eligible - used, pct: stat === 'percent', table, headers: useS ? ['Category', 'Group', stat, 'n'] : ['Category', stat, 'n'] };
 }
 
-// over time: mean (with a t interval), sum, count or % of rows equal to 1, per group; lines break at unobserved periods
+// over time: mean (with a t interval), sum, count or % of rows equal to 1, per group; lines break at unobserved periods.
+// GM26 .95: the interval of a weighted mean is the survey (linearized) one, as Stata's mean [pw=] and R's svymean
+// (se = √(n/(n−1) · Σw²(y−ȳ)²) / Σw; unweighted it is s/√n), with Stata's t(n−1). o.smooth = 3 or 5 pools each time
+// with its neighbours (centred, by position among the times in the data): the pooled mean of everyone in the window, not
+// an average of means; sums and counts become the average per time in the window. Points whose window is cut by the
+// first or last time (or a gap) carry part: true; the single-time values stay in p.single.
 export function cbTimeAgg(t, y, g, w, mask, o = {}) {
   const stat = o.stat || 'mean', useG = !!(g && o.sel && o.sel.length), sel = useG ? o.sel.map(String) : ['All'], at = new Map(sel.map((k, i) => [k, i]));
   const lo = o.t0 === '' || o.t0 == null ? -Infinity : +o.t0, hi = o.t1 === '' || o.t1 == null ? Infinity : +o.t1;
-  const maps = sel.map(() => new Map()), times = new Set(); let used = 0, eligible = 0;
+  const maps = sel.map(() => new Map()), times = new Set(); let used = 0, eligible = 0, ref = NaN;
   for (let i = 0; i < t.length; i++) {
     if (mask && !mask[i]) continue; eligible++;
     const tv = t[i]; if (!(typeof tv === 'number' && isFinite(tv)) || tv < lo || tv > hi) continue;
@@ -47,21 +52,35 @@ export function cbTimeAgg(t, y, g, w, mask, o = {}) {
     const wi = w ? w[i] : 1; if (!(wi > 0)) continue;
     const yv = stat === 'count' ? 1 : y[i]; if (!(typeof yv === 'number' && isFinite(yv))) continue;
     if (stat === 'pct' && yv !== 0 && yv !== 1) throw Error('“% equal to 1” needs an outcome coded 0 / 1.');
+    if (ref !== ref) ref = yv; const d = yv - ref; // moments about the first value: exact for values near 1e9
     times.add(tv); used++;
-    let e = maps[si].get(tv); if (!e) { e = [0, 0, 0, 0]; maps[si].set(tv, e); } e[0] += wi * yv; e[1] += wi; e[2]++; e[3] += wi * yv * yv;
+    let e = maps[si].get(tv); if (!e) { e = [0, 0, 0, 0, 0, 0]; maps[si].set(tv, e); } e[0] += wi * d; e[1] += wi; e[2]++; e[3] += wi * wi; e[4] += wi * wi * d; e[5] += wi * wi * d * d;
   }
   if (!used) throw Error('No rows with both a time and an outcome for these selections.');
   const crit = df => (typeof critInv === 'function' ? critInv(o.alpha || 0.05, df) : 1.96);
-  const allT = [...times];
+  const allT = [...times].sort((a, b) => a - b), rank = new Map(allT.map((x, i) => [x, i])), k = +o.smooth >= 3 ? Math.round(+o.smooth) : 1, half = (k - 1) >> 1;
+  const meanLike = stat === 'mean' || stat === 'pct', scale = stat === 'pct' ? 100 : 1;
+  const est = (e, win) => {
+    const m = e[0] / e[1], p = { y: NaN, n: e[2], lo: NaN, hi: NaN, se: NaN };
+    if (stat === 'sum') p.y = (e[0] + ref * e[1]) / win; else if (stat === 'count') p.y = e[1] / win; else p.y = scale * (m + ref);
+    if (meanLike && e[2] > 1) {
+      const ss = e[5] - 2 * m * e[4] + m * m * e[3], se = Math.sqrt(Math.max(0, ss) * e[2] / (e[2] - 1)) / e[1];
+      p.se = scale * se; if (o.ci) { const hw = crit(e[2] - 1) * se; p.lo = scale * (m + ref - hw); p.hi = scale * (m + ref + hw); }
+    }
+    return p;
+  };
   const series = sel.map((key, si) => {
-    const pts = [...maps[si].entries()].sort((a, b) => a[0] - b[0]).map(([x, e]) => {
-      const mean = e[0] / e[1]; let yv = stat === 'sum' ? e[0] : stat === 'count' ? e[1] : stat === 'pct' ? 100 * mean : mean; const p = { x, y: yv, n: e[2], lo: NaN, hi: NaN };
-      if (o.ci && (stat === 'mean' || stat === 'pct') && e[2] > 1) { const v = Math.max(0, (e[3] / e[1] - mean * mean) * e[2] / (e[2] - 1)), h = crit(e[2] - 1) * Math.sqrt(v / e[2]), k = stat === 'pct' ? 100 : 1; p.lo = k * (mean - h); p.hi = k * (mean + h); }
-      return p;
+    const M = maps[si], own = [...M.keys()].sort((a, b) => a - b);
+    const pts = own.map(x => {
+      const e = M.get(x), single = est(e, 1);
+      if (k === 1) return Object.assign({ x }, single);
+      const r = rank.get(x), pool = [0, 0, 0, 0, 0, 0]; let win = 0;
+      for (let j = Math.max(0, r - half); j <= Math.min(allT.length - 1, r + half); j++) { const ej = M.get(allT[j]); if (!ej) continue; win++; for (let q = 0; q < 6; q++) pool[q] += ej[q]; }
+      return Object.assign({ x }, est(pool, win), { single: single.y, win, part: win < k });
     });
     return { key, pts, segments: typeof csSegments === 'function' ? csSegments(pts, allT) : [pts] };
   }).filter(s => s.pts.length);
-  return { series, n: used, excluded: eligible - used, times: allT.sort((a, b) => a - b) };
+  return { series, n: used, excluded: eligible - used, times: allT, smooth: k };
 }
 
 // stacked areas: cumulative baselines at each time (missing times count as 0)

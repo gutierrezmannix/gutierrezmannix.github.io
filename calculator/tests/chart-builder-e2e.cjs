@@ -27,7 +27,7 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
   await shot('1-gallery');
   await cb.getByRole('button', { name: 'Timeline', exact: true }).click(); await p.waitForTimeout(400);
   await pickBy(p, cb, 'Show', 'pct'); await p.waitForTimeout(200);
-  await pickBy(p, cb, 'Outcome', 'ss_dir'); await pickBy(p, cb, 'Over (time)', 'year'); await pickBy(p, cb, 'Split by', 'sexo'); await p.waitForTimeout(500);
+  await pickBy(p, cb, 'Variable', 'ss_dir'); await pickBy(p, cb, 'Over (time)', 'year'); await pickBy(p, cb, 'Compare groups', 'sexo'); await p.waitForTimeout(500);
   let m = await svgHtml(cb.locator('.cb-figs'));
   check((m.match(/fill="none" stroke="[^"]*" stroke-width="[^"]*" stroke-linejoin/g) || []).length === 2, 'two lines, one per sexo');
   // 2 · names → value labels, values at every point, a color

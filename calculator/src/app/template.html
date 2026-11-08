@@ -112,6 +112,27 @@
 .cb-famtop p{margin:3px 0 0;font-size:12.5px;color:var(--c5D5648,#5D5648);line-height:1.4}
 .cb-famkinds{display:flex;flex-wrap:wrap;gap:6px}
 .cb-top svg{flex:none}
+
+/* GM26 .95 Timeline: leave out (a checklist that opens under its button), the score, the left-out strip */
+.cb .cb-drop{position:relative;display:inline-block}
+.cb .cb-drop>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:space-between;gap:10px;min-width:170px;max-width:320px;border:1px solid var(--cD2C5AF,#D2C5AF);border-radius:9px;padding:6px 11px;font-size:13px;background:#fff;color:var(--c1A1711,#1A1711);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb .cb-drop>summary::-webkit-details-marker{display:none}
+.cb .cb-drop>summary:after{content:'\25BE';color:#6B6455;font-size:11px}
+.cb .cb-drop.set>summary{background:#FFF6EC;border-color:#E5B98A}
+.cb .cb-drop[open]>summary{border:2px solid var(--c194F39,#194F39);padding:5px 10px}
+.cb .cb-drop-pop{position:absolute;z-index:30;top:calc(100% + 4px);left:0;width:min(380px,86vw);max-height:360px;overflow:auto;overscroll-behavior:contain;background:#fff;border:1px solid var(--cD2C5AF,#D2C5AF);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.16)}
+.cb .cb-drop-h{font-family:'DejaVu Sans Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6B6455;padding:8px 12px 5px;background:#F7F3EB}
+.cb .cb-drop-row{display:flex;align-items:center;gap:9px;padding:7px 12px;border-top:1px solid #F1ECE2;font-size:13px;cursor:pointer}
+.cb .cb-drop-row:hover{background:#F7F3EB}
+.cb .cb-drop-row input{margin:0;accent-color:var(--c194F39,#194F39)}
+.cb .cb-drop-row.lock{color:#8C8372;cursor:default}
+.cb .cb-drop-row .c{font-family:'DejaVu Sans Mono',ui-monospace,monospace;font-size:11.5px;color:#6B6455;min-width:18px}
+.cb .cb-drop-row .n{margin-left:auto;font-family:'DejaVu Sans Mono',ui-monospace,monospace;font-size:11.5px;color:#6B6455}
+.cb .cb-drop-q{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-top:1px solid #E3DCCE;background:#FBF9F4}
+.cb .cb-drop-note{display:block;margin-top:3px}
+.cb .cb-score{gap:6px}
+.cb .cb-scorev{display:inline-flex;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;background:var(--c194F39,#194F39);color:#fff}
+.cb .cb-strip{margin-top:-6px}
 </style><!-- GM26 chart builder end --><!-- GM26 map lab begin --><style>/* GM26 Map page — builds on the chart builder (.cb) and the shared .tl styles */
 .cb.ml .ml-sec{display:flex;flex-direction:column;gap:10px}
 .cb.ml .ml-h{margin:0;font-family:var(--fMono,'Space Mono',monospace);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--c194F39,#194F39)}
@@ -4030,7 +4051,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-07.94</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-08.95</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>
