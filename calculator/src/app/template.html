@@ -124,12 +124,12 @@
 .cb.ml .ml-paste summary{cursor:pointer;font-size:12.5px;color:var(--c194F39,#194F39);font-weight:600;padding:4px 0}
 .cb.ml .ml-paste textarea{width:100%;max-width:520px;font-family:var(--fMono,'Space Mono',monospace);font-size:12.5px;margin:6px 0}
 </style><!-- GM26 map lab end --><!-- GM26 intro css begin --><style>/* GM26 intro page: the data box only (and unsaved work, when there is some) — built by tools/intro_page.py */
-.gi{flex:1;display:flex;align-items:center;justify-content:center;padding:56px 24px 90px;box-sizing:border-box}
+.gi{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 24px 40px;box-sizing:border-box}
 .gi-wrap{width:100%;max-width:680px;display:flex;flex-direction:column;gap:22px}
 .gi-drop{position:relative;box-sizing:border-box;background:var(--cFFFEFA,#FFFEFA);border:2px dashed var(--cAB9F8A,#AB9F8A);border-radius:12px;padding:40px 24px 34px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:pointer;box-shadow:0 10px 30px rgba(43,49,58,.14)}
 .gi-drop:hover{border-color:var(--c194F39,#194F39)}
 .gi-dropicon{width:58px;height:58px;border-radius:999px;background:var(--cEDF5F0,#EDF5F0);border:1px solid var(--cCBE0D4,#CBE0D4);display:flex;align-items:center;justify-content:center}
-.gi-droptitle{font-weight:700;font-size:20px;color:var(--c1A1711,#1A1711);text-align:center}
+.gi-droptitle{margin:0;font-weight:700;font-size:20px;line-height:1.3;color:var(--c1A1711,#1A1711);text-align:center}
 .gi-drop .tl-formats{text-align:center;font-family:var(--fUI,'Hanken Grotesk',sans-serif);font-size:15px;letter-spacing:0;color:var(--c3D3629,#3D3629);margin-top:-6px}
 .gi-browse{font-family:var(--fUI,'Hanken Grotesk',sans-serif);font-weight:700;font-size:17px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;color:#FFFFFF;background:var(--cC4681E,#C4681E);border:1px solid var(--cA3540F,#A3540F);border-bottom-color:var(--c8F4A0E,#8F4A0E);border-radius:12px;padding:15px 38px;cursor:pointer}
 .gi-browse:active{transform:translateY(2px)}
@@ -611,7 +611,7 @@ code, kbd, samp { font-family: var(--font-mono); }
     .mf-nav:hover { color: var(--c1A1711, #1A1711); background: rgba(255,255,255,0.6); }
     .mf-caret { font-size: 10px; padding: 0 6px; border: none; background: transparent; color: var(--c6B6455, #6B6455); cursor: pointer; }
     .mf-caret:hover { color: var(--c194F39, #194F39); }
-    .mf-dock { position: sticky; top: 10px; max-height: calc(100vh - 20px); display: flex; flex-direction: column; min-width: 0; background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cE3DCCE, #E3DCCE); border-radius: 9px; box-shadow: 0 1px 3px rgba(43,39,30,0.06); overflow: hidden; }
+    .mf-dock { position: sticky; top: 10px; max-height: calc(100vh / var(--gmZoom, 1) - 20px); display: flex; flex-direction: column; min-width: 0; background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cE3DCCE, #E3DCCE); border-radius: 9px; box-shadow: 0 1px 3px rgba(43,39,30,0.06); overflow: hidden; }
     .mf-rail { display: flex; flex-direction: column; gap: 6px; padding: 8px 5px; align-items: center; }
     .mf-railbtn { writing-mode: vertical-rl; transform: rotate(180deg); font: 600 11px/1 var(--fUI, 'Hanken Grotesk', sans-serif); letter-spacing: 0.06em; padding: 10px 6px; border-radius: 8px; border: 1px solid var(--cE3DCCE, #E3DCCE); background: var(--cFAF7F1, #FAF7F1); color: var(--c433D31, #433D31); cursor: pointer; }
     .mf-railbtn:hover { background: var(--cEDF5F0, #EDF5F0); color: var(--c194F39, #194F39); }
@@ -783,14 +783,14 @@ code, kbd, samp { font-family: var(--font-mono); }
     .mf-navwrap:has(> .mf-nav[data-nav="datam"]) { margin-left: 4px; padding-left: 4px; border-left: 1px solid var(--cD2C5AF, #D2C5AF); }
     .mf-navwrap:has(> .mf-nav[data-nav="datam"]) .mf-menu { left: 0; right: auto; }
     .mf-datatools { display: none !important; }
-    @media (min-width: 900px) { .mf-col-data aside div[style*="max-height: 46vh"] { max-height: calc(100vh - 170px) !important; } }
+    @media (min-width: 900px) { .mf-col-data aside div[style*="max-height: 46vh"] { max-height: calc(100vh / var(--gmZoom, 1) - 170px) !important; } }
     .mf-key-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; margin-top: 4px; }
     .mf-key-foot .mf-key-stamp { margin-top: 0; }
     .mf-key-acts { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
     </style>
 
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; font-family: var(--fUI, 'Hanken Grotesk', sans-serif); color: var(--c2B271E, #2B271E); background: var(--cFAF7F1, #FAF7F1);">
+<div style="min-height: calc(100vh / var(--gmZoom, 1)); display: flex; flex-direction: column; font-family: var(--fUI, 'Hanken Grotesk', sans-serif); color: var(--c2B271E, #2B271E); background: var(--cFAF7F1, #FAF7F1);">
 
   <!-- Back to the main site (gutierrezmannix.github.io). -->
   <style>
@@ -1058,7 +1058,7 @@ code, kbd, samp { font-family: var(--font-mono); }
       <div class="gi-wrap">
         <div class="gi-drop" sc-camel-on-click="{{ introPick }}" sc-camel-on-drag-over="{{ onDragOver }}" sc-camel-on-drag-leave="{{ onDragLeave }}" sc-camel-on-drop="{{ introDrop }}">
           <div class="gi-dropicon"><svg width="26" height="26" sc-camel-view-box="0 0 24 24" fill="none" stroke="#2E7D58" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m8 11 4 4 4-4"></path><path d="M4 21h16"></path></svg></div>
-          <div class="gi-droptitle">Drag a data file here</div><div class="tl-formats">CSV · TSV · Excel (.xlsx, .xls) · Stata (.dta) · SPSS (.sav)</div>
+          <h1 class="gi-droptitle">Drag a data file here</h1><div class="tl-formats">CSV · TSV · Excel (.xlsx, .xls) · Stata (.dta) · SPSS (.sav)</div>
           <button type="button" class="gi-browse">Browse files</button>
           <button type="button" class="gi-new" sc-camel-on-click="{{ newDatasetLink }}"><svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#2E7D58" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10 H21 M9 4 V20"></path></svg>Create your own dataset</button>
           <sc-if value="{{ dragging }}" hint-placeholder-val="{{ false }}">
@@ -4025,7 +4025,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-07.89</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-07.90</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>

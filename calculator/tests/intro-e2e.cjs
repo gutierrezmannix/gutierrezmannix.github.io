@@ -56,6 +56,25 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
     check(re.test(await p.locator('.gi').innerText()), f + ': a clear reason instead of "found a header but no data rows"');
   }
   await p.close();
+  // build .90: the keyboard lands on the name of the first variable; a file dropped anywhere opens (and never makes the
+  // browser leave the calculator); several files: the first opens and a message says so
+  p = await page(); await p.getByRole('button', { name: 'Create your own dataset' }).click(); await loaded(p).catch(() => {}); await p.waitForTimeout(800);
+  check(await p.evaluate(() => document.activeElement && document.activeElement.getAttribute('aria-label')) === 'Name of the new variable', 'after Create your own dataset the cursor is in the name of the new variable'); await p.close();
+  p = await page(); check(await p.locator('h1').filter({ hasText: 'Drag a data file here' }).count() === 1, 'the page has a heading (h1) for screen readers');
+  const dropDT = names => p.evaluateHandle(ns => { const d = new DataTransfer(); for (const n of ns) d.items.add(new File(['a,b\n1,2\n3,4\n'], n, { type: 'text/csv' })); return d; }, names);
+  let dtx = await dropDT(['fuera.csv']); await p.dispatchEvent('footer', 'dragover', { dataTransfer: dtx }); await p.waitForTimeout(250);
+  check(await p.locator('.gi-release').count() === 1, 'a file dragged anywhere over the start page shows RELEASE TO LOAD');
+  const caught = await p.evaluate(dt => { const ev = new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }); document.querySelector('footer').dispatchEvent(ev); return ev.defaultPrevented; }, dtx);
+  check(caught && await loaded(p).then(() => true).catch(() => false), 'a file dropped outside the box opens in the calculator, not in the browser'); await p.close();
+  p = await page(); dtx = await dropDT(['uno.csv', 'dos.csv']); await p.dispatchEvent('.gi-drop', 'drop', { dataTransfer: dtx });
+  check(await p.waitForFunction(() => /uno\.csv: 2 files were dropped/.test(document.body.innerText), null, { timeout: 6000 }).then(() => true).catch(() => false), 'two files dropped: the first opens and a message says so'); await p.close();
+  // build .90: the page fits the window with the text size zoom (the footer is on screen, no scroll bar)
+  for (const [w, h] of [[1920, 849], [1366, 768], [1280, 650]]) {
+    const cz = await b.newContext({ viewport: { width: w, height: h } }); const pz = await cz.newPage(); await pz.route('**/*', r => /^(file|data|blob):/.test(r.request().url()) ? r.continue() : r.abort());
+    await pz.goto('file://' + path.resolve(__dirname, '../index.html')); await pz.waitForSelector('.gi-drop'); await pz.waitForTimeout(1200);
+    const fit = await pz.evaluate(() => { const f = document.querySelector('footer').getBoundingClientRect(); return { extra: document.scrollingElement.scrollHeight - innerHeight, footer: Math.round(f.bottom), zoom: document.documentElement.style.zoom }; });
+    check(fit.extra <= 1 && fit.footer <= h, w + '×' + h + ' at zoom ' + fit.zoom + ': no scroll bar, footer on screen (' + JSON.stringify(fit) + ')'); await cz.close();
+  }
   // phone
   const ph = await b.newContext({ viewport: { width: 390, height: 860 } }); p = await ph.newPage(); p.on('pageerror', e => errs.push('PAGEERROR ' + String(e).slice(0, 300)));
   await p.route('**/*', r => /^(file|data|blob):/.test(r.request().url()) ? r.continue() : r.abort());

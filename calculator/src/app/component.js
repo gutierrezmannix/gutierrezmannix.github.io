@@ -111,6 +111,14 @@ class Component extends DCLogic {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) { const t = e.target, tg = t && t.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || (t && t.isContentEditable)) return; if ((this._undo || []).length) { e.preventDefault(); this.undo(); } } };
     this._onUnload = e => { if (this._dirty && this._raw && !this._skipUnload) { e.preventDefault(); e.returnValue = ''; return ''; } };
     window.addEventListener('keydown', this._onKey); window.addEventListener('beforeunload', this._onUnload);
+    // build .90: a file dropped anywhere opens it (the whole start page is the drop zone); the browser never leaves the
+    // calculator to show the file. On the workbench it opens as File → Open another dataset does (asking first when
+    // there are unsaved changes).
+    const hasFiles = e => !!(e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files'));
+    this._onWinDragOver = e => { if (!hasFiles(e)) return; e.preventDefault(); if (this.state.screen !== 'work' && !this.state.parsing && !this.state.dragging) this.setState({ dragging: true }); };
+    this._onWinDragLeave = e => { if (!e.relatedTarget && this.state.dragging) this.setState({ dragging: false }); };
+    this._onWinDrop = e => { if (this.state.dragging) this.setState({ dragging: false }); if (!hasFiles(e) || e.defaultPrevented) return; e.preventDefault(); this.dropFiles(e.dataTransfer.files); };
+    window.addEventListener('dragover', this._onWinDragOver); window.addEventListener('dragleave', this._onWinDragLeave); window.addEventListener('drop', this._onWinDrop);
     this._onResize = () => { clearTimeout(this._rzT); this._rzT = setTimeout(() => { const w = window.innerWidth; if (Math.abs((this.state.vw || 0) - w) > 4) this.setState({ vw: w }); }, 150); }; window.addEventListener('resize', this._onResize);
     try { const v = JSON.parse(localStorage.getItem('cidigimi26-view') || 'null'); if (v) this.setState({ view: v }, () => this.applyView()); } catch (e) {}
     setTimeout(() => this.applyView(), 0);
@@ -8998,6 +9006,13 @@ class Component extends DCLogic {
     return '';
   }
   openFileDialog() { if (this._file) this._file.click(); }
+  // a dropped file (or several: the first opens, and a message says so)
+  dropFiles(files) {
+    const f = files && files[0]; if (!f || this.state.parsing) return;
+    if (this._raw && this.state.screen === 'work' && this._dirty && !window.confirm('Open "' + f.name + '"? It replaces the current dataset, which has unsaved changes.\n\nCancel, then use File → Save session, to keep them.')) return;
+    this.ingest(f, f.name);
+    if (files.length > 1) setTimeout(() => this.flash('Opened ' + f.name + ': ' + files.length + ' files were dropped, and one dataset opens at a time.'), 900);
+  }
   newDataset() {
     const data = { n: 20, names: [], labels: [], cols: [], vlabs: {} };
     this.ingest(null, 'my-dataset', { tab: 'data', nvTab: 'build', deTask: 'new', de: { task: 'new', recipe: '' } }, data); // GM26 .68: start with Make a new variable (create it, then set its values)
@@ -9555,6 +9570,7 @@ class Component extends DCLogic {
     if (f) { root.style.setProperty('--fUI', f[0]); root.style.setProperty('--fMono', f[1]); } else { root.style.removeProperty('--fUI'); root.style.removeProperty('--fMono'); }
     const Z = { s: 1.0, m: 1.12, l: 1.25, xl: 1.4 };
     const zv = String(Z[v.size || 'm'] || 1); if (root.style.zoom !== zv) root.style.zoom = zv;
+    root.style.setProperty('--gmZoom', zv); // build .90: heights tied to the window divide by it (zoom also scales vh)
     const pal = v.pal || 'sendero';
     if (this._palApplied !== pal) {
       this._palApplied = pal;
@@ -10545,7 +10561,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-07.89') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-07.90') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -10576,9 +10592,9 @@ class Component extends DCLogic {
       onFileChange: e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; if (this._raw && this.state.screen === 'work' && this._dirty && !window.confirm('Open "' + f.name + '"? It replaces the current dataset, which has unsaved changes.\n\nCancel, then use File → Save session, to keep them.')) return; this.ingest(f, f.name); },
       onDragOver: e => { e.preventDefault(); if (!S.dragging) this.setState({ dragging: true }); },
       onDragLeave: e => { const rt = e && e.relatedTarget, ct = e && e.currentTarget; if (rt && ct && ct.contains && ct.contains(rt)) return; this.setState({ dragging: false }); },
-      onDrop: e => { e.preventDefault(); this.setState({ dragging: false }); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.ingest(f, f.name); },
+      onDrop: e => { e.preventDefault(); this.setState({ dragging: false }); this.dropFiles(e.dataTransfer.files); },
       loadDemo: e => { e.stopPropagation(); this._engineP.then(En => this.ingest(new TextEncoder().encode(En.demoCSV()).buffer, 'city-districts-demo.csv')); },
-      newDatasetLink: e => { e.preventDefault(); e.stopPropagation(); this._engineP.then(() => this.newDataset()); },
+      newDatasetLink: e => { e.preventDefault(); e.stopPropagation(); this._engineP.then(() => { this.newDataset(); const t0 = Date.now(), focusName = () => { const el = document.querySelector('input[aria-label="Name of the new variable"]'); if (el) el.focus(); else if (Date.now() - t0 < 4000) setTimeout(focusName, 120); }; setTimeout(focusName, 150); }); }, // build .90: the keyboard lands on the name of the first variable
       loadDemoLink: e => { e.preventDefault(); e.stopPropagation(); this._engineP.then(En => this.ingest(new TextEncoder().encode(En.demoCSV()).buffer, 'city-districts-demo.csv')); },
       interpOn: this.props.showInterpretation ?? true
     };
