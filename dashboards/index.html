@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboards — Carlos Gutiérrez-Mannix</title>
+<meta name="description" content="Interactive dashboards: crime and insecurity in Mexico (ENVIPE) and Texas colonias. Both work offline.">
+<link rel="stylesheet" href="shared/dash.css">
+<style>
+  .hub { max-width: 1200px; margin: 0 auto; padding: 72px 24px 96px; }
+  .hub h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: clamp(40px, 6vw, 56px); line-height: 1.02; letter-spacing: -0.02em; }
+  .hub .intro { margin: 18px 0 0; max-width: 640px; font-size: 18px; line-height: 1.6; color: var(--fg-2); }
+  .cards { margin-top: 48px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 28px; }
+  .dcard { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; transition: border-color 150ms, transform 150ms; }
+  .dcard:hover { border-color: var(--fg-4); transform: translateY(-2px); }
+  .dcard .pic { background: var(--bg-deep); padding: 20px; display: flex; justify-content: center; }
+  .dcard .pic img { width: 100%; height: 260px; object-fit: contain; }
+  .dcard .new { position: absolute; top: 16px; left: 16px; padding: 4px 10px; border-radius: 999px; background: var(--accent); color: var(--bg-deep); font: 700 11px var(--font-mono); letter-spacing: 0.08em; }
+  .dcard .body { padding: 28px; display: flex; flex-direction: column; gap: 14px; flex-grow: 1; }
+  .dcard h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1.1; }
+  .dcard h2 a { color: var(--fg); text-decoration: none; }
+  .dcard h2 a::after { content: ''; position: absolute; inset: 0; } /* whole card is clickable */
+  .dcard p { margin: 0; font-size: 16px; line-height: 1.6; color: var(--fg-2); }
+  .stats { display: flex; flex-wrap: wrap; gap: 28px; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .stats b { display: block; font-family: var(--font-mono); font-size: 22px; color: var(--fg); }
+  .stats span { font-size: 13px; color: var(--fg-3); }
+  .go { margin-top: auto; padding-top: 8px; }
+  .go span { display: inline-block; padding: 13px 24px; border-radius: 999px; background: var(--accent); color: var(--bg-deep); font-weight: 600; font-size: 15px; }
+  .dcard:hover .go span { background: var(--accent-2); }
+  @media (max-width: 640px) { .hub { padding: 40px 16px 64px; } .dcard .body { padding: 20px; } }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="../index.html">
+      <svg width="26" height="27" viewBox="0 0 30 31" aria-hidden="true"><path d="M9 1.5 H14.5 V9.3 L26.3 10.3 L28.3 16.6 L24.3 21.8 L18.4 29.4 L15.2 24.8 L12 21.8 L9 19 H6.2 L1.7 13.4 V10.4 H9 Z" fill="#E5912A"/><circle cx="18" cy="26.6" r="2.6" fill="#143E2D" stroke="#fff" stroke-width="1.4"/></svg>
+      <span>Carlos Gutiérrez-Mannix</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../index.html#pubs" data-i18n="navPubs">Publications</a>
+      <a href="../index.html#teaching" data-i18n="navTeach">Teaching</a>
+      <a href="../index.html#data" data-i18n="navData">Data</a>
+      <a href="../Documentaries/" data-i18n="navDocs">Recommendations</a>
+      <a href="../calculator/index.html" data-i18n="navCalc">Calculator</a>
+      <a href="index.html" aria-current="page" data-i18n="navDash">Dashboards</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en">EN</button><button type="button" data-lang="es">ES</button></div>
+  </div>
+</header>
+
+<main class="hub">
+  <p class="eyebrow" data-i18n="eyebrow">Dashboards</p>
+  <h1 data-i18n="h1">Explore the data.</h1>
+  <p class="intro" data-i18n="intro">Interactive dashboards built from the survey and census data I work with. Pick one to open it — everything runs in your browser, with no login and no internet connection needed once the page is open.</p>
+
+  <div class="cards">
+    <article class="dcard">
+      <div class="pic"><img src="envipe/preview.svg" alt="" width="1000" height="673"></div>
+      <span class="new" data-i18n="new">NEW</span>
+      <div class="body">
+        <p class="eyebrow" style="color:var(--fg-3)">México · INEGI ENVIPE · 2011–2026</p>
+        <h2><a href="envipe/index.html" data-i18n="envT">Crime &amp; Insecurity in Mexico</a></h2>
+        <p data-i18n="envD">Victimization and perceptions of safety for all 32 states across 16 survey editions, weighted to the adult population.</p>
+        <div class="stats">
+          <div><b>32</b><span data-i18n="sStates">states</span></div>
+          <div><b>16</b><span data-i18n="sEditions">editions</span></div>
+          <div><b>635</b><span data-i18n="sQuestions">questions</span></div>
+        </div>
+        <div class="go"><span><span data-i18n="open">Open dashboard</span> →</span></div>
+      </div>
+    </article>
+
+    <article class="dcard">
+      <div class="pic"><img src="colonias/preview.svg" alt="" width="1100" height="785"></div>
+      <div class="body">
+        <p class="eyebrow" style="color:var(--fg-3)">Texas · Border · 2020 ACS &amp; CGD</p>
+        <h2><a href="colonias/index.html" data-i18n="colT">Texas Colonias Dashboard</a></h2>
+        <p data-i18n="colD">Demographic, economic and infrastructure profiles for Texas colonias along the Rio Grande, from the Texas OAG Colonia Geographic Database and ACS 5-year estimates.</p>
+        <div class="stats">
+          <div><b>1,716</b><span data-i18n="sColonias">colonias</span></div>
+          <div><b>18</b><span data-i18n="sCounties">border counties</span></div>
+          <div><b>42</b><span data-i18n="sVars">variables</span></div>
+        </div>
+        <div class="go"><span><span data-i18n="open">Open dashboard</span> →</span></div>
+      </div>
+    </article>
+  </div>
+</main>
+
+<script src="shared/dash.js"></script>
+<script>
+  Dash.strings({
+    en: { navPubs: 'Publications', navTeach: 'Teaching', navData: 'Data', navDocs: 'Recommendations', navCalc: 'Calculator', navDash: 'Dashboards',
+      eyebrow: 'Dashboards', h1: 'Explore the data.', intro: 'Interactive dashboards built from the survey and census data I work with. Pick one to open it — everything runs in your browser, with no login and no internet connection needed once the page is open.',
+      new: 'NEW', envT: 'Crime & Insecurity in Mexico', envD: 'Victimization and perceptions of safety for all 32 states across 16 survey editions, weighted to the adult population.',
+      colT: 'Texas Colonias Dashboard', colD: 'Demographic, economic and infrastructure profiles for Texas colonias along the Rio Grande, from the Texas OAG Colonia Geographic Database and ACS 5-year estimates.',
+      sStates: 'states', sEditions: 'editions', sQuestions: 'questions', sColonias: 'colonias', sCounties: 'border counties', sVars: 'variables', open: 'Open dashboard' },
+    es: { navPubs: 'Publicaciones', navTeach: 'Docencia', navData: 'Datos', navDocs: 'Recomendaciones', navCalc: 'Calculadora', navDash: 'Tableros',
+      eyebrow: 'Tableros', h1: 'Explora los datos.', intro: 'Tableros interactivos construidos con los datos de encuestas y censos con los que trabajo. Elige uno para abrirlo: todo funciona en tu navegador, sin registro y sin conexión a internet una vez abierta la página.',
+      new: 'NUEVO', envT: 'Delincuencia e inseguridad en México', envD: 'Victimización y percepción de seguridad en las 32 entidades a lo largo de 16 ediciones de la encuesta, ponderadas a la población adulta.',
+      colT: 'Tablero de las colonias de Texas', colD: 'Perfiles demográficos, económicos y de infraestructura de las colonias de Texas a lo largo del río Bravo, con datos de la OAG de Texas y estimaciones ACS de 5 años.',
+      sStates: 'entidades', sEditions: 'ediciones', sQuestions: 'preguntas', sColonias: 'colonias', sCounties: 'condados fronterizos', sVars: 'variables', open: 'Abrir tablero' }
+  });
+</script>
+</body>
+</html>
