@@ -89,3 +89,12 @@ test('a dataset with no variables says how to make one', async () => {
   assert.equal(o.exEmptyTitle, 'This dataset has no variables yet'); assert.equal(o.exNoVars, true);
   o.exMakeVar(); assert.equal(c.state.tab, 'data'); assert.equal(c.state.deTask, 'new');
 });
+
+test('frequencies: a variable with value labels shows each code next to its label (build .94)', async () => {
+  const c = await audit();
+  let o = show(c, { exploreVar: 'voto', weightVar: '' });
+  assert.equal(o.freqHasCode, true);
+  assert.deepEqual(o.freqRows.map(r => [r.code, r.level]), [['1', 'Morena'], ['2', 'PAN'], ['3', 'PRI'], ['9', 'No sabe']]);
+  assert.match(o.freqHeadStyle, /grid-template-columns: 56px /);
+  o = show(c, { exploreVar: 'fecha' }); assert.equal(o.freqHasCode, false, 'dates and text: no code column');
+});

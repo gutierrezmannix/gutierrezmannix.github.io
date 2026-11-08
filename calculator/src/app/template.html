@@ -2220,13 +2220,14 @@ code, kbd, samp { font-family: var(--font-mono); }
                       <div style="display: flex; gap: 4px;" role="group" aria-label="Order of the categories"><sc-for list="{{ freqSortBtns }}" as="b" hint-placeholder-count="2"><button sc-camel-on-click="{{ b.click }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
                       <button sc-camel-on-click="{{ copyFreq }}" style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 10.5px; letter-spacing: 0.1em; color: var(--c5D5648, #5D5648); background: var(--cF2ECE1, #F2ECE1); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 6px 12px; cursor: pointer; white-space: nowrap;" style-hover="border-color: var(--cC4681E, #C4681E); color: var(--c9C4A08, #9C4A08);">{{ copyFreqLabel }}</button>
                     </div>
-                    <div style="display: grid; grid-template-columns: minmax(110px, 2fr) 1fr 1fr 1fr; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--cAB9F8A, #AB9F8A); font-family: var(--fMono, 'Space Mono', monospace); font-size: 10.5px; letter-spacing: 0.14em; color: var(--c5D5648, #5D5648);">
-                      <div>LEVEL</div><div style="text-align: right;">{{ freqHeadN }}</div><div style="text-align: right;">{{ freqHeadPct }}</div><div style="text-align: right;">{{ freqHeadCum }}</div>
+                    <div style="{{ freqHeadStyle }}">
+                      <sc-if value="{{ freqHasCode }}" hint-placeholder-val="{{ false }}"><div title="The number stored in the data for each label">CODE</div></sc-if><div>LEVEL</div><div style="text-align: right;">{{ freqHeadN }}</div><div style="text-align: right;">{{ freqHeadPct }}</div><div style="text-align: right;">{{ freqHeadCum }}</div>
                     </div>
                     <div style="max-height: 420px; overflow-y: auto;">
                       <sc-for list="{{ freqRows }}" as="f" hint-placeholder-count="5">
-                        <div style="display: grid; grid-template-columns: minmax(110px, 2fr) 1fr 1fr 1fr; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--cF2ECE1, #F2ECE1); font-size: 13px; align-items: center;">
-                          <div style="color: var(--c2B271E, #2B271E); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ f.level }}</div>
+                        <div style="{{ f.rowStyle }}">
+                          <sc-if value="{{ f.hasCode }}" hint-placeholder-val="{{ false }}"><div style="font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; color: var(--c6B6455, #6B6455);">{{ f.code }}</div></sc-if>
+                          <div style="color: var(--c2B271E, #2B271E); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ f.level }}">{{ f.level }}</div>
                           <div style="text-align: right; font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; color: var(--c2B271E, #2B271E);">{{ f.count }}</div>
                           <div style="text-align: right; font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; color: var(--c1F6447, #1F6447);">{{ f.pct }}</div>
                           <div style="text-align: right; font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; color: var(--c6B6455, #6B6455);">{{ f.cum }}</div>
@@ -4029,7 +4030,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-07.93</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-07.94</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>

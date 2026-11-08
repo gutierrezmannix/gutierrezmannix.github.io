@@ -10613,7 +10613,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-07.93') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-07.94') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -12360,7 +12360,12 @@ class Component extends DCLogic {
         const byFreq = S.freqSort === 'freq', rowsO = byFreq ? f.rows : dg ? f.rows.slice().sort((x, y) => x.label < y.label ? -1 : 1) : this.descOrder(name, f.rows), cap = 60;
         const shown = rowsO.slice(0, cap);
         let cum = 0;
-        out.freqRows = shown.map(r => { cum += r.c; return { level: String(r.label), count: this.fmtN(w ? r.craw : r.c), pct: (100 * r.c / f.totalW).toFixed(1) + '%', cum: (100 * cum / f.totalW).toFixed(1) + '%' }; });
+        // build .94: a variable with value labels shows each label's code (Sí = 1, No = 2 …), as Stata's fre, for if / recode
+        const vlM = !dg && this._raw && this._raw.vlabs && this._raw.vlabs[name], codeOf = vlM && vlM.size ? (() => { const rev = new Map(); for (const [k, l] of vlM) if (!rev.has(String(l))) rev.set(String(l), E.numLab(k)); return x => rev.has(String(x)) ? rev.get(String(x)) : (/^-?\d+(\.\d+)?$/.test(String(x)) ? String(x) : ''); })() : null;
+        out.freqHasCode = !!codeOf;
+        const fGrid = 'display: grid; grid-template-columns: ' + (codeOf ? '56px ' : '') + 'minmax(110px, 2fr) 1fr 1fr 1fr; gap: 10px; ';
+        out.freqHeadStyle = fGrid + 'padding: 5px 0; border-bottom: 1px solid var(--cAB9F8A, #AB9F8A); font-family: var(--fMono, \'Space Mono\', monospace); font-size: 10.5px; letter-spacing: 0.14em; color: var(--c5D5648, #5D5648);';
+        out.freqRows = shown.map(r => { cum += r.c; return { hasCode: !!codeOf, code: codeOf ? codeOf(r.label) : '', rowStyle: fGrid + 'padding: 7px 0; border-bottom: 1px solid var(--cF2ECE1, #F2ECE1); font-size: 13px; align-items: center;', level: String(r.label), count: this.fmtN(w ? r.craw : r.c), pct: (100 * r.c / f.totalW).toFixed(1) + '%', cum: (100 * cum / f.totalW).toFixed(1) + '%' }; });
         out.freqHeadN = w ? 'N (OBS.)' : 'COUNT'; out.freqHeadPct = w ? 'PCT (W)' : 'PCT'; out.freqHeadCum = w ? 'CUM (W)' : 'CUM';
         out.freqSortBtns = [['value', 'BY VALUE'], ['freq', 'BY FREQUENCY']].map(([k, label]) => ({ label, style: 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: 10px; letter-spacing: 0.08em; border-radius: 8px; padding: 4px 9px; cursor: pointer; white-space: nowrap; ' + ((k === 'freq') === byFreq ? 'color: var(--cFFFFFF, #FFFFFF); background: var(--c194F39, #194F39); border: 1px solid var(--c194F39, #194F39);' : 'color: var(--c5D5648, #5D5648); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF);'), click: () => this.setState({ freqSort: k }) }));
         out.hasFreqNote = f.rows.length > cap || f.missing > 0 || !!w;
@@ -12375,7 +12380,7 @@ class Component extends DCLogic {
         out.barChartEl = E.barChart(R, barRows, f.totalW, { key: 'bar|' + name + cSel + (byFreq ? '|f' : '|v'), color: cSel, refCb: this.svgRef('bar') });
         out.dlBar = this.dl('bar', name + '-barchart');
         out.copyFreqLabel = this.cpLabel('freq');
-        out.copyFreq = () => { let c2 = 0; this.copyTSV('freq', (w ? 'level\tn\tpct_weighted\tcum_pct_weighted\n' : 'level\tcount\tpct\tcum_pct\n') + rowsO.map(r => { c2 += r.c; return [r.label, w ? r.craw : Math.round(r.c), (100 * r.c / f.totalW).toFixed(1), (100 * c2 / f.totalW).toFixed(1)].join('\t'); }).join('\n')); };
+        out.copyFreq = () => { let c2 = 0; this.copyTSV('freq', (codeOf ? 'code\t' : '') + (w ? 'level\tn\tpct_weighted\tcum_pct_weighted\n' : 'level\tcount\tpct\tcum_pct\n') + rowsO.map(r => { c2 += r.c; return (codeOf ? [codeOf(r.label)] : []).concat([r.label, w ? r.craw : Math.round(r.c), (100 * r.c / f.totalW).toFixed(1), (100 * c2 / f.totalW).toFixed(1)]).join('\t'); }).join('\n')); };
       }
     }
 

@@ -88,3 +88,10 @@ skewness and kurtosis to 13. 60 frequency tables of text and coded variables (ac
 Tests: `tests/descriptives-sim.test.mjs` with `tests/data/descriptives-sim-reference.json` (written by
 `tests/descriptives-sim-reference.R`) and `tests/data/descriptives-audit.dta`. `tests/descriptives-reference.R` now
 takes the moments from the first value too (its weighted skewness near 1e9 moved by 6 × 10⁻⁷).
+
+## Build .94 — codes in the frequency table
+
+A variable with value labels (Stata, SPSS, or labels written in Data → Fix a variable) shows a **CODE** column before
+LEVEL: *1 Sí · 2 No · 3 No aplica · 9 No sabe / no responde*, as Stata's `fre`, so the number to use in an `if`, a
+recode or a filter is in sight. Values without a label show their own code; text variables and dates keep the four
+columns. **Copy** includes the code column. Test: `tests/descriptives-sim.test.mjs`.
