@@ -101,17 +101,21 @@
     return this.memo('cbcoded|' + v + '|' + (this.state.dver || 0) + '|' + this.filterSig(), () => {
       const col = raw.cols[idx], a = col.a, mk = this.mask(), vl = raw.vlabs && raw.vlabs[v], numeric = col.k === 'n';
       const labOf = k => vl instanceof Map ? vl.get(k) : vl ? vl[k] : undefined, labelled = !!(vl && (vl instanceof Map ? vl.size : Object.keys(vl).length));
-      const cnt = new Map(), key = new Array(a.length), codeOf = new Map();
+      const cnt = new Map(), key = new Array(a.length), codeOf = new Map(), X = col.x, xk = new Map(), UM = col.um, umk = new Set();
       for (let i = 0; i < a.length; i++) {
         key[i] = null; if (mk && !mk[i]) continue; const x = a[i];
+        // Stata's .a … .z (often No aplica, No sabe): missing for Stata's tab, but an answer here, which Leave out can drop
+        if (X && X[i] && typeof x === 'number' && !isFinite(x)) { const k = this._E.dtaXName(X[i]); key[i] = k; cnt.set(k, (cnt.get(k) || 0) + 1); xk.set(k, X[i]); continue; }
+        // SPSS user-missing codes (e.g. 8 = No aplica, 9 = No sabe): the same, kept with their number
+        if (UM && typeof x === 'number' && !isFinite(x) && isFinite(UM[i])) { const k = this._E.numLab(UM[i]); key[i] = k; cnt.set(k, (cnt.get(k) || 0) + 1); if (!codeOf.has(k)) codeOf.set(k, UM[i]); umk.add(k); continue; }
         if (x == null || x === '' || (typeof x === 'number' && !isFinite(x))) continue;
         const k = numeric ? this._E.numLab(x) : String(x); key[i] = k; cnt.set(k, (cnt.get(k) || 0) + 1); if (numeric && !codeOf.has(k)) codeOf.set(k, x);
         if (cnt.size > (labelled ? 60 : 30)) return null;
       }
       if (!cnt.size) return null;
       const MISS = /no aplica|no sabe|no respond|ns\s*\/\s*nr|no contest|no recuerda|no especificad|sin respuesta|not applicable|n\/a\b|don.?t know|dk\b|refus|no answer|missing|prefer not/i;
-      const codes = [...cnt.keys()].map(k => { const code = numeric ? codeOf.get(k) : null, l = numeric ? labOf(code) : null, label = l != null && String(l).trim() !== '' ? String(l) : k; return { key: k, code, label, n: cnt.get(k), miss: MISS.test(label) }; });
-      codes.sort((p, q) => numeric ? p.code - q.code : this._E.cbNatural(p.key, q.key));
+      const codes = [...cnt.keys()].map(k => { const xm = xk.get(k), code = numeric && !xm ? codeOf.get(k) : null, l = xm ? labOf(this._E.dtaXCode(xm)) : numeric ? labOf(code) : null, label = l != null && String(l).trim() !== '' ? String(l) : k; return { key: k, code, label, n: cnt.get(k), miss: !!xm || umk.has(k) || MISS.test(label), ext: xm || 0 }; });
+      codes.sort((p, q) => (p.ext - q.ext) || (numeric ? p.code - q.code : this._E.cbNatural(p.key, q.key)));
       const subst = codes.filter(k => !k.miss);
       return { numeric, labelled, prefer: labelled || !numeric, ordered: numeric && subst.length >= 3, codes, keyArr: key };
     });
@@ -174,7 +178,7 @@
           h('div', { className: 'cb-drop-h' }, st === 'score' ? 'Leave out of the score' : 'Leave out of the chart and of the 100%'),
           cd.codes.map(k => h('label', { key: k.key, className: 'cb-drop-row' + (forced.has(k.key) ? ' lock' : '') },
             h('input', { type: 'checkbox', checked: drop.has(k.key), disabled: forced.has(k.key), onChange: () => toggle(k.key), 'aria-label': 'Leave out ' + k.label }),
-            h('span', { className: 'c' }, k.code != null ? k.key : ''), h('span', { className: 'l' }, k.label), h('span', { className: 'n' }, k.n.toLocaleString('en-US')))),
+            h('span', { className: 'c' }, k.code != null || k.ext ? k.key : ''), h('span', { className: 'l' }, k.label), h('span', { className: 'n' }, k.n.toLocaleString('en-US')))),
           h('div', { className: 'cb-drop-q' }, quick.map(([t, keys]) => h('button', { type: 'button', key: t, className: 'tl-chip', onClick: e => { this.cbSet({ drop: keys }); const d = e.currentTarget && e.currentTarget.closest && e.currentTarget.closest('details'); if (d) d.open = false; } }, t))))),
       base ? h('span', { className: 'tl-hint cb-drop-note' }, base) : null);
   }

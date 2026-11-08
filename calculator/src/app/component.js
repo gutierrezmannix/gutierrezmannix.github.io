@@ -104,12 +104,14 @@ class Component extends DCLogic {
   }
   componentDidMount() {
     this._onDocDown = e => { const st = this.state; if (!(st.mfFile || st.mfNav || st.mfDl || st.ntOpen)) return; const tg = e.target; if (tg && tg.closest && tg.closest('.mf-menuwrap, .mf-navwrap')) return; this.setState({ mfFile: false, mfNav: '', mfDl: false, ntOpen: false }); }; document.addEventListener('mousedown', this._onDocDown);
-    this._onKey = e => { if (e.key === 'Escape' && (this.state.mfFile || this.state.mfNav || this.state.mfDl || this.state.ntOpen)) { this.setState({ mfFile: false, mfNav: '', mfDl: false, ntOpen: false }); return; }
+    this._onKey = e => { if (this.state.rlAsk && e.key === 'Escape') { e.preventDefault(); this.setState({ rlAsk: null }); return; }
+      if ((e.key === 'F5' || ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'r' || e.key === 'R'))) && this.rlHasWork()) { e.preventDefault(); this.askReload('key'); return; }
+      if (e.key === 'Escape' && (this.state.mfFile || this.state.mfNav || this.state.mfDl || this.state.ntOpen)) { this.setState({ mfFile: false, mfNav: '', mfDl: false, ntOpen: false }); return; }
       if (e.key === 'Escape' && this.state.mfSettings && !this.state.pk) { this.setState({ mfSettings: false }); return; } // GM26 .69: Escape closes Settings (after a picker list)
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { const b = this._mainEl && this._mainEl.querySelector('[data-mf-run]'); if (b) { e.preventDefault(); b.click(); } return; }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === 'k' || e.key === 'K') && this.state.screen === 'work') { e.preventDefault(); this.setState({ mfPane: 'output', mfDock: true, mfBrowseDock: this.state.tab === 'browse' ? true : this.state.mfBrowseDock, mfMobile: 'dock' }, () => { const i = document.querySelector('input.mf-cmdin'); if (i) i.focus(); }); return; }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) { const t = e.target, tg = t && t.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || (t && t.isContentEditable)) return; if ((this._undo || []).length) { e.preventDefault(); this.undo(); } } };
-    this._onUnload = e => { if (this._dirty && this._raw && !this._skipUnload) { e.preventDefault(); e.returnValue = ''; return ''; } };
+    this._onUnload = e => { if (this.rlHasWork() && !this._skipUnload) { e.preventDefault(); e.returnValue = ''; return ''; } }; // build .96: whenever a dataset is open, edited or not
     window.addEventListener('keydown', this._onKey); window.addEventListener('beforeunload', this._onUnload);
     // build .90: a file dropped anywhere opens it (the whole start page is the drop zone); the browser never leaves the
     // calculator to show the file. On the workbench it opens as File → Open another dataset does (asking first when
@@ -5920,17 +5922,21 @@ class Component extends DCLogic {
     return this.memo('cbcoded|' + v + '|' + (this.state.dver || 0) + '|' + this.filterSig(), () => {
       const col = raw.cols[idx], a = col.a, mk = this.mask(), vl = raw.vlabs && raw.vlabs[v], numeric = col.k === 'n';
       const labOf = k => vl instanceof Map ? vl.get(k) : vl ? vl[k] : undefined, labelled = !!(vl && (vl instanceof Map ? vl.size : Object.keys(vl).length));
-      const cnt = new Map(), key = new Array(a.length), codeOf = new Map();
+      const cnt = new Map(), key = new Array(a.length), codeOf = new Map(), X = col.x, xk = new Map(), UM = col.um, umk = new Set();
       for (let i = 0; i < a.length; i++) {
         key[i] = null; if (mk && !mk[i]) continue; const x = a[i];
+        // Stata's .a … .z (often No aplica, No sabe): missing for Stata's tab, but an answer here, which Leave out can drop
+        if (X && X[i] && typeof x === 'number' && !isFinite(x)) { const k = this._E.dtaXName(X[i]); key[i] = k; cnt.set(k, (cnt.get(k) || 0) + 1); xk.set(k, X[i]); continue; }
+        // SPSS user-missing codes (e.g. 8 = No aplica, 9 = No sabe): the same, kept with their number
+        if (UM && typeof x === 'number' && !isFinite(x) && isFinite(UM[i])) { const k = this._E.numLab(UM[i]); key[i] = k; cnt.set(k, (cnt.get(k) || 0) + 1); if (!codeOf.has(k)) codeOf.set(k, UM[i]); umk.add(k); continue; }
         if (x == null || x === '' || (typeof x === 'number' && !isFinite(x))) continue;
         const k = numeric ? this._E.numLab(x) : String(x); key[i] = k; cnt.set(k, (cnt.get(k) || 0) + 1); if (numeric && !codeOf.has(k)) codeOf.set(k, x);
         if (cnt.size > (labelled ? 60 : 30)) return null;
       }
       if (!cnt.size) return null;
       const MISS = /no aplica|no sabe|no respond|ns\s*\/\s*nr|no contest|no recuerda|no especificad|sin respuesta|not applicable|n\/a\b|don.?t know|dk\b|refus|no answer|missing|prefer not/i;
-      const codes = [...cnt.keys()].map(k => { const code = numeric ? codeOf.get(k) : null, l = numeric ? labOf(code) : null, label = l != null && String(l).trim() !== '' ? String(l) : k; return { key: k, code, label, n: cnt.get(k), miss: MISS.test(label) }; });
-      codes.sort((p, q) => numeric ? p.code - q.code : this._E.cbNatural(p.key, q.key));
+      const codes = [...cnt.keys()].map(k => { const xm = xk.get(k), code = numeric && !xm ? codeOf.get(k) : null, l = xm ? labOf(this._E.dtaXCode(xm)) : numeric ? labOf(code) : null, label = l != null && String(l).trim() !== '' ? String(l) : k; return { key: k, code, label, n: cnt.get(k), miss: !!xm || umk.has(k) || MISS.test(label), ext: xm || 0 }; });
+      codes.sort((p, q) => (p.ext - q.ext) || (numeric ? p.code - q.code : this._E.cbNatural(p.key, q.key)));
       const subst = codes.filter(k => !k.miss);
       return { numeric, labelled, prefer: labelled || !numeric, ordered: numeric && subst.length >= 3, codes, keyArr: key };
     });
@@ -5993,7 +5999,7 @@ class Component extends DCLogic {
           h('div', { className: 'cb-drop-h' }, st === 'score' ? 'Leave out of the score' : 'Leave out of the chart and of the 100%'),
           cd.codes.map(k => h('label', { key: k.key, className: 'cb-drop-row' + (forced.has(k.key) ? ' lock' : '') },
             h('input', { type: 'checkbox', checked: drop.has(k.key), disabled: forced.has(k.key), onChange: () => toggle(k.key), 'aria-label': 'Leave out ' + k.label }),
-            h('span', { className: 'c' }, k.code != null ? k.key : ''), h('span', { className: 'l' }, k.label), h('span', { className: 'n' }, k.n.toLocaleString('en-US')))),
+            h('span', { className: 'c' }, k.code != null || k.ext ? k.key : ''), h('span', { className: 'l' }, k.label), h('span', { className: 'n' }, k.n.toLocaleString('en-US')))),
           h('div', { className: 'cb-drop-q' }, quick.map(([t, keys]) => h('button', { type: 'button', key: t, className: 'tl-chip', onClick: e => { this.cbSet({ drop: keys }); const d = e.currentTarget && e.currentTarget.closest && e.currentTarget.closest('details'); if (d) d.open = false; } }, t))))),
       base ? h('span', { className: 'tl-hint cb-drop-note' }, base) : null);
   }
@@ -9324,7 +9330,7 @@ class Component extends DCLogic {
     const S = this.state, st = {};
     ["tsInputMode","tsFreq","tsPart","tsTarget","tsAggregate","tsSource","tsSourceValue","tsCount","tsPop","tsScale","treat","ax","semMethod","semShow","twoMode","gmSort","oneCt","pins","mfRepTitle","mfRepApp","hiddenVars","genTags","conLog","missingCodes","missingDraft","weightVar","svyStrata","svyPsu","subg","alphaSel","starSet","rgStep","rgType","rgModel","rgMg","rgPlot","binOne","chartColor","dialect","exploreVar","xVar","yVar","depVar","predictors","regModel","regIx","regVce","regCl","regTab","regNames","rtTitle","tab","txDict","txVar","semF","semP","semLink","semZero","tsT","tsU","tsY","tsSel","tsEv","tsEvName","tsEvU","tsType","plotKind","csPages","cbNames","cbColors","analysisId","analysisSub","analysisPages","pX","pY","autoScreen","alt","flt","fltV","fltOp","fltVal","weightAuto","conSig","mgX","mgBy","mgAt","mxItems","crItems","pG","pGSel","pYs","pT0","pT1","pCI","pMapStat","pMapYearVar","pMapYear","tsAvg","tsTr","tsAr1","tsAdd","tsEvVar","tsAll","tsT0","tsT1","txStop","txMin","txEx","txBy","txMode","txPre","ttMode","ttMu","ttG","ttA","ttB","ttY2","ttEqual","ttSwap","ttAlt","ttSum","ttY2","corVars","corMethod","corRows","corShow","corSel","guideOn","tl","ob","nl"].forEach(k => { if (S[k] !== undefined) st[k] = S[k]; });
     const vl = {}; if (raw.vlabs) Object.keys(raw.vlabs).forEach(k => { const m = raw.vlabs[k]; vl[k] = m instanceof Map ? [...m.entries()] : m; });
-    const cols = raw.cols.map(c => c.k === 'n' ? { k: 'n', a: Array.from(c.a, v => isFinite(v) ? v : null) } : { k: 's', a: Array.from(c.a) });
+    const cols = raw.cols.map(c => c.k === 'n' ? Object.assign({ k: 'n', a: Array.from(c.a, v => isFinite(v) ? v : null) }, c.x ? { x: Array.from(c.x) } : {}, c.um ? { um: Array.from(c.um, v => isFinite(v) ? v : null) } : {}) : { k: 's', a: Array.from(c.a) });
     const obj = { magic: 'digimi-session', version: 1, app: 'GM26.1', plots: (this._plots || []).map(p => { const q = Object.assign({}, p); delete q.thumb; return q; }), saved: new Date().toISOString(), fileName: S.fileName, data: { n: raw.n, names: raw.names, labels: raw.labels, vlabs: vl, cols }, state: st };
     const blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = String(S.fileName || 'session').replace(/\.[^.]+$/, '') + '.gm26.json'; a.click();
@@ -9335,7 +9341,7 @@ class Component extends DCLogic {
   sessionData(obj) {
     const d = obj.data, vl = {};
     Object.keys(d.vlabs || {}).forEach(k => { const v = d.vlabs[k]; vl[k] = Array.isArray(v) ? new Map(v) : v; });
-    const cols = d.cols.map(c => c.k === 'n' ? { k: 'n', a: Float64Array.from(c.a, v => v == null ? NaN : v) } : { k: 's', a: c.a.slice() });
+    const cols = d.cols.map(c => c.k === 'n' ? Object.assign({ k: 'n', a: Float64Array.from(c.a, v => v == null ? NaN : v) }, c.x ? { x: Uint8Array.from(c.x) } : {}, c.um ? { um: Float64Array.from(c.um, v => v == null ? NaN : v) } : {}) : { k: 's', a: c.a.slice() });
     return { n: d.n, names: d.names.slice(), labels: (d.labels || d.names.map(() => '')).slice(), vlabs: vl, cols };
   }
   saveCsv(withHidden) {
@@ -10683,7 +10689,7 @@ class Component extends DCLogic {
     const vl = v => { const o = Object.create(null); Object.keys(v || {}).forEach(k => { o[k] = new Map(v[k]); }); return o; };
     let data = null, orig = null, full = false;
     if (dat && dat.full) { data = { n: dat.full.n, names: dat.full.names, labels: dat.full.labels, vlabs: vl(dat.full.vlabs), cols: dat.full.cols }; full = true; }
-    else if (dat && dat.delta && fresh && dat.delta.cols.every(c => c.o == null || (fresh.cols[c.o] && fresh.cols[c.o].a.length === dat.delta.n))) { const D = dat.delta; data = { n: D.n, names: D.names, labels: D.labels, vlabs: vl(D.vlabs), cols: D.cols.map(c => c.o != null ? fresh.cols[c.o] : { k: c.k, a: c.a }) }; orig = D.cols.map(c => c.o != null ? c.o : null); }
+    else if (dat && dat.delta && fresh && dat.delta.cols.every(c => c.o == null || (fresh.cols[c.o] && fresh.cols[c.o].a.length === dat.delta.n))) { const D = dat.delta; data = { n: D.n, names: D.names, labels: D.labels, vlabs: vl(D.vlabs), cols: D.cols.map(c => c.o != null ? fresh.cols[c.o] : c.x || c.um ? Object.assign({ k: c.k, a: c.a }, c.x ? { x: c.x } : {}, c.um ? { um: c.um } : {}) : { k: c.k, a: c.a }) }; orig = D.cols.map(c => c.o != null ? c.o : null); }
     else { this.flash('Open ' + meta.fileName + ' again to restore this work'); return; }
     this._asFresh = null; this._restoring = true; this._restoringFull = full; this._autoSigNext = sig; this._restoreOrig = orig; this._restoreOrigNames = meta.origNames || null;
     this._undo = []; this._plots = (meta.plots || []).map(p => Object.assign({}, p, { thumb: this.plotThumb(p.xml) })); this._plotLast = {};
@@ -10715,8 +10721,8 @@ class Component extends DCLogic {
       if (needData) {
         const vl = {}; Object.keys(raw.vlabs || {}).forEach(k => { const m = raw.vlabs[k]; if (m instanceof Map) vl[k] = [...m.entries()]; });
         const base = { n: raw.n, names: raw.names.slice(), labels: (raw.labels || []).slice(), vlabs: vl };
-        if (raw.n * raw.cols.length <= 4e6) dataRec = { sig: this._autoSig, full: Object.assign(base, { cols: raw.cols.map(c => ({ k: c.k, a: c.a })) }) };
-        else dataRec = { sig: this._autoSig, delta: Object.assign(base, { cols: raw.cols.map(c => { const o = this._colOrig && this._colOrig.get(c); return o && o.a === c.a && !(this._colChg && this._colChg.has(c)) ? { o: o.i } : { k: c.k, a: c.a }; }) }) };
+        if (raw.n * raw.cols.length <= 4e6) dataRec = { sig: this._autoSig, full: Object.assign(base, { cols: raw.cols.map(c => c.x || c.um ? Object.assign({ k: c.k, a: c.a }, c.x ? { x: c.x } : {}, c.um ? { um: c.um } : {}) : { k: c.k, a: c.a }) }) };
+        else dataRec = { sig: this._autoSig, delta: Object.assign(base, { cols: raw.cols.map(c => { const o = this._colOrig && this._colOrig.get(c); return o && o.a === c.a && !(this._colChg && this._colChg.has(c)) ? { o: o.i } : c.x || c.um ? Object.assign({ k: c.k, a: c.a }, c.x ? { x: c.x } : {}, c.um ? { um: c.um } : {}) : { k: c.k, a: c.a }; }) }) };
       }
       const hasFull = dataRec ? !!dataRec.full : !!this._asHasFull;
       const meta = { sig: this._autoSig, fileName: S.fileName, at: Date.now(), state: st, plots: keep.map(p => { const q = Object.assign({}, p); delete q.thumb; return q; }), sum, origNames: this._asOrigNames, hasFull };
@@ -10728,6 +10734,36 @@ class Component extends DCLogic {
       for (const r of drop) await this.idbDel(r.sig);
     } catch (e) { console.warn('autosave', e); } finally { this._asBusy = false; if (this._asAgain) { this._asAgain = false; this.autoSchedule(); } }
   }
+  // ---- build .96: reloading closes the data open now. The calculator's own box (Reload now on the new-version notice, F5,
+  // Ctrl+R, ⌘R) says what is lost and offers to save it first; the browser's reload button and menu can only show the
+  // browser's fixed "Reload site?" box, which now appears whenever a dataset is open.
+  rlHasWork() { return !!(this._raw && this.state.screen === 'work'); }
+  askReload(why, build) {
+    if (!this.rlHasWork()) return this.doReload(build);
+    this.setState({ rlAsk: { why, build: build || '', saved: [] }, mfFile: false, mfNav: '', mfDl: false }, () => setTimeout(() => { const b = typeof document !== 'undefined' && document.querySelector('.mf-rl button'); if (b) b.focus(); }, 30));
+  }
+  doReload(build) {
+    this._skipUnload = true;
+    Promise.resolve(this.rlHasWork() ? this.autoSave() : null).catch(() => {}).then(() => { if (build) location.replace(location.pathname + '?v=' + encodeURIComponent(build)); else location.reload(); });
+  }
+  rlVals(out) {
+    const S = this.state, A = S.rlAsk; out.rlOpen = !!A; if (!A) return;
+    const raw = this._raw, n = raw ? raw.n : 0, nm = S.fileName || 'the data', pl = (this._plots || []).length, pins = (S.pins || []).length;
+    const what = ['edits', 'results', pl ? pl + ' chart' + (pl > 1 ? 's' : '') : 'charts', pins ? pins + ' pinned result' + (pins > 1 ? 's' : '') : 'pins', 'the command log'];
+    out.rlTitle = A.why === 'update' ? 'Reload to get the new version (build ' + A.build + ')?' : 'Reload the calculator?';
+    const origN = new Set(this._asOrigNames || []), kept = !this._asOff && this._autoSig && typeof indexedDB !== 'undefined' && !!(raw && (raw.names.some(v => !origN.has(v)) || pins || (S.conLog || []).length || this._dataRev));
+    out.rlText = 'Reloading closes ' + nm + ' (' + n.toLocaleString('en-US') + ' rows) and everything you did with it: ' + what.join(', ') + '. ' + (kept ? 'A copy is kept in this browser and offered back after the reload, but a saved file is safer.' : 'Save a file first to keep them; after the reload you would open ' + nm + ' again.');
+    out.rlSaved = A.saved.length ? '✓ Saved ' + A.saved.join(' and ') + ' (look in your Downloads).' : '';
+    out.rlSavedStyle = A.saved.length ? '' : 'display: none;';
+    const base = this.state.fileName ? String(this.state.fileName).replace(/\.[^.]+$/, '') : 'session', mark = f => this.setState(s => ({ rlAsk: s.rlAsk ? Object.assign({}, s.rlAsk, { saved: s.rlAsk.saved.includes(f) ? s.rlAsk.saved : [...s.rlAsk.saved, f] }) : null }));
+    const G = 'background: var(--c194F39, #194F39); color: var(--cFFFFFF, #FFFFFF); border-color: var(--c194F39, #194F39);', R = 'color: var(--cA8521A, #A8521A); border-color: var(--cE5B98A, #E5B98A);';
+    out.rlActs = [
+      { label: 'Save session file', style: A.saved.length ? '' : G, click: () => { this.saveSession(); mark(base.replace(/\.gm26$/i, '') + '.gm26.json'); } },
+      { label: 'Save data as CSV', style: '', click: () => { this.deSaveCsv(false, false); mark(base.replace(/\.gm26$/i, '') + '.csv'); } },
+      { label: A.saved.length ? 'Reload now' : 'Reload without saving', style: A.saved.length ? G : R, click: () => { this.setState({ rlAsk: null }); this.doReload(A.build); } },
+      { label: 'Cancel', style: '', click: () => this.setState({ rlAsk: null }) }];
+    out.rlCancel = () => this.setState({ rlAsk: null });
+  }
   // ---- new-version check (calculator/version.json)
   verNewer(a, b) { const A = String(a).split(/\D+/).filter(Boolean).map(Number), B2 = String(b).split(/\D+/).filter(Boolean).map(Number); for (let i = 0; i < Math.max(A.length, B2.length); i++) { const x = A[i] || 0, y = B2[i] || 0; if (x !== y) return x > y; } return false; }
   async versionCheck() {
@@ -10738,7 +10774,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-08.95') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-08.96') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -10782,8 +10818,8 @@ class Component extends DCLogic {
       if (S.newVer) {
         const nv = S.newVer, later = btn('Later', () => { this._verDismiss = nv.build; this.setState({ newVer: null }); });
         const fl = 'border-left: 4px solid var(--cC4681E, #C4681E); position: fixed; right: 16px; bottom: 16px; z-index: 9000; max-width: min(400px, calc(100vw - 32px)); box-sizing: border-box; box-shadow: 0 6px 24px rgba(0,0,0,0.18);';
-        if (nv.site) BAN.push({ text: '↻ New version of the calculator available (build ' + nv.build + ').' + (nv.note ? ' ' + nv.note : '') + (this._raw ? ' Your work is autosaved and offered back after the reload.' : ''), style: fl,
-          acts: [btn('Reload now', () => { this._skipUnload = true; Promise.resolve(this.autoSave()).then(() => { location.replace(location.pathname + '?v=' + encodeURIComponent(nv.build)); }); }, true), later] });
+        if (nv.site) BAN.push({ text: '↻ New version of the calculator available (build ' + nv.build + ').' + (nv.note ? ' ' + nv.note : '') + (this.rlHasWork() ? ' Save your session first (File → Save session): reloading closes the data open now.' : ''), style: fl,
+          acts: [btn('Reload now', () => this.askReload('update', nv.build), true), later] });
         else BAN.push({ text: '↻ New version of the calculator available (build ' + nv.build + '). This is a downloaded copy — get the new one from the website.' + (nv.note ? ' ' + nv.note : ''), style: fl,
           acts: [btn('Open the website', () => { window.open('https://gutierrezmannix.github.io/calculator/', '_blank'); }, true), later] });
       }
@@ -10813,7 +10849,7 @@ class Component extends DCLogic {
       out.ntRows = (this._notes || []).map(n => ({ text: n.text, time: new Date(n.t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), style: n.kind === 'err' ? 'color: #934425;' : '' }));
       out.ntEmpty = !out.ntRows.length; out.ntClear = () => { this._notes = []; this.setState({ ntUnseen: 0 }); };
       const mac = /Mac|iPhone|iPad/.test(navigator.platform || ''), C = mac ? '⌘' : 'Ctrl';
-      out.kbOpen = !!S.kbHelp; out.kbClose = () => this.setState({ kbHelp: false }); out.kbStop = e => e.stopPropagation();
+      this.rlVals(out); out.kbOpen = !!S.kbHelp; out.kbClose = () => this.setState({ kbHelp: false }); out.kbStop = e => e.stopPropagation();
       out.kbRows = [['?', 'Show or hide this list'], [C + ' + K', 'Go to the command line'], [C + ' + Enter', 'Run (the Run button of the current tab)'], [C + ' + Z', 'Undo the last change to the data'], ['Esc', 'Close menus, this list and pop-up definitions'], ['Tab / Shift + Tab', 'Move between buttons, fields and menu items'], ['Enter or Space', 'Press the focused button or menu item'], ['Tab (command line)', 'Complete the command or variable name'], ['Hover or tap', 'A dotted underline (p, SE, VIF, RMSEA…) shows a short definition']].map(([k, d]) => ({ k, d }));
     }
     out.kbShow = () => this.setState({ kbHelp: true });

@@ -14,8 +14,15 @@ ingreso <- round(exp(rnorm(N, 9 + 0.03 * (anio - 2015), 0.6)))
 df <- data.frame(anio, sexo = labelled(sexo, c(Hombre = 1, Mujer = 2)), peso,
   taxi = labelled(taxi, c("Sí" = 1, "No" = 2, "No aplica" = 3, "No sabe / no responde" = 9)),
   conf = labelled(conf, c(Mucha = 1, Alguna = 2, Poca = 3, Nada = 4, "No aplica" = 5, "No sabe / no responde" = 9)), ingreso)
-attr(df$taxi, "label") <- "Dejar de tomar taxi"; attr(df$conf, "label") <- "Confianza en vecinos"
+# the same question as many surveys store it: No aplica and No sabe as Stata's extended missing values .a and .b
+tx <- as.double(taxi); tx[taxi == 3] <- tagged_na("a"); tx[taxi == 9] <- tagged_na("b")
+df$taxi_x <- labelled(tx, c("Sí" = 1, "No" = 2, "No aplica" = tagged_na("a"), "No sabe / no responde" = tagged_na("b")))
+ib <- as.integer(taxi); df$taxi_b <- labelled(ib, c("Sí" = 1L, "No" = 2L, "No aplica" = 3L, "No sabe / no responde" = 9L))
+attr(df$taxi, "label") <- "Dejar de tomar taxi"; attr(df$conf, "label") <- "Confianza en vecinos"; attr(df$taxi_x, "label") <- "Dejar de tomar taxi (.a, .b)"
 write_dta(df, "calculator/tests/data/timeline-coded.dta", version = 15)
+write_dta(df[, c("anio", "peso", "taxi_x")], "calculator/tests/data/timeline-coded-v12.dta", version = 12)
+# and as SPSS stores it: 3 and 9 declared user-missing
+write_sav(data.frame(anio, peso, taxi_s = labelled_spss(as.double(taxi), c("Sí" = 1, "No" = 2, "No aplica" = 3, "No sabe / no responde" = 9), na_values = c(3, 9))), "calculator/tests/data/timeline-coded.sav")
 est <- function(y, w, keep) { d <- data.frame(y = y[keep], w = w[keep]); n <- nrow(d); des <- svydesign(ids = ~1, weights = ~w, data = d); m <- svymean(~y, des)
   se <- as.numeric(SE(m)); mu <- as.numeric(coef(m)); h <- qt(0.975, n - 1) * se; list(y = mu, se = se, lo = mu - h, hi = mu + h, n = n) }
 win <- function(i, k) { h <- (k - 1) / 2; yrs[max(1, i - h):min(length(yrs), i + h)] }

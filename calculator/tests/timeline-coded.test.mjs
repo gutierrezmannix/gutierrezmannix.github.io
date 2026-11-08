@@ -85,3 +85,30 @@ test('the page: Show adapts, Leave out lists every answer with its code and coun
   const boxes = nodes.filter(n => n.tag === 'input' && n.props.type === 'checkbox' && /^Leave out /.test(n.props['aria-label'] || ''));
   assert.equal(boxes.length, 6); assert.equal(boxes.filter(n => n.props.disabled).length, 2, 'No aplica and No sabe locked out of the score');
 });
+
+test('No aplica and No sabe stored as Stata .a and .b are answers too (Stata 15 and Stata 12 files)', async () => {
+  for (const f of ['timeline-coded.dta', 'timeline-coded-v12.dta']) {
+    const bb = fs.readFileSync(new URL('./data/' + f, import.meta.url)), rx = await E.parseDTA(bb.buffer.slice(bb.byteOffset, bb.byteOffset + bb.byteLength), () => {});
+    const ix = rx.names.indexOf('taxi_x'); assert.ok(rx.cols[ix].x, f + ': the letters are kept');
+    assert.equal(rx.vlabs.taxi_x.get(E.dtaXCode(1)), 'No aplica', f + ': .a keeps its label');
+    const c = make(); c._raw = rx; c.state.cols = rx.names.map((_, i) => Object.assign(E.profileCol(rx, i, true), { idx: i }));
+    let res = build(c, 'line', { x: 'anio', y: 'taxi_x' });
+    assert.deepEqual(res.models[0].series.map(s => s.key), ['Sí', 'No', 'No aplica', 'No sabe / no responde'], f);
+    R.forEach((r, i) => { near(ser(res, 'Sí').pts[i].y, r.each1.y, f + ' ' + r.year + ' Sí'); near(ser(res, 'No aplica').pts[i].y, r.each3.y, f + ' ' + r.year + ' No aplica (.a)'); });
+    res = build(c, 'line', { x: 'anio', y: 'taxi_x', drop: ['.b'] }); R.forEach((r, i) => near(ser(res, 'Sí').pts[i].y, r.each_dropped.y, f + ' ' + r.year + ' Sí without .b'));
+    c.state = { ...c.state, plotKind: 'line', csPages: { line: { x: 'anio', y: 'taxi_x' } } }; c.clearMemo();
+    const t = text(flat(c.renderVals().chartSuiteEl).find(n => n.props && n.props.className === 'tl-panel cb-data'));
+    assert.match(t, /\.a +No aplica/, f + ': the checklist shows the .a code');
+  }
+  // an integer column with the same codes reads as before
+  const c = make(), res = build(c, 'line', { x: 'anio', y: 'taxi_b' }); R.forEach((r, i) => near(ser(res, 'No aplica').pts[i].y, r.each3.y, r.year + ' coded 3'));
+});
+
+test('SPSS user-missing codes (3 No aplica, 9 No sabe) are answers in the Timeline', async () => {
+  const bb = fs.readFileSync(new URL('./data/timeline-coded.sav', import.meta.url)), rs = await E.parseSAV(bb.buffer.slice(bb.byteOffset, bb.byteOffset + bb.byteLength), () => {});
+  const ix = rs.names.indexOf('taxi_s'); assert.ok(rs.cols[ix].um, 'the user-missing codes are kept'); assert.ok(Number.isNaN(rs.cols[ix].a[rs.cols[ix].um.findIndex(v => v === 3)]), 'still missing for every other analysis');
+  const c = make(); c._raw = rs; c.state.cols = rs.names.map((_, i) => Object.assign(E.profileCol(rs, i, true), { idx: i }));
+  const res = build(c, 'line', { x: 'anio', y: 'taxi_s' });
+  assert.deepEqual(res.models[0].series.map(s => s.key), ['Sí', 'No', 'No aplica', 'No sabe / no responde']);
+  R.forEach((r, i) => { near(ser(res, 'No aplica').pts[i].y, r.each3.y, r.year + ' No aplica (user-missing 3)'); near(ser(res, 'Sí').pts[i].y, r.each1.y, r.year + ' Sí'); });
+});

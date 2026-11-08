@@ -256,3 +256,24 @@ Tests:
 - Checked by hand on the ENVIPE sample (samplevic.dta, weighted by fac_ele), where every number matched R `svymean`:
   - % Sí among taxi users, pooled 3-year: 33.9 (2017, 2-year window), 37.8 (2019) and 31.8 (2026);
   - trust in neighbours reversed: 2.96 to 3.09.
+
+## Build .96 — No aplica and No sabe stored as missing codes
+
+Many survey files store No aplica and No sabe as missing codes, so Stata's `tab` leaves them out unless you add `, missing`:
+
+- Stata files use extended missing values (`.a`, `.b` …) with value labels.
+- SPSS files use user-missing values (e.g. 8, 9).
+
+The readers used to turn these into plain blanks, so the Timeline could not count them.
+
+What happens now:
+
+- The cells stay missing for every other analysis, as in Stata and haven.
+- The Stata reader keeps each cell's letter (`col.x`: 1 = `.a` … 26 = `.z`), from Stata 8 files onward. Labels stay under
+  Stata's code (`.a` = 2147483622; `dtaXCode`).
+- The SPSS reader keeps the user-missing code (`col.um`).
+- Sessions and the browser autosave keep both.
+- The Timeline counts these codes as answers: lines, part of the 100%, listed under Leave out with their code (`.a`,
+  `.b`, `9`). They count as non-substantive answers, so they are drawn in grey and the mean score leaves them out.
+- `tests/timeline-coded.test.mjs` checks the same question coded three ways against R's `survey`: as 3/9, as `.a`/`.b`
+  in Stata 15 and Stata 12 files, and as SPSS user-missing codes.

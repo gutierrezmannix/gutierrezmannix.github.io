@@ -137,6 +137,12 @@ const DTA_CUT = 'this Stata file is damaged or incomplete (it ends before its da
 export async function parseDTA(buf, prog) {
   try { return await dtaRead(buf, prog); } catch (e) { if (e instanceof RangeError) throw new Error(DTA_CUT); throw e; }
 }
+// Stata's extended missing values .a … .z (No aplica, No sabe … in many surveys): the cell stays missing (NaN), and its
+// letter is kept in col.x (1 = .a … 26 = .z), only for columns that have one. Their value labels are kept under the long
+// code Stata stores them with (.a = 2147483622 … .z = 2147483647; dtaXCode), so a chart can count them as answers.
+function dtaX(col, N, r, k) { if (k >= 1 && k <= 26) (col.x || (col.x = new Uint8Array(N)))[r] = k; }
+export const dtaXCode = k => 2147483621 + k;
+export const dtaXName = k => '.' + String.fromCharCode(96 + k);
 async function dtaRead(buf, prog) {
   const u8 = new Uint8Array(buf), dv = new DataView(buf);
   const asc = (s, e) => { let r = ''; for (let i = s; i < Math.min(e, u8.length); i++) r += String.fromCharCode(u8[i]); return r; };
@@ -187,11 +193,11 @@ async function dtaRead(buf, prog) {
         const base = dAt + r * rowLen;
         for (let c = 0; c < K; c++) {
           const t = types[c], q = base + colOff[c];
-          if (t === 65526) { const v = dv.getFloat64(q, le); cols[c].a[r] = (isFinite(v) && v <= DMAX && v >= -DMAX) ? v : NaN; }
-          else if (t === 65527) { const v = dv.getFloat32(q, le); cols[c].a[r] = (isFinite(v) && v <= FMAX && v >= -FMAX) ? v : NaN; }
-          else if (t === 65528) { const v = dv.getInt32(q, le); cols[c].a[r] = v > 2147483620 ? NaN : v; }
-          else if (t === 65529) { const v = dv.getInt16(q, le); cols[c].a[r] = v > 32740 ? NaN : v; }
-          else if (t === 65530) { const v = dv.getInt8(q); cols[c].a[r] = v > 100 ? NaN : v; }
+          if (t === 65526) { const v = dv.getFloat64(q, le); if (isFinite(v) && v <= DMAX && v >= -DMAX) cols[c].a[r] = v; else { cols[c].a[r] = NaN; if (v > DMAX) dtaX(cols[c], N, r, Math.round((v / 8.98846567431158e307 - 1) * 4096)); } }
+          else if (t === 65527) { const v = dv.getFloat32(q, le); if (isFinite(v) && v <= FMAX && v >= -FMAX) cols[c].a[r] = v; else { cols[c].a[r] = NaN; if (v > FMAX) dtaX(cols[c], N, r, Math.round((v / 1.7014118346046923e38 - 1) * 4096)); } }
+          else if (t === 65528) { const v = dv.getInt32(q, le); if (v > 2147483620) { cols[c].a[r] = NaN; dtaX(cols[c], N, r, v - 2147483621); } else cols[c].a[r] = v; }
+          else if (t === 65529) { const v = dv.getInt16(q, le); if (v > 32740) { cols[c].a[r] = NaN; dtaX(cols[c], N, r, v - 32741); } else cols[c].a[r] = v; }
+          else if (t === 65530) { const v = dv.getInt8(q); if (v > 100) { cols[c].a[r] = NaN; dtaX(cols[c], N, r, v - 101); } else cols[c].a[r] = v; }
           else if (t === 32768) { cols[c].a[r] = strlAt(q); }
           else { let e = q; const cap = q + t; while (e < cap && u8[e] !== 0) e++; cols[c].a[r] = e > q ? dec.decode(u8.subarray(q, e)) : ''; }
         }
@@ -255,11 +261,11 @@ async function dtaRead(buf, prog) {
       const base = dAt + r * rowLen;
       for (let c = 0; c < K; c++) {
         const t = types[c], q = base + colOff[c];
-        if (t === 255) { const v = dv.getFloat64(q, le); cols[c].a[r] = (isFinite(v) && v <= DMAX && v >= -DMAX) ? v : NaN; }
-        else if (t === 254) { const v = dv.getFloat32(q, le); cols[c].a[r] = (isFinite(v) && v <= FMAX && v >= -FMAX) ? v : NaN; }
-        else if (t === 253) { const v = dv.getInt32(q, le); cols[c].a[r] = v > (old ? 2147483646 : 2147483620) ? NaN : v; }
-        else if (t === 252) { const v = dv.getInt16(q, le); cols[c].a[r] = v > (old ? 32766 : 32740) ? NaN : v; }
-        else if (t === 251) { const v = dv.getInt8(q); cols[c].a[r] = v > (old ? 126 : 100) ? NaN : v; }
+        if (t === 255) { const v = dv.getFloat64(q, le); if (isFinite(v) && v <= DMAX && v >= -DMAX) cols[c].a[r] = v; else { cols[c].a[r] = NaN; if (!old && v > DMAX) dtaX(cols[c], N, r, Math.round((v / 8.98846567431158e307 - 1) * 4096)); } }
+        else if (t === 254) { const v = dv.getFloat32(q, le); if (isFinite(v) && v <= FMAX && v >= -FMAX) cols[c].a[r] = v; else { cols[c].a[r] = NaN; if (!old && v > FMAX) dtaX(cols[c], N, r, Math.round((v / 1.7014118346046923e38 - 1) * 4096)); } }
+        else if (t === 253) { const v = dv.getInt32(q, le); if (v > (old ? 2147483646 : 2147483620)) { cols[c].a[r] = NaN; if (!old) dtaX(cols[c], N, r, v - 2147483621); } else cols[c].a[r] = v; }
+        else if (t === 252) { const v = dv.getInt16(q, le); if (v > (old ? 32766 : 32740)) { cols[c].a[r] = NaN; if (!old) dtaX(cols[c], N, r, v - 32741); } else cols[c].a[r] = v; }
+        else if (t === 251) { const v = dv.getInt8(q); if (v > (old ? 126 : 100)) { cols[c].a[r] = NaN; if (!old) dtaX(cols[c], N, r, v - 101); } else cols[c].a[r] = v; }
         else { let e = q; const cap = q + t; while (e < cap && u8[e] !== 0) e++; cols[c].a[r] = e > q ? dec.decode(u8.subarray(q, e)) : ''; }
       }
     }
@@ -367,11 +373,11 @@ async function savRead(buf, prog) {
   const E1582 = Date.UTC(1582, 9, 14), p2 = x => String(x).padStart(2, '0');
   for (const o of out) {
     const v = o.v; let nm = longName[v.short] || v.short; if (seen[nm]) nm = nm + '_' + (++seen[nm]); else seen[nm] = 1; names.push(nm); labels.push(v.lab ? txt(v.lab) : '');
-    if (v.type === 0) { const a = new Float64Array(n); for (let r = 0; r < n; r++) { let x = numOf(cells[r][v.seg]); if (!(x > -1.7e308) || (v.nmis > 0 && v.mis.includes(x)) || (v.nmis < 0 && ((x >= v.mis[0] && x <= v.mis[1]) || (v.mis.length > 2 && x === v.mis[2])))) x = NaN; a[r] = x; }
+    if (v.type === 0) { const a = new Float64Array(n); let um = null; for (let r = 0; r < n; r++) { let x = numOf(cells[r][v.seg]); if (!(x > -1.7e308)) x = NaN; else if ((v.nmis > 0 && v.mis.includes(x)) || (v.nmis < 0 && ((x >= v.mis[0] && x <= v.mis[1]) || (v.mis.length > 2 && x === v.mis[2])))) { (um || (um = new Float64Array(n).fill(NaN)))[r] = x; x = NaN; } a[r] = x; }
       const dk = [20, 23, 24, 38, 39].includes(v.fmt) ? 'd' : [22, 41].includes(v.fmt) ? 'c' : v.fmt === 28 ? 'm' : '';
       if (dk) { const s2 = new Array(n); for (let r = 0; r < n; r++) { const x = a[r]; if (!isFinite(x)) { s2[r] = ''; continue; } const d = new Date(E1582 + x * 1000), day = d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate());
           s2[r] = dk === 'd' ? day : dk === 'm' ? day.slice(0, 7) : day + (x % 86400 ? ' ' + p2(d.getUTCHours()) + ':' + p2(d.getUTCMinutes()) + ':' + p2(d.getUTCSeconds()) : ''); } cols.push({ k: 's', a: s2 }); }
-      else cols.push({ k: 'n', a });
+      else cols.push(um ? { k: 'n', a, um } : { k: 'n', a }); // um: the user-missing codes (99 = No sabe), kept for charts that count answers
     } else {
       // a string spans ceil(width / 8) cells; a very long one (width > 255) is ceil(width / 252) segments, each holding
       // 255 bytes of the text except the last, which holds the rest (the layout SPSS, PSPP and ReadStat use)

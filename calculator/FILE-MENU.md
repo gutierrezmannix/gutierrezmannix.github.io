@@ -100,3 +100,20 @@ and is as tall as the room there is. Scrolling inside any dropdown (variable lis
 Charts / Data menus) stays inside it: at either end the page underneath no longer moves (it jumped 683 px under the
 Tests menu). Every list scrolls with the wheel to its last entry and back, and arrow keys keep the highlighted entry in
 view. Test: `tests/dropdowns-e2e.cjs`.
+
+## Build .96 — Warning before a reload
+
+Reloading closes the data that is open, together with its edits, results, charts, pins and the command log.
+
+- **The calculator's own box** opens for *Reload now* on the new-version notice and for F5, Ctrl+R, Ctrl+Shift+R and ⌘R
+  while a dataset is open.
+  - It names the file and its rows, and lists what will be lost.
+  - It says whether a copy is kept in the browser (only when there is work to autosave). If not, it says the file would
+    have to be opened again.
+  - It offers **Save session file** and **Save data as CSV**. After a save it shows "✓ Saved … (look in your Downloads)"
+    and the main button becomes **Reload now**. The page does not reload by itself, so the download is not cut short.
+  - *Reload without saving* and *Cancel* are always there; Escape cancels.
+- **The browser's ⟳ button, its Reload menu and closing the tab** can only show the browser's fixed box ("Reload site?
+  Changes you made may not be saved"). That box now appears whenever a dataset is open, not only after edits.
+- The new-version notice reminds you to save the session before reloading.
+- Test: `tests/reload-e2e.cjs`.

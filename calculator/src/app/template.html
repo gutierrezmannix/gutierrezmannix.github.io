@@ -769,6 +769,8 @@ code, kbd, samp { font-family: var(--font-mono); }
     .mf-kbwrap { position: fixed; inset: 0; z-index: 9000; background: rgba(26,23,17,0.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
     .mf-kb { background: #FFFFFF; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.3); width: 460px; max-width: 100%; max-height: 86vh; overflow-y: auto; padding: 14px 18px; color: #2B271E; }
     .mf-kb-h { display: flex; align-items: center; gap: 10px; font: 700 15px 'Hanken Grotesk', Arial, sans-serif; margin-bottom: 8px; }
+    .mf-rl { width: 520px; } .mf-rl-p { margin: 4px 0 10px; font-size: 13.5px; line-height: 1.5; color: #3D3629; } .mf-rl-ok { color: var(--c194F39, #194F39); font-weight: 600; }
+    .mf-rl-acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding-top: 4px; } .mf-rl-acts .mf-axbtn { min-height: 34px; }
     .mf-kb-r { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid #F2ECE1; font-size: 13px; line-height: 1.4; }
     .mf-kb-k { flex: 0 0 150px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 12px; color: #194F39; font-weight: 700; }
   </style>
@@ -1060,6 +1062,16 @@ code, kbd, samp { font-family: var(--font-mono); }
       <div class="mf-kb" role="dialog" aria-label="Keyboard shortcuts" sc-camel-on-click="{{ kbStop }}">
         <div class="mf-kb-h"><span>Keyboard shortcuts</span><div style="flex: 1;"></div><button class="mf-axbtn" sc-camel-on-click="{{ kbClose }}">Close</button></div>
         <sc-for list="{{ kbRows }}" as="k" hint-placeholder-count="4"><div class="mf-kb-r"><span class="mf-kb-k">{{ k.k }}</span><span>{{ k.d }}</span></div></sc-for>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ rlOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="mf-kbwrap" sc-camel-on-click="{{ rlCancel }}">
+      <div class="mf-kb mf-rl" role="alertdialog" aria-modal="true" aria-label="Reload the calculator" sc-camel-on-click="{{ kbStop }}">
+        <div class="mf-kb-h"><span>{{ rlTitle }}</span></div>
+        <p class="mf-rl-p">{{ rlText }}</p>
+        <p class="mf-rl-p mf-rl-ok" style="{{ rlSavedStyle }}">{{ rlSaved }}</p>
+        <div class="mf-rl-acts"><sc-for list="{{ rlActs }}" as="a" hint-placeholder-count="4"><button class="mf-axbtn" style="{{ a.style }}" sc-camel-on-click="{{ a.click }}">{{ a.label }}</button></sc-for></div>
       </div>
     </div>
   </sc-if>
@@ -4051,7 +4063,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-08.95</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-08.96</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>
