@@ -100,14 +100,17 @@ test('one number for a group of areas: the group gets one value and no borders i
   assert.equal(A.values[sel.areas.findIndex(a => a.name === 'Dornod')], 10);
 });
 
-test('CONEVAL-like file: ent 1–32 is found as Mexico\'s states; % in poverty, weighted, latest year; municipalities from ubica_geo', async () => {
+test('CONEVAL-like file: nothing is picked by itself (build .97); picking ent fits Mexico\'s states; % in poverty, weighted, latest year; municipalities from ubica_geo', async () => {
   let s = 9; const rnd = () => ((s = (1664525 * s + 1013904223) >>> 0) / 4294967296);
   const munis = ['14039', '090070000', '12001', '28032', '24028', '20067', '07101', '19039'];
   const lines = ['folio,ent,ubica_geo,year,pobreza,factor,edad']; for (let i = 0; i < 4000; i++) { const u = munis[i % munis.length], e = +u.slice(0, 2); lines.push([i, e, u, 2016 + 2 * (i % 4), rnd() < 0.2 + e / 60 ? 1 : 0, 100 + Math.floor(rnd() * 900), 18 + (i % 60)].join(',')); }
   const c = await make(lines.join('\n'), { weightVar: 'factor' });
   const al = c.autoLabels(c._raw, 'coneval.csv'); assert.ok(al.some(x => x.name === 'ent'));
-  let r = render(c); const cfg = c.cbC();
-  assert.equal(cfg.id, 'ent'); assert.equal(cfg.country, 'MEX'); assert.equal(+cfg.level, 1); assert.equal(cfg.stat, 'pct'); assert.equal(cfg.y, 'pobreza');
+  let r = render(c); assert.equal(c.cbC().id || '', '', 'no place column picked by itself'); assert.equal(c.cbC().y, undefined, 'no variable picked by itself'); assert.match(r.text, /Pick the column that names or codes the place/);
+  assert.ok(r.nodes.some(n => n.props && n.props['aria-label'] === 'Which column says the place?'), 'the place list');
+  c.mlPickPlace('ent'); r = render(c); assert.match(r.text, /Pick the variable to show on the map/);
+  c.cbSet({ stat: 'pct', y: 'pobreza' }); r = render(c); const cfg = c.cbC();
+  assert.equal(cfg.id, 'ent'); assert.equal(cfg.country, 'MEX'); assert.equal(+cfg.level, 1);
   assert.match(r.text, /8 of 8/); assert.match(r.text, /INEGI codes/); assert.deepEqual(r.alerts, []);
   assert.match(r.markup, /% where pobreza = 1 by state, Mexico, 2022/); c.cbSet({ level: 2, id: 'ubica_geo' }); assert.match(render(c).markup, /by municipality, Mexico/); c.cbSet({ level: 1, id: 'ent' }); r = render(c); assert.match(r.markup, /weighted by factor/);
   // the value for Tamaulipas (28) in 2022, weighted, equals a direct count
@@ -128,14 +131,14 @@ test('CONEVAL-like file: ent 1–32 is found as Mexico\'s states; % in poverty, 
 
 test('names of other countries\' provinces, US FIPS numbers, and the world map', async () => {
   const c = await make('land,v\nBavaria,1\nBerlin,2\nBaviera,3\nHamburg,4\nSaxony,5\nNordrhein-Westfalen,6\nBrandenburg,7\nBremen,8');
-  let r = render(c); assert.equal(c.cbC().country, 'DEU', 'Germany found from the names'); assert.equal(c.cbC().id, 'land');
+  let r = render(c); c.mlPickPlace('land'); r = render(c); assert.equal(c.cbC().country, 'DEU', 'Germany found from the names'); assert.equal(c.cbC().id, 'land');
   c.cbSet({ stat: 'mean', y: 'v' }); r = render(c); assert.match(r.text, /8 of 8/); assert.match(r.markup, /Mean of v by/);
   const u = await make('st,v\n6,1\n48,2\n36,3\n12,4\n17,5\n1,6');
   u.state.csPages.map = { scope: 'country', country: 'USA', id: 'st', stat: 'mean', y: 'v' }; r = render(u);
   assert.match(r.text, /6 of 6/); assert.match(r.text, /FIPS codes/);
   assert.match(r.markup, />Alaska</, 'Alaska in its own box');
   const w = await make('country,gdp\nMexico,1\nBrasil,2\nEstados Unidos,3\nDEU,4\nFrance,5\nJapan,6\nKenya,7');
-  r = render(w); assert.equal(w.cbC().scope, 'world');
+  r = render(w); w.mlPickPlace('country'); r = render(w); assert.equal(w.cbC().scope, 'world');
   w.cbSet({ stat: 'mean', y: 'gdp' }); r = render(w); assert.match(r.text, /7 of 7/); assert.deepEqual(r.alerts, []); assert.ok(r.markup.length > 5000);
   w.cbSet({ region: 'latam' }); r = render(w); assert.ok(r.markup.length > 1000);
 });

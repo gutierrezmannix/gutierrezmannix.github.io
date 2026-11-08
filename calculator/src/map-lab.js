@@ -92,18 +92,17 @@
       return Object.assign(r, { values: vals });
     });
   }
-  // which column names the place, and which map fits it: tried on every column with a manageable number of values
-  mlDetect() {
-    const D = this._mlD || {}; if (!D.a1 || !D.mx || !D.world) return null;
-    return this.memo('mlDetect|' + (this.state.dver || 0) + '|' + (this.state.cols || []).length, () => {
-      // only columns that can name a place: text, whole numbers with few values, or a place-like name (ent, ubica_geo, country…)
-      const PL = /ent|edo|estado|state|prov|region|depart|aimag|oblast|prefect|county|mun|ubica|geo|pais|país|country|nation|iso|cname|idenpa|distr|canton|comuna|parish/i;
-      const E = this._E, cols = (this.state.cols || []).filter(v => { const m = this.effMeta(v.name); if (!m || (m.distinct || 0) < 2 || (m.distinct || 0) > 3000) return false; const cv = this.vals(v.name); if (!cv) return false; if (cv.kind !== 'num') return true; if (PL.test(v.name)) return true; if ((m.distinct || 0) > 300) return false; for (let i = 0; i < cv.a.length; i += Math.max(1, Math.floor(cv.a.length / 400))) { const x = cv.a[i]; if (isFinite(x) && !Number.isInteger(x)) return false; } return true; });
+  // build .97: nothing is picked by itself (on 1.5 million rows × 1,000 variables, guessing read every column and ran out of
+  // memory). The person picks the column that names the place; then only that column is read to find the map it fits.
+  mlFit(name) {
+    const D = this._mlD || {}; if (!name || !D.a1 || !D.mx || !D.world || !this.effMeta(name)) return null;
+    return this.memo('mlFit|' + name + '|' + (this.state.dver || 0), () => {
+      const E = this._E;
       const nameIdx = this.memo('mlNameIdx', () => { const ix = new Map(); for (const [iso, C] of Object.entries(D.a1.c)) for (const g of C.t.objects.a.geometries) for (const n of [g.p.n, ...(g.p.a || [])]) { const k = E.mlNorm(n); if (!k) continue; if (!ix.has(k)) ix.set(k, new Set()); ix.get(k).add(iso); } for (const g of D.mx.objects.states.geometries) for (const n of [g.p.n, ...(g.p.a || []), ...(E.ML_ALIAS[g.p.i] || [])]) { const k = E.mlNorm(n); if (!ix.has(k)) ix.set(k, new Set()); ix.get(k).add('MEX'); } return ix; });
       const ST = /^(cve_?)?(ent|entidad|edo|estado)(_|$)|^state|^provinc|^region|^depart|^aimag|^oblast|^prefect|^county/i, MU = /^(cve_?)?(mun|municipio|ubica_geo|cvegeo|cve_mun)/i, CO = /^(country|pais|país|cname|iso|nation|cntry|countryname|idenpa|pais_nombre)/i;
       let best = null; const consider = r => { if (!best || r.score > best.score) best = r; };
-      for (const v of cols) {
-        const vals = this.mlValues(v.name, ''); if (!vals.length) continue; const tot = vals.reduce((t, x) => t + x.n, 0);
+      for (const v of [{ name }]) {
+        const vals = this.mlValues(name, ''); if (!vals.length) continue; const tot = vals.reduce((t, x) => t + x.n, 0);
         const share = r => { let m = 0; for (const x of vals) if (r.pick.has(x.id)) m += x.n; return m / tot; };
         const nm = v.name, bonusS = ST.test(nm) ? 0.15 : 0, bonusM = MU.test(nm) ? 0.15 : 0, bonusC = CO.test(nm) ? 0.15 : 0;
         // Mexico states and municipalities (INEGI codes or names)
@@ -121,6 +120,9 @@
       return best;
     });
   }
+  mlPlaceFirst(cols) { const PL = /^(cve_?)?(ent|entidad|edo|estado|mun|municipio|ubica_geo|cvegeo)|state|prov|region|depart|county|pais|país|country|nation|iso|cname|idenpa|distr|canton|comuna|land/i; return cols.filter(v => PL.test(v.name)).concat(cols.filter(v => !PL.test(v.name))); }
+  // once the person has chosen the map (country, areas, world), picking a column keeps it
+  mlPickPlace(v) { const d = v && !this.cbC().mapSet ? this.mlFit(v) : null; this.cbSet(Object.assign({ id: v || '' }, d ? Object.assign({ scope: d.scope }, d.scope === 'country' ? { country: d.country, level: d.level, focus: '' } : {}) : {})); }
   // one value per area: mean, %, sum, count or median of a variable, with the weight, for one year, in the rows in use
   mlAgg(sel, c, M) {
     const E = this._E, col = this.mlId(c), st = c.stat || 'mean', S = this.state;
@@ -172,16 +174,14 @@
   mlRender() {
     const h = React.createElement, S = this.state, E = this._E, c = this.cbC(), D = this._mlD || (this._mlD = {});
     ['world', 'a1', 'mx'].forEach(w => this.mlLoad(w));
-    // first visit: pick the map and the column from the data
-    if (!this.mlId(c) && !c._auto && this.mlScope(c) !== 'file') { const d = this.mlDetect(); if (d) setTimeout(() => this.cbSet(Object.assign({ _auto: 1, scope: d.scope, id: d.id }, d.scope === 'country' ? { country: d.country, level: d.level } : {}, c.y ? {} : this.mlDefaults(d))), 0); }
     const scope = this.mlScope(c), sel = this.mlSel(c);
     const top = h('div', { className: 'cb-top' }, h('button', { type: 'button', className: 'tl-link', onClick: () => this.csOpen('__gallery') }, '← All charts'), h('h2', null, 'Map'), h('span', { className: 'tl-hint' }, 'Built in, no internet needed: the world, every country’s states or provinces, and Mexico’s municipalities.'));
     const seg = (k, opts, def, aria) => this.tlSeg(opts, c[k] != null ? c[k] : def, v => this.cbSet({ [k]: v }), { 'aria-label': aria });
-    const where = [this.tlField('Map of', this.tlSeg([['country', 'A country (its states, provinces…)'], ['world', 'The world'], ['file', 'My own boundary file']], scope, v => this.cbSet({ scope: v }), { 'aria-label': 'Map of' }))];
+    const where = [this.tlField('Map of', this.tlSeg([['country', 'A country (its states, provinces…)'], ['world', 'The world'], ['file', 'My own boundary file']], scope, v => this.cbSet({ scope: v, mapSet: 1 }), { 'aria-label': 'Map of' }))];
     if (scope === 'country') {
       const list = this.mlCountries(), cur = list.find(x => x.iso === (c.country || 'MEX'));
-      where.push(this.tlField('Country', this.tlSelect(c.country || 'MEX', list.length ? list.map(x => [x.iso, x.name]) : [['MEX', 'Mexico']], v => this.cbSet({ country: v, level: 1, focus: '' }), 'Country', { className: 'tl-select ml-country' })));
-      if (cur) where.push(this.tlField('Areas', this.tlSeg(cur.levels.map(l => [String(l.level), l.name + ' · ' + l.count.toLocaleString('en-US')]), String(c.level || 1), v => this.cbSet({ level: +v, focus: '' }), { 'aria-label': 'Areas' })));
+      where.push(this.tlField('Country', this.tlSelect(c.country || 'MEX', list.length ? list.map(x => [x.iso, x.name]) : [['MEX', 'Mexico']], v => this.cbSet({ country: v, level: 1, focus: '', mapSet: 1 }), 'Country', { className: 'tl-select ml-country' })));
+      if (cur) where.push(this.tlField('Areas', this.tlSeg(cur.levels.map(l => [String(l.level), l.name + ' · ' + l.count.toLocaleString('en-US')]), String(c.level || 1), v => this.cbSet({ level: +v, focus: '', mapSet: 1 }), { 'aria-label': 'Areas' })));
       if ((c.country || 'MEX') === 'MEX' && +(c.level || 1) === 2 && sel.parentNames) where.push(this.tlField('Only in', this.tlSelect(c.focus || '', [['', 'All of Mexico']].concat(Object.entries(sel.parentNames).sort((a, b) => a[1].localeCompare(b[1])).map(([k, n]) => [k, n])), v => this.cbSet({ focus: v }), 'Only in')));
     } else if (scope === 'world') where.push(this.tlField('Part of the world', seg('region', [['', 'Whole world'], ['africa', 'Africa'], ['europe', 'Europe'], ['asia', 'Asia'], ['namerica', 'USA & Canada'], ['latam', 'Latin America'], ['oceania', 'Oceania']], '', 'Part of the world')));
     else where.push(this.tlField('Boundary file (GeoJSON or TopoJSON)', h('input', { type: 'file', accept: '.json,.geojson,.topojson', onChange: e => this.mlFileRead(e.target.files && e.target.files[0]), 'aria-label': 'Boundary file' })), this._mlFile ? this.tlField('Which property names each area?', this.tlSelect(sel.fileKey || '', this._mlFile.props.map(p => [p, p + ' (e.g. ' + String((this._mlFile.G.feats[0].props || {})[p] ?? '').slice(0, 24) + ')']), v => this.cbSet({ fileKey: v }), 'Area name property')) : null);
@@ -197,7 +197,7 @@
     const matchedAreas = M ? new Set([...M.pick.values()].flat()).size : 0;
     const how = M ? [...new Set([...M.how.values()])] : [];
     const howTxt = how.includes('code') ? (sel.iso === 'MEX' ? ' (INEGI codes)' : sel.iso === 'USA' ? ' (FIPS codes)' : ' (codes)') : how.includes('label') ? ' (value labels)' : how.includes('iso') ? ' (ISO codes)' : '';
-    const placeF = [this.tlField('Which column says the place?', this.tlSelect(this.mlId(c) || '', [['', 'Pick a column…']].concat(cols.map(v => [v.name, v.name + (v.label ? ' — ' + String(v.label).slice(0, 40) : '')])), v => this.cbSet({ id: v }), 'Which column says the place?', { className: 'tl-select cb-vsel' }))];
+    const placeF = [this.tlField('Which column says the place?', this.tlSelect(this.mlId(c) || '', [['', 'Pick a column…']].concat(this.mlPlaceFirst(cols).map(v => [v.name, v.name + (v.label ? ' — ' + String(v.label).slice(0, 40) : '')])), v => this.mlPickPlace(v), 'Which column says the place?', { className: 'tl-select cb-vsel' }))];
     if (sel.unit === 'municipalities') placeF.push(this.tlField('State column (only if municipalities are written as names)', this.tlSelect(c.id2 || '', [['', 'Not needed']].concat(cols.map(v => [v.name, v.name])), v => this.cbSet({ id2: v }), 'State column')));
     const sec2 = [h('div', { className: 'cb-fields' }, ...placeF)];
     if (M) {
@@ -218,7 +218,7 @@
     const wGuess = !S.weightVar ? (S.cols || []).find(v => /^(factor|factor_?(exp|expansion|hog|per|viv)|fac_?(hog|viv|per|exp)?|peso|pesos|ponderador|pondera|expansion)$/i.test(v.name) && this.numVals(v.name)) : null;
     if (wGuess) show.push(h('div', { className: 'tl-row ml-wt' }, h('span', { className: 'tl-hint' }, wGuess.name + ' looks like the survey weight (expansion factor). Results are usually shown with it.'), this.tlBtn('Use ' + wGuess.name + ' as the weight', () => { this.clearMemo(); this.setState({ weightVar: wGuess.name, weightAuto: false }); this.cbSet({ wt: true }); })));
     const yv = c.yearVar != null ? c.yearVar : (yearC[0] ? yearC[0].name : '');
-    show.push(this.tlField('Year', h('div', { className: 'tl-row' }, this.tlSelect(yv, [['', 'No year column']].concat((S.cols || []).filter(v => this.numVals(v.name)).map(v => [v.name, v.name])), v => this.cbSet({ yearVar: v, year: '' }), 'Year column'), yv ? this.tlSelect(String(c.year || ''), [['', 'Latest'], ['all', 'All years together']].concat(this.cbLevels(yv, 80).map(x => [x, x])), v => this.cbSet({ year: v }), 'Which year') : null)));
+    show.push(this.tlField('Year', h('div', { className: 'tl-row' }, this.tlSelect(yv, [['', 'No year column']].concat((S.cols || []).filter(v => (this.effMeta(v.name) || {}).type === 'numeric').map(v => [v.name, v.name])), v => this.cbSet({ yearVar: v, year: '' }), 'Year column'), yv ? this.tlSelect(String(c.year || ''), [['', 'Latest'], ['all', 'All years together']].concat(this.cbLevels(yv, 80).map(x => [x, x])), v => this.cbSet({ year: v }), 'Which year') : null)));
     body.push(panel('3 · What to show', h('div', { className: 'cb-fields' }, ...show)));
     if (st !== 'count' && !(c.y && this.numVals(c.y))) { body.push(this.tlBanner('info', 'Pick the variable to show on the map.')); return h('div', { className: 'tl cb ml' }, ...body); }
     // the map
@@ -248,11 +248,6 @@
         h('div', { className: 'tl-tblwrap tall' }, h('table', { className: 'tl-tbl' }, h('thead', null, h('tr', null, h('th', null, 'Area'), h('th', null, 'Code'), h('th', { className: 'n' }, valueTitle), h('th', { className: 'n' }, 'N'))), h('tbody', null, rowsT.slice(0, 600).map((r, i) => h('tr', { key: i }, h('td', { className: 'w' }, r[0]), h('td', null, r[1]), h('td', { className: 'n' }, isFinite(r[2]) ? this.fmt(r[2]) : '—'), h('td', { className: 'n' }, r[3] ? r[3].toLocaleString('en-US') : '—')))))))));
     body.push(this.mlCustomize(c, sel, minN, microdata));
     return h('div', { className: 'tl cb ml' }, ...body);
-  }
-  mlDefaults(d) { // what to show first: the % of a 0/1 variable when there is one (poverty), with the weight
-    const S = this.state, num = this.cbNumeric().map(v => v.name), bin = num.filter(n => { const m = this.effMeta(n); return m && m.distinct === 2 && n !== d.id; });
-    const pref = ['pobreza', 'pobreza_e', 'poverty', 'pobre'].find(n => bin.includes(n)) || bin[0];
-    return pref ? { stat: 'pct', y: pref } : { stat: 'count' };
   }
   // the matching table: each value not recognised (or all, when asked) with a list of the areas
   mlMatchTable(sel, c, M) {

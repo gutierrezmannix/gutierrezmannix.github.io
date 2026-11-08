@@ -143,3 +143,25 @@ then, load such a file as *My own boundary file*.
 
 With the real `coneval.dta`, the state values were checked against a direct weighted count: 2022 poverty is 31.60% in
 Tamaulipas, 29.84% in San Luis Potosí and 19.83% in Ciudad de México.
+
+## Build .97 — Nothing is picked by itself (large files)
+
+On first visit, the Map page used to guess the place column. To do that it read every row of every column that might
+name a place, building a label for each row. On a Stata file with 1.5 million rows and 1,000 coded questions that took
+more memory than the tab had, and the page crashed. Its Year list also made a full numeric copy of every column (about
+12 GB on that file).
+
+What happens now:
+
+- The page waits for you to pick **Which column says the place?**. Columns named like places (ent, municipio, ubica_geo,
+  país, country, state…) are listed first, judged by their names only.
+- Picking a column reads only that column to find the map it fits: Mexico's states or municipalities, the world, or
+  another country's provinces by name. Once you have chosen the map yourself (country, areas, world), picking a column
+  keeps your choice.
+- You also pick the variable to show; there is no automatic "% in poverty".
+- The Year list reads the column profile only.
+- Measured in Chromium on 1.5 million rows × 1,000 variables (1.6 GB .dta):
+  - opening Maps takes 2 s;
+  - picking `ent` takes 1.3 s and finds 32 of 32 states;
+  - drawing the mean of a number takes 0.9 s, and the % of a coded question 3 s;
+  - memory stays at about 8 GB, the same as with the file just open. Before this build, the page crashed.

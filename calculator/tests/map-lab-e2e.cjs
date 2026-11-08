@@ -36,6 +36,9 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
 
   // 1 · the survey file: states found by themselves
   let p = await open(file);
+  await p.waitForTimeout(800); check(await p.locator('.cb.ml figure svg').count() === 0 && /Pick the column that names or codes the place/.test(await p.locator('.cb.ml').innerText()), 'nothing is picked by itself (build .97)');
+  await pickBy(p, p, 'Which column says the place?', 'ent'); await p.waitForTimeout(600);
+  await p.getByLabel('Show', { exact: true }).selectOption('pct'); await pickBy(p, p, 'Variable', 'pobreza'); await p.waitForTimeout(800);
   await p.waitForSelector('.cb.ml figure svg', { timeout: 30000 }).catch(() => {});
   check(/32 of 32 values of ent recognised as Mexico.s states/.test(await found(p)), 'ent recognised as Mexico’s 32 states (' + await found(p) + ')');
   let m = await svgOf(p).catch(() => '');
