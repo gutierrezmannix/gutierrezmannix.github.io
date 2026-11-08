@@ -611,6 +611,9 @@ code, kbd, samp { font-family: var(--font-mono); }
     .mf-nav:hover { color: var(--c1A1711, #1A1711); background: rgba(255,255,255,0.6); }
     .mf-caret { font-size: 10px; padding: 0 6px; border: none; background: transparent; color: var(--c6B6455, #6B6455); cursor: pointer; }
     .mf-caret:hover { color: var(--c194F39, #194F39); }
+    /* build .93: scrolling inside any dropdown (menus, variable lists, searchable boxes) stays inside it: at the top or the
+       bottom of the list the page underneath no longer moves */
+    .mf-menu, [data-pk-list], .tl-combo-list, [role="listbox"] { overscroll-behavior: contain; }
     .mf-dock { position: sticky; top: 10px; max-height: calc(100vh / var(--gmZoom, 1) - 20px); display: flex; flex-direction: column; min-width: 0; background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cE3DCCE, #E3DCCE); border-radius: 9px; box-shadow: 0 1px 3px rgba(43,39,30,0.06); overflow: hidden; }
     .mf-rail { display: flex; flex-direction: column; gap: 6px; padding: 8px 5px; align-items: center; }
     .mf-railbtn { writing-mode: vertical-rl; transform: rotate(180deg); font: 600 11px/1 var(--fUI, 'Hanken Grotesk', sans-serif); letter-spacing: 0.06em; padding: 10px 6px; border-radius: 8px; border: 1px solid var(--cE3DCCE, #E3DCCE); background: var(--cFAF7F1, #FAF7F1); color: var(--c433D31, #433D31); cursor: pointer; }
@@ -4026,7 +4029,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-07.92</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-07.93</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>

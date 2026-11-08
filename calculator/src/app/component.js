@@ -42,7 +42,7 @@ class Component extends DCLogic {
     if (m.style.getPropertyValue('--stT2') !== v2) m.style.setProperty('--stT2', v2);
   }
   afterUpdateUI() {
-    this.menuFit();
+    this.menuFit(); this.pkFit();
     this.navFit();
     this.applyView();
     this.polishDom();
@@ -118,6 +118,7 @@ class Component extends DCLogic {
     this._onWinDragOver = e => { if (!hasFiles(e)) return; e.preventDefault(); if (this.state.screen !== 'work' && !this.state.parsing && !this.state.dragging) this.setState({ dragging: true }); };
     this._onWinDragLeave = e => { if (!e.relatedTarget && this.state.dragging) this.setState({ dragging: false }); };
     this._onWinDrop = e => { if (this.state.dragging) this.setState({ dragging: false }); if (!hasFiles(e) || e.defaultPrevented) return; e.preventDefault(); this.dropFiles(e.dataTransfer.files); };
+    this._onPkScroll = () => { if (this.state.pk) this.pkFit(); }; window.addEventListener('scroll', this._onPkScroll, { passive: true }); window.addEventListener('resize', this._onPkScroll);
     window.addEventListener('dragover', this._onWinDragOver); window.addEventListener('dragleave', this._onWinDragLeave); window.addEventListener('drop', this._onWinDrop);
     this._onResize = () => { clearTimeout(this._rzT); this._rzT = setTimeout(() => { const w = window.innerWidth; if (Math.abs((this.state.vw || 0) - w) > 4) this.setState({ vw: w }); }, 150); }; window.addEventListener('resize', this._onResize);
     try { const v = JSON.parse(localStorage.getItem('cidigimi26-view') || 'null'); if (v) this.setState({ view: v }, () => this.applyView()); } catch (e) {}
@@ -2532,6 +2533,15 @@ class Component extends DCLogic {
       items.length?h('div',{className:'ov-list'},...items.map(entry)):h('p',{className:'ov-empty'},'Nothing has been run yet. Results and charts will appear here as you work.'));
   }
   // An open toolbar menu ends above the bottom of the window, with one scrollbar (its own).
+  // build .93: a variable list (every searchable picker) fits the window: it opens upward when there is more room above,
+  // and its height is the room there is (it was 320 px downward, so near the bottom of the window most of the list,
+  // and its scroll bar, were below the screen: "only 4 variables shown")
+  pkFit(){try{const lists=[...document.querySelectorAll('[data-pk-list]')].filter(l=>l.getClientRects().length);if(!lists.length)return;
+    const z=parseFloat(document.documentElement.style.zoom)||1,H=window.innerHeight;
+    let top=0;for(const e of document.querySelectorAll('.mf-chooser, .mf-main > *')){const st=getComputedStyle(e).position;if(st!=='sticky'&&st!=='fixed')continue;const r=e.getBoundingClientRect();if(r.top<=H/2&&r.bottom>top)top=r.bottom;}
+    for(const l of lists){const a=(l.parentElement&&l.parentElement.querySelector('input[data-pk-input]'))||l.parentElement;if(!a)continue;const r=a.getBoundingClientRect(),below=H-r.bottom-12,above=r.top-Math.max(0,top)-12,want=Math.min(320*z,l.scrollHeight+2),up=below<want&&above>below;
+      const room=Math.max(120,Math.min(320*z,up?above:below))/z;l.style.maxHeight=Math.floor(room)+'px';
+      if(up){l.style.top='auto';l.style.bottom='calc(100% + 4px)';}else{l.style.bottom='auto';l.style.top='calc(100% + 4px)';}}}catch(e){}}
   menuFit(){try{for(const m of document.querySelectorAll('.mf-menu')){if(!m.getClientRects().length)continue;const z=parseFloat(document.documentElement.style.zoom)||1,top=m.getBoundingClientRect().top,room=Math.max(160,Math.floor((window.innerHeight-top-12)/z));m.style.boxSizing='border-box';if(m.style.maxHeight!==room+'px')m.style.maxHeight=room+'px';m.style.overflowY='auto';}}catch(e){}}
   // GM26 output view end
   // GM26 text lab begin
@@ -10603,7 +10613,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-07.92') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-07.93') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {

@@ -90,3 +90,13 @@ as PDF, Back to workbench), Browse files with the mouse, Enter and Space, the sa
 the new-dataset landing) and `tests/file-menu-e2e.cjs` (22 browser checks: both buttons with mouse and keyboard,
 typing values into a new dataset, drag and drop, every File item, confirmations, failed loads, the session round
 trip, the report). `tests/intro-e2e.cjs` also checks Space on Create and the reasons for PDF, SPSS and binary files.
+
+## Build .93 — dropdowns scroll and stay on screen
+
+With 739 variables, the crosstab's *By (columns)* list showed only 4 names: it opened 320 px downward from a box near the
+bottom of the window, so most of the list and its scroll bar were below the screen. Now every variable list (31
+pickers) fits the window: it opens upward when there is more room above (stopping under the toolbar and the IF bar),
+and is as tall as the room there is. Scrolling inside any dropdown (variable lists, searchable boxes, the File / Tests /
+Charts / Data menus) stays inside it: at either end the page underneath no longer moves (it jumped 683 px under the
+Tests menu). Every list scrolls with the wheel to its last entry and back, and arrow keys keep the highlighted entry in
+view. Test: `tests/dropdowns-e2e.cjs`.
