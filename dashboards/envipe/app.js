@@ -121,7 +121,7 @@
         (LINES[v] || (LINES[v] = [])).push(ln);
       }
     });
-    PICK = Object.keys(LINES).filter((v) => CAT[v] && !/numeric companion/i.test(CAT[v].label))
+    PICK = Object.keys(LINES).filter((v) => CAT[v])
       .map((v) => ({ v, label: CAT[v].label, sec: SECTIONS.slice(1).find((s) => s.test(v)).id }))
       .sort((x, y) => x.v.localeCompare(y.v, 'en', { numeric: true }));
   }
@@ -398,10 +398,16 @@
     const list = (all || !term) ? pool : pool.filter((p) => norm(p.label).includes(term) || p.v.includes(term));
     hits.innerHTML = '';
     hits.append(D.el('div', { class: 'grp', text: D.t('nResults', { n: D.num(list.length) }) }));
-    list.slice(0, 80).forEach((p, i) => {
-      const b = D.el('button', { type: 'button', role: 'option', 'data-i': i }, [D.el('span', { text: cleanLabel(p.label) }), D.el('span', { class: 'sub', text: p.v })]);
-      b.addEventListener('mousedown', (ev) => { ev.preventDefault(); pickVar(p.v); });
-      hits.append(b);
+    // every match is listed, grouped by survey section
+    SECTIONS.slice(1).forEach((sec) => {
+      const inSec = list.filter((p) => p.sec === sec.id);
+      if (!inSec.length) return;
+      hits.append(D.el('div', { class: 'grp', style: { color: '#EFAB3D' }, text: D.t(sec.key) + ' · ' + D.num(inSec.length) }));
+      inSec.forEach((p) => {
+        const b = D.el('button', { type: 'button', role: 'option', 'aria-selected': String(p.v === S.v) }, [D.el('span', { text: cleanLabel(p.label) }), D.el('span', { class: 'sub', text: p.v })]);
+        b.addEventListener('mousedown', (ev) => { ev.preventDefault(); pickVar(p.v); });
+        hits.append(b);
+      });
     });
     hits.classList.add('open'); qIn.setAttribute('aria-expanded', 'true'); hitIdx = -1;
   }
