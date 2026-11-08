@@ -130,3 +130,26 @@ the dictionary table.
 
 Sources: `src/text-lab*.{mjs,js,css}`, `src/xlsx-reader.mjs`, `src/lemmas/` (spaCy lookup tables,
 MIT), `tools/text_lab.py`.
+
+## Build .92 — the text column is chosen only when it is obvious
+
+Before: opening the tab chose the text column silently (a column named `text`, `texto`, `tweet`, … or else the one with
+the most words) and started reading it, and also chose the date and the groups by their names. Nothing said so, and a
+file with two long text columns (Excel splits texts over 32,767 characters into `text` and `text1`; a transcript and a
+summary) got a guess.
+
+Now (`tlAutoPick`, `tlAutoNotes` in `src/text-lab.js`):
+
+| Column | Chosen when | Otherwise |
+| --- | --- | --- |
+| Text | it is the only column with sentences (3 or more words per row), or it has 3 times the words of the next | buttons for the real contenders (a tenth of the longest or more), e.g. *text · 5,357 words per row* / *text1 · 5,234*; nothing is read until one is picked |
+| Groups | exactly one column is named like a group (party, author, speaker, user, source, **president, candidate, account, outlet**…) with 2–60 values | buttons when there are several; none when there is none (optional) |
+| Date | exactly one column is named like a date | buttons when there are several (optional) |
+
+What was chosen is said under the pickers, with the reason, while it is still the choice: *Chosen for you: Text as the
+text — far longer texts than any other column (27 words per row; next: Source, 4.7 words per row); Created At as the
+date — named like a date. Change them above if they are not right.* A restored session keeps its own choices.
+
+On the files used for testing: the tweets and *The_Mananeras_Data* open ready (with the notice); *MananerasSA* (text /
+text1) and a file with a transcript and a summary ask first. Tests: `tests/text-lab-autopick.test.mjs`;
+`tests/text-lab-e2e.cjs` logs what was chosen or asked and answers the question as a person would.

@@ -131,7 +131,8 @@
         this.tlField('Groups to compare (optional)', this.tlSelect(T.by, grpOpts, v => { this._tlByTouched = true; this.tlSet({ by: v }); }, 'Group column')),
         this.tlField('Date (optional)', this.tlSelect(T.date, dateOpts, v => { this._tlDateTouched = true; this.tlSet({ date: v }); }, 'Date column')),
         this.tlField('Unit of analysis', this.tlSeg([['row', 'Each row'], ['sentence', 'Each sentence', 'corpus_reshape(to = "sentences"): every sentence becomes a document; saved variables add up to each row']], T.unit, v => this.tlSet({ unit: v })))));
-    if (!ctx) return h('div', { className: 'tl-col' }, pickers, this.tlBanner('info', 'Pick the column that holds your texts: tweets, speeches, open answers, news. Excel and CSV files work the same way.'));
+    const autoNotes = this.tlAutoNotes(T); // build .92: what was chosen for you and why, or the likely columns to pick from
+    if (!ctx) return h('div', { className: 'tl-col' }, pickers, ...autoNotes, autoNotes.length ? null : this.tlBanner('info', 'Pick the column that holds your texts: tweets, speeches, open answers, news. Excel and CSV files work the same way.'));
     const { C, FT } = ctx, det = this.tlDetectLang(T, C), E = this._E;
     const notes = [];
     const LN = Object.fromEntries(E.TL_LANGS);
@@ -153,7 +154,7 @@
     const samples = []; for (let i = 0, step = Math.max(1, Math.floor(texts.length / 3)); i < texts.length && samples.length < 3; i += step) if (texts[i] != null) samples.push(i);
     const stats = h('div', { className: 'tl-stats' }, this.tlStat('Texts', this.fmtN(C.docs), blank ? this.fmtN(blank) + ' blank' : 'none blank'), this.tlStat('Words', this.fmtN(words), 'before cleaning'), this.tlStat('Words per text', this.fmt(words / Math.max(1, C.docs), 1), 'on average'), this.tlStat('Different words', this.fmtN(C.types.length), 'incl. links, #tags, @names'));
     const sample = this.tlPanel('A look at the texts', null, null, ...samples.map(i => h('div', { key: i, className: 'tl-quote' }, h('span', { className: 'tl-qrow' }, 'row ' + this.fmtN(this.tlRowOf(C, i) + 1)), String(texts[i]).slice(0, 420) + (String(texts[i]).length > 420 ? ' …' : ''))));
-    return h('div', { className: 'tl-col' }, pickers, ...notes, stats, sample, this.tlNav(null, ['clean', 'Next: Clean']));
+    return h('div', { className: 'tl-col' }, pickers, ...autoNotes, ...notes, stats, sample, this.tlNav(null, ['clean', 'Next: Clean']));
   }
   tlDay(d) { return isFinite(d) ? new Date(d * 86400000).toISOString().slice(0, 10) : '—'; }
   tlDates(T, C) {

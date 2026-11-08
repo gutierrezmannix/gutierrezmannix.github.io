@@ -27,6 +27,10 @@ const waitIdle = async (p, ms) => { await p.waitForFunction(() => !document.quer
   const snap = async n => { await waitIdle(p, 120000); await shot(p, out + '/' + tag + '-' + n + '.png'); log('shot', n, 'errors so far', errs.length); };
   const tab = async name => { await p.getByRole('tab', { name, exact: true }).click(); await p.waitForTimeout(300); };
   const step = async name => { await p.locator('.tl-step', { hasText: name }).click(); await p.waitForTimeout(300); };
+  // build .92: the text column is chosen only when it is obvious (and the page says so); otherwise the page asks, as here
+  await waitIdle(p, 60000);
+  { const chosen = await p.locator('.tl').innerText(); const m = chosen.match(/Chosen for you:[^\n]*/); if (m) log(m[0].slice(0, 200)); }
+  { const ask = p.getByRole('button', { name: /^Use .* as the text$/ }); if (await ask.count()) { log('asked which column holds the texts:', (await ask.allInnerTexts()).join(' | ')); await ask.first().click(); await p.waitForTimeout(800); } }
   await snap('1-texts');
   await step('Clean'); await p.waitForTimeout(4000); await snap('2-clean');
   const sugg = p.locator('.tl-chip.add'); if (await sugg.count()) { const t = await sugg.first().innerText(); await sugg.first().click(); log('joined phrase', t.replace(/\s+/g, ' ')); }

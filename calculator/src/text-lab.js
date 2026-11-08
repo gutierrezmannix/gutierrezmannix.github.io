@@ -48,22 +48,47 @@
   tlGroupCols(exclude) {
     return (this.state.cols || []).filter(m => m.name !== exclude && (m.distinct || 0) >= 2 && (m.distinct || 0) <= 200).map(m => m.name);
   }
+  // build .92: the columns are chosen only when the answer is obvious, and the page says what it chose and why;
+  // otherwise the likely columns are shown as buttons and nothing is read until one is picked.
+  //   text:   the column with sentences (3 or more words per row) when it is the only one, or has 3 times the words of the next
+  //   groups: the one column named like a group (party, author, president…) with 2 to 60 values
+  //   date:   the one column named like a date
   tlAutoPick() {
-    const T = this.tlS(), cols = this.state.cols || [], names = cols.map(c => c.name);
-    const patch = {};
+    const T = this.tlS(), cols = this.state.cols || [], names = cols.map(c => c.name), patch = {}, why = {}, ask = {};
+    const wpr = w => (w >= 10 ? this.fmtN(Math.round(w)) : w.toFixed(1)) + ' words per row';
     if (!T.v || !names.includes(T.v)) {
-      const tc = this.tlTextCols(); const byName = tc.find(c => /^(text|texto|tweet|content|contenido|body|speech|discurso|comment|comentario|mensaje|message|transcript|respuesta|answer)$/i.test(c.name));
-      const pick = byName || tc.find(c => c.words >= 3) || tc[0]; if (pick) patch.v = pick.name;
+      const tc = this.tlTextCols(), cand = tc.filter(c => c.words >= 3), top = cand[0], next = cand[1];
+      if (top && (!next || top.words >= 3 * next.words)) { patch.v = top.name; why.v = next ? 'far longer texts than any other column (' + wpr(top.words) + '; next: ' + next.name + ', ' + wpr(next.words) + ')' : 'the only column with sentences (' + wpr(top.words) + ')'; }
+      else if (tc.length) ask.v = (cand.length ? cand.filter((c, i) => i < 2 || c.words >= top.words / 10) : tc).slice(0, 4).map(c => ({ name: c.name, sub: wpr(c.words) })); // only real contenders (a tenth of the longest or more)
     }
+    const v = patch.v || T.v;
     if (T.by === '' && !this._tlByTouched) {
-      const g = cols.find(c => c.name !== (patch.v || T.v) && (c.distinct || 0) >= 2 && (c.distinct || 0) <= 60 && /(author|autor|user|usuario|username|name|nombre|party|partido|speaker|orador|group|grupo|source|fuente)/i.test(c.name));
-      if (g) patch.by = g.name;
+      const g = cols.filter(c => c.name !== v && (c.distinct || 0) >= 2 && (c.distinct || 0) <= 60 && /(author|autor|user|usuario|username|name|nombre|party|partido|speaker|orador|group|grupo|source|fuente|president|presidente|presidenta|candidat|politic|account|cuenta|outlet|medio)/i.test(c.name));
+      if (g.length === 1) { patch.by = g[0].name; why.by = 'named like a group, with ' + g[0].distinct + ' values'; }
+      else if (g.length > 1) ask.by = g.slice(0, 4).map(c => ({ name: c.name, sub: c.distinct + ' values' }));
     }
     if (T.date === '' && !this._tlDateTouched) {
-      const d = cols.find(c => /(^|_)(date|fecha|created|created_at|time|timestamp|year|año|anio|day|dia)($|_)|created at/i.test(c.name));
-      if (d) patch.date = d.name;
+      const d = cols.filter(c => c.name !== v && /(^|_)(date|fecha|created|created_at|time|timestamp|year|año|anio|day|dia)($|_)|created at/i.test(c.name));
+      if (d.length === 1) { patch.date = d[0].name; why.date = 'named like a date'; }
+      else if (d.length > 1) ask.date = d.slice(0, 4).map(c => ({ name: c.name, sub: '' }));
     }
+    this._tlAutoInfo = { picked: Object.assign({}, patch), why, ask };
     if (Object.keys(patch).length) { this._tlAuto = true; setTimeout(() => this.tlSet(patch), 0); }
+  }
+  // what the page chose (while it is still the choice) and the questions left: shown under the pickers of step 1
+  tlAutoNotes(T) {
+    const h = React.createElement, I = this._tlAutoInfo, out = [];
+    if (!I) return out;
+    const LAB = { v: 'text', by: 'groups', date: 'date' }, chosen = ['v', 'by', 'date'].filter(k => I.picked[k] && T[k] === I.picked[k]);
+    if (chosen.length) out.push(this.tlBanner('info', h('b', null, 'Chosen for you: '), ...chosen.flatMap((k, i) => [i ? '; ' : '', h('b', { key: k }, I.picked[k]), ' as the ' + LAB[k] + ' — ' + I.why[k]]), '. Change them above if they are not right.'));
+    const Q = { v: ['Which column holds your texts?', 'Several columns could: pick one to start.'], by: ['Compare groups?', 'Several columns could hold groups (optional).'], date: ['Which column is the date?', 'Several columns could hold dates (optional).'] };
+    for (const k of ['v', 'by', 'date']) {
+      const list = I.ask[k]; if (!list || T[k] || (k === 'by' && this._tlByTouched) || (k === 'date' && this._tlDateTouched)) continue;
+      const pick = n => { if (k === 'by') this._tlByTouched = true; if (k === 'date') this._tlDateTouched = true; this.tlSet(k === 'v' ? { v: n, step: 'texts' } : { [k]: n }); };
+      out.push(this.tlBanner(k === 'v' ? 'warn' : 'info', h('b', null, Q[k][0] + ' '), Q[k][1] + ' ', h('span', { className: 'tl-row', style: { display: 'inline-flex', flexWrap: 'wrap', gap: '6px', marginLeft: '4px' } },
+        ...list.map(c => this.tlBtn(c.name + (c.sub ? ' · ' + c.sub : ''), () => pick(c.name), '', { key: c.name, 'aria-label': 'Use ' + c.name + ' as the ' + LAB[k] })))));
+    }
+    return out;
   }
 
   // ---- corpus: tokenized once per text column (in the background worker)
