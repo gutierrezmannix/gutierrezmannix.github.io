@@ -546,21 +546,24 @@ export function wQuantile(xs, ws, sw, p) {
 }
 export function descNum(a, w) {
   const N = a.length;
-  let n = 0, sw = 0, sx = 0, mn = Infinity, mx = -Infinity, allInt = true;
-  for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; n++; sw += wi; sx += wi * x; if (x < mn) mn = x; if (x > mx) mx = x; if (!Number.isInteger(x)) allInt = false; }
+  // GM26 .91: sums are taken from a nearby value (the first valid one), so values near 1e9 (timestamps, ids) keep their
+  // digits in the skewness and kurtosis too; the mean is then corrected once more
+  let n = 0, sw = 0, sx = 0, mn = Infinity, mx = -Infinity, allInt = true, x0 = NaN;
+  for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; if (n === 0) x0 = x; n++; sw += wi; sx += wi * (x - x0); if (x < mn) mn = x; if (x > mx) mx = x; if (!Number.isInteger(x)) allInt = false; }
   if (n < 1) return { n: 0, missing: N };
-  let mean = sx / sw;
-  { let c = 0; for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; c += wi * (x - mean); } mean += c / sw; }
+  let md = sx / sw;
+  { let c = 0; for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; c += wi * ((x - x0) - md); } md += c / sw; }
+  const mean = x0 + md;
   let ss = 0, s3 = 0, s4 = 0, sPw = 0, j = 0;
   const xs = new Float64Array(n), ws = new Float64Array(n);
-  for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; const e = x - mean, e2 = e * e; ss += wi * e2; s3 += wi * e2 * e; s4 += wi * e2 * e2; sPw += wi * wi * e2; xs[j] = x; ws[j] = wi; j++; }
+  for (let i = 0; i < N; i++) { const x = a[i], wi = w ? w[i] : 1; if (!isFinite(x) || !isFinite(wi)) continue; const e = (x - x0) - md, e2 = e * e; ss += wi * e2; s3 += wi * e2 * e; s4 += wi * e2 * e2; sPw += wi * wi * e2; xs[j] = x; ws[j] = wi; j++; }
   const idx = argsortNum(xs);
   const sx2 = new Float64Array(n), sw2 = new Float64Array(n);
   for (let i = 0; i < n; i++) { sx2[i] = xs[idx[i]]; sw2[i] = ws[idx[i]]; }
   const q = p => wQuantile(sx2, sw2, sw, p);
   // GM26 .66: moments as Stata's summarize, detail (m_r = Σw(x−mean)^r / Σw; skewness m3/m2^1.5, kurtosis m4/m2², normal = 3);
   // pctl = its 1 5 10 25 50 75 90 95 99 percentiles; sePw = the standard error of the mean for sampling weights (Stata mean [pw=]).
-  const m2 = ss / sw, sk = n > 2 && m2 > 0 ? (s3 / sw) / Math.pow(m2, 1.5) : NaN, ku = n > 3 && m2 > 0 ? (s4 / sw) / (m2 * m2) : NaN;
+  const m2 = ss / sw, sk = n > 1 && m2 > 0 ? (s3 / sw) / Math.pow(m2, 1.5) : NaN, ku = n > 1 && m2 > 0 ? (s4 / sw) / (m2 * m2) : NaN; // GM26 .91: from 2 values, as Stata and R
   const pctl = {}; for (const p of [1, 5, 10, 25, 50, 75, 90, 95, 99]) pctl[p] = q(p / 100);
   const sePw = n > 1 ? Math.sqrt(n / (n - 1) * sPw) / sw : NaN;
   return { n, sw, missing: N - n, mean, sd: n > 1 ? Math.sqrt(ss / sw * n / (n - 1)) : NaN, mn, mx, q1: pctl[25], med: pctl[50], q3: pctl[75], xs: sx2, ws: sw2, allInt, sk, ku, pctl, sePw };
@@ -1522,7 +1525,8 @@ export function fmtTick(v, T) {
   if (step > 0) {
     // GM26 .66: labels by the tick step, so close ticks never print the same text (1000000k, 0, 0 …)
     if (step >= 1e9 && a >= 1e9) return String(+(v / 1e9).toFixed(3)) + 'B';
-    if (step >= 1e6 && a >= 1e7) return String(+(v / 1e6).toFixed(3)) + 'M';
+    if (step >= 1e6 && a >= 1e7) return (v / 1e6).toLocaleString('en-US', { maximumFractionDigits: 3 }) + 'M'; // GM26 .91: 1,700M
+    if (step >= 1000 && a >= 1e8) { const s6 = step / 1e6; let dd = 0; while (dd < 3 && Math.abs(Math.round(s6 * Math.pow(10, dd)) - s6 * Math.pow(10, dd)) > 1e-6 * s6 * Math.pow(10, dd)) dd++; return (v / 1e6).toLocaleString('en-US', { minimumFractionDigits: dd, maximumFractionDigits: dd }) + 'M'; } // GM26 .91: 1,700.2M, not 1700200k
     if (step >= 1000 && a >= 100000) return String(+(v / 1000).toFixed(3)) + 'k';
     let d = 0; while (d < 12 && Math.abs(Math.round(step * Math.pow(10, d)) - step * Math.pow(10, d)) > 1e-6 * step * Math.pow(10, d)) d++;
     if (a === 0) return d > 6 && step < 1e-3 ? '0' : (0).toFixed(d);
@@ -1653,7 +1657,8 @@ export function histChart(R, d, o) {
   if (!d || d.n < 2) return null;
   const W = 680, H = 320, m = { l: 58, r: 16, t: 16, b: 44 };
   let x0 = d.mn, x1 = d.mx, bins;
-  if (d.allInt && (d.mx - d.mn) <= 30 && (d.mx - d.mn) >= 1) {
+  if (d.mx === d.mn) { const h = Number.isInteger(d.mn) ? 1 : Math.max(Math.abs(d.mn) * 0.1, 1e-12); bins = [{ a: d.mn - h / 2, b: d.mn + h / 2, c: d.sw }]; x0 = d.mn - 2 * h; x1 = d.mn + 2 * h; } // GM26 .91: one value, in the middle
+  else if (d.allInt && (d.mx - d.mn) <= 30 && (d.mx - d.mn) >= 1) {
     const k = Math.round(d.mx - d.mn) + 1;
     bins = Array.from({ length: k }, (_, i) => ({ a: d.mn + i - 0.5, b: d.mn + i + 0.5, c: 0 }));
     for (let i = 0; i < d.n; i++) bins[Math.round(d.xs[i] - d.mn)].c += d.ws[i];
@@ -1692,7 +1697,8 @@ export function histChart(R, d, o) {
 export function boxChart(R, d, o) {
   if (!d || d.n < 5) return null;
   const W = 680, H = 170, m = { l: 24, r: 24, t: 18, b: 40 };
-  const [x0, x1] = axDom(d.mn, d.mx, o.ax, 'x', 0);
+  const hc = d.mx === d.mn ? (Number.isInteger(d.mn) ? 2 : Math.max(Math.abs(d.mn) * 0.2, 1e-12)) : 0; // GM26 .91: a constant sits in the middle
+  const [x0, x1] = axDom(d.mn - hc, d.mx + hc, o.ax, 'x', 0);
   const sx = v => m.l + (W - m.l - m.r) * (v - x0) / (x1 - x0 || 1);
   const cy = (H - m.b + m.t) / 2, bh = 52;
   const iqr = d.q3 - d.q1;

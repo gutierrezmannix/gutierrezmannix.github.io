@@ -2107,8 +2107,9 @@ code, kbd, samp { font-family: var(--font-mono); }
                     <path d="M124 60 L200 10" stroke="#194F39" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1 7"></path>
                     <line x1="12" y1="70" x2="208" y2="70" stroke="#1A1711" stroke-width="2"></line>
                   </svg>
-                  <div style="font-family: var(--fUI, 'Hanken Grotesk', sans-serif); font-weight: 700; font-size: 15px; color: var(--c1A1711, #1A1711);">Pick a variable to profile</div>
-                  <div style="font-size: 13px; color: var(--c6B6455, #6B6455); max-width: 380px; text-align: center; text-wrap: pretty;">Type a name above, or click any variable in the left pane — you'll get descriptives and charts instantly.</div>
+                  <div style="font-family: var(--fUI, 'Hanken Grotesk', sans-serif); font-weight: 700; font-size: 15px; color: var(--c1A1711, #1A1711);">{{ exEmptyTitle }}</div>
+                  <div style="font-size: 13px; color: var(--c6B6455, #6B6455); max-width: 380px; text-align: center; text-wrap: pretty;">{{ exEmptyText }}</div>
+                  <sc-if value="{{ exNoVars }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ exMakeVar }}" style="font-family: inherit; font-weight: 700; font-size: 14px; color: var(--cFFFFFF, #FFFFFF); background: var(--c194F39, #194F39); border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; min-height: 40px;">Make a new variable</button></sc-if>
                 </div>
               </sc-if>
 
@@ -2130,7 +2131,7 @@ code, kbd, samp { font-family: var(--font-mono); }
                   </div>
                   <sc-if value="{{ hasDescNote }}" hint-placeholder-val="{{ false }}"><div style="padding-top: 8px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10.5px; line-height: 1.5; color: var(--c6B6455, #6B6455);">{{ descNote }}</div></sc-if>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 8px;">
+                <div style="{{ exChartsStyle }}">
                   <div style="background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cE3DCCE, #E3DCCE); border-radius: 9px; box-shadow: 0 1px 3px rgba(43,39,30,0.06); padding: 10px 14px;">
                     <div style="display: flex; align-items: center; gap: 10px; margin: -10px -14px 10px; padding: 7px 14px; background: var(--cFAF7F1, #FAF7F1); border-bottom: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px;">
                       <div style="font-weight: 700; font-size: 13px; letter-spacing: 0.12em; color: var(--c194F39, #194F39); white-space: nowrap;">HISTOGRAM</div>
@@ -4025,7 +4026,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-07.90</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-07.91</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>

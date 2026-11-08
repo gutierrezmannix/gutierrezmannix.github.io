@@ -289,8 +289,8 @@
       const mx=Math.max(Math.abs(s.mn),Math.abs(s.mx))||1,z=v=>Number(v.toFixed(Math.max(0,5-Math.ceil(Math.log10(mx))))),vals=this.rFormat([s.mn,s.q1,s.med,s.mean,s.q3,s.mx].map(z),4),names=['Min.','1st Qu.','Median','Mean','3rd Qu.','Max.'];
       if(s.missing){names.push("NA's");vals.push(String(s.missing));}
       return this.rNamed(names,vals,null)+'\n'+this.rNamed(['sd','skewness','kurtosis'],this.rFormat([s.sd,s.sk,s.ku]),null)+'\n[1] '+ci+'\nattr(,"conf.level")\n[1] '+(1-a);}
-    if(d.t==='tab1'){const fr=M['freq|'+d.x];if(!fr||!fr.rows.length)return '';const rows=this.descOrder(d.x,fr.rows),vm=this._raw?.vlabs?.[d.x],rev=vm?new Map([...vm.entries()].map(([k,v])=>[String(v),String(k)])):null,nm=r=>rev&&rev.has(String(r.label))?rev.get(String(r.label)):String(r.label);
-      if(d.w)return this.rNamed(rows.map(nm),this.rFormat(rows.map(r=>100*r.c/fr.totalW)),d.x);
+    if(d.t==='tab1'){const fr=M['freq|'+d.x];if(!fr||!fr.rows.length)return '';const rows=this.descOrder(d.x,fr.rows),vm=this.rLabelled&&this.rLabelled(d.x)?null:this._raw?.vlabs?.[d.x],rev=vm?new Map([...vm.entries()].map(([k,v])=>[String(v),String(k)])):null,nm=r=>rev&&rev.has(String(r.label))?rev.get(String(r.label)):String(r.label);
+      if(d.w)return this.rNamed(rows.map(nm),this.rFormat(rows.map(r=>100*r.c/fr.totalW)),this.rLabelled&&this.rLabelled(d.x)?'haven::as_factor('+d.x+')':d.x);
       return this.rNamed(rows.map(nm),rows.map(r=>String(r.c)),'');}
     return '';}
   asCompute(packet,token){

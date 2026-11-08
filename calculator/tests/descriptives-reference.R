@@ -6,10 +6,12 @@ here <- dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value =
 d <- read.csv(file.path(here, "data", "descriptives.csv"))
 wq <- function(x, w, p) { o <- order(x); cw <- cumsum(w[o]) / sum(w); i <- which(cw >= p - 1e-12)[1]; if (abs(cw[i] - p) < 1e-12) mean(x[o][i + 0:1]) else x[o][i] }
 st <- function(x, w) {
-  ok <- !is.na(x) & !is.na(w); x <- x[ok]; w <- w[ok]; n <- length(x); m <- sum(w * x) / sum(w); m2 <- sum(w * (x - m)^2) / sum(w)
-  sd <- sqrt(m2 * n / (n - 1)); se <- if (length(unique(w)) == 1) sd / sqrt(n) else sqrt(n / (n - 1) * sum((w * (x - m))^2)) / sum(w)
+  ok <- !is.na(x) & !is.na(w); x <- x[ok]; w <- w[ok]; n <- length(x)
+  # build .91: deviations measured from the first value (exact for values near 1e9), the mean corrected once
+  y <- x - x[1]; my <- sum(w * y) / sum(w); my <- my + sum(w * (y - my)) / sum(w); m <- x[1] + my; e <- y - my; m2 <- sum(w * e^2) / sum(w)
+  sd <- sqrt(m2 * n / (n - 1)); se <- if (length(unique(w)) == 1) sd / sqrt(n) else sqrt(n / (n - 1) * sum((w * e)^2)) / sum(w)
   h <- qt(0.975, n - 1) * se
-  c(n = n, mean = m, sd = sd, min = min(x), max = max(x), sk = sum(w * (x - m)^3) / sum(w) / m2^1.5, ku = sum(w * (x - m)^4) / sum(w) / m2^2,
+  c(n = n, mean = m, sd = sd, min = min(x), max = max(x), sk = sum(w * e^3) / sum(w) / m2^1.5, ku = sum(w * e^4) / sum(w) / m2^2,
     se = se, lo = m - h, hi = m + h, sapply(c(p1 = .01, p5 = .05, p10 = .1, p25 = .25, p50 = .5, p75 = .75, p90 = .9, p95 = .95, p99 = .99), function(p) wq(x, w, p)))
 }
 num <- function(v) paste0("{", paste0('"', names(v), '":', sprintf("%.17g", v), collapse = ","), "}")

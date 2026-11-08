@@ -2175,8 +2175,8 @@ class Component extends DCLogic {
       const mx=Math.max(Math.abs(s.mn),Math.abs(s.mx))||1,z=v=>Number(v.toFixed(Math.max(0,5-Math.ceil(Math.log10(mx))))),vals=this.rFormat([s.mn,s.q1,s.med,s.mean,s.q3,s.mx].map(z),4),names=['Min.','1st Qu.','Median','Mean','3rd Qu.','Max.'];
       if(s.missing){names.push("NA's");vals.push(String(s.missing));}
       return this.rNamed(names,vals,null)+'\n'+this.rNamed(['sd','skewness','kurtosis'],this.rFormat([s.sd,s.sk,s.ku]),null)+'\n[1] '+ci+'\nattr(,"conf.level")\n[1] '+(1-a);}
-    if(d.t==='tab1'){const fr=M['freq|'+d.x];if(!fr||!fr.rows.length)return '';const rows=this.descOrder(d.x,fr.rows),vm=this._raw?.vlabs?.[d.x],rev=vm?new Map([...vm.entries()].map(([k,v])=>[String(v),String(k)])):null,nm=r=>rev&&rev.has(String(r.label))?rev.get(String(r.label)):String(r.label);
-      if(d.w)return this.rNamed(rows.map(nm),this.rFormat(rows.map(r=>100*r.c/fr.totalW)),d.x);
+    if(d.t==='tab1'){const fr=M['freq|'+d.x];if(!fr||!fr.rows.length)return '';const rows=this.descOrder(d.x,fr.rows),vm=this.rLabelled&&this.rLabelled(d.x)?null:this._raw?.vlabs?.[d.x],rev=vm?new Map([...vm.entries()].map(([k,v])=>[String(v),String(k)])):null,nm=r=>rev&&rev.has(String(r.label))?rev.get(String(r.label)):String(r.label);
+      if(d.w)return this.rNamed(rows.map(nm),this.rFormat(rows.map(r=>100*r.c/fr.totalW)),this.rLabelled&&this.rLabelled(d.x)?'haven::as_factor('+d.x+')':d.x);
       return this.rNamed(rows.map(nm),rows.map(r=>String(r.c)),'');}
     return '';}
   asCompute(packet,token){
@@ -8135,7 +8135,7 @@ class Component extends DCLogic {
         if (!d.w) return 'summary(df$' + d.x + ', quantile.type = 2)\nx <- na.omit(df$' + d.x + '); m <- mean(x)\nc(sd = sd(x), skewness = mean((x - m)^3) / mean((x - m)^2)^1.5, kurtosis = mean((x - m)^4) / mean((x - m)^2)^2)\nt.test(x, conf.level = ' + cl + ')$conf.int';
         return 'ok <- !is.na(df$' + d.x + ') & !is.na(df$' + d.w + '); x <- df$' + d.x + '[ok]; w <- df$' + d.w + '[ok]; n <- length(x); m <- weighted.mean(x, w)\nwq <- function(p) { o <- order(x); cw <- cumsum(w[o]) / sum(w); i <- which(cw >= p - 1e-12)[1]; if (abs(cw[i] - p) < 1e-12) mean(x[o][i + 0:1]) else x[o][i] }   # Stata\'s weighted percentiles\nc(n = n, mean = m, sd = sqrt(sum(w * (x - m)^2) / sum(w) * n / (n - 1)), min = min(x), q1 = wq(0.25), median = wq(0.5), q3 = wq(0.75), max = max(x))\nse <- sqrt(n / (n - 1) * sum((w * (x - m))^2)) / sum(w)   # as Stata mean [pw=]\nm + c(-1, 1) * qt(' + (1 - this.alpha() / 2) + ', n - 1) * se';
       }
-      if (d.t === 'tab1') return d.w ? 'prop.table(xtabs(' + d.w + ' ~ ' + d.x + ', data = df)) * 100' : 'table(df$' + d.x + ')';
+      if (d.t === 'tab1') { const L = this.rLabelled(d.x); return d.w ? 'prop.table(xtabs(' + d.w + ' ~ ' + (L ? 'haven::as_factor(' + d.x + ')' : d.x) + ', data = df)) * 100' : 'table(' + (L ? 'haven::as_factor(df$' + d.x + ')' : 'df$' + d.x) + ')'; }
       if (d.t === 'ct') return d.w ? 'tb <- xtabs(' + d.w + ' ~ ' + d.y + ' + ' + d.x + ', data = df)\nprop.table(tb, margin = 2) * 100\nchisq.test(tb * sum(complete.cases(df[c("' + d.y + '", "' + d.x + '", "' + d.w + '")])) / sum(tb), correct = FALSE)   # weights rescaled to the observations' : 'tb <- table(df$' + d.y + ', df$' + d.x + ')\nprop.table(tb, margin = 2) * 100\nchisq.test(tb, correct = FALSE)'; // GM26 .66: weighted, with the chi-square
       if (d.t === 'corr') return 'cor.test(df$' + d.x + ', df$' + d.y + ')';
       if (d.t === 'ttest') return 't.test(' + d.y + ' ~ ' + d.g + ', data = df)';
@@ -8569,7 +8569,9 @@ class Component extends DCLogic {
   }
   descTiles(pairs) { // GM26 .66: long numbers take two tile widths and stay on one line
     const base = 'background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 8px 10px; box-shadow: inset 0 1px 2px rgba(43,39,30,0.06); min-width: 0;';
-    return pairs.map(([k, v]) => { const L = String(v).length, wide = L > 10; return { k, v, ts: base + (wide ? ' grid-column: span 2;' : ''), vs: 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: ' + (L <= 8 ? 19 : L <= 10 ? 16 : L <= 17 ? 16 : 13) + 'px; color: var(--c194F39, #194F39); text-shadow: 0 0 10px rgba(46,125,88,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' }; });
+    // build .91: sized so the number always fits the narrowest tile (96 px wide, about 74 px of text; Space Mono is
+    // 0.69 em per character): up to 8 characters in one tile, longer ones across two
+    return pairs.map(([k, v]) => { const L = String(v).length, wide = L > 8, fs = Math.max(12, Math.min(19, Math.floor((wide ? 172 : 74) / (0.69 * Math.max(1, L))))); return { k, v, ts: base + (wide ? ' grid-column: span 2;' : ''), vs: 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: ' + fs + 'px; color: var(--c194F39, #194F39); text-shadow: 0 0 10px rgba(46,125,88,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' }; });
   }
   descFmtFor(name) { const E = this._E, w = this.wArr(); return this.descFmt(this.memo('descF|' + name, () => { const v = this.vals(name), a = v && v.kind === 'num' ? v.a : (this.numCore(name) || {}).a; return a ? E.descNum(a, w) : null; })); }
   fmtP(p) { if (!isFinite(p)) return '—'; if (p < 0.001) return '<.001'; return Math.min(p, 0.999).toFixed(3).slice(1); }
@@ -9012,6 +9014,20 @@ class Component extends DCLogic {
     if (this._raw && this.state.screen === 'work' && this._dirty && !window.confirm('Open "' + f.name + '"? It replaces the current dataset, which has unsaved changes.\n\nCancel, then use File → Save session, to keep them.')) return;
     this.ingest(f, f.name);
     if (files.length > 1) setTimeout(() => this.flash('Opened ' + f.name + ': ' + files.length + ' files were dropped, and one dataset opens at a time.'), 900);
+  }
+  // build .91: a text variable that holds dates (2024-01-04, 2024-01, or with a time) is counted by day, month or year,
+  // whichever gives a readable table; with the first, last and median date (weighted like the percentages)
+  // build .91: a variable with value labels in a Stata or SPSS file (read_dta / read_sav keep them): R can print the labels
+  rLabelled(x) { const m = this._raw && this._raw.vlabs && this._raw.vlabs[x]; return !!(m && m.size && /\.(dta|z?sav)$/i.test(this.state.fileName || '')); }
+  dateGroups(f) {
+    const re = /^\d{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?([ T]\d{2}:\d{2}(:\d{2})?)?$/;
+    if (!f || f.rows.length <= 12 || !f.rows.every(r => re.test(String(r.label)))) return null;
+    const labs = f.rows.map(r => String(r.label)).sort(), first = labs[0], last = labs[labs.length - 1], t = x => Date.UTC(+x.slice(0, 4), +x.slice(5, 7) - 1, +(x.slice(8, 10) || 1));
+    const days = Math.round((t(last) - t(first)) / 864e5), unit = days > 6 * 366 ? 'year' : days > 120 ? 'month' : 'day', key = x => unit === 'year' ? x.slice(0, 4) : unit === 'month' ? x.slice(0, 7) : x.slice(0, 10);
+    const m = new Map(); for (const r of f.rows) { const k = key(String(r.label)), e = m.get(k) || { label: k, c: 0, craw: 0 }; e.c += r.c; e.craw += r.craw; m.set(k, e); }
+    if (unit === 'day' && m.size === f.rows.length && !f.rows.some(r => String(r.label).length > 10)) return null; // already one row per day
+    let acc = 0, med = ''; for (const r of f.rows.slice().sort((x, y) => String(x.label) < String(y.label) ? -1 : 1)) { acc += r.c; if (acc >= f.totalW / 2) { med = String(r.label); break; } }
+    return { f: Object.assign({}, f, { rows: [...m.values()].sort((x, y) => y.c - x.c) }), unit, first, last, days, med, nDays: f.rows.length, withTime: f.rows.some(r => String(r.label).length > 10) };
   }
   newDataset() {
     const data = { n: 20, names: [], labels: [], cols: [], vlabs: {} };
@@ -10561,7 +10577,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-07.90') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-07.91') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -12246,6 +12262,12 @@ class Component extends DCLogic {
       out.exEmpty = !m;
       out.exIsNum = !!(m && m.treatAs === 'numeric');
       out.exIsCat = !!(m && m.treatAs === 'categorical');
+      // build .91: the chart grid can be hidden (no value to chart); a dataset with no variables says how to make one
+      out.exChartsStyle = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 8px;'; this._cxNone = false;
+      out.exNoVars = !(S.cols || []).length;
+      out.exEmptyTitle = out.exNoVars ? 'This dataset has no variables yet' : 'Pick a variable to profile';
+      out.exEmptyText = out.exNoVars ? 'Make the first one: Data → Make a new variable. It then shows in the left pane and here, with its descriptives and charts.' : 'Type a name above, or click any variable in the left pane — you\'ll get descriptives and charts instantly.';
+      out.exMakeVar = () => this.setState({ tab: 'data', nvTab: 'build', deTask: 'new', de: Object.assign({}, S.de, { task: 'new', recipe: '' }) });
       if (out.exIsNum) {
         const d = this.memo('desc|' + name, () => E.descNum(this.vals(name).a, w));
         if (d.n > 0) {
@@ -12274,7 +12296,11 @@ class Component extends DCLogic {
           out.boxChart = E.boxChart(R, dEff, { key: 'bx|' + name + (cc ? '|cc' : '') + cSel, color: cSel, refCb: this.svgRef('box'), ax: this.axUI('box', [name], { x: true, zero: 'x', xName: name }) });
           out.dlHist = this.dl('hist', name + '-histogram');
           out.dlBox = this.dl('box', name + '-boxplot');
-        } else { out.descCells = this.descTiles([['N VALID', '0']]); out.exInterp = 'No valid numeric values — check missing codes or READ AS setting.'; }
+          // build .91: one value draws no chart (the panels were empty boxes); 2 to 4 values: the box plot says why it is missing
+          if (!out.histChart) out.axHist = { show: false };
+          if (!out.boxChart) { out.axBox = { show: false }; if (dEff.n >= 2) out.boxChart = R.createElement('div', { style: { padding: '18px 4px', fontSize: '13px', color: 'var(--c6B6455, #6B6455)' } }, 'A box plot needs at least 5 values; ' + name + ' has ' + dEff.n + '.'); }
+          if (dEff.n < 2) { out.exChartsStyle += ' display: none;'; out.exInterp += ' With one value there is nothing to chart.'; }
+        } else { this._cxNone = true; out.descCells = this.descTiles([['N VALID', '0'], ['MISSING', this.fmtN(this.conds().length ? this.keptN() : (d.missing || 0))]]); out.exChartsStyle += ' display: none;'; out.exInterp = name + ' has no values here: every row' + (this.conds().length ? ' in the subgroup' : '') + ' is empty or set to missing.'; }
         out.copyDescLabel = this.cpLabel('desc');
         out.muDraft = S.mu;
         out.setMu = e2 => this.setState({ mu: e2.target.value });
@@ -12291,19 +12317,21 @@ class Component extends DCLogic {
         out.copyDesc = () => this.copyTSV('desc', 'stat\tvalue\n' + (out.descCells || []).map(c => c.k + '\t' + c.v).join('\n'));
       }
       if (out.exIsCat) {
-        const f = this.memo('freq|' + name, () => E.freqOf(this.vals(name).a, w));
+        const f0 = this.memo('freq|' + name, () => E.freqOf(this.vals(name).a, w)), dg = this.memo('freqDate|' + name, () => this.dateGroups(f0)), f = dg ? dg.f : f0;
+        this._cxDates = dg ? dg.unit : '';
         // GM26 .66: categories in value order (codes, then labels A–Z), as Stata's tab, so CUM adds up the scale in order;
         // "By frequency" sorts them as tab, sort. With a weight: N is the observations, % and CUM use the weights.
-        const byFreq = S.freqSort === 'freq', rowsO = byFreq ? f.rows : this.descOrder(name, f.rows), cap = 60;
+        const byFreq = S.freqSort === 'freq', rowsO = byFreq ? f.rows : dg ? f.rows.slice().sort((x, y) => x.label < y.label ? -1 : 1) : this.descOrder(name, f.rows), cap = 60;
         const shown = rowsO.slice(0, cap);
         let cum = 0;
         out.freqRows = shown.map(r => { cum += r.c; return { level: String(r.label), count: this.fmtN(w ? r.craw : r.c), pct: (100 * r.c / f.totalW).toFixed(1) + '%', cum: (100 * cum / f.totalW).toFixed(1) + '%' }; });
         out.freqHeadN = w ? 'N (OBS.)' : 'COUNT'; out.freqHeadPct = w ? 'PCT (W)' : 'PCT'; out.freqHeadCum = w ? 'CUM (W)' : 'CUM';
         out.freqSortBtns = [['value', 'BY VALUE'], ['freq', 'BY FREQUENCY']].map(([k, label]) => ({ label, style: 'font-family: var(--fMono, \'Space Mono\', monospace); font-size: 10px; letter-spacing: 0.08em; border-radius: 8px; padding: 4px 9px; cursor: pointer; white-space: nowrap; ' + ((k === 'freq') === byFreq ? 'color: var(--cFFFFFF, #FFFFFF); background: var(--c194F39, #194F39); border: 1px solid var(--c194F39, #194F39);' : 'color: var(--c5D5648, #5D5648); background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF);'), click: () => this.setState({ freqSort: k }) }));
         out.hasFreqNote = f.rows.length > cap || f.missing > 0 || !!w;
-        out.freqNote = (f.rows.length > cap ? (byFreq ? 'THE ' + cap + ' MOST COMMON' : 'THE FIRST ' + cap) + ' OF ' + f.rows.length + ' LEVELS SHOWN. ' : '') + (f.missing > 0 ? this.fmtN(f.missing) + ' MISSING EXCLUDED. ' : '') + (w ? 'WEIGHTED BY ' + S.weightVar.toUpperCase() + ': N IS THE NUMBER OF OBSERVATIONS; PCT AND CUM USE THE WEIGHTS.' : '');
+        out.freqNote = (dg ? 'DATES COUNTED BY ' + dg.unit.toUpperCase() + ' (' + this.fmtN(dg.nDays) + ' DIFFERENT ' + (dg.withTime ? 'TIMES' : 'DAYS') + '). ' : '') + (f.rows.length > cap ? (byFreq ? 'THE ' + cap + ' MOST COMMON' : 'THE FIRST ' + cap) + ' OF ' + f.rows.length + ' LEVELS SHOWN. ' : '') + (f.missing > 0 ? this.fmtN(f.missing) + ' MISSING EXCLUDED. ' : '') + (w ? 'WEIGHTED BY ' + S.weightVar.toUpperCase() + ': N IS THE NUMBER OF OBSERVATIONS; PCT AND CUM USE THE WEIGHTS.' : '');
         const top = f.rows[0];
-        if (f.rows.length) {
+        if (dg) out.exInterp = name + ' runs from ' + dg.first + ' to ' + dg.last + ' (' + this.fmtN(dg.days) + ' days); half of the dates fall on or before ' + dg.med + '. ' + this.fmtN(f.totalRaw) + ' valid dates on ' + this.fmtN(dg.nDays) + ' different ' + (dg.withTime ? 'times' : 'days') + ', counted here by ' + dg.unit + '.' + wTag;
+        else if (f.rows.length) {
           out.exInterp = 'The most common value of ' + name + ' is "' + top.label + '" at ' + (100 * top.c / f.totalW).toFixed(1) + '% of ' + this.fmtN(f.totalRaw) + ' valid cases, across ' + f.rows.length + ' categories.' + wTag;
         } else out.exInterp = 'No valid values — check missing codes.';
         // the bar chart follows the table's order; past 20 categories it keeps the 20 most common (in that order)
@@ -12856,7 +12884,7 @@ class Component extends DCLogic {
       if (out.exInterp !== undefined) {
         let t = out.exInterp, ttp = NaN;
         if (out.exIsNum && S.tt1 && S.tt1.x === S.exploreVar && !S.tt1.error && isFinite(S.tt1.p)) { ttp = S.tt1.p; t += ' Compared with the test value ' + (S.tt1.mu != null ? S.tt1.mu : S.mu) + ', the mean is ' + (S.tt1.p < a0 ? 'significantly ' + (S.tt1.t > 0 ? 'higher' : 'lower') : 'not significantly different') + ' (t = ' + this.fmt(S.tt1.t, 2) + ', ' + this.apaP(S.tt1.p) + ').'; }
-        out.iOne = this.mkInterp(t, isFinite(ttp) ? { p: ttp, tip: 'A one-sample t-test asks whether the average could plausibly equal the test value; it assumes a roughly bell-shaped variable or a large sample.' } : { v: 'DESCRIPTIVE', tip: out.exIsNum ? this._cxConst ? 'A variable with a single value cannot be compared or correlated. If that is unexpected, check the missing-value codes (Settings): auto-screen may have set other values to missing.' : 'The mean is pulled by extreme values — if the histogram is lopsided, report the median as well.' : 'Percentages leave out missing cases. With many small categories, consider grouping them with Data → Recode.' });
+        out.iOne = this.mkInterp(t, isFinite(ttp) ? { p: ttp, tip: 'A one-sample t-test asks whether the average could plausibly equal the test value; it assumes a roughly bell-shaped variable or a large sample.' } : { v: 'DESCRIPTIVE', tip: out.exIsNum && this._cxNone ? 'If that is unexpected, check the missing-value codes (Settings) and the IF subgroup.' : out.exIsCat && this._cxDates ? 'Dates are counted by ' + this._cxDates + ' here. To follow a measure over time, use Tests ▾ → Time series.' : out.exIsNum ? this._cxConst ? 'A variable with a single value cannot be compared or correlated. If that is unexpected, check the missing-value codes (Settings): auto-screen may have set other values to missing.' : 'The mean is pulled by extreme values — if the histogram is lopsided, report the median as well.' : 'Percentages leave out missing cases. With many small categories, consider grouping them with Data → Recode.' });
       }
       if (out.corrInterp !== undefined) out.iCorr = this.mkInterp(out.corrInterp, { p: out.iCorrP, tip: 'Correlation shows that two variables move together — not that one causes the other. r only captures straight-line patterns, so check the scatterplot.' });
       if (out.testInterp !== undefined) out.iTest = this.mkInterp(out.testInterp, { p: out.iTestP, tip: 'A significant difference is not automatically a big one — look at the effect size (Cohen\u2019s d or \u03b7\u00b2). Very small groups make results unstable.' });

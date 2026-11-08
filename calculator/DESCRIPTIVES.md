@@ -60,3 +60,31 @@ outliers, distinct ticks and the histogram title. The logged R code was also run
 numbers as the console.
 `tests/descriptives-e2e.cjs` checks the same cases in a real browser, offline: the 1e9 CI and tiles that fit, 9.92e−7,
 incomes in one format with the skew remark, value order and the By frequency switch, distinct ticks.
+
+## Build .91 — audit against R packages, and the tab in a browser
+
+**Numbers.** 300 simulated variables (normal, skewed incomes, heavy tails, Likert, 0/1, values near 1e-6 and 1e9,
+negatives, ties, years, two humps; 1 to 5,000 rows; 6% missing values; sampling weights with some missing) were checked
+against R packages: `moments` (skewness, kurtosis), `quantile(type = 2)` (Stata's unweighted percentiles), Stata's
+weighted percentile rule, `t.test` (CI) and `survey` (`svymean`, `svyvar`, `confint` with sampling weights, as Stata's
+`mean [pw=]`). Mean, SD, min, max and all nine percentiles agree to 15 digits, the SE and CI with `survey` to 9, the
+skewness and kurtosis to 13. 60 frequency tables of text and coded variables (accents and capitals, weights) agree with
+`table()` and the weighted shares. The R code the tab writes was run in R and prints the same numbers.
+
+| Problem | Before | Now |
+| --- | --- | --- |
+| A number cut in its tile | the SD of timestamps showed "288,4…" (19 px text in a 96 px tile) | the text is sized to fit the narrowest tile; past 8 characters the tile spans two |
+| Skewness and kurtosis of 2 or 3 values | blank | shown, as Stata's `summarize, detail` and R |
+| Skewness near 1e9 (timestamps, ids) with weights | right to 6 digits | exact: sums are taken from a nearby value (R's plain `weighted.mean` loses the same digits) |
+| Dates (Stata and SPSS dates now arrive as dates, since build .88) | a table of every single day (205 rows) | counted by month (by year past 6 years, by day under 4 months), with the first, last and median date |
+| A variable with no values | empty histogram and box-plot boxes, and a tip about extreme values | no chart boxes; "has no values here: every row is empty or set to missing", with what to check |
+| One value | empty chart boxes | no chart boxes, and it says why |
+| 2 to 4 values | an empty box-plot box | "A box plot needs at least 5 values" |
+| A constant | drawn at the left edge of its axis | in the middle |
+| Chart labels near 1e9 | 1700200k | 1,700.2M |
+| A dataset with no variables (Create your own dataset) | "Type a name above, or click any variable in the left pane" | "This dataset has no variables yet", with a Make a new variable button |
+| R table of a labelled variable (Stata / SPSS file) | `table(df$voto)` printed the codes 1 2 3 9 | `table(haven::as_factor(df$voto))` prints Morena PAN PRI No sabe, as Stata's `tab` |
+
+Tests: `tests/descriptives-sim.test.mjs` with `tests/data/descriptives-sim-reference.json` (written by
+`tests/descriptives-sim-reference.R`) and `tests/data/descriptives-audit.dta`. `tests/descriptives-reference.R` now
+takes the moments from the first value too (its weighted skewness near 1e9 moved by 6 × 10⁻⁷).
