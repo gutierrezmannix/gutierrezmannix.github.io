@@ -42,6 +42,7 @@
       noteAu: 'INEGI urban areas of interest, placed on and named after the municipality where most of their respondents live. Scroll or pinch to zoom, drag to move.',
       areaOf: '{m} urban area', areaN: 'Urban area {n}', fewN: 'Few answers (n < 50) — read with care', fewLeg: 'faded = fewer than 50 answers',
       natAll: 'Mexico (all adults)',
+      selNote: 'Based on {n} people who answered this question here in {y}.', selMoe: ' Margin of error at least ±{m} points.', selSmall: ' Small sample — read as a rough estimate.',
       foot: 'Source: INEGI, Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE), 2011–2026 editions. Recoded master files and weighted estimates (person weight fac_ele) by Dr. Gutiérrez-Mannix. Years are survey editions. Maps: Natural Earth (public domain); municipalities from geoBoundaries / World Bank (CC BY 4.0). Data, maps and fonts are stored with this page — no internet connection needed.'
     },
     es: {
@@ -74,6 +75,7 @@
       noteAu: 'Áreas urbanas de interés del INEGI, ubicadas en el municipio donde vive la mayoría de sus informantes y nombradas por él. Usa la rueda o pellizca para acercar; arrastra para moverte.',
       areaOf: 'Área urbana de {m}', areaN: 'Área urbana {n}', fewN: 'Pocas respuestas (n < 50): interpretar con cautela', fewLeg: 'tenue = menos de 50 respuestas',
       natAll: 'México (toda la población adulta)',
+      selNote: 'Con base en {n} personas que respondieron esta pregunta aquí en {y}.', selMoe: ' Margen de error de al menos ±{m} puntos.', selSmall: ' Muestra pequeña: tómese como una estimación aproximada.',
       foot: 'Fuente: INEGI, Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE), ediciones 2011–2026. Archivos maestros recodificados y estimaciones ponderadas (factor de persona fac_ele) por el Dr. Gutiérrez-Mannix. Los años corresponden a la edición de la encuesta. Mapas: Natural Earth (dominio público); municipios de geoBoundaries / Banco Mundial (CC BY 4.0). Los datos, los mapas y las fuentes tipográficas se guardan con esta página: no se necesita internet.'
     }
   });
@@ -525,6 +527,13 @@
       $('#sel-val').textContent = fmt(val(V, S.y, S.sel, S.c, S.base, g), V);
       const n = nCell(V, S.y, S.sel, S.c, g);
       $('#sel-sub').textContent = n ? '· n = ' + D.num(n) : '';
+      // small note: sample size and a simple-random-sample margin of error
+      // (the real survey error is larger because of weighting and clustering)
+      const xv = val(V, S.y, S.sel, S.c, S.base, g);
+      let note = n ? D.t('selNote', { n: D.num(n), y: S.y }) : '';
+      if (n && !V.isMean && xv != null) note += D.t('selMoe', { m: D.num(1.96 * Math.sqrt(xv * (100 - xv) / n), 0) });
+      if (n && n < 50) note += D.t('selSmall');
+      $('#sel-note').textContent = note;
       $('#sel-open').hidden = S.lvl !== 'st';
       $('#sel-open').href = '#view=state&s=' + S.sel + '&y=' + S.y;
     }
