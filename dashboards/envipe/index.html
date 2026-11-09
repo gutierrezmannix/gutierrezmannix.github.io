@@ -19,9 +19,15 @@
   #map path.st:hover { stroke: var(--fg); stroke-width: 1.6; }
   #map path.st.sel { stroke: #fff; stroke-width: 2.6; }
   #map path.st.na { fill: #34302C; }
-  .years-row { border-top: 1px solid #2E2B28; padding-top: 14px; display: flex; align-items: center; gap: 14px; }
-  .years-row .ticks { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); }
-  .years-row .ticks .on { color: var(--fg); font-weight: 700; }
+  .years-row { border-top: 1px solid #2E2B28; padding-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  .yearbtns { display: flex; flex-wrap: wrap; gap: 4px; }
+  .yearbtns button { min-width: 52px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-deep); color: var(--fg-2); font: 600 12px var(--font-mono); }
+  .yearbtns button:hover { border-color: var(--fg-4); color: var(--fg); }
+  .yearbtns button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg-deep); }
+  .tip { max-width: 320px; }
+  .tip .rows { margin-top: 6px; display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; font-size: 12px; color: #433D31; }
+  .tip .rows .on { color: #1C1B1A; font-weight: 700; }
+  .tip .rows .on.n { color: #A65D0F; }
   .rank { display: flex; flex-direction: column; gap: 2px; }
   .rank button { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--fg); text-align: left; }
   .rank button:hover { background: var(--panel-2); }
@@ -77,6 +83,16 @@
   .seg button:disabled { opacity: 0.4; cursor: not-allowed; }
   .rank { max-height: 760px; overflow: auto; }
   .rank button.few { opacity: 0.6; }
+  .det-rows { display: flex; flex-direction: column; gap: 6px; }
+  .det-row { display: grid; grid-template-columns: minmax(140px, 260px) minmax(120px, 1fr) 64px 58px 64px; align-items: center; gap: 12px; font-size: 14px; padding: 4px 6px; border-radius: 8px; }
+  .det-row.on { background: #46413A; }
+  .det-row .tr { position: relative; height: 14px; background: #24221F; border-radius: 3px; }
+  .det-row .tr i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--teal-2); }
+  .det-row .tr b { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1px; background: var(--accent); border-radius: 2px; }
+  .det-row .vv { font-family: var(--font-mono); font-weight: 700; text-align: right; }
+  .det-row .mo, .det-row .nn { font-family: var(--font-mono); font-size: 12px; color: var(--fg-3); text-align: right; }
+  .det-head { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-4); }
+  @media (max-width: 640px) { .det-row { grid-template-columns: 1fr 64px 58px; } .det-row .tr, .det-row .nn { display: none; } }
   [hidden] { display: none !important; }
   @media (max-width: 640px) { .dumb .lb { width: 110px; font-size: 13px; } .rank .nm { width: 104px; } }
 </style>
@@ -182,17 +198,14 @@
           <div><b id="sel-name"></b> <span class="mono" id="sel-val"></span> <span class="small" id="sel-sub"></span></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button type="button" class="btn" id="sel-clear" data-i18n="clear">Clear</button>
+            <a class="btn primary" id="sel-detail" href="#detail"><span data-i18n="seeAll">See all answers</span> ↓</a>
             <a class="btn primary" id="sel-open" href="#"><span data-i18n="openProfile">Open state profile</span> →</a>
           </div>
           <p class="small" id="sel-note" style="flex-basis:100%;margin:0"></p>
         </div>
         <div class="years-row">
-          <button type="button" class="play" id="play" data-i18n-attr="aria-label:play"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" id="play-ic"><path d="M7 4v16l13-8z"/></svg></button>
-          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
-            <label class="sr-only" for="yr" data-i18n="edition">Survey edition</label>
-            <input type="range" class="years" id="yr" min="0" max="0" step="1" value="0">
-            <div class="ticks" id="ticks"></div>
-          </div>
+          <span class="label" data-i18n="edition">Survey edition</span>
+          <div class="yearbtns" id="years" role="group" data-i18n-attr="aria-label:edition"></div>
         </div>
       </section>
 
@@ -201,6 +214,12 @@
         <div class="rank" id="rank"></div>
       </section>
     </div>
+
+    <section class="card stack" id="detail" aria-label="Answer detail" hidden>
+      <div class="card-head"><h2 class="h2" id="det-title"></h2><div class="legend" id="det-legend"></div></div>
+      <div id="det-rows" class="det-rows"></div>
+      <p class="small" id="det-note" style="margin:0"></p>
+    </section>
 
     <div class="row">
       <section class="card grow" aria-label="Trend">

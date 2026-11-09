@@ -42,6 +42,8 @@
       noteAu: 'INEGI urban areas of interest, placed on and named after the municipality where most of their respondents live. Scroll or pinch to zoom, drag to move.',
       areaOf: '{m} urban area', areaN: 'Urban area {n}', fewN: 'Few answers (n < 50) — read with care', fewLeg: 'faded = fewer than 50 answers',
       natAll: 'Mexico (all adults)',
+      seeAll: 'See all answers', detTitle: 'All answers · {p} · {y}', detAns: 'Answer', detPct: '%', detMoe: '±', detN: 'n',
+      detLegP: '{p}', detLegN: 'Mexico', detNote: 'Bars show {p}; orange marks show Mexico{g}. ± is a margin of error (at least; the real survey error is larger). n = people giving each answer. {b}', detMean: '{p}: {v} (Mexico {n}), from {k} answers.',
       selNote: 'Based on {n} people who answered this question here in {y}.', selMoe: ' Margin of error at least ±{m} points.', selSmall: ' Small sample — read as a rough estimate.',
       foot: 'Source: INEGI, Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE), 2011–2026 editions. Recoded master files and weighted estimates (person weight fac_ele) by Dr. Gutiérrez-Mannix. Years are survey editions. Maps: Natural Earth (public domain); municipalities from geoBoundaries / World Bank (CC BY 4.0). Data, maps and fonts are stored with this page — no internet connection needed.'
     },
@@ -75,6 +77,8 @@
       noteAu: 'Áreas urbanas de interés del INEGI, ubicadas en el municipio donde vive la mayoría de sus informantes y nombradas por él. Usa la rueda o pellizca para acercar; arrastra para moverte.',
       areaOf: 'Área urbana de {m}', areaN: 'Área urbana {n}', fewN: 'Pocas respuestas (n < 50): interpretar con cautela', fewLeg: 'tenue = menos de 50 respuestas',
       natAll: 'México (toda la población adulta)',
+      seeAll: 'Ver todas las respuestas', detTitle: 'Todas las respuestas · {p} · {y}', detAns: 'Respuesta', detPct: '%', detMoe: '±', detN: 'n',
+      detLegP: '{p}', detLegN: 'México', detNote: 'Las barras muestran {p}; las marcas naranjas, México{g}. ± es un margen de error (mínimo; el error real de la encuesta es mayor). n = personas que dieron cada respuesta. {b}', detMean: '{p}: {v} (México {n}), con base en {k} respuestas.',
       selNote: 'Con base en {n} personas que respondieron esta pregunta aquí en {y}.', selMoe: ' Margen de error de al menos ±{m} puntos.', selSmall: ' Muestra pequeña: tómese como una estimación aproximada.',
       foot: 'Fuente: INEGI, Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE), ediciones 2011–2026. Archivos maestros recodificados y estimaciones ponderadas (factor de persona fac_ele) por el Dr. Gutiérrez-Mannix. Los años corresponden a la edición de la encuesta. Mapas: Natural Earth (dominio público); municipios de geoBoundaries / Banco Mundial (CC BY 4.0). Los datos, los mapas y las fuentes tipográficas se guardan con esta página: no se necesita internet.'
     }
@@ -390,7 +394,16 @@
     const n = nCell(V, S.y, e, S.c, g);
     let diff = '';
     if (v != null && nat != null) { const d = v - nat; diff = (d >= 0 ? '+' : '−') + D.num(Math.abs(d), V.isMean ? 2 : 1) + (V.isMean ? '' : ' pts') + ' vs. ' + D.t('mexico'); }
-    D.showTip('<b>' + D.esc(placeName(e, S.y)) + '</b><div class="v">' + fmt(v, V) + '</div><div class="s">' + diff + (n ? ' · n = ' + D.num(n) : '') + '</div>' +
+    // every answer's share for this place and year (current base), chosen answer highlighted
+    let rows = '';
+    const r = V.rec[S.y + '|' + e + '|' + g];
+    if (!V.isMean && r) {
+      rows = '<div class="rows">' + V.cats.filter((c) => (S.base === 'pa' || !isDK(c)) && r[c]).map((c) => {
+        const x = r[c] ? r[c][S.base] : null, on = c === S.c ? ' on' : '';
+        return '<span class="' + on + '">' + D.esc(catLabel(S.v, c)) + '</span><span class="' + on + ' n">' + fmt(x, V) + '</span>';
+      }).join('') + '</div>';
+    }
+    D.showTip('<b>' + D.esc(placeName(e, S.y)) + ' · ' + S.y + '</b>' + (V.isMean ? '<div class="v">' + fmt(v, V) + '</div>' : rows) + '<div class="s">' + diff + (n ? ' · n = ' + D.num(n) : '') + '</div>' +
       (n != null && n < 50 ? '<div class="s" style="color:#A65D0F">' + D.t('fewN') + '</div>' : '') +
       '<div class="s" style="color:#A65D0F;font-weight:600">' + D.t('clickSelect') + '</div>', x, y);
   }
@@ -448,12 +461,12 @@
     $('#who-note').textContent = S.lvl !== 'st' ? D.t('whoNote') : '';
     $('#lvl-note').textContent = D.t(S.lvl === 'mu' ? 'noteMu' : S.lvl === 'au' ? 'noteAu' : 'noteSt', { n: SETTINGS.minmun });
     // ---- years ----
-    const yi = V.years.indexOf(S.y);
-    const yr = $('#yr'); yr.max = V.years.length - 1; yr.value = yi;
-    yr.setAttribute('aria-valuetext', String(S.y));
-    const ticks = $('#ticks'); ticks.innerHTML = '';
-    const step = V.years.length > 10 ? 3 : 1;
-    V.years.forEach((y, i) => { if (i % step === 0 || i === V.years.length - 1 || y === S.y) ticks.append(D.el('span', { class: y === S.y ? 'on' : '', text: y })); });
+    const yb = $('#years'); yb.innerHTML = '';
+    V.years.forEach((y) => {
+      const b = D.el('button', { type: 'button', 'aria-pressed': String(y === S.y), text: y });
+      b.addEventListener('click', () => { S.y = y; render(); });
+      yb.append(b);
+    });
     $('#yr-span').textContent = V.years[0] + '–' + V.years[V.years.length - 1];
     // ---- headline (national, for the chosen group) ----
     const nat = val(natV, S.y, '00', S.c, S.base, g);
@@ -547,6 +560,8 @@
       $('#sel-open').hidden = S.lvl !== 'st';
       $('#sel-open').href = '#view=state&s=' + S.sel + '&y=' + S.y;
     }
+    // ---- answer detail for the selected place ----
+    renderDetail(V, natV, g);
     // ---- trend: national (same group) vs. selected place ----
     const natName = S.lvl === 'st' ? D.t('mexico') + (g !== 'all' ? ' · ' + D.t(GROUPS[g]) : '') : D.t('natAll');
     const yrs = S.lvl === 'st' ? V.years : [...new Set(V.years.concat(natV.years))].sort((a, b) => a - b);
@@ -562,6 +577,44 @@
     const ns = places.map((e) => nOf(V, S.y, e, g)).filter((n) => n);
     $('#about-min').textContent = ns.length ? D.num(Math.min(...ns)) : '—';
     $('#about-min-l').textContent = D.t(S.lvl === 'mu' ? 'minMu' : S.lvl === 'au' ? 'minAu' : 'minSt');
+  }
+
+  /** Every answer for the selected place and edition: %, Mexico for comparison, margin of error, n. */
+  function renderDetail(V, natV, g) {
+    const box = $('#detail');
+    box.hidden = !S.sel;
+    $('#sel-detail').hidden = !S.sel;
+    if (!S.sel) return;
+    const pn = placeName(S.sel, S.y);
+    const gTxt = g !== 'all' ? ' · ' + D.t(GROUPS[g]) : '';
+    $('#det-title').textContent = D.t('detTitle', { p: pn + gTxt, y: S.y });
+    const lg = $('#det-legend'); lg.innerHTML = '';
+    lg.append(D.el('span', { class: 'sw' }, [D.el('i', { style: { background: '#95C3CE' } }), pn]),
+      D.el('span', { class: 'sw' }, [D.el('i', { style: { background: '#E5912A', width: '4px' } }), D.t('detLegN')]));
+    const rows = $('#det-rows'); rows.innerHTML = '';
+    const r = V.rec[S.y + '|' + S.sel + '|' + g] || {}, rn = natV.rec[S.y + '|00|' + g] || {};
+    if (V.isMean) {
+      const x = r[''] ? r[''].p : null, nx = rn[''] ? rn[''].p : null, k = r[''] ? r[''].n : null;
+      rows.append(D.el('p', { class: 'muted', style: { margin: 0 }, text: D.t('detMean', { p: pn, v: fmt(x, V), n: fmt(nx, V), k: D.num(k) }) }));
+      $('#det-note').textContent = '';
+      return;
+    }
+    const cats = V.cats.filter((c) => (S.base === 'pa' || !isDK(c)) && (r[c] || rn[c]));
+    let tot = 0; cats.forEach((c) => { tot += (r[c] && r[c].n) || 0; });
+    rows.append(D.el('div', { class: 'det-row det-head' }, [D.el('span', { text: D.t('detAns') }), D.el('span'), D.el('span', { class: 'vv', text: D.t('detPct') }), D.el('span', { class: 'mo', text: D.t('detMoe') }), D.el('span', { class: 'nn', text: D.t('detN') })]));
+    cats.forEach((c) => {
+      const x = r[c] ? r[c][S.base] : null, nx = rn[c] ? rn[c][S.base] : null, k = r[c] ? r[c].n : 0;
+      const moe = x != null && tot ? 1.96 * Math.sqrt(x * (100 - x) / tot) : null;
+      const row = D.el('div', { class: 'det-row' + (c === S.c ? ' on' : ''), title: catLabel(S.v, c) }, [
+        D.el('span', { text: catLabel(S.v, c) }),
+        D.el('span', { class: 'tr' }, [D.el('i', { style: { width: (x || 0) + '%' } }), nx == null ? null : D.el('b', { style: { left: nx + '%' } })]),
+        D.el('span', { class: 'vv', text: fmt(x, V) }),
+        D.el('span', { class: 'mo', text: moe == null ? '—' : '±' + D.num(moe, 1) }),
+        D.el('span', { class: 'nn', text: D.num(k) })
+      ]);
+      rows.append(row);
+    });
+    $('#det-note').textContent = D.t('detNote', { p: pn, g: gTxt, b: S.base === 'p' ? D.t('baseP') : D.t('baseA') });
   }
 
   function legendLines(el, series) {
@@ -690,22 +743,9 @@
   D.$$('#lvl button').forEach((b) => b.addEventListener('click', () => { if (b.disabled || S.lvl === b.dataset.l) return; S.lvl = b.dataset.l; S.sel = null; resetZoom(); render(); }));
   D.$$('#who button').forEach((b) => b.addEventListener('click', () => { if (b.disabled) return; S.g = b.dataset.g; render(); }));
   $('#sel-clear').addEventListener('click', () => { S.sel = null; render(); });
+  $('#sel-detail').addEventListener('click', (ev) => { ev.preventDefault(); $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   $('#sel-open').addEventListener('click', (ev) => { ev.preventDefault(); openProfile(S.sel, S.y); });
   D.$$('#base button').forEach((b) => b.addEventListener('click', () => { S.base = b.dataset.b; if (S.base === 'p' && isDK(S.c)) S.c = defaultCat(getVar(S.v, curSet())); render(); }));
-  $('#yr').addEventListener('input', (ev) => { const V = getVar(S.v, curSet()); S.y = V.years[+ev.target.value]; render(); });
-  let timer = null;
-  function setPlayIcon(on) { $('#play-ic').innerHTML = on ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>'; $('#play').setAttribute('aria-label', D.t(on ? 'pause' : 'play')); }
-  $('#play').addEventListener('click', () => {
-    if (timer) { clearInterval(timer); timer = null; setPlayIcon(false); return; }
-    const V = getVar(S.v, curSet());
-    if (S.y === V.years[V.years.length - 1]) S.y = V.years[0];
-    render(); setPlayIcon(true);
-    timer = setInterval(() => {
-      const i = V.years.indexOf(S.y);
-      if (i >= V.years.length - 1) { clearInterval(timer); timer = null; setPlayIcon(false); return; }
-      S.y = V.years[i + 1]; render();
-    }, 900);
-  });
   $('#crumb-home').addEventListener('click', (ev) => { ev.preventDefault(); S.view = 'map'; render(); window.scrollTo(0, 0); });
   $('#back-map').addEventListener('click', (ev) => { ev.preventDefault(); S.view = 'map'; S.lvl = 'st'; render(); window.scrollTo(0, 0); });
   $('#dl').addEventListener('click', () => {
