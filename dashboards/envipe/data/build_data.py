@@ -62,6 +62,7 @@ def part_number(path):
 
 def main():
     counts = {}
+    partnums = {}
     for key, js_prefix in SETS.items():
         parts = sorted(glob.glob(os.path.join(HERE, "envipe_%s_part*.csv" % key)), key=part_number)
         # Remove js files left over from an earlier build with more parts
@@ -84,6 +85,7 @@ def main():
                     f.write(";\n")
             print("wrote", os.path.basename(out), "(%.1f MB)" % (os.path.getsize(out) / 1e6))
         counts[key] = len(parts)
+        partnums[key] = [part_number(p) for p in parts]
 
     if not counts["agg"]:
         raise SystemExit("No envipe_agg_part*.csv files found in " + HERE)
@@ -92,6 +94,7 @@ def main():
         "built": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "parts": counts["agg"],
         "sets": counts,
+        "setparts": partnums,
         "catalog": read_text(os.path.join(HERE, "envipe_catalog.csv")),
         "labels": read_text(os.path.join(HERE, "envipe_value_labels.csv")),
         "municipios": read_text(os.path.join(HERE, "envipe_municipios.csv")),

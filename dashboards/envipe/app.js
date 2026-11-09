@@ -143,12 +143,13 @@
     for (let i = 1; i <= n; i++) chain = chain.then(() => loadScript('data/envipe-part' + i + '.js'));
     return chain;
   }
-  function indexText(text, target) {
+  function indexText(text, target, keep) {
     const lines = text.split('\n');
     for (let i = 1; i < lines.length; i++) {
       const ln = lines[i]; if (!ln) continue;
       const a = ln.indexOf(','), b = ln.indexOf(',', a + 1), c = ln.indexOf(',', b + 1);
       const v = ln.slice(b + 1, c);
+      if (keep && !keep(v)) continue;
       (target[v] || (target[v] = [])).push(ln);
     }
   }
@@ -157,14 +158,23 @@
     if (set === 'agg') return Promise.resolve(true);
     const k = CAT[v] && CAT[v][set];
     if (!k) return Promise.resolve(false);
+    // a part file that has not been uploaded yet: treat as "no data at this level"
+    const avail = window.ENVIPE_META.setparts && window.ENVIPE_META.setparts[set];
+    if (avail && !avail.includes(k)) return Promise.resolve(false);
     if (SET_LOADED[set][k]) return Promise.resolve(true);
     return loadScript('data/envipe-' + set + k + '.js').then(() => {
       const key = set + k, store = window.ENVIPE_SETS || {};
-      indexText(store[key] || '', SET_LINES[set]);
+      // keep only variables the catalog assigns to this part (ignores leftovers from older runs)
+      indexText(store[key] || '', SET_LINES[set], (v) => CAT[v] && CAT[v][set] === k);
       delete store[key];
       SET_LOADED[set][k] = true;
       return true;
     });
+  }
+  function hasLevel(v, set) {
+    const k = CAT[v] && CAT[v][set]; if (!k) return false;
+    const avail = window.ENVIPE_META.setparts && window.ENVIPE_META.setparts[set];
+    return !avail || avail.includes(k);
   }
   let geoMunis = null;
   function ensureMunis() { return geoMunis ? Promise.resolve() : loadScript('mx-munis.js').then(() => { geoMunis = window.MX_MUNIS; }); }
@@ -433,7 +443,7 @@
       ans.append(b);
     });
     D.$$('#base button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.b === S.base)));
-    D.$$('#lvl button').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.l === S.lvl)); b.disabled = b.dataset.l !== 'st' && !(CAT[S.v] && CAT[S.v][b.dataset.l === 'mu' ? 'mun' : 'aum']); });
+    D.$$('#lvl button').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.l === S.lvl)); b.disabled = b.dataset.l !== 'st' && !hasLevel(S.v, b.dataset.l === 'mu' ? 'mun' : 'aum'); });
     D.$$('#who button').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.g === g)); b.disabled = S.lvl !== 'st' || (b.dataset.g !== 'all' && !(CAT[S.v] && CAT[S.v].grp)); });
     $('#who-note').textContent = S.lvl !== 'st' ? D.t('whoNote') : '';
     $('#lvl-note').textContent = D.t(S.lvl === 'mu' ? 'noteMu' : S.lvl === 'au' ? 'noteAu' : 'noteSt', { n: SETTINGS.minmun });
@@ -641,7 +651,7 @@
   function closeHits() { hits.classList.remove('open'); qIn.setAttribute('aria-expanded', 'false'); }
   function pickVar(v) {
     S.v = v; S.c = null; const V = getVar(v); S.c = V.isMean ? '' : defaultCat(V); S.base = 'p';
-    if (S.lvl !== 'st' && !(CAT[v] && CAT[v][S.lvl === 'mu' ? 'mun' : 'aum'])) { S.lvl = 'st'; S.sel = null; resetZoom(); }
+    if (S.lvl !== 'st' && !hasLevel(v, S.lvl === 'mu' ? 'mun' : 'aum')) { S.lvl = 'st'; S.sel = null; resetZoom(); }
     if (S.lvl === 'st' && S.sel && !STATES[S.sel]) S.sel = null;
     closeHits(); qIn.blur(); render();
   }

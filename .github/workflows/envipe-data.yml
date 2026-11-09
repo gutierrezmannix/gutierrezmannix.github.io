@@ -1,35 +1,58 @@
 # Rebuilds the ENVIPE dashboard's data scripts whenever new CSVs from
-# envipe_dashboard_aggregates.do are uploaded to dashboards/envipe/data/.
-# Only touches files inside dashboards/envipe/data/.
+# envipe_dashboard_build.do are uploaded.
+#   - CSVs uploaded to the top level of the repo are moved into
+#     dashboards/envipe/data/ first, so they can be uploaded anywhere.
+#   - Only touches envipe_*.csv files and files inside dashboards/envipe/data/.
 name: Rebuild ENVIPE dashboard data
 
 on:
   push:
     paths:
+      - "envipe_*.csv"
       - "dashboards/envipe/data/*.csv"
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# Uploads often arrive as several commits in a row; run one rebuild at a time
+# and always work on the newest version of the branch.
+concurrency:
+  group: envipe-data-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Move CSVs uploaded to the top level into the data folder
+        run: |
+          shopt -s nullglob
+          for f in envipe_*.csv; do
+            git mv -f "$f" "dashboards/envipe/data/$f"
+            echo "moved $f"
+          done
       - name: Wrap CSVs as JavaScript
         run: python3 dashboards/envipe/data/build_data.py
       - name: Commit if anything changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add dashboards/envipe/data/*.js
+          git add -A dashboards/envipe/data
+          git add -A -- 'envipe_*.csv' || true
           if git diff --cached --quiet; then
             echo "Data scripts already up to date."
-          else
-            git commit -m "Rebuild ENVIPE dashboard data from uploaded CSVs"
-            git push
+            exit 0
           fi
+          git commit -m "Rebuild ENVIPE dashboard data from uploaded CSVs"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep 5
+          done
+          exit 1
