@@ -32,7 +32,17 @@
       habits: 'Stopped doing, out of fear', hood: 'Seen in the neighborhood', trustTitle: 'Trust in authorities — {s}',
       trust1: 'A lot', trust2: 'Some', trust3: 'Some distrust', trust4: 'A lot of distrust', trustPct: 'trust', trustNote: 'Among adults who can identify each authority.', corrupt: '{s}% see the state police as corrupt (Mexico {n}%).',
       pTrend: 'Feeling unsafe in the state, over time',
-      foot: 'Source: INEGI, Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE), 2011–2026 editions. Recoded master files and weighted estimates (person weight fac_ele) by Dr. Gutiérrez-Mannix. Years are survey editions. Map: Natural Earth (public domain). Data, map and fonts are stored with this page — no internet connection needed.'
+      mapLevel: 'Map', lSt: 'States', lMu: 'Municipalities', lAu: 'Urban areas',
+      who: 'Who', gAll: 'All adults', gM: 'Men', gF: 'Women', gA1: 'Ages 18–30', gA2: 'Ages 31–50', gA3: 'Ages 51+',
+      whoNote: 'Gender and age groups are available for states.', loadingSet: 'Loading data…', noLevel: 'This question has no data at this level.',
+      zoomIn: 'Zoom in', zoomOut: 'Zoom out', zoomReset: 'Show all of Mexico',
+      rankSt: 'All 32 states', rankMu: 'Municipalities · {n} with data', rankAu: 'Urban areas · {n}',
+      minSt: 'smallest state n', minMu: 'smallest municipality n', minAu: 'smallest urban area n',
+      noteSt: '', noteMu: 'Only municipalities with at least 100 interviews in that edition are shown; the rest are grey. Scroll or pinch to zoom, drag to move.',
+      noteAu: 'INEGI urban areas of interest, placed on and named after the municipality where most of their respondents live. Scroll or pinch to zoom, drag to move.',
+      areaOf: '{m} urban area', areaN: 'Urban area {n}', fewN: 'Few answers (n < 50) — read with care', fewLeg: 'faded = fewer than 50 answers',
+      natAll: 'Mexico (all adults)',
+      foot: 'Source: INEGI, Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE), 2011–2026 editions. Recoded master files and weighted estimates (person weight fac_ele) by Dr. Gutiérrez-Mannix. Years are survey editions. Maps: Natural Earth (public domain); municipalities from geoBoundaries / World Bank (CC BY 4.0). Data, maps and fonts are stored with this page — no internet connection needed.'
     },
     es: {
       navPubs: 'Publicaciones', navTeach: 'Docencia', navData: 'Datos', navDocs: 'Recomendaciones', navCalc: 'Calculadora', navDash: 'Tableros',
@@ -54,7 +64,17 @@
       habits: 'Dejó de hacer, por temor', hood: 'En la colonia', trustTitle: 'Confianza en autoridades — {s}',
       trust1: 'Mucha', trust2: 'Algo', trust3: 'Algo de desconfianza', trust4: 'Mucha desconfianza', trustPct: 'confía', trustNote: 'Entre quienes identifican a cada autoridad.', corrupt: '{s}% percibe corrupta a la policía estatal (México {n}%).',
       pTrend: 'Inseguridad percibida en el estado, a lo largo del tiempo',
-      foot: 'Fuente: INEGI, Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE), ediciones 2011–2026. Archivos maestros recodificados y estimaciones ponderadas (factor de persona fac_ele) por el Dr. Gutiérrez-Mannix. Los años corresponden a la edición de la encuesta. Mapa: Natural Earth (dominio público). Los datos, el mapa y las fuentes tipográficas se guardan con esta página: no se necesita internet.'
+      mapLevel: 'Mapa', lSt: 'Estados', lMu: 'Municipios', lAu: 'Áreas urbanas',
+      who: 'Quiénes', gAll: 'Toda la población adulta', gM: 'Hombres', gF: 'Mujeres', gA1: '18 a 30 años', gA2: '31 a 50 años', gA3: '51 años o más',
+      whoNote: 'Los grupos por sexo y edad están disponibles por estado.', loadingSet: 'Cargando datos…', noLevel: 'Esta pregunta no tiene datos en este nivel.',
+      zoomIn: 'Acercar', zoomOut: 'Alejar', zoomReset: 'Ver todo México',
+      rankSt: 'Las 32 entidades', rankMu: 'Municipios · {n} con datos', rankAu: 'Áreas urbanas · {n}',
+      minSt: 'n mínima por entidad', minMu: 'n mínima por municipio', minAu: 'n mínima por área urbana',
+      noteSt: '', noteMu: 'Solo se muestran los municipios con al menos 100 entrevistas en esa edición; los demás aparecen en gris. Usa la rueda o pellizca para acercar; arrastra para moverte.',
+      noteAu: 'Áreas urbanas de interés del INEGI, ubicadas en el municipio donde vive la mayoría de sus informantes y nombradas por él. Usa la rueda o pellizca para acercar; arrastra para moverte.',
+      areaOf: 'Área urbana de {m}', areaN: 'Área urbana {n}', fewN: 'Pocas respuestas (n < 50): interpretar con cautela', fewLeg: 'tenue = menos de 50 respuestas',
+      natAll: 'México (toda la población adulta)',
+      foot: 'Fuente: INEGI, Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE), ediciones 2011–2026. Archivos maestros recodificados y estimaciones ponderadas (factor de persona fac_ele) por el Dr. Gutiérrez-Mannix. Los años corresponden a la edición de la encuesta. Mapas: Natural Earth (dominio público); municipios de geoBoundaries / Banco Mundial (CC BY 4.0). Los datos, los mapas y las fuentes tipográficas se guardan con esta página: no se necesita internet.'
     }
   });
 
@@ -83,10 +103,20 @@
   const L2 = (pair) => (D.lang === 'es' ? pair[1] : pair[0]);
 
   /* ---------------- Data ---------------- */
-  const CAT = {};       // v -> {label, type}
+  // Four data sets, as written by envipe_dashboard_build.do:
+  //   agg = states, all adults (loaded at start)   grp = states, by gender / age
+  //   mun = municipalities                          aum = urban areas
+  // The last three are loaded only when the view needs them, one part file at a time.
+  const CAT = {};       // v -> {label, type, agg, grp, mun, aum (part numbers)}
   const LAB = {};       // v -> {code -> label}
-  const LINES = {};     // v -> [csv lines]
+  const LINES = {};     // v -> [csv lines] (all adults, states)
+  const SET_LINES = { agg: LINES, grp: {}, mun: {}, aum: {} };
+  const SET_LOADED = { grp: {}, mun: {}, aum: {} };
   const CACHE = {};
+  const MUNI = {};      // INEGI code -> {name, state, ok}
+  let MUNI_CODES = [];  // municipalities with at least one published edition
+  const AREAS = {};     // edition -> area code -> {state, main, name, n}
+  let AREA_CODES = [];
   let PICK = [];        // [{v,label,sec}]
 
   function cleanLabel(s) {
@@ -94,61 +124,89 @@
     s = s.replace(/^¿\s*/, '').replace(/\s*\?$/, '').trim();
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
-  function loadParts(n) {
+  function tcase(s) {
+    const small = { DE: 1, DEL: 1, LA: 1, LAS: 1, LOS: 1, Y: 1, EL: 1 };
+    return String(s || '').toLowerCase().split(' ').map((w, i) => (i && small[w.toUpperCase()] ? w : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
+  }
+  function loadScript(src) {
     return new Promise((resolve, reject) => {
-      let i = 1;
-      const next = () => {
-        if (i > n) return resolve();
-        const s = document.createElement('script');
-        s.src = 'data/envipe-part' + i + '.js';
-        s.onload = () => { i++; next(); };
-        s.onerror = () => reject(new Error('envipe-part' + i + '.js'));
-        document.body.append(s);
-      };
-      next();
+      const s = document.createElement('script');
+      s.src = src; s.onload = () => resolve(); s.onerror = () => reject(new Error(src));
+      document.body.append(s);
     });
   }
+  function loadParts(n) {
+    let chain = Promise.resolve();
+    for (let i = 1; i <= n; i++) chain = chain.then(() => loadScript('data/envipe-part' + i + '.js'));
+    return chain;
+  }
+  function indexText(text, target) {
+    const lines = text.split('\n');
+    for (let i = 1; i < lines.length; i++) {
+      const ln = lines[i]; if (!ln) continue;
+      const a = ln.indexOf(','), b = ln.indexOf(',', a + 1), c = ln.indexOf(',', b + 1);
+      const v = ln.slice(b + 1, c);
+      (target[v] || (target[v] = [])).push(ln);
+    }
+  }
+  /** Make sure the part file holding variable v for data set `set` is loaded. Resolves true/false (no data at that level). */
+  function ensureSet(set, v) {
+    if (set === 'agg') return Promise.resolve(true);
+    const k = CAT[v] && CAT[v][set];
+    if (!k) return Promise.resolve(false);
+    if (SET_LOADED[set][k]) return Promise.resolve(true);
+    return loadScript('data/envipe-' + set + k + '.js').then(() => {
+      const key = set + k, store = window.ENVIPE_SETS || {};
+      indexText(store[key] || '', SET_LINES[set]);
+      delete store[key];
+      SET_LOADED[set][k] = true;
+      return true;
+    });
+  }
+  let geoMunis = null;
+  function ensureMunis() { return geoMunis ? Promise.resolve() : loadScript('mx-munis.js').then(() => { geoMunis = window.MX_MUNIS; }); }
+
   function indexData() {
     const meta = window.ENVIPE_META;
-    D.parseCSV(meta.catalog).slice(1).forEach((r) => { if (r[0]) CAT[r[0]] = { label: r[1] || r[0], type: r[2] }; });
+    D.parseCSV(meta.catalog).slice(1).forEach((r) => { if (r[0]) CAT[r[0]] = { label: r[1] || r[0], type: r[2], agg: +r[3] || 0, grp: +r[4] || 0, mun: +r[5] || 0, aum: +r[6] || 0 }; });
     D.parseCSV(meta.labels).slice(1).forEach((r) => { if (r[0]) (LAB[r[0]] = LAB[r[0]] || {})[r[1]] = r[2]; });
-    (window.ENVIPE_PARTS || []).forEach((text) => {
-      const lines = text.split('\n');
-      for (let i = 1; i < lines.length; i++) {
-        const ln = lines[i]; if (!ln) continue;
-        const a = ln.indexOf(','), b = ln.indexOf(',', a + 1), c = ln.indexOf(',', b + 1);
-        const v = ln.slice(b + 1, c);
-        (LINES[v] || (LINES[v] = [])).push(ln);
-      }
-    });
+    (window.ENVIPE_PARTS || []).forEach((text) => indexText(text, LINES));
+    if (meta.municipios) D.parseCSV(meta.municipios).slice(1).forEach((r) => { if (r[0]) MUNI[r[0]] = { state: r[1], name: tcase(r[2]), ok: +r[4] || 0 }; });
+    MUNI_CODES = Object.keys(MUNI).filter((e) => MUNI[e].ok > 0).sort();
+    const ac = new Set();
+    if (meta.areas) D.parseCSV(meta.areas).slice(1).forEach((r) => { if (r[0] && r[1]) { (AREAS[+r[0]] = AREAS[+r[0]] || {})[r[1]] = { state: r[2], main: r[3], name: r[4], n: +r[5] || 0 }; ac.add(r[1]); } });
+    AREA_CODES = [...ac].sort();
     PICK = Object.keys(LINES).filter((v) => CAT[v])
       .map((v) => ({ v, label: CAT[v].label, sec: SECTIONS.slice(1).find((s) => s.test(v)).id }))
       .sort((x, y) => x.v.localeCompare(y.v, 'en', { numeric: true }));
   }
-  function getVar(v) {
-    if (CACHE[v]) return CACHE[v];
+  /** All estimates for variable v in data set `set`, keyed "year|place|group". */
+  function getVar(v, set) {
+    set = set || 'agg';
+    const ck = set + '|' + v;
+    if (CACHE[ck]) return CACHE[ck];
     const rec = {}; const years = new Set(); const cats = new Set();
-    (LINES[v] || []).forEach((ln) => {
+    (SET_LINES[set][v] || []).forEach((ln) => {
       const a = ln.split(',');
-      const y = +a[0], e = a[1], c = a[3];
+      const y = +a[0], e = a[1], c = a[3], g = set === 'grp' ? a[7] : 'all';
       years.add(y); cats.add(c);
-      const k = y + '|' + e;
+      const k = y + '|' + e + '|' + g;
       (rec[k] || (rec[k] = {}))[c] = { p: a[4] === '' ? null : +a[4], pa: a[5] === '' ? null : +a[5], n: +a[6] };
     });
     const order = (c) => (c === '' ? -1 : /^\d+$/.test(c) ? +c : 1e6 + 'dru'.indexOf(c));
-    const out = { v, rec, years: [...years].sort((a, b) => a - b), cats: [...cats].sort((a, b) => order(a) - order(b)), isMean: (CAT[v] && CAT[v].type === 'mean') || cats.has('') };
-    CACHE[v] = out;
+    const out = { v, set, rec, years: [...years].sort((a, b) => a - b), cats: [...cats].sort((a, b) => order(a) - order(b)), isMean: (CAT[v] && CAT[v].type === 'mean') || cats.has('') };
+    if (out.years.length) CACHE[ck] = out;
     return out;
   }
   const isDK = (c) => c === 'd' || c === 'r' || c === 'u';
-  function val(V, y, e, c, base) {
-    const r = V.rec[y + '|' + e]; if (!r) return null;
+  function val(V, y, e, c, base, g) {
+    const r = V.rec[y + '|' + e + '|' + (g || 'all')]; if (!r) return null;
     const x = r[V.isMean ? '' : c]; if (!x) return null;
     const out = V.isMean ? x.p : x[base];
     return out == null || !isFinite(out) ? null : out;
   }
-  function nOf(V, y, e) {
-    const r = V.rec[y + '|' + e]; if (!r) return null;
+  function nOf(V, y, e, g) {
+    const r = V.rec[y + '|' + e + '|' + (g || 'all')]; if (!r) return null;
     let n = 0; for (const c in r) n += r[c].n || 0; return n;
   }
   function catLabel(v, c) {
@@ -164,6 +222,13 @@
     return non0[0] || valid[0] || V.cats[0];
   }
 
+  /** n behind the shown answer (for the small-sample flag). */
+  function nCell(V, y, e, c, g) {
+    const r = V.rec[y + '|' + e + '|' + (g || 'all')]; if (!r) return null;
+    if (V.isMean) return r[''] ? r[''].n : null;
+    let n = 0; for (const k in r) if (!isDK(k) || S.base === 'pa') n += r[k].n || 0; return n;
+  }
+
   /* ---------------- Formatting ---------------- */
   function fmt(x, V) {
     if (x == null) return '—';
@@ -177,24 +242,30 @@
   }
 
   /* ---------------- State ---------------- */
-  const S = { v: 'ap4_3_3', c: '2', base: 'p', y: null, sel: null, view: 'map', sec: 'all' };
+  const S = { v: 'ap4_3_3', c: '2', base: 'p', y: null, sel: null, view: 'map', sec: 'all', lvl: 'st', g: 'all' };
+  const GROUPS = { all: 'gAll', m: 'gM', f: 'gF', a1: 'gA1', a2: 'gA2', a3: 'gA3' };
+  const curSet = () => (S.lvl === 'mu' ? 'mun' : S.lvl === 'au' ? 'aum' : S.g === 'all' ? 'agg' : 'grp');
+  const curG = () => (S.lvl === 'st' ? S.g : 'all');
   function readHash() {
     const h = new URLSearchParams(location.hash.slice(1));
     if (h.get('v') && LINES[h.get('v')]) S.v = h.get('v');
     if (h.has('c')) S.c = h.get('c');
     if (h.get('b') === 'pa') S.base = 'pa';
     if (h.get('y')) S.y = +h.get('y');
-    S.sel = STATES[h.get('s')] ? h.get('s') : null;
-    S.view = h.get('view') === 'state' && S.sel ? 'state' : 'map';
+    S.lvl = ['st', 'mu', 'au'].includes(h.get('l')) ? h.get('l') : 'st';
+    S.g = GROUPS[h.get('g')] ? h.get('g') : 'all';
+    S.sel = h.get('s') || null;
+    if (S.lvl === 'st' && !STATES[S.sel]) S.sel = null;
+    S.view = h.get('view') === 'state' && STATES[S.sel] ? 'state' : 'map';
   }
   function writeHash() {
     const h = new URLSearchParams();
     if (S.view === 'state') { h.set('view', 'state'); h.set('s', S.sel); if (S.py) h.set('y', S.py); }
-    else { h.set('v', S.v); if (!getVar(S.v).isMean) h.set('c', S.c); if (S.base === 'pa') h.set('b', 'pa'); h.set('y', S.y); if (S.sel) h.set('s', S.sel); }
+    else { h.set('v', S.v); if (!getVar(S.v).isMean) h.set('c', S.c); if (S.base === 'pa') h.set('b', 'pa'); h.set('y', S.y); if (S.lvl !== 'st') h.set('l', S.lvl); if (S.lvl === 'st' && S.g !== 'all') h.set('g', S.g); if (S.sel) h.set('s', S.sel); }
     history.replaceState(null, '', '#' + h.toString());
   }
   function normalize() {
-    const V = getVar(S.v);
+    const V = getVar(S.v, curSet());
     if (!V.isMean) {
       if (!V.cats.includes(S.c)) S.c = defaultCat(V);
       if (isDK(S.c)) S.base = 'pa';
@@ -203,38 +274,121 @@
   }
 
   /* ---------------- Map ---------------- */
+  // Layers, back to front: bg (states, filled) · mu (municipalities) · ol (state outlines) · au (urban-area dots)
   const svgMap = $('#map');
   const PATHS = {};
+  const gSt = D.svg('g'), gMu = D.svg('g'), gOl = D.svg('g'), gAu = D.svg('g');
+  const MUPATHS = {};
+  let FULL = null, VB = null;
   function buildMap() {
     const G = window.MX_STATES;
+    FULL = G.viewBox.split(/\s+/).map(Number); VB = FULL.slice();
     svgMap.setAttribute('viewBox', G.viewBox);
     G.states.forEach((s) => {
       const p = D.svg('path', { d: s.d, class: 'st', tabindex: '0' });
       p.dataset.cve = s.cve;
-      p.addEventListener('mousemove', (ev) => hoverState(s.cve, ev.clientX, ev.clientY));
+      p.addEventListener('mousemove', (ev) => { if (S.lvl === 'st') hoverPlace(s.cve, ev.clientX, ev.clientY); });
       p.addEventListener('mouseleave', () => D.hideTip());
-      p.addEventListener('click', () => selectState(s.cve));
-      p.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectState(s.cve); } });
+      p.addEventListener('click', () => { if (S.lvl === 'st' && !dragMoved) selectPlace(s.cve); });
+      p.addEventListener('keydown', (ev) => { if (S.lvl === 'st' && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); selectPlace(s.cve); } });
       PATHS[s.cve] = p;
-      svgMap.append(p);
+      gSt.append(p);
+      gOl.append(D.svg('path', { d: s.d, class: 'ol' }));
+    });
+    svgMap.append(gSt, gMu, gOl, gAu);
+  }
+  function buildMunis() {
+    if (gMu.childNodes.length || !geoMunis) return;
+    geoMunis.munis.forEach((m) => {
+      const p = D.svg('path', { d: m.d, class: 'mu nodata' });
+      if (m.c) {
+        p.dataset.e = m.c;
+        MUPATHS[m.c] = p;
+        p.addEventListener('mousemove', (ev) => { if (!p.classList.contains('nodata')) hoverPlace(m.c, ev.clientX, ev.clientY); });
+        p.addEventListener('mouseleave', () => D.hideTip());
+        p.addEventListener('click', () => { if (!dragMoved && !p.classList.contains('nodata')) selectPlace(m.c); });
+      }
+      gMu.append(p);
     });
   }
-  function hoverState(cve, x, y) {
-    const V = getVar(S.v);
-    const v = val(V, S.y, cve, S.c, S.base), nat = val(V, S.y, '00', S.c, S.base);
-    const n = nOf(V, S.y, cve);
+
+  // ---- zoom and pan (viewBox) ----
+  function applyVB() {
+    svgMap.setAttribute('viewBox', VB.map((x) => x.toFixed(2)).join(' '));
+    const k = VB[2] / (svgMap.getBoundingClientRect().width || 800);
+    D.$$('circle.au', gAu).forEach((c) => { c.setAttribute('r', (+c.dataset.r || 8) * k); c.setAttribute('stroke-width', (c.classList.contains('sel') ? 2.5 : 1) * k); });
+  }
+  function zoomAt(f, cx, cy) {
+    const w = Math.max(FULL[2] / 60, Math.min(FULL[2], VB[2] * f)), h = w * FULL[3] / FULL[2];
+    const fx = (cx - VB[0]) / VB[2], fy = (cy - VB[1]) / VB[3];
+    VB = [cx - fx * w, cy - fy * h, w, h]; applyVB();
+  }
+  function zoomTo(x, y, w) { const h = w * FULL[3] / FULL[2]; VB = [x - w / 2, y - h / 2, w, h]; applyVB(); }
+  function resetZoom() { VB = FULL.slice(); applyVB(); }
+  function clientToSvg(x, y) { const r = svgMap.getBoundingClientRect(); return [VB[0] + (x - r.left) / r.width * VB[2], VB[1] + (y - r.top) / r.height * VB[3]]; }
+  svgMap.addEventListener('wheel', (ev) => { if (S.lvl === 'st') return; // the state map scrolls the page; zoom with the buttons
+    ev.preventDefault(); D.hideTip(); const p = clientToSvg(ev.clientX, ev.clientY); zoomAt(Math.exp(ev.deltaY * 0.0015), p[0], p[1]); }, { passive: false });
+  const ptrs = new Map(); let dragMoved = false, last = null, pinch = null;
+  svgMap.addEventListener('pointerdown', (ev) => { ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); dragMoved = false; last = [ev.clientX, ev.clientY]; if (ptrs.size === 2) { const a = [...ptrs.values()]; pinch = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]); } });
+  svgMap.addEventListener('pointermove', (ev) => {
+    if (!ptrs.has(ev.pointerId)) return;
+    ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
+    if (ptrs.size === 2 && pinch) { const a = [...ptrs.values()], d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]); const c = clientToSvg((a[0][0] + a[1][0]) / 2, (a[0][1] + a[1][1]) / 2); zoomAt(pinch / d, c[0], c[1]); pinch = d; dragMoved = true; return; }
+    const dx = ev.clientX - last[0], dy = ev.clientY - last[1];
+    if (!dragMoved && Math.hypot(dx, dy) < 4) return;
+    if (VB[2] >= FULL[2] - 1e-6) return; // nothing to pan at full extent
+    if (!dragMoved) { svgMap.setPointerCapture(ev.pointerId); svgMap.classList.add('dragging'); D.hideTip(); }
+    dragMoved = true; last = [ev.clientX, ev.clientY];
+    const k = VB[2] / svgMap.getBoundingClientRect().width;
+    VB[0] -= dx * k; VB[1] -= dy * k; applyVB();
+  });
+  const endPtr = (ev) => { ptrs.delete(ev.pointerId); if (ptrs.size < 2) pinch = null; svgMap.classList.remove('dragging'); setTimeout(() => { dragMoved = false; }, 0); };
+  svgMap.addEventListener('pointerup', endPtr); svgMap.addEventListener('pointercancel', endPtr);
+  $('#zin').addEventListener('click', () => zoomAt(0.6, VB[0] + VB[2] / 2, VB[1] + VB[3] / 2));
+  $('#zout').addEventListener('click', () => zoomAt(1 / 0.6, VB[0] + VB[2] / 2, VB[1] + VB[3] / 2));
+  $('#zreset').addEventListener('click', resetZoom);
+
+  // ---- places at the current level ----
+  function areaYear(e, y) { if (AREAS[y] && AREAS[y][e]) return y; const ys = Object.keys(AREAS).map(Number).filter((yy) => AREAS[yy][e]).sort((a, b) => b - a); return ys[0]; }
+  function placeName(e, y, lvl) {
+    lvl = lvl || S.lvl;
+    if (e === '00') return D.t('mexico');
+    if (lvl === 'st') return STATES[e] || e;
+    if (lvl === 'mu') { const m = MUNI[e]; return m ? m.name + ', ' + (TILES[m.state] ? TILES[m.state][0] : m.state) : e; }
+    const yy = areaYear(e, y), a = yy && AREAS[yy][e];
+    if (!a) return D.t('areaN', { n: e });
+    // named after the municipality where most of the area's respondents live
+    const m = MUNI[a.main], st = (m && m.state) || a.state;
+    return ((m && m.name) || tcase(a.name) || a.main) + ', ' + (TILES[st] ? TILES[st][0] : st);
+  }
+  function placePoint(e, y) {
+    if (!geoMunis) return null;
+    if (S.lvl === 'mu') return geoMunis.pts[e] || null;
+    const yy = areaYear(e, y), a = yy && AREAS[yy][e];
+    return a ? geoMunis.pts[a.main] || null : null;
+  }
+  function levelPlaces() { return S.lvl === 'st' ? CODES : S.lvl === 'mu' ? MUNI_CODES : AREA_CODES; }
+
+  function hoverPlace(e, x, y) {
+    const V = getVar(S.v, curSet()), g = curG();
+    const natV = S.lvl === 'st' ? V : getVar(S.v, 'agg');
+    const v = val(V, S.y, e, S.c, S.base, g), nat = val(natV, S.y, '00', S.c, S.base, g);
+    const n = nCell(V, S.y, e, S.c, g);
     let diff = '';
     if (v != null && nat != null) { const d = v - nat; diff = (d >= 0 ? '+' : '−') + D.num(Math.abs(d), V.isMean ? 2 : 1) + (V.isMean ? '' : ' pts') + ' vs. ' + D.t('mexico'); }
-    D.showTip('<b>' + D.esc(STATES[cve]) + '</b><div class="v">' + fmt(v, V) + '</div><div class="s">' + diff + (n ? ' · n = ' + D.num(n) : '') + '</div><div class="s" style="color:#A65D0F;font-weight:600">' + D.t('clickSelect') + '</div>', x, y);
+    D.showTip('<b>' + D.esc(placeName(e, S.y)) + '</b><div class="v">' + fmt(v, V) + '</div><div class="s">' + diff + (n ? ' · n = ' + D.num(n) : '') + '</div>' +
+      (n != null && n < 50 ? '<div class="s" style="color:#A65D0F">' + D.t('fewN') + '</div>' : '') +
+      '<div class="s" style="color:#A65D0F;font-weight:600">' + D.t('clickSelect') + '</div>', x, y);
   }
-  function breaks(V) {
+  function breaksOver(V, places, c, base, g) {
     const a = [];
-    V.years.forEach((y) => CODES.forEach((e) => { const x = val(V, y, e, S.c, S.base); if (x != null) a.push(x); }));
+    V.years.forEach((y) => places.forEach((e) => { const x = val(V, y, e, c, base, g); if (x != null) a.push(x); }));
     a.sort((p, q) => p - q);
     if (!a.length) return null;
     const q = (f) => a[Math.min(a.length - 1, Math.floor(a.length * f))];
     return [a[0], q(0.2), q(0.4), q(0.6), q(0.8), a[a.length - 1]];
   }
+  function breaks(V) { return breaksOver(V, CODES, S.c, S.base, 'all'); }
   function colorOf(x, br) {
     if (x == null || !br) return NA;
     for (let i = 1; i <= 4; i++) if (x < br[i]) return RAMP[i - 1];
@@ -242,11 +396,28 @@
   }
 
   /* ---------------- Render: map view ---------------- */
+  let loadToken = 0;
   function renderMapView() {
+    const set = curSet(), needGeo = S.lvl !== 'st';
+    const ready = set === 'agg' || (CAT[S.v] && SET_LOADED[set][CAT[S.v][set]]);
+    if (ready && (!needGeo || geoMunis)) { $('#map-loading').hidden = true; return drawMapView(); }
+    const tok = ++loadToken;
+    $('#map-loading').hidden = false;
+    Promise.all([ensureSet(set, S.v), needGeo ? ensureMunis() : null]).then(([ok]) => {
+      if (tok !== loadToken) return;
+      $('#map-loading').hidden = true;
+      if (!ok) { S.lvl = 'st'; S.sel = null; D.showTip(D.t('noLevel'), innerWidth / 2 - 120, 160); setTimeout(() => D.hideTip(), 2600); }
+      render();
+    }).catch((err) => { $('#map-loading').textContent = D.t('loadErr') + ' (' + err.message + ')'; });
+  }
+  function drawMapView() {
     normalize();
-    const V = getVar(S.v);
-    const br = breaks(V);
-    // controls
+    const set = curSet(), g = curG();
+    const V = getVar(S.v, set);
+    const natV = S.lvl === 'st' ? V : getVar(S.v, 'agg');
+    const places = levelPlaces();
+    const br = breaksOver(V, places, S.c, S.base, g);
+    // ---- controls ----
     $('#q').value = cleanLabel(CAT[S.v] ? CAT[S.v].label : S.v);
     $('#qvar').textContent = S.v;
     $('#answer-box').hidden = V.isMean;
@@ -258,7 +429,11 @@
       ans.append(b);
     });
     D.$$('#base button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.b === S.base)));
-    // years
+    D.$$('#lvl button').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.l === S.lvl)); b.disabled = b.dataset.l !== 'st' && !(CAT[S.v] && CAT[S.v][b.dataset.l === 'mu' ? 'mun' : 'aum']); });
+    D.$$('#who button').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.g === g)); b.disabled = S.lvl !== 'st' || (b.dataset.g !== 'all' && !(CAT[S.v] && CAT[S.v].grp)); });
+    $('#who-note').textContent = S.lvl !== 'st' ? D.t('whoNote') : '';
+    $('#lvl-note').textContent = D.t(S.lvl === 'mu' ? 'noteMu' : S.lvl === 'au' ? 'noteAu' : 'noteSt');
+    // ---- years ----
     const yi = V.years.indexOf(S.y);
     const yr = $('#yr'); yr.max = V.years.length - 1; yr.value = yi;
     yr.setAttribute('aria-valuetext', String(S.y));
@@ -266,65 +441,106 @@
     const step = V.years.length > 10 ? 3 : 1;
     V.years.forEach((y, i) => { if (i % step === 0 || i === V.years.length - 1 || y === S.y) ticks.append(D.el('span', { class: y === S.y ? 'on' : '', text: y })); });
     $('#yr-span').textContent = V.years[0] + '–' + V.years[V.years.length - 1];
-    // headline
-    const nat = val(V, S.y, '00', S.c, S.base);
+    // ---- headline (national, for the chosen group) ----
+    const nat = val(natV, S.y, '00', S.c, S.base, g);
     $('#hl-v').textContent = fmt(nat, V);
-    $('#hl-t').innerHTML = (V.isMean ? D.t('hlMean') : D.t('hlCat', { a: D.esc(catLabel(S.v, S.c)) })) + ' — ' + D.esc(cleanLabel(CAT[S.v].label)) + '<br>' + D.t('hlWhere', { y: S.y });
-    // map fills
-    CODES.forEach((e) => {
-      const p = PATHS[e]; if (!p) return;
-      const x = val(V, S.y, e, S.c, S.base);
-      p.setAttribute('fill', colorOf(x, br));
-      p.classList.toggle('na', x == null);
-      p.classList.toggle('sel', e === S.sel);
-      p.setAttribute('aria-label', STATES[e] + ': ' + fmt(x, V));
-    });
-    if (S.sel && PATHS[S.sel]) svgMap.append(PATHS[S.sel]);
+    $('#hl-t').innerHTML = (V.isMean ? D.t('hlMean') : D.t('hlCat', { a: D.esc(catLabel(S.v, S.c)) })) + ' — ' + D.esc(cleanLabel(CAT[S.v].label)) + '<br>' + D.t('hlWhere', { y: S.y }) + (g !== 'all' ? ' · <strong>' + D.esc(D.t(GROUPS[g])) + '</strong>' : '');
+    // ---- map ----
+    gSt.setAttribute('class', S.lvl === 'st' ? '' : 'bg');
+    gOl.style.display = S.lvl === 'st' ? 'none' : '';
+    gMu.style.display = S.lvl === 'mu' ? '' : 'none';
+    gAu.style.display = S.lvl === 'au' ? '' : 'none';
+    const few = (e) => { const n = nCell(V, S.y, e, S.c, g); return n != null && n < 50; };
+    if (S.lvl === 'st') {
+      CODES.forEach((e) => {
+        const p = PATHS[e]; if (!p) return;
+        const x = val(V, S.y, e, S.c, S.base, g);
+        p.setAttribute('fill', colorOf(x, br));
+        p.classList.toggle('na', x == null);
+        p.classList.toggle('sel', e === S.sel);
+        p.classList.toggle('few', x != null && few(e));
+        p.setAttribute('aria-label', STATES[e] + ': ' + fmt(x, V));
+      });
+      if (S.sel && PATHS[S.sel]) gSt.append(PATHS[S.sel]);
+    } else {
+      CODES.forEach((e) => { const p = PATHS[e]; if (p) { p.removeAttribute('fill'); p.classList.remove('sel', 'na', 'few'); } });
+    }
+    if (S.lvl === 'mu') {
+      buildMunis();
+      Object.keys(MUPATHS).forEach((e) => {
+        const p = MUPATHS[e], x = val(V, S.y, e, S.c, S.base, g);
+        p.classList.toggle('nodata', x == null);
+        if (x == null) p.removeAttribute('fill'); else p.setAttribute('fill', colorOf(x, br));
+        p.classList.toggle('few', x != null && few(e));
+        p.classList.toggle('sel', e === S.sel);
+      });
+      if (S.sel && MUPATHS[S.sel]) gMu.append(MUPATHS[S.sel]);
+    }
+    if (S.lvl === 'au') {
+      gAu.innerHTML = '';
+      Object.keys(AREAS[S.y] || {}).map((e) => ({ e, x: val(V, S.y, e, S.c, S.base, g), pt: placePoint(e, S.y) }))
+        .filter((o) => o.pt).sort((a, b) => (a.e === S.sel) - (b.e === S.sel))
+        .forEach((o) => {
+          const c = D.svg('circle', { cx: o.pt[0], cy: o.pt[1], r: 8, class: 'au' + (o.e === S.sel ? ' sel' : '') + (o.x != null && few(o.e) ? ' few' : ''), fill: colorOf(o.x, br) });
+          c.dataset.r = o.e === S.sel ? 11 : 8;
+          c.addEventListener('mousemove', (ev) => hoverPlace(o.e, ev.clientX, ev.clientY));
+          c.addEventListener('mouseleave', () => D.hideTip());
+          c.addEventListener('click', () => { if (!dragMoved) selectPlace(o.e); });
+          gAu.append(c);
+        });
+    }
+    applyVB();
     svgMap.setAttribute('aria-label', D.t('title') + ' — ' + cleanLabel(CAT[S.v].label) + ', ' + S.y);
-    // legend
+    // ---- legend ----
     const lg = $('#legend'); lg.innerHTML = '';
     lg.append(D.el('span', { class: 'label', text: V.isMean ? D.t('mean') : '%' }));
-    if (br) for (let i = 0; i < 5; i++) {
-      lg.append(D.el('span', { class: 'sw' }, [D.el('i', { style: { background: RAMP[i] } }), fmtShort(br[i], V) + '–' + fmtShort(br[i + 1], V)]));
-    }
+    if (br) for (let i = 0; i < 5; i++) lg.append(D.el('span', { class: 'sw' }, [D.el('i', { style: { background: RAMP[i] } }), fmtShort(br[i], V) + '–' + fmtShort(br[i + 1], V)]));
     lg.append(D.el('span', { class: 'sw' }, [D.el('i', { style: { background: NA } }), D.t('noData')]));
-    // selection card
-    const sc = $('#sel-card');
-    sc.classList.toggle('on', !!S.sel);
-    if (S.sel) {
-      $('#sel-name').textContent = STATES[S.sel];
-      $('#sel-val').textContent = fmt(val(V, S.y, S.sel, S.c, S.base), V);
-      const n = nOf(V, S.y, S.sel);
-      $('#sel-sub').textContent = n ? '· n = ' + D.num(n) : '';
-      $('#sel-open').href = '#view=state&s=' + S.sel + '&y=' + S.y;
-    }
-    // ranking
-    const rows = CODES.map((e) => ({ e, x: val(V, S.y, e, S.c, S.base) })).sort((a, b) => (b.x == null ? -Infinity : b.x) - (a.x == null ? -Infinity : a.x));
+    lg.append(D.el('span', { class: 'sw', style: { color: 'var(--fg-4)' }, text: D.t('fewLeg') }));
+    // ---- ranking ----
+    const rows = places.map((e) => ({ e, x: val(V, S.y, e, S.c, S.base, g) }))
+      .filter((r) => S.lvl === 'st' || r.x != null)
+      .sort((a, b) => (b.x == null ? -Infinity : b.x) - (a.x == null ? -Infinity : a.x));
+    $('#rank-title').textContent = S.lvl === 'st' ? D.t('rankSt') : D.t(S.lvl === 'mu' ? 'rankMu' : 'rankAu', { n: D.num(rows.length) });
     const mx = Math.max(...rows.map((r) => r.x || 0), 1e-9);
     const rk = $('#rank'); rk.innerHTML = '';
     rows.forEach((r, i) => {
-      const b = D.el('button', { type: 'button', class: r.e === S.sel ? 'sel' : '', 'aria-pressed': String(r.e === S.sel) }, [
+      const b = D.el('button', { type: 'button', class: (r.e === S.sel ? 'sel ' : '') + (r.x != null && few(r.e) ? 'few' : ''), 'aria-pressed': String(r.e === S.sel) }, [
         D.el('span', { class: 'r', text: r.x == null ? '' : i + 1 }),
-        D.el('span', { class: 'nm', text: STATES[r.e] }),
+        D.el('span', { class: 'nm', text: placeName(r.e, S.y), title: placeName(r.e, S.y) }),
         D.el('span', { class: 'bar' }, [D.el('i', { style: { width: (r.x == null ? 0 : (V.isMean ? r.x / mx * 100 : r.x)) + '%', background: colorOf(r.x, br) } })]),
         D.el('span', { class: 'v', text: fmt(r.x, V) })
       ]);
-      b.addEventListener('click', () => selectState(r.e));
+      b.addEventListener('click', () => selectPlace(r.e, true));
       rk.append(b);
     });
     $('#rank-sub').textContent = S.y + ' · ' + (V.isMean ? D.t('mean') : '%');
-    // trend
-    const series = [{ name: D.t('mexico'), color: C_NAT, pts: V.years.map((y) => [y, val(V, y, '00', S.c, S.base)]) }];
-    if (S.sel) series.push({ name: STATES[S.sel], color: C_ST, pts: V.years.map((y) => [y, val(V, y, S.sel, S.c, S.base)]) });
+    // ---- selection card ----
+    const sc = $('#sel-card');
+    sc.classList.toggle('on', !!S.sel);
+    if (S.sel) {
+      $('#sel-name').textContent = placeName(S.sel, S.y);
+      $('#sel-val').textContent = fmt(val(V, S.y, S.sel, S.c, S.base, g), V);
+      const n = nCell(V, S.y, S.sel, S.c, g);
+      $('#sel-sub').textContent = n ? '· n = ' + D.num(n) : '';
+      $('#sel-open').hidden = S.lvl !== 'st';
+      $('#sel-open').href = '#view=state&s=' + S.sel + '&y=' + S.y;
+    }
+    // ---- trend: national (same group) vs. selected place ----
+    const natName = S.lvl === 'st' ? D.t('mexico') + (g !== 'all' ? ' · ' + D.t(GROUPS[g]) : '') : D.t('natAll');
+    const yrs = S.lvl === 'st' ? V.years : [...new Set(V.years.concat(natV.years))].sort((a, b) => a - b);
+    const series = [{ name: natName, color: C_NAT, pts: yrs.map((y) => [y, val(natV, y, '00', S.c, S.base, g)]) }];
+    if (S.sel) series.push({ name: placeName(S.sel, S.y), color: C_ST, pts: yrs.map((y) => [y, val(V, y, S.sel, S.c, S.base, g)]) });
     $('#trend-title').textContent = D.t('trendTitle') + ': ' + series.map((s) => s.name).join(' vs. ');
     legendLines($('#trend-legend'), series);
-    drawTrend($('#trend'), series, V.years, V, S.y);
-    // about
+    drawTrend($('#trend'), series, yrs, V, S.y);
+    // ---- about ----
     $('#about-q').textContent = V.isMean ? D.t('aboutM', { q: cleanLabel(CAT[S.v].label) + ' (' + S.v + ')' }) : D.t('aboutQ', { a: catLabel(S.v, S.c), q: cleanLabel(CAT[S.v].label) + ' (' + S.v + ')' });
     $('#about-base').textContent = V.isMean ? D.t('baseM') : S.base === 'p' ? D.t('baseP') : D.t('baseA');
-    $('#about-n').textContent = D.num(nOf(V, S.y, '00'));
-    const ns = CODES.map((e) => nOf(V, S.y, e)).filter((n) => n);
+    $('#about-n').textContent = D.num(nOf(natV, S.y, '00', g));
+    const ns = places.map((e) => nOf(V, S.y, e, g)).filter((n) => n);
     $('#about-min').textContent = ns.length ? D.num(Math.min(...ns)) : '—';
+    $('#about-min-l').textContent = D.t(S.lvl === 'mu' ? 'minMu' : S.lvl === 'au' ? 'minAu' : 'minSt');
   }
 
   function legendLines(el, series) {
@@ -414,6 +630,8 @@
   function closeHits() { hits.classList.remove('open'); qIn.setAttribute('aria-expanded', 'false'); }
   function pickVar(v) {
     S.v = v; S.c = null; const V = getVar(v); S.c = V.isMean ? '' : defaultCat(V); S.base = 'p';
+    if (S.lvl !== 'st' && !(CAT[v] && CAT[v][S.lvl === 'mu' ? 'mun' : 'aum'])) { S.lvl = 'st'; S.sel = null; resetZoom(); }
+    if (S.lvl === 'st' && S.sel && !STATES[S.sel]) S.sel = null;
     closeHits(); qIn.blur(); render();
   }
   qIn.addEventListener('focus', () => { qIn.select(); showHits(true); });
@@ -443,16 +661,22 @@
   }
 
   /* ---------------- Interactions ---------------- */
-  function selectState(e) { S.sel = S.sel === e ? null : e; render(); }
+  function selectPlace(e, fromList) {
+    S.sel = S.sel === e ? null : e;
+    render();
+    if (S.sel && fromList && S.lvl !== 'st') { const pt = placePoint(S.sel, S.y); if (pt) zoomTo(pt[0], pt[1], FULL[2] / (S.lvl === 'mu' ? 9 : 5)); }
+  }
+  D.$$('#lvl button').forEach((b) => b.addEventListener('click', () => { if (b.disabled || S.lvl === b.dataset.l) return; S.lvl = b.dataset.l; S.sel = null; resetZoom(); render(); }));
+  D.$$('#who button').forEach((b) => b.addEventListener('click', () => { if (b.disabled) return; S.g = b.dataset.g; render(); }));
   $('#sel-clear').addEventListener('click', () => { S.sel = null; render(); });
   $('#sel-open').addEventListener('click', (ev) => { ev.preventDefault(); openProfile(S.sel, S.y); });
-  D.$$('#base button').forEach((b) => b.addEventListener('click', () => { S.base = b.dataset.b; if (S.base === 'p' && isDK(S.c)) S.c = defaultCat(getVar(S.v)); render(); }));
-  $('#yr').addEventListener('input', (ev) => { const V = getVar(S.v); S.y = V.years[+ev.target.value]; render(); });
+  D.$$('#base button').forEach((b) => b.addEventListener('click', () => { S.base = b.dataset.b; if (S.base === 'p' && isDK(S.c)) S.c = defaultCat(getVar(S.v, curSet())); render(); }));
+  $('#yr').addEventListener('input', (ev) => { const V = getVar(S.v, curSet()); S.y = V.years[+ev.target.value]; render(); });
   let timer = null;
   function setPlayIcon(on) { $('#play-ic').innerHTML = on ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>'; $('#play').setAttribute('aria-label', D.t(on ? 'pause' : 'play')); }
   $('#play').addEventListener('click', () => {
     if (timer) { clearInterval(timer); timer = null; setPlayIcon(false); return; }
-    const V = getVar(S.v);
+    const V = getVar(S.v, curSet());
     if (S.y === V.years[V.years.length - 1]) S.y = V.years[0];
     render(); setPlayIcon(true);
     timer = setInterval(() => {
@@ -462,20 +686,22 @@
     }, 900);
   });
   $('#crumb-home').addEventListener('click', (ev) => { ev.preventDefault(); S.view = 'map'; render(); window.scrollTo(0, 0); });
-  $('#back-map').addEventListener('click', (ev) => { ev.preventDefault(); S.view = 'map'; render(); window.scrollTo(0, 0); });
+  $('#back-map').addEventListener('click', (ev) => { ev.preventDefault(); S.view = 'map'; S.lvl = 'st'; render(); window.scrollTo(0, 0); });
   $('#dl').addEventListener('click', () => {
-    const V = getVar(S.v);
-    const lines = ['edition,state_code,state,variable,question,category,category_label,pct_valid_or_mean,pct_incl_dk,n'];
+    const set = curSet(), V = getVar(S.v, set);
+    const lvlName = { st: 'state', mu: 'municipality', au: 'urban_area' }[S.lvl];
+    const lines = ['edition,level,place_code,place,group,variable,question,category,category_label,pct_valid_or_mean,pct_incl_dk,n'];
     const q = '"' + cleanLabel(CAT[S.v].label).replace(/"/g, '""') + '"';
-    V.years.forEach((y) => ['00'].concat(CODES).forEach((e) => {
-      const r = V.rec[y + '|' + e]; if (!r) return;
-      Object.keys(r).forEach((c) => lines.push([y, e, '"' + (e === '00' ? 'México (nacional)' : STATES[e]) + '"', S.v, q, c, '"' + (c === '' ? '' : catLabel(S.v, c).replace(/"/g, '""')) + '"', r[c].p == null ? '' : r[c].p, r[c].pa == null ? '' : r[c].pa, r[c].n].join(',')));
-    }));
-    D.download('envipe_' + S.v + '.csv', lines.join('\n') + '\n');
+    Object.keys(V.rec).sort().forEach((k) => {
+      const [y, e, g] = k.split('|'); const r = V.rec[k];
+      const nm = '"' + placeName(e, +y).replace(/"/g, '""') + '"';
+      Object.keys(r).forEach((c) => lines.push([y, e === '00' ? 'national' : lvlName, e, nm, g, S.v, q, c, '"' + (c === '' ? '' : catLabel(S.v, c).replace(/"/g, '""')) + '"', r[c].p == null ? '' : r[c].p, r[c].pa == null ? '' : r[c].pa, r[c].n].join(',')));
+    });
+    D.download('envipe_' + S.v + '_' + lvlName + (set === 'grp' ? '_groups' : '') + '.csv', lines.join('\n') + '\n');
   });
 
   /* ---------------- State profile ---------------- */
-  function openProfile(e, y) { S.sel = e; S.view = 'state'; S.py = y || null; render(); window.scrollTo(0, 0); }
+  function openProfile(e, y) { S.lvl = 'st'; S.sel = e; S.view = 'state'; S.py = y || null; render(); window.scrollTo(0, 0); }
   function delta(a, b, invertGood) {
     if (a == null || b == null) return '';
     const d = a - b;

@@ -59,6 +59,24 @@
   .stack100 { display: flex; height: 26px; border-radius: 6px; overflow: hidden; font: 700 11px var(--font-mono); flex: 1 1 300px; }
   .stack100 span { display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; }
   .na-note { font-size: 13px; color: var(--fg-4); font-style: italic; }
+  .map-tools { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
+  .map-tools .icon-btn { width: 36px; height: 36px; background: rgba(38,36,34,0.92); }
+  .map-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(28,27,26,0.72); font-family: var(--font-mono); font-size: 13px; color: var(--fg-2); border-radius: 10px; }
+  #map { touch-action: none; cursor: grab; }
+  #map.dragging { cursor: grabbing; }
+  #map path.st, #map path.mu, #map path.ol { vector-effect: non-scaling-stroke; }
+  #map path.mu { stroke: #1C1B1A; stroke-width: 0.4; cursor: pointer; }
+  #map path.mu.nodata { fill: #2A2826; stroke: #34302C; cursor: default; }
+  #map path.mu:hover { stroke: #fff; stroke-width: 1.4; }
+  #map path.mu.sel { stroke: #fff; stroke-width: 2.4; }
+  #map path.ol { fill: none; stroke: #6B645B; stroke-width: 0.9; pointer-events: none; }
+  #map .bg path.st { fill: #2A2826; pointer-events: none; }
+  #map circle.au { stroke: #1C1B1A; cursor: pointer; }
+  #map circle.au.sel { stroke: #fff; }
+  #map .few { fill-opacity: 0.45; }
+  .seg button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .rank { max-height: 760px; overflow: auto; }
+  .rank button.few { opacity: 0.6; }
   [hidden] { display: none !important; }
   @media (max-width: 640px) { .dumb .lb { width: 110px; font-size: 13px; } .rank .nm { width: 104px; } }
 </style>
@@ -124,13 +142,42 @@
           <button type="button" data-b="pa" data-i18n="baseAll">Incl. “No sabe”</button>
         </div>
       </div>
+      <div class="c" id="lvl-box">
+        <span class="label" data-i18n="mapLevel">Map</span>
+        <div class="seg neutral wrap" id="lvl" role="group">
+          <button type="button" data-l="st" data-i18n="lSt">States</button>
+          <button type="button" data-l="mu" data-i18n="lMu">Municipalities</button>
+          <button type="button" data-l="au" data-i18n="lAu">Urban areas</button>
+        </div>
+      </div>
+      <div class="c" id="who-box" style="flex:2 1 460px">
+        <span class="label" data-i18n="who">Who</span>
+        <div class="seg neutral wrap" id="who" role="group">
+          <button type="button" data-g="all" data-i18n="gAll">All adults</button>
+          <button type="button" data-g="m" data-i18n="gM">Men</button>
+          <button type="button" data-g="f" data-i18n="gF">Women</button>
+          <button type="button" data-g="a1">18–30</button>
+          <button type="button" data-g="a2">31–50</button>
+          <button type="button" data-g="a3">51+</button>
+        </div>
+        <span class="small" id="who-note"></span>
+      </div>
     </section>
 
     <div class="row" style="align-items:flex-start">
       <section class="card deep grow stack" aria-label="Map">
         <div class="headline"><span class="big" id="hl-v">—</span><span class="txt" id="hl-t"></span></div>
-        <div class="map-wrap"><svg id="map" class="map-svg" role="img"></svg></div>
+        <div class="map-wrap">
+          <svg id="map" class="map-svg" role="img"></svg>
+          <div class="map-tools">
+            <button type="button" class="icon-btn" id="zin" data-i18n-attr="aria-label:zoomIn">+</button>
+            <button type="button" class="icon-btn" id="zout" data-i18n-attr="aria-label:zoomOut">−</button>
+            <button type="button" class="icon-btn" id="zreset" data-i18n-attr="aria-label:zoomReset" style="font-size:15px">⤢</button>
+          </div>
+          <div class="map-loading" id="map-loading" hidden data-i18n="loadingSet">Loading data…</div>
+        </div>
         <div class="legend" id="legend"></div>
+        <p class="small" style="margin:0" id="lvl-note"></p>
         <div class="sel-card" id="sel-card">
           <div><b id="sel-name"></b> <span class="mono" id="sel-val"></span> <span class="small" id="sel-sub"></span></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -149,7 +196,7 @@
       </section>
 
       <section class="card side stack" aria-label="Ranking">
-        <div class="card-head"><h2 class="h2" data-i18n="all32">All 32 states</h2><span class="label" id="rank-sub"></span></div>
+        <div class="card-head"><h2 class="h2" id="rank-title">All 32 states</h2><span class="label" id="rank-sub"></span></div>
         <div class="rank" id="rank"></div>
       </section>
     </div>
@@ -163,7 +210,7 @@
         <h2 class="h2" data-i18n="about">About this number</h2>
         <p class="muted" style="margin:0" id="about-q"></p>
         <p class="muted" style="margin:0" id="about-base"></p>
-        <div class="kv"><div><div class="k" id="about-n">—</div><div class="l" data-i18n="respNat">respondents (national)</div></div><div><div class="k" id="about-min">—</div><div class="l" data-i18n="smallestN">smallest state n</div></div></div>
+        <div class="kv"><div><div class="k" id="about-n">—</div><div class="l" data-i18n="respNat">respondents (national)</div></div><div><div class="k" id="about-min">—</div><div class="l" id="about-min-l">smallest state n</div></div></div>
       </section>
     </div>
   </div>
