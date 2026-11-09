@@ -42,6 +42,7 @@
       noteAu: 'INEGI urban areas of interest, placed on and named after the municipality where most of their respondents live. Scroll or pinch to zoom, drag to move.',
       areaOf: '{m} urban area', areaN: 'Urban area {n}', fewN: 'Few answers (n < 50) — read with care', fewLeg: 'faded = fewer than 50 answers',
       natAll: 'Mexico (all adults)',
+      allYears: 'All years', hlAvg: 'Mexico, average of {k} editions ({a}–{b})', selNoteAvg: 'Average of {k} editions ({a}–{b}) with data for this place, based on {n} answers in total.',
       seeAll: 'See all answers', detTitle: 'All answers · {p} · {y}', detAns: 'Answer', detPct: '%', detMoe: '±', detN: 'n',
       detLegP: '{p}', detLegN: 'Mexico', detNote: 'Bars show {p}; orange marks show Mexico{g}. ± is a margin of error (at least; the real survey error is larger). n = people giving each answer. {b}', detMean: '{p}: {v} (Mexico {n}), from {k} answers.',
       selNote: 'Based on {n} people who answered this question here in {y}.', selMoe: ' Margin of error at least ±{m} points.', selSmall: ' Small sample — read as a rough estimate.',
@@ -77,6 +78,7 @@
       noteAu: 'Áreas urbanas de interés del INEGI, ubicadas en el municipio donde vive la mayoría de sus informantes y nombradas por él. Usa la rueda o pellizca para acercar; arrastra para moverte.',
       areaOf: 'Área urbana de {m}', areaN: 'Área urbana {n}', fewN: 'Pocas respuestas (n < 50): interpretar con cautela', fewLeg: 'tenue = menos de 50 respuestas',
       natAll: 'México (toda la población adulta)',
+      allYears: 'Todos los años', hlAvg: 'México, promedio de {k} ediciones ({a}–{b})', selNoteAvg: 'Promedio de {k} ediciones ({a}–{b}) con datos para este lugar, con base en {n} respuestas en total.',
       seeAll: 'Ver todas las respuestas', detTitle: 'Todas las respuestas · {p} · {y}', detAns: 'Respuesta', detPct: '%', detMoe: '±', detN: 'n',
       detLegP: '{p}', detLegN: 'México', detNote: 'Las barras muestran {p}; las marcas naranjas, México{g}. ± es un margen de error (mínimo; el error real de la encuesta es mayor). n = personas que dieron cada respuesta. {b}', detMean: '{p}: {v} (México {n}), con base en {k} respuestas.',
       selNote: 'Con base en {n} personas que respondieron esta pregunta aquí en {y}.', selMoe: ' Margen de error de al menos ±{m} puntos.', selSmall: ' Muestra pequeña: tómese como una estimación aproximada.',
@@ -247,6 +249,49 @@
     let n = 0; for (const k in r) if (!isDK(k) || S.base === 'pa') n += r[k].n || 0; return n;
   }
 
+  /** "All years" (year key 0): each place's average of its yearly values, per answer, over the editions
+   *  that (a) have data for that place and (b) offered that answer at all (some editions code a question
+   *  differently). Within those editions a missing answer counts as 0%. n = all answers, all editions. */
+  const AVG = 0;
+  function ensureAvg(V) {
+    if (V.avgDone) return V;
+    // which editions offered each answer anywhere in this data set
+    const offered = {};
+    for (const k in V.rec) {
+      const y = k.slice(0, k.indexOf('|')); if (y === '0') continue;
+      for (const c in V.rec[k]) (offered[c] || (offered[c] = new Set())).add(+y);
+    }
+    const acc = {};
+    for (const k in V.rec) {
+      const i = k.indexOf('|'); if (k.slice(0, i) === '0') continue;
+      const y = +k.slice(0, i), eg = k.slice(i + 1);
+      (acc[eg] || (acc[eg] = [])).push([y, V.rec[k]]);
+    }
+    V.avgInfo = {};
+    for (const eg in acc) {
+      const list = acc[eg], out = {};
+      Object.keys(offered).forEach((c) => {
+        let sp = 0, spa = 0, k = 0, n = 0, hp = false, hpa = false, y0 = 9999, y1 = 0;
+        list.forEach(([y, r]) => {
+          if (!offered[c].has(y)) return;
+          const o = r[c];
+          k++; y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+          if (o) { if (o.p != null) { sp += o.p; hp = true; } if (o.pa != null) { spa += o.pa; hpa = true; } n += o.n || 0; }
+          else { if (!isDK(c)) hp = true; hpa = true; }  // answer offered but nobody here chose it: 0%
+        });
+        if (k && (hp || hpa || n)) out[c] = { p: hp && !isDK(c) ? sp / k : null, pa: hpa ? spa / k : null, n, k, y0, y1 };
+      });
+      V.rec['0|' + eg] = out;
+      const ys = list.map((x) => x[0]);
+      V.avgInfo[eg] = { k: ys.length, y0: Math.min(...ys), y1: Math.max(...ys) };
+    }
+    V.avgDone = true;
+    return V;
+  }
+  /** editions behind the "All years" value of answer c at place e|g */
+  function avgSpan(V, eg, c) { const r = V.rec['0|' + eg]; const o = r && (r[c] || r['']); return o ? { k: o.k, a: o.y0, b: o.y1 } : null; }
+  const yearLabel = (y) => (y === AVG ? D.t('allYears') : String(y));
+
   /* ---------------- Formatting ---------------- */
   function fmt(x, V) {
     if (x == null) return '—';
@@ -269,7 +314,7 @@
     if (h.get('v') && LINES[h.get('v')]) S.v = h.get('v');
     if (h.has('c')) S.c = h.get('c');
     if (h.get('b') === 'pa') S.base = 'pa';
-    if (h.get('y')) S.y = +h.get('y');
+    S.y = h.get('y') && h.get('y') !== 'all' ? +h.get('y') : AVG;
     S.lvl = ['st', 'mu', 'au'].includes(h.get('l')) ? h.get('l') : 'st';
     S.g = GROUPS[h.get('g')] ? h.get('g') : 'all';
     S.sel = h.get('s') || null;
@@ -279,7 +324,7 @@
   function writeHash() {
     const h = new URLSearchParams();
     if (S.view === 'state') { h.set('view', 'state'); h.set('s', S.sel); if (S.py) h.set('y', S.py); }
-    else { h.set('v', S.v); if (!getVar(S.v).isMean) h.set('c', S.c); if (S.base === 'pa') h.set('b', 'pa'); h.set('y', S.y); if (S.lvl !== 'st') h.set('l', S.lvl); if (S.lvl === 'st' && S.g !== 'all') h.set('g', S.g); if (S.sel) h.set('s', S.sel); }
+    else { h.set('v', S.v); if (!getVar(S.v).isMean) h.set('c', S.c); if (S.base === 'pa') h.set('b', 'pa'); h.set('y', S.y === AVG ? 'all' : S.y); if (S.lvl !== 'st') h.set('l', S.lvl); if (S.lvl === 'st' && S.g !== 'all') h.set('g', S.g); if (S.sel) h.set('s', S.sel); }
     history.replaceState(null, '', '#' + h.toString());
   }
   function normalize() {
@@ -288,7 +333,7 @@
       if (!V.cats.includes(S.c)) S.c = defaultCat(V);
       if (isDK(S.c)) S.base = 'pa';
     }
-    if (!V.years.includes(S.y)) S.y = V.years[V.years.length - 1];
+    if (S.y !== AVG && !V.years.includes(S.y)) S.y = V.years[V.years.length - 1];
   }
 
   /* ---------------- Map ---------------- */
@@ -367,7 +412,7 @@
   $('#zreset').addEventListener('click', resetZoom);
 
   // ---- places at the current level ----
-  function areaYear(e, y) { if (AREAS[y] && AREAS[y][e]) return y; const ys = Object.keys(AREAS).map(Number).filter((yy) => AREAS[yy][e]).sort((a, b) => b - a); return ys[0]; }
+  function areaYear(e, y) { if (y !== AVG && AREAS[y] && AREAS[y][e]) return y; const ys = Object.keys(AREAS).map(Number).filter((yy) => AREAS[yy][e]).sort((a, b) => b - a); return ys[0]; }
   function placeName(e, y, lvl) {
     lvl = lvl || S.lvl;
     if (e === '00') return D.t('mexico');
@@ -388,8 +433,8 @@
   function levelPlaces() { return S.lvl === 'st' ? CODES : S.lvl === 'mu' ? MUNI_CODES : AREA_CODES; }
 
   function hoverPlace(e, x, y) {
-    const V = getVar(S.v, curSet()), g = curG();
-    const natV = S.lvl === 'st' ? V : getVar(S.v, 'agg');
+    const V = ensureAvg(getVar(S.v, curSet())), g = curG();
+    const natV = ensureAvg(S.lvl === 'st' ? V : getVar(S.v, 'agg'));
     const v = val(V, S.y, e, S.c, S.base, g), nat = val(natV, S.y, '00', S.c, S.base, g);
     const n = nCell(V, S.y, e, S.c, g);
     let diff = '';
@@ -403,7 +448,7 @@
         return '<span class="' + on + '">' + D.esc(catLabel(S.v, c)) + '</span><span class="' + on + ' n">' + fmt(x, V) + '</span>';
       }).join('') + '</div>';
     }
-    D.showTip('<b>' + D.esc(placeName(e, S.y)) + ' · ' + S.y + '</b>' + (V.isMean ? '<div class="v">' + fmt(v, V) + '</div>' : rows) + '<div class="s">' + diff + (n ? ' · n = ' + D.num(n) : '') + '</div>' +
+    D.showTip('<b>' + D.esc(placeName(e, S.y)) + ' · ' + yearLabel(S.y) + '</b>' + (V.isMean ? '<div class="v">' + fmt(v, V) + '</div>' : rows) + '<div class="s">' + diff + (n ? ' · n = ' + D.num(n) : '') + '</div>' +
       (n != null && n < 50 ? '<div class="s" style="color:#A65D0F">' + D.t('fewN') + '</div>' : '') +
       '<div class="s" style="color:#A65D0F;font-weight:600">' + D.t('clickSelect') + '</div>', x, y);
   }
@@ -440,8 +485,8 @@
   function drawMapView() {
     normalize();
     const set = curSet(), g = curG();
-    const V = getVar(S.v, set);
-    const natV = S.lvl === 'st' ? V : getVar(S.v, 'agg');
+    const V = ensureAvg(getVar(S.v, set));
+    const natV = ensureAvg(S.lvl === 'st' ? V : getVar(S.v, 'agg'));
     const places = levelPlaces();
     const br = breaksOver(V, places, S.c, S.base, g);
     // ---- controls ----
@@ -462,8 +507,8 @@
     $('#lvl-note').textContent = D.t(S.lvl === 'mu' ? 'noteMu' : S.lvl === 'au' ? 'noteAu' : 'noteSt', { n: SETTINGS.minmun });
     // ---- years ----
     const yb = $('#years'); yb.innerHTML = '';
-    V.years.forEach((y) => {
-      const b = D.el('button', { type: 'button', 'aria-pressed': String(y === S.y), text: y });
+    [AVG].concat(V.years).forEach((y) => {
+      const b = D.el('button', { type: 'button', 'aria-pressed': String(y === S.y), text: yearLabel(y), class: y === AVG ? 'all' : null });
       b.addEventListener('click', () => { S.y = y; render(); });
       yb.append(b);
     });
@@ -471,7 +516,7 @@
     // ---- headline (national, for the chosen group) ----
     const nat = val(natV, S.y, '00', S.c, S.base, g);
     $('#hl-v').textContent = fmt(nat, V);
-    $('#hl-t').innerHTML = (V.isMean ? D.t('hlMean') : D.t('hlCat', { a: D.esc(catLabel(S.v, S.c)) })) + ' — ' + D.esc(cleanLabel(CAT[S.v].label)) + '<br>' + D.t('hlWhere', { y: S.y }) + (g !== 'all' ? ' · <strong>' + D.esc(D.t(GROUPS[g])) + '</strong>' : '');
+    $('#hl-t').innerHTML = (V.isMean ? D.t('hlMean') : D.t('hlCat', { a: D.esc(catLabel(S.v, S.c)) })) + ' — ' + D.esc(cleanLabel(CAT[S.v].label)) + '<br>' + (S.y === AVG ? D.t('hlAvg', avgSpan(natV, '00|' + g, V.isMean ? '' : S.c) || { k: V.years.length, a: V.years[0], b: V.years[V.years.length - 1] }) : D.t('hlWhere', { y: S.y })) + (g !== 'all' ? ' · <strong>' + D.esc(D.t(GROUPS[g])) + '</strong>' : '');
     // ---- map ----
     gSt.setAttribute('class', S.lvl === 'st' ? '' : 'bg');
     gOl.style.display = S.lvl === 'st' ? 'none' : '';
@@ -505,7 +550,7 @@
     }
     if (S.lvl === 'au') {
       gAu.innerHTML = '';
-      Object.keys(AREAS[S.y] || {}).map((e) => ({ e, x: val(V, S.y, e, S.c, S.base, g), pt: placePoint(e, S.y) }))
+      (S.y === AVG ? AREA_CODES : Object.keys(AREAS[S.y] || {})).map((e) => ({ e, x: val(V, S.y, e, S.c, S.base, g), pt: placePoint(e, S.y) }))
         .filter((o) => o.pt).sort((a, b) => (a.e === S.sel) - (b.e === S.sel))
         .forEach((o) => {
           const c = D.svg('circle', { cx: o.pt[0], cy: o.pt[1], r: 8, class: 'au' + (o.e === S.sel ? ' sel' : '') + (o.x != null && few(o.e) ? ' few' : ''), fill: colorOf(o.x, br) });
@@ -517,7 +562,7 @@
         });
     }
     applyVB();
-    svgMap.setAttribute('aria-label', D.t('title') + ' — ' + cleanLabel(CAT[S.v].label) + ', ' + S.y);
+    svgMap.setAttribute('aria-label', D.t('title') + ' — ' + cleanLabel(CAT[S.v].label) + ', ' + yearLabel(S.y));
     // ---- legend ----
     const lg = $('#legend'); lg.innerHTML = '';
     lg.append(D.el('span', { class: 'label', text: V.isMean ? D.t('mean') : '%' }));
@@ -541,7 +586,7 @@
       b.addEventListener('click', () => selectPlace(r.e, true));
       rk.append(b);
     });
-    $('#rank-sub').textContent = S.y + ' · ' + (V.isMean ? D.t('mean') : '%');
+    $('#rank-sub').textContent = yearLabel(S.y) + ' · ' + (V.isMean ? D.t('mean') : '%');
     // ---- selection card ----
     const sc = $('#sel-card');
     sc.classList.toggle('on', !!S.sel);
@@ -553,12 +598,13 @@
       // small note: sample size and a simple-random-sample margin of error
       // (the real survey error is larger because of weighting and clustering)
       const xv = val(V, S.y, S.sel, S.c, S.base, g);
-      let note = n ? D.t('selNote', { n: D.num(n), y: S.y }) : '';
-      if (n && !V.isMean && xv != null) note += D.t('selMoe', { m: D.num(1.96 * Math.sqrt(xv * (100 - xv) / n), 0) });
+      const ai = S.y === AVG ? avgSpan(V, S.sel + '|' + g, V.isMean ? '' : S.c) : null;
+      let note = !n ? '' : ai ? D.t('selNoteAvg', { k: ai.k, a: ai.a, b: ai.b, n: D.num(n) }) : D.t('selNote', { n: D.num(n), y: S.y });
+      if (n && !V.isMean && xv != null) { const m = 1.96 * Math.sqrt(xv * (100 - xv) / n); note += D.t('selMoe', { m: D.num(m, m < 1 ? 1 : 0) }); }
       if (n && n < 50) note += D.t('selSmall');
       $('#sel-note').textContent = note;
       $('#sel-open').hidden = S.lvl !== 'st';
-      $('#sel-open').href = '#view=state&s=' + S.sel + '&y=' + S.y;
+      $('#sel-open').href = '#view=state&s=' + S.sel + '&y=' + (S.y === AVG ? V.years[V.years.length - 1] : S.y);
     }
     // ---- answer detail for the selected place ----
     renderDetail(V, natV, g);
@@ -569,7 +615,7 @@
     if (S.sel) series.push({ name: placeName(S.sel, S.y), color: C_ST, pts: yrs.map((y) => [y, val(V, y, S.sel, S.c, S.base, g)]) });
     $('#trend-title').textContent = D.t('trendTitle') + ': ' + series.map((s) => s.name).join(' vs. ');
     legendLines($('#trend-legend'), series);
-    drawTrend($('#trend'), series, yrs, V, S.y);
+    drawTrend($('#trend'), series, yrs, V, S.y === AVG ? null : S.y);
     // ---- about ----
     $('#about-q').textContent = V.isMean ? D.t('aboutM', { q: cleanLabel(CAT[S.v].label) + ' (' + S.v + ')' }) : D.t('aboutQ', { a: catLabel(S.v, S.c), q: cleanLabel(CAT[S.v].label) + ' (' + S.v + ')' });
     $('#about-base').textContent = V.isMean ? D.t('baseM') : S.base === 'p' ? D.t('baseP') : D.t('baseA');
@@ -587,7 +633,7 @@
     if (!S.sel) return;
     const pn = placeName(S.sel, S.y);
     const gTxt = g !== 'all' ? ' · ' + D.t(GROUPS[g]) : '';
-    $('#det-title').textContent = D.t('detTitle', { p: pn + gTxt, y: S.y });
+    $('#det-title').textContent = D.t('detTitle', { p: pn + gTxt, y: yearLabel(S.y) });
     const lg = $('#det-legend'); lg.innerHTML = '';
     lg.append(D.el('span', { class: 'sw' }, [D.el('i', { style: { background: '#95C3CE' } }), pn]),
       D.el('span', { class: 'sw' }, [D.el('i', { style: { background: '#E5912A', width: '4px' } }), D.t('detLegN')]));
@@ -653,7 +699,7 @@
       if (i % every && i !== years.length - 1) return;
       const t = D.svg('text', { x: sx(y), y: T + ih + 20, 'text-anchor': 'middle' }); t.textContent = y; g.append(t);
     });
-    if (current != null) g.append(D.svg('line', { x1: sx(current), x2: sx(current), y1: T, y2: T + ih, stroke: '#57524A', 'stroke-dasharray': '2 3' }));
+    if (current != null && current !== AVG) g.append(D.svg('line', { x1: sx(current), x2: sx(current), y1: T, y2: T + ih, stroke: '#57524A', 'stroke-dasharray': '2 3' }));
     const ends = [];
     series.forEach((s) => {
       const pts = s.pts.filter((p) => p[1] != null);
@@ -664,7 +710,7 @@
         g.append(D.svg('line', { x1: sx(a[0]), y1: sy(a[1]), x2: sx(b[0]), y2: sy(b[1]), stroke: s.color, 'stroke-width': consecutive ? 2.5 : 2, 'stroke-dasharray': consecutive ? null : '3 4', 'stroke-linecap': 'round' }));
       }
       pts.forEach((p) => {
-        const c = D.svg('circle', { cx: sx(p[0]), cy: sy(p[1]), r: p[0] === current ? 4.5 : 2.5, fill: s.color });
+        const c = D.svg('circle', { cx: sx(p[0]), cy: sy(p[1]), r: current != null && p[0] === current ? 4.5 : 2.5, fill: s.color });
         c.addEventListener('mousemove', (ev) => D.showTip('<b>' + D.esc(s.name) + ' · ' + p[0] + '</b><div class="v">' + fmt(p[1], V) + '</div>', ev.clientX, ev.clientY));
         c.addEventListener('mouseleave', () => D.hideTip());
         g.append(c);
@@ -744,7 +790,7 @@
   D.$$('#who button').forEach((b) => b.addEventListener('click', () => { if (b.disabled) return; S.g = b.dataset.g; render(); }));
   $('#sel-clear').addEventListener('click', () => { S.sel = null; render(); });
   $('#sel-detail').addEventListener('click', (ev) => { ev.preventDefault(); $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-  $('#sel-open').addEventListener('click', (ev) => { ev.preventDefault(); openProfile(S.sel, S.y); });
+  $('#sel-open').addEventListener('click', (ev) => { ev.preventDefault(); openProfile(S.sel, S.y === AVG ? null : S.y); });
   D.$$('#base button').forEach((b) => b.addEventListener('click', () => { S.base = b.dataset.b; if (S.base === 'p' && isDK(S.c)) S.c = defaultCat(getVar(S.v, curSet())); render(); }));
   $('#crumb-home').addEventListener('click', (ev) => { ev.preventDefault(); S.view = 'map'; render(); window.scrollTo(0, 0); });
   $('#back-map').addEventListener('click', (ev) => { ev.preventDefault(); S.view = 'map'; S.lvl = 'st'; render(); window.scrollTo(0, 0); });
@@ -755,6 +801,7 @@
     const q = '"' + cleanLabel(CAT[S.v].label).replace(/"/g, '""') + '"';
     Object.keys(V.rec).sort().forEach((k) => {
       const [y, e, g] = k.split('|'); const r = V.rec[k];
+      if (y === '0') return; // "all years" averages are computed in the page, not exported
       const nm = '"' + placeName(e, +y).replace(/"/g, '""') + '"';
       Object.keys(r).forEach((c) => lines.push([y, e === '00' ? 'national' : lvlName, e, nm, g, S.v, q, c, '"' + (c === '' ? '' : catLabel(S.v, c).replace(/"/g, '""')) + '"', r[c].p == null ? '' : r[c].p, r[c].pa == null ? '' : r[c].pa, r[c].n].join(',')));
     });
