@@ -1,0 +1,2501 @@
+v,c,label
+ap1_1,1,Casa independiente
+ap1_1,2,Departamento en edificio
+ap1_1,3,Vivienda en vecindad
+ap1_1,4,Vivienda en cuarto de azotea
+ap1_1,5,Local no construido para habitación
+ap1_1,u,No especificado
+ap1_2,1,Sí existe
+ap1_2,2,No existe
+ap1_2,3,No lo puede observar
+ap1_2,u,No especificado
+ap2_2,0,No
+ap2_2,1,Sí
+ap3_10,1,jornalero(a) o peón(a)?
+ap3_10,2,empleado(a) u obrero(a)?
+ap3_10,3,trabajador(a) por su cuenta? (no contrata trabajadores[as])
+ap3_10,4,patrón(a) o empleador(a)?  (contrata trabajadores[as])
+ap3_10,5,trabajador(a) sin pago?
+ap3_10,u,No especificado
+ap3_10_n,1,jornalero(a) o peón?
+ap3_10_n,2,empleado(a) u obrero(a)?
+ap3_10_n,3,trabajador(a) por su cuenta? (no contrata trabajadores)
+ap3_10_n,4,patrón(a) o empleador(a)? (contrata trabajadores)
+ap3_10_n,5,trabajador(a) sin pago?
+ap3_8,1,trabajó?
+ap3_8,2,"tenía trabajo, pero no trabajó?"
+ap3_8,3,buscó trabajo?
+ap3_8,4,¿Es estudiante?
+ap3_8,5,¿Se dedica a los quehaceres del hogar?
+ap3_8,6,¿Es jubilado(a) o pensionado(a)?
+ap3_8,7,¿Está incapacitado(a) permanentemente para trabajar?
+ap3_8,8,¿No trabajó?
+ap3_8,u,No especificado
+ap3_8_n,1,trabajó?
+ap3_8_n,2,"tenía trabajo, pero no trabajó?"
+ap3_8_n,3,buscó trabajo?
+ap3_8_n,4,¿Es estudiante?
+ap3_8_n,5,¿Se dedica a los quehaceres del hogar?
+ap3_8_n,6,¿Es jubilado(a) o pensionado(a)?
+ap3_8_n,7,¿Está incapacitado(a) permanentemente para trabajar?
+ap3_8_n,8,¿No trabajó?
+ap3_8_n,9,No especificado
+ap3_9,1,vendió o hizo algún producto para su venta?
+ap3_9,2,"prestó algún servicio a cambio de un pago (cortar el cabello, dar clases, lavar o planchar ropa ajena)?"
+ap3_9,3,ayudó trabajando en las tierras o en el negocio de un familiar u otra persona?
+ap3_9,4,"Entonces, ¿no trabajó?"
+ap3_9,u,No especificado
+ap3_9_n,1,vendió o hizo algún producto para su venta?
+ap3_9_n,2,"prestó algún servicio a cambio de un pago (cortar el cabello, dar clases, lavar o planchar ropa ajena)?"
+ap3_9_n,3,ayudó trabajando en las tierras o en el negocio de un familiar u otra persona?
+ap3_9_n,4,"Entonces, ¿no trabajó?"
+ap4_1,1,Menos de seis meses
+ap4_1,2,Entre seis meses y un año
+ap4_1,3,Más de un año
+ap4_1,d,No sabe / no responde
+ap4_1,u,No especificado
+ap4_10_01,0,No
+ap4_10_01,1,Sí
+ap4_10_01,d,No sabe / no responde
+ap4_10_02,0,No
+ap4_10_02,1,Sí
+ap4_10_02,d,No sabe / no responde
+ap4_10_03,0,No
+ap4_10_03,1,Sí
+ap4_10_03,d,No sabe / no responde
+ap4_10_04,0,No
+ap4_10_04,1,Sí
+ap4_10_04,d,No sabe / no responde
+ap4_10_05,0,No
+ap4_10_05,1,Sí
+ap4_10_05,d,No sabe / no responde
+ap4_10_06,0,No
+ap4_10_06,1,Sí
+ap4_10_06,d,No sabe / no responde
+ap4_10_07,0,No
+ap4_10_07,1,Sí
+ap4_10_07,d,No sabe / no responde
+ap4_10_08,0,No
+ap4_10_08,1,Sí
+ap4_10_08,d,No sabe / no responde
+ap4_10_09,0,No
+ap4_10_09,1,Sí
+ap4_10_09,d,No sabe / no responde
+ap4_10_1,0,No
+ap4_10_1,1,Sí
+ap4_10_1,d,No sabe / no responde
+ap4_10_1,r,No responde
+ap4_10_10,0,No
+ap4_10_10,1,Sí
+ap4_10_10,d,No sabe / no responde
+ap4_10_10,r,No responde
+ap4_10_11,0,No
+ap4_10_11,1,Sí
+ap4_10_11,d,No sabe / no responde
+ap4_10_11,r,No responde
+ap4_10_12,0,No
+ap4_10_12,1,Sí
+ap4_10_12,d,No sabe / no responde
+ap4_10_13,0,No
+ap4_10_13,1,Sí
+ap4_10_13,d,No sabe / no responde
+ap4_10_14,0,No
+ap4_10_14,1,Sí
+ap4_10_14,d,No sabe / no responde
+ap4_10_15,0,No
+ap4_10_15,1,Sí
+ap4_10_15,d,No sabe / no responde
+ap4_10_16,0,No
+ap4_10_16,1,Sí
+ap4_10_16,d,No sabe / no responde
+ap4_10_17,0,No
+ap4_10_17,1,Sí
+ap4_10_17,d,No sabe / no responde
+ap4_10_2,0,No
+ap4_10_2,1,Sí
+ap4_10_2,d,No sabe / no responde
+ap4_10_2,r,No responde
+ap4_10_3,0,No
+ap4_10_3,1,Sí
+ap4_10_3,d,No sabe / no responde
+ap4_10_3,r,No responde
+ap4_10_4,0,No
+ap4_10_4,1,Sí
+ap4_10_4,d,No sabe / no responde
+ap4_10_4,r,No responde
+ap4_10_5,0,No
+ap4_10_5,1,Sí
+ap4_10_5,d,No sabe / no responde
+ap4_10_5,r,No responde
+ap4_10_6,0,No
+ap4_10_6,1,Sí
+ap4_10_6,d,No sabe / no responde
+ap4_10_6,r,No responde
+ap4_10_7,0,No
+ap4_10_7,1,Sí
+ap4_10_7,d,No sabe / no responde
+ap4_10_7,r,No responde
+ap4_10_8,0,No
+ap4_10_8,1,Sí
+ap4_10_8,d,No sabe / no responde
+ap4_10_8,r,No responde
+ap4_10_9,0,No
+ap4_10_9,1,Sí
+ap4_10_9,d,No sabe / no responde
+ap4_10_9,r,No responde
+ap4_10a_1,0,No
+ap4_10a_1,1,Sí
+ap4_10a_1,d,No sabe / no responde
+ap4_10a_2,0,No
+ap4_10a_2,1,Sí
+ap4_10a_2,d,No sabe / no responde
+ap4_10a_3,0,No
+ap4_10a_3,1,Sí
+ap4_10a_3,d,No sabe / no responde
+ap4_10a_4,0,No
+ap4_10a_4,1,Sí
+ap4_10a_4,d,No sabe / no responde
+ap4_11_01,0,No
+ap4_11_01,1,Sí
+ap4_11_01,d,No sabe / no responde
+ap4_11_02,0,No
+ap4_11_02,1,Sí
+ap4_11_02,d,No sabe / no responde
+ap4_11_03,0,No
+ap4_11_03,1,Sí
+ap4_11_03,d,No sabe / no responde
+ap4_11_04,0,No
+ap4_11_04,1,Sí
+ap4_11_04,d,No sabe / no responde
+ap4_11_05,0,No
+ap4_11_05,1,Sí
+ap4_11_05,d,No sabe / no responde
+ap4_11_06,0,No
+ap4_11_06,1,Sí
+ap4_11_06,d,No sabe / no responde
+ap4_11_07,0,No
+ap4_11_07,1,Sí
+ap4_11_07,d,No sabe / no responde
+ap4_11_08,0,No
+ap4_11_08,1,Sí
+ap4_11_08,d,No sabe / no responde
+ap4_11_09,0,No
+ap4_11_09,1,Sí
+ap4_11_09,d,No sabe / no responde
+ap4_11_1,0,No
+ap4_11_1,1,Sí
+ap4_11_1,d,No sabe / no responde
+ap4_11_10,0,No
+ap4_11_10,1,Sí
+ap4_11_10,d,No sabe / no responde
+ap4_11_11,0,No
+ap4_11_11,1,Sí
+ap4_11_11,d,No sabe / no responde
+ap4_11_2,0,No
+ap4_11_2,1,Sí
+ap4_11_2,d,No sabe / no responde
+ap4_11_3,0,No
+ap4_11_3,1,Sí
+ap4_11_3,d,No sabe / no responde
+ap4_11_4,0,No
+ap4_11_4,1,Sí
+ap4_11_4,d,No sabe / no responde
+ap4_11_5,0,No
+ap4_11_5,1,Sí
+ap4_11_5,d,No sabe / no responde
+ap4_11_6,0,No
+ap4_11_6,1,Sí
+ap4_11_6,d,No sabe / no responde
+ap4_11_7,0,No
+ap4_11_7,1,Sí
+ap4_11_7,d,No sabe / no responde
+ap4_11_8,0,No
+ap4_11_8,1,Sí
+ap4_11_8,d,No sabe / no responde
+ap4_11_9,0,No
+ap4_11_9,1,Sí
+ap4_11_9,d,No sabe / no responde
+ap4_11a_1,0,No
+ap4_11a_1,1,Sí
+ap4_11a_1,d,No sabe / no responde
+ap4_11a_2,0,No
+ap4_11a_2,1,Sí
+ap4_11a_2,d,No sabe / no responde
+ap4_11a_3,0,No
+ap4_11a_3,1,Sí
+ap4_11a_3,d,No sabe / no responde
+ap4_11a_4,0,No
+ap4_11a_4,1,Sí
+ap4_11a_4,d,No sabe / no responde
+ap4_11a_5,0,No
+ap4_11a_5,1,Sí
+ap4_11a_5,d,No sabe / no responde
+ap4_13,0,No
+ap4_13,1,Sí
+ap4_13,d,No sabe / no responde
+ap4_13,r,No responde
+ap4_13_1,0,No
+ap4_13_1,1,Sí
+ap4_13_1,d,No sabe / no responde
+ap4_13_2,0,No
+ap4_13_2,1,Sí
+ap4_13_2,d,No sabe / no responde
+ap4_13_3,0,No
+ap4_13_3,1,Sí
+ap4_13_3,d,No sabe / no responde
+ap4_13_4,0,No
+ap4_13_4,1,Sí
+ap4_13_4,d,No sabe / no responde
+ap4_13_5,0,No
+ap4_13_5,1,Sí
+ap4_13_5,d,No sabe / no responde
+ap4_13_6,0,No
+ap4_13_6,1,Sí
+ap4_13_6,d,No sabe / no responde
+ap4_14,1,Diario
+ap4_14,2,Tres veces por semana
+ap4_14,3,Una vez a la semana
+ap4_14,4,Una vez al mes
+ap4_14,5,Nunca
+ap4_14,u,No especificado
+ap4_14_1,0,No
+ap4_14_1,1,Sí
+ap4_14_1,d,No sabe / no responde
+ap4_14_2,0,No
+ap4_14_2,1,Sí
+ap4_14_2,d,No sabe / no responde
+ap4_14_3,0,No
+ap4_14_3,1,Sí
+ap4_14_3,d,No sabe / no responde
+ap4_14_4,0,No
+ap4_14_4,1,Sí
+ap4_14_4,d,No sabe / no responde
+ap4_14_5,0,No
+ap4_14_5,1,Sí
+ap4_14_5,d,No sabe / no responde
+ap4_14_6,0,No
+ap4_14_6,1,Sí
+ap4_14_6,d,No sabe / no responde
+ap4_15,1,Diario
+ap4_15,2,Tres veces por semana
+ap4_15,3,Una vez a la semana
+ap4_15,4,Una vez al mes
+ap4_15,5,Nunca
+ap4_15,u,No especificado
+ap4_16,1,Diario
+ap4_16,2,Tres veces por semana
+ap4_16,3,Una vez a la semana
+ap4_16,4,Una vez al mes
+ap4_16,5,Nunca
+ap4_16,d,No sabe / no responde
+ap4_16,r,No responde
+ap4_16,u,No especificado
+ap4_17,1,demasiado?
+ap4_17,2,suficiente?
+ap4_17,3,insuficiente?
+ap4_17,4,nulo?
+ap4_17,d,No sabe / no responde
+ap4_2_01,0,No se declaró como opción afirmativa
+ap4_2_01,1,SÍ
+ap4_2_02,0,No se declaró como opción afirmativa
+ap4_2_02,1,SÍ
+ap4_2_03,0,No se declaró como opción afirmativa
+ap4_2_03,1,SÍ
+ap4_2_04,0,No se declaró como opción afirmativa
+ap4_2_04,1,SÍ
+ap4_2_05,0,No se declaró como opción afirmativa
+ap4_2_05,1,SÍ
+ap4_2_06,0,No se declaró como opción afirmativa
+ap4_2_06,1,SÍ
+ap4_2_07,0,No se declaró como opción afirmativa
+ap4_2_07,1,SÍ
+ap4_2_08,0,No se declaró como opción afirmativa
+ap4_2_08,1,SÍ
+ap4_2_09,0,No se declaró como opción afirmativa
+ap4_2_09,1,SÍ
+ap4_2_1,0,No
+ap4_2_1,1,Sí
+ap4_2_1,d,No sabe / no responde
+ap4_2_10,0,No se declaró como opción afirmativa
+ap4_2_10,1,SÍ
+ap4_2_11,0,No se declaró como opción afirmativa
+ap4_2_11,1,SÍ
+ap4_2_12,0,No se declaró como opción afirmativa
+ap4_2_12,1,SÍ
+ap4_2_13,0,No se declaró como opción afirmativa
+ap4_2_13,1,SÍ
+ap4_2_14,0,No se declaró como opción afirmativa
+ap4_2_14,1,SÍ
+ap4_2_15,0,No se declaró como opción afirmativa
+ap4_2_15,1,SÍ
+ap4_2_2,0,No se declaró como opción afirmativa
+ap4_2_2,1,Sí
+ap4_2_3,0,No se declaró como opción afirmativa
+ap4_2_3,1,Sí
+ap4_2_4,0,No se declaró como opción afirmativa
+ap4_2_4,1,Sí
+ap4_2_5,0,No se declaró como opción afirmativa
+ap4_2_5,1,Sí
+ap4_2_6,0,No se declaró como opción afirmativa
+ap4_2_6,1,Sí
+ap4_2_7,0,No se declaró como opción afirmativa
+ap4_2_7,1,Sí
+ap4_2_8,0,No se declaró como opción afirmativa
+ap4_2_8,1,Sí
+ap4_2_88,0,No se declaró como opción afirmativa
+ap4_2_88,1,Sí
+ap4_2_9,0,No se declaró como opción afirmativa
+ap4_2_9,1,Sí
+ap4_2_99,0,No se declaró como opción afirmativa
+ap4_2_99,1,SÍ
+ap4_3_1,0,No se declaró como opción afirmativa
+ap4_3_1,1,seguro?
+ap4_3_1,2,inseguro?
+ap4_3_1,d,No sabe / no responde
+ap4_3_1,r,No responde
+ap4_3_10,0,No se declaró como opción afirmativa
+ap4_3_10,1,Sí
+ap4_3_11,0,No se declaró como opción afirmativa
+ap4_3_11,1,Sí
+ap4_3_12,0,No se declaró como opción afirmativa
+ap4_3_12,1,Sí
+ap4_3_2,0,No se declaró como opción afirmativa
+ap4_3_2,1,seguro?
+ap4_3_2,2,inseguro?
+ap4_3_2,d,No sabe / no responde
+ap4_3_2,r,No responde
+ap4_3_3,0,No se declaró como opción afirmativa
+ap4_3_3,1,seguro?
+ap4_3_3,2,inseguro?
+ap4_3_3,d,No sabe / no responde
+ap4_3_3,r,No responde
+ap4_3_4,0,No se declaró como opción afirmativa
+ap4_3_4,1,Sí
+ap4_3_5,0,No se declaró como opción afirmativa
+ap4_3_5,1,Sí
+ap4_3_6,0,No se declaró como opción afirmativa
+ap4_3_6,1,Sí
+ap4_3_7,0,No se declaró como opción afirmativa
+ap4_3_7,1,Sí
+ap4_3_8,0,No se declaró como opción afirmativa
+ap4_3_8,1,Sí
+ap4_3_9,0,No se declaró como opción afirmativa
+ap4_3_9,1,Sí
+ap4_3_99,0,No se declaró como opción afirmativa
+ap4_3_99,1,Sí
+ap4_4_01,1,Seguro(a)
+ap4_4_01,2,Inseguro(a)
+ap4_4_01,d,No sabe / no responde
+ap4_4_02,1,Seguro(a)
+ap4_4_02,2,Inseguro(a)
+ap4_4_02,d,No sabe / no responde
+ap4_4_03,1,Seguro(a)
+ap4_4_03,2,Inseguro(a)
+ap4_4_03,d,No sabe / no responde
+ap4_4_04,1,Seguro(a)
+ap4_4_04,2,Inseguro(a)
+ap4_4_04,d,No sabe / no responde
+ap4_4_05,1,Seguro(a)
+ap4_4_05,2,Inseguro(a)
+ap4_4_05,d,No sabe / no responde
+ap4_4_06,1,Seguro(a)
+ap4_4_06,2,Inseguro(a)
+ap4_4_06,d,No sabe / no responde
+ap4_4_07,1,Seguro(a)
+ap4_4_07,2,Inseguro(a)
+ap4_4_07,d,No sabe / no responde
+ap4_4_08,1,Seguro(a)
+ap4_4_08,2,Inseguro(a)
+ap4_4_08,d,No sabe / no responde
+ap4_4_09,1,Seguro(a)
+ap4_4_09,2,Inseguro(a)
+ap4_4_09,d,No sabe / no responde
+ap4_4_1,1,seguro?
+ap4_4_1,2,inseguro?
+ap4_4_1,d,No sabe / no responde
+ap4_4_1,r,No responde
+ap4_4_10,1,Seguro(a)
+ap4_4_10,2,Inseguro(a)
+ap4_4_10,d,No sabe / no responde
+ap4_4_10,r,No responde
+ap4_4_11,1,Seguro(a)
+ap4_4_11,2,Inseguro(a)
+ap4_4_11,d,No sabe / no responde
+ap4_4_11,r,No responde
+ap4_4_12,1,Seguro(a)
+ap4_4_12,2,Inseguro(a)
+ap4_4_12,d,No sabe / no responde
+ap4_4_12,r,No responde
+ap4_4_2,1,seguro?
+ap4_4_2,2,inseguro?
+ap4_4_2,d,No sabe / no responde
+ap4_4_2,r,No responde
+ap4_4_3,1,seguro?
+ap4_4_3,2,inseguro?
+ap4_4_3,d,No sabe / no responde
+ap4_4_3,r,No responde
+ap4_4_4,1,Seguro
+ap4_4_4,2,Inseguro
+ap4_4_4,d,No sabe / no responde
+ap4_4_4,r,No responde
+ap4_4_5,1,Seguro
+ap4_4_5,2,Inseguro
+ap4_4_5,d,No sabe / no responde
+ap4_4_5,r,No responde
+ap4_4_6,1,Seguro
+ap4_4_6,2,Inseguro
+ap4_4_6,d,No sabe / no responde
+ap4_4_6,r,No responde
+ap4_4_7,1,Seguro
+ap4_4_7,2,Inseguro
+ap4_4_7,d,No sabe / no responde
+ap4_4_7,r,No responde
+ap4_4_8,1,Seguro
+ap4_4_8,2,Inseguro
+ap4_4_8,d,No sabe / no responde
+ap4_4_8,r,No responde
+ap4_4_9,1,Seguro
+ap4_4_9,2,Inseguro
+ap4_4_9,d,No sabe / no responde
+ap4_4_9,r,No responde
+ap4_4_a,1,Muy seguro(a)
+ap4_4_a,2,Seguro(a)
+ap4_4_a,3,Inseguro(a)
+ap4_4_a,4,Muy Inseguro(a)
+ap4_4_a,d,No sabe / no responde
+ap4_4a,1,Muy seguro(a)
+ap4_4a,2,Seguro(a)
+ap4_4a,3,Inseguro(a)
+ap4_4a,4,Muy inseguro(a)
+ap4_4a,d,No sabe / no responde
+ap4_5_01,0,No se declaró como opción afirmativa
+ap4_5_01,1,Sí
+ap4_5_02,0,No se declaró como opción afirmativa
+ap4_5_02,1,Sí
+ap4_5_03,0,No se declaró como opción afirmativa
+ap4_5_03,1,Sí
+ap4_5_04,0,No se declaró como opción afirmativa
+ap4_5_04,1,Sí
+ap4_5_05,0,No se declaró como opción afirmativa
+ap4_5_05,1,Sí
+ap4_5_06,0,No se declaró como opción afirmativa
+ap4_5_06,1,Sí
+ap4_5_07,0,No se declaró como opción afirmativa
+ap4_5_07,1,Sí
+ap4_5_08,0,No se declaró como opción afirmativa
+ap4_5_08,1,Sí
+ap4_5_09,0,No se declaró como opción afirmativa
+ap4_5_09,1,Sí
+ap4_5_1,0,No se declaró como opción afirmativa
+ap4_5_1,1,Seguro
+ap4_5_1,2,Inseguro
+ap4_5_1,d,No sabe / no responde
+ap4_5_10,0,No se declaró como opción afirmativa
+ap4_5_10,1,Sí
+ap4_5_10,2,Inseguro
+ap4_5_10,d,No sabe / no responde
+ap4_5_11,0,No se declaró como opción afirmativa
+ap4_5_11,1,Sí
+ap4_5_11,2,Inseguro
+ap4_5_11,d,No sabe / no responde
+ap4_5_12,0,No se declaró como opción afirmativa
+ap4_5_12,1,Sí
+ap4_5_12,2,Inseguro
+ap4_5_12,d,No sabe / no responde
+ap4_5_13,0,No se declaró como opción afirmativa
+ap4_5_13,1,Sí
+ap4_5_14,0,No se declaró como opción afirmativa
+ap4_5_14,1,Sí
+ap4_5_15,0,No se declaró como opción afirmativa
+ap4_5_15,1,Sí
+ap4_5_16,0,No se declaró como opción afirmativa
+ap4_5_16,1,Sí
+ap4_5_17,0,No se declaró como opción afirmativa
+ap4_5_17,1,Sí
+ap4_5_18,0,No se declaró como opción afirmativa
+ap4_5_18,1,Sí
+ap4_5_19,0,No se declaró como opción afirmativa
+ap4_5_19,1,Sí
+ap4_5_2,0,No se declaró como opción afirmativa
+ap4_5_2,1,Seguro
+ap4_5_2,2,Inseguro
+ap4_5_2,d,No sabe / no responde
+ap4_5_20,0,No se declaró como opción afirmativa
+ap4_5_20,1,Sí
+ap4_5_3,0,No se declaró como opción afirmativa
+ap4_5_3,1,Seguro
+ap4_5_3,2,Inseguro
+ap4_5_3,d,No sabe / no responde
+ap4_5_4,0,No se declaró como opción afirmativa
+ap4_5_4,1,Seguro
+ap4_5_4,2,Inseguro
+ap4_5_4,d,No sabe / no responde
+ap4_5_5,0,No se declaró como opción afirmativa
+ap4_5_5,1,Seguro
+ap4_5_5,2,Inseguro
+ap4_5_5,d,No sabe / no responde
+ap4_5_6,0,No se declaró como opción afirmativa
+ap4_5_6,1,Seguro
+ap4_5_6,2,Inseguro
+ap4_5_6,d,No sabe / no responde
+ap4_5_7,0,No se declaró como opción afirmativa
+ap4_5_7,1,Seguro
+ap4_5_7,2,Inseguro
+ap4_5_7,d,No sabe / no responde
+ap4_5_8,0,No se declaró como opción afirmativa
+ap4_5_8,1,Seguro
+ap4_5_8,2,Inseguro
+ap4_5_8,d,No sabe / no responde
+ap4_5_88,0,No se declaró como opción afirmativa
+ap4_5_88,1,Sí
+ap4_5_9,0,No se declaró como opción afirmativa
+ap4_5_9,1,Seguro
+ap4_5_9,2,Inseguro
+ap4_5_9,d,No sabe / no responde
+ap4_5_99,0,No se declaró como opción afirmativa
+ap4_5_99,1,Sí
+ap4_6_1,0,No
+ap4_6_1,1,Sí
+ap4_6_1,d,No sabe / no responde
+ap4_6_10,0,No se declaró como opción afirmativa
+ap4_6_10,1,Sí
+ap4_6_11,0,No se declaró como opción afirmativa
+ap4_6_11,1,Sí
+ap4_6_12,0,No se declaró como opción afirmativa
+ap4_6_12,1,Sí
+ap4_6_13,0,No se declaró como opción afirmativa
+ap4_6_13,1,Sí
+ap4_6_14,0,No se declaró como opción afirmativa
+ap4_6_14,1,Sí
+ap4_6_15,0,No se declaró como opción afirmativa
+ap4_6_15,1,Sí
+ap4_6_16,0,No se declaró como opción afirmativa
+ap4_6_16,1,Sí
+ap4_6_17,0,No se declaró como opción afirmativa
+ap4_6_17,1,Sí
+ap4_6_18,0,No se declaró como opción afirmativa
+ap4_6_18,1,Sí
+ap4_6_2,0,No
+ap4_6_2,1,Sí
+ap4_6_2,d,No sabe / no responde
+ap4_6_3,0,No
+ap4_6_3,1,Sí
+ap4_6_3,d,No sabe / no responde
+ap4_6_4,0,No se declaró como opción afirmativa
+ap4_6_4,1,Sí
+ap4_6_5,0,No se declaró como opción afirmativa
+ap4_6_5,1,Sí
+ap4_6_6,0,No se declaró como opción afirmativa
+ap4_6_6,1,Sí
+ap4_6_7,0,No se declaró como opción afirmativa
+ap4_6_7,1,Sí
+ap4_6_8,0,No se declaró como opción afirmativa
+ap4_6_8,1,Sí
+ap4_6_88,0,No se declaró como opción afirmativa
+ap4_6_88,1,Sí
+ap4_6_9,0,No se declaró como opción afirmativa
+ap4_6_9,1,Sí
+ap4_6_99,0,No se declaró como opción afirmativa
+ap4_6_99,1,Sí
+ap4_7_1,0,No
+ap4_7_1,1,mejorará?
+ap4_7_1,2,seguirá igual de bien?
+ap4_7_1,3,seguirá igual de mal?
+ap4_7_1,4,empeorará?
+ap4_7_1,d,No sabe / no responde
+ap4_7_1,r,No responde
+ap4_7_2,0,No
+ap4_7_2,1,mejorará?
+ap4_7_2,2,seguirá igual de bien?
+ap4_7_2,3,seguirá igual de mal?
+ap4_7_2,4,empeorará?
+ap4_7_2,d,No sabe / no responde
+ap4_7_2,r,No responde
+ap4_7_3,0,No
+ap4_7_3,1,mejorará?
+ap4_7_3,2,seguirá igual de bien?
+ap4_7_3,3,seguirá igual de mal?
+ap4_7_3,4,empeorará?
+ap4_7_3,d,No sabe / no responde
+ap4_7_3,r,No responde
+ap4_7_4,0,No
+ap4_7_4,1,Sí
+ap4_7_4,d,No sabe / no responde
+ap4_7_5,0,No
+ap4_7_5,1,Sí
+ap4_7_5,d,No sabe / no responde
+ap4_7_6,0,No
+ap4_7_6,1,Sí
+ap4_7_6,d,No sabe / no responde
+ap4_7_7,0,No
+ap4_7_7,1,Sí
+ap4_7_7,d,No sabe / no responde
+ap4_8_1,0,No
+ap4_8_1,1,Sí
+ap4_8_1,2,seguirá igual?
+ap4_8_1,3,empeorará?
+ap4_8_1,d,No sabe / no responde
+ap4_8_1,r,No responde
+ap4_8_2,0,No
+ap4_8_2,1,Sí
+ap4_8_2,2,seguirá igual?
+ap4_8_2,3,empeorará?
+ap4_8_2,d,No sabe / no responde
+ap4_8_2,r,No responde
+ap4_8_3,0,No
+ap4_8_3,1,Sí
+ap4_8_3,2,seguirá igual?
+ap4_8_3,3,empeorará?
+ap4_8_3,d,No sabe / no responde
+ap4_8_4,0,No
+ap4_8_4,1,Sí
+ap4_8_4,d,No sabe / no responde
+ap4_8_5,0,No
+ap4_8_5,1,Sí
+ap4_8_5,d,No sabe / no responde
+ap4_8_6,0,No
+ap4_8_6,1,Sí
+ap4_8_6,d,No sabe / no responde
+ap4_9_1,0,No
+ap4_9_1,1,Sí
+ap4_9_1,2,disminuyeron?
+ap4_9_1,3,siguieron igual?
+ap4_9_1,d,No sabe / no responde
+ap4_9_1,r,No responde
+ap4_9_10,0,No
+ap4_9_10,1,Sí
+ap4_9_10,d,No sabe / no responde
+ap4_9_10,r,No responde
+ap4_9_11,0,No
+ap4_9_11,1,Sí
+ap4_9_11,d,No sabe / no responde
+ap4_9_11,r,No responde
+ap4_9_12,0,No
+ap4_9_12,1,Sí
+ap4_9_12,d,No sabe / no responde
+ap4_9_12,r,No responde
+ap4_9_13,0,No
+ap4_9_13,1,Sí
+ap4_9_13,d,No sabe / no responde
+ap4_9_13,r,No responde
+ap4_9_14,0,No
+ap4_9_14,1,Sí
+ap4_9_14,d,No sabe / no responde
+ap4_9_14,r,No responde
+ap4_9_15,0,No
+ap4_9_15,1,Sí
+ap4_9_15,d,No sabe / no responde
+ap4_9_15,r,No responde
+ap4_9_1_n,1,Sí
+ap4_9_1_n,2,No
+ap4_9_1_n,9,No sabe / no responde
+ap4_9_2,0,No
+ap4_9_2,1,Sí
+ap4_9_2,2,disminuyeron?
+ap4_9_2,3,siguieron igual?
+ap4_9_2,d,No sabe / no responde
+ap4_9_2,r,No responde
+ap4_9_2_n,1,Sí
+ap4_9_2_n,2,No
+ap4_9_2_n,9,No sabe / no responde
+ap4_9_3,0,No
+ap4_9_3,1,Sí
+ap4_9_3,d,No sabe / no responde
+ap4_9_3,r,No responde
+ap4_9_3_n,1,Sí
+ap4_9_3_n,2,No
+ap4_9_3_n,9,No sabe / no responde
+ap4_9_4,0,No
+ap4_9_4,1,Sí
+ap4_9_4,d,No sabe / no responde
+ap4_9_4,r,No responde
+ap4_9_4_n,1,Sí
+ap4_9_4_n,2,No
+ap4_9_4_n,9,No sabe / no responde
+ap4_9_5,0,No
+ap4_9_5,1,Sí
+ap4_9_5,d,No sabe / no responde
+ap4_9_5,r,No responde
+ap4_9_5_n,1,Sí
+ap4_9_5_n,2,No
+ap4_9_5_n,9,No sabe / no responde
+ap4_9_6,0,No
+ap4_9_6,1,Sí
+ap4_9_6,d,No sabe / no responde
+ap4_9_6,r,No responde
+ap4_9_6_n,1,Sí
+ap4_9_6_n,2,No
+ap4_9_6_n,9,No sabe / no responde
+ap4_9_7,0,No
+ap4_9_7,1,Sí
+ap4_9_7,d,No sabe / no responde
+ap4_9_7,r,No responde
+ap4_9_8,0,No
+ap4_9_8,1,Sí
+ap4_9_8,d,No sabe / no responde
+ap4_9_8,r,No responde
+ap4_9_9,0,No
+ap4_9_9,1,Sí
+ap4_9_9,d,No sabe / no responde
+ap4_9_9,r,No responde
+ap5_1_01,1,Sí sabe
+ap5_1_01,2,No sabe
+ap5_1_01,3,No se realizó
+ap5_1_01,d,No sabe / no responde
+ap5_1_01,r,No responde
+ap5_1_02,1,Sí sabe
+ap5_1_02,2,No sabe
+ap5_1_02,3,No se realizó
+ap5_1_02,d,No sabe / no responde
+ap5_1_02,r,No responde
+ap5_1_03,1,Sí sabe
+ap5_1_03,2,No sabe
+ap5_1_03,3,No se realizó
+ap5_1_03,d,No sabe / no responde
+ap5_1_03,r,No responde
+ap5_1_04,1,Sí sabe
+ap5_1_04,2,No sabe
+ap5_1_04,3,No se realizó
+ap5_1_04,d,No sabe / no responde
+ap5_1_04,r,No responde
+ap5_1_05,1,Sí sabe
+ap5_1_05,2,No sabe
+ap5_1_05,3,No se realizó
+ap5_1_05,d,No sabe / no responde
+ap5_1_05,r,No responde
+ap5_1_06,1,Sí sabe
+ap5_1_06,2,No sabe
+ap5_1_06,3,No se realizó
+ap5_1_06,d,No sabe / no responde
+ap5_1_06,r,No responde
+ap5_1_07,1,Sí sabe
+ap5_1_07,2,No sabe
+ap5_1_07,3,No se realizó
+ap5_1_07,d,No sabe / no responde
+ap5_1_07,r,No responde
+ap5_1_08,1,Sí sabe
+ap5_1_08,2,No sabe
+ap5_1_08,3,No se realizó
+ap5_1_08,d,No sabe / no responde
+ap5_1_08,r,No responde
+ap5_1_09,1,Sí sabe
+ap5_1_09,2,No sabe
+ap5_1_09,3,No se realizó
+ap5_1_09,d,No sabe / no responde
+ap5_1_09,r,No responde
+ap5_1_1,0,No
+ap5_1_1,1,Sí
+ap5_1_1,d,No sabe / no responde
+ap5_1_1,u,No especificado
+ap5_1_10,0,No
+ap5_1_10,1,Sí sabe
+ap5_1_10,2,No sabe
+ap5_1_10,3,No se realizó
+ap5_1_10,d,No sabe / no responde
+ap5_1_10,r,No responde
+ap5_1_10,u,No especificado
+ap5_1_11,0,No
+ap5_1_11,1,Sí sabe
+ap5_1_11,2,No sabe
+ap5_1_11,3,No se realizó
+ap5_1_11,d,No sabe / no responde
+ap5_1_11,r,No responde
+ap5_1_11,u,No especificado
+ap5_1_12,0,No
+ap5_1_12,1,Sí sabe
+ap5_1_12,2,No sabe
+ap5_1_12,3,No se realizó
+ap5_1_12,d,No sabe / no responde
+ap5_1_12,r,No responde
+ap5_1_12,u,No especificado
+ap5_1_13,0,No
+ap5_1_13,1,Sí sabe
+ap5_1_13,2,No sabe
+ap5_1_13,3,No se realizó
+ap5_1_13,d,No sabe / no responde
+ap5_1_13,r,No responde
+ap5_1_13,u,No especificado
+ap5_1_14,1,Sí sabe
+ap5_1_14,2,No sabe
+ap5_1_14,3,No se realizó
+ap5_1_14,r,No responde
+ap5_1_2,0,No
+ap5_1_2,1,Sí
+ap5_1_2,d,No sabe / no responde
+ap5_1_2,u,No especificado
+ap5_1_3,0,No
+ap5_1_3,1,Sí
+ap5_1_3,d,No sabe / no responde
+ap5_1_3,u,No especificado
+ap5_1_4,0,No
+ap5_1_4,1,Sí
+ap5_1_4,d,No sabe / no responde
+ap5_1_4,u,No especificado
+ap5_1_5,0,No
+ap5_1_5,1,Sí
+ap5_1_5,d,No sabe / no responde
+ap5_1_5,u,No especificado
+ap5_1_6,0,No
+ap5_1_6,1,Sí
+ap5_1_6,d,No sabe / no responde
+ap5_1_6,u,No especificado
+ap5_1_7,0,No
+ap5_1_7,1,Sí
+ap5_1_7,d,No sabe / no responde
+ap5_1_7,u,No especificado
+ap5_1_8,0,No
+ap5_1_8,1,Sí
+ap5_1_8,d,No sabe / no responde
+ap5_1_8,u,No especificado
+ap5_1_9,0,No
+ap5_1_9,1,Sí
+ap5_1_9,d,No sabe / no responde
+ap5_1_9,u,No especificado
+ap5_2_1,1,Mucha
+ap5_2_1,2,Alguna
+ap5_2_1,3,Poca
+ap5_2_1,4,Nada
+ap5_2_1,d,No sabe / no responde
+ap5_2_1,r,No responde
+ap5_2_10,1,Mucha
+ap5_2_10,2,Alguna
+ap5_2_10,3,Poca
+ap5_2_10,4,Nada
+ap5_2_10,d,No sabe / no responde
+ap5_2_10,r,No responde
+ap5_2_11,1,Mucha
+ap5_2_11,2,Alguna
+ap5_2_11,3,Poca
+ap5_2_11,4,Nada
+ap5_2_11,d,No sabe / no responde
+ap5_2_11,r,No responde
+ap5_2_12,1,Mucha
+ap5_2_12,2,Alguna
+ap5_2_12,3,Poca
+ap5_2_12,4,Nada
+ap5_2_12,d,No sabe / no responde
+ap5_2_12,r,No responde
+ap5_2_13,1,Mucha
+ap5_2_13,2,Alguna
+ap5_2_13,3,Poca
+ap5_2_13,4,Nada
+ap5_2_13,d,No sabe / no responde
+ap5_2_13,r,No responde
+ap5_2_2,1,Mucha
+ap5_2_2,2,Alguna
+ap5_2_2,3,Poca
+ap5_2_2,4,Nada
+ap5_2_2,d,No sabe / no responde
+ap5_2_2,r,No responde
+ap5_2_3,1,Mucha
+ap5_2_3,2,Alguna
+ap5_2_3,3,Poca
+ap5_2_3,4,Nada
+ap5_2_3,d,No sabe / no responde
+ap5_2_3,r,No responde
+ap5_2_4,1,Mucha
+ap5_2_4,2,Alguna
+ap5_2_4,3,Poca
+ap5_2_4,4,Nada
+ap5_2_4,d,No sabe / no responde
+ap5_2_4,r,No responde
+ap5_2_5,1,Mucha
+ap5_2_5,2,Alguna
+ap5_2_5,3,Poca
+ap5_2_5,4,Nada
+ap5_2_5,d,No sabe / no responde
+ap5_2_5,r,No responde
+ap5_2_6,1,Mucha
+ap5_2_6,2,Alguna
+ap5_2_6,3,Poca
+ap5_2_6,4,Nada
+ap5_2_6,d,No sabe / no responde
+ap5_2_6,r,No responde
+ap5_2_7,1,Mucha
+ap5_2_7,2,Alguna
+ap5_2_7,3,Poca
+ap5_2_7,4,Nada
+ap5_2_7,d,No sabe / no responde
+ap5_2_7,r,No responde
+ap5_2_8,1,Mucha
+ap5_2_8,2,Alguna
+ap5_2_8,3,Poca
+ap5_2_8,4,Nada
+ap5_2_8,d,No sabe / no responde
+ap5_2_8,r,No responde
+ap5_2_9,1,Mucha
+ap5_2_9,2,Alguna
+ap5_2_9,3,Poca
+ap5_2_9,4,Nada
+ap5_2_9,d,No sabe / no responde
+ap5_2_9,r,No responde
+ap5_3_01,0,No
+ap5_3_01,1,Sí
+ap5_3_01,d,No sabe / no responde
+ap5_3_02,0,No
+ap5_3_02,1,Sí
+ap5_3_02,d,No sabe / no responde
+ap5_3_03,0,No
+ap5_3_03,1,Sí
+ap5_3_03,d,No sabe / no responde
+ap5_3_04,0,No
+ap5_3_04,1,Sí
+ap5_3_04,d,No sabe / no responde
+ap5_3_05,0,No
+ap5_3_05,1,Sí
+ap5_3_05,d,No sabe / no responde
+ap5_3_06,0,No
+ap5_3_06,1,Sí
+ap5_3_06,d,No sabe / no responde
+ap5_3_07,0,No
+ap5_3_07,1,Sí
+ap5_3_07,d,No sabe / no responde
+ap5_3_08,0,No
+ap5_3_08,1,Sí
+ap5_3_08,d,No sabe / no responde
+ap5_3_09,0,No
+ap5_3_09,1,Sí
+ap5_3_09,d,No sabe / no responde
+ap5_3_1,0,No
+ap5_3_1,1,Sí
+ap5_3_1,2,No
+ap5_3_1,3,No existe
+ap5_3_1,d,No sabe / no responde
+ap5_3_1,r,No responde
+ap5_3_10,0,No
+ap5_3_10,1,Sí
+ap5_3_10,d,No sabe / no responde
+ap5_3_11,0,No
+ap5_3_11,1,Sí
+ap5_3_11,d,No sabe / no responde
+ap5_3_2,0,No
+ap5_3_2,1,Sí
+ap5_3_2,2,No
+ap5_3_2,3,No existe
+ap5_3_2,d,No sabe / no responde
+ap5_3_2,r,No responde
+ap5_3_3,0,No
+ap5_3_3,1,Sí
+ap5_3_3,d,No sabe / no responde
+ap5_3_3,r,No responde
+ap5_3_4,0,No
+ap5_3_4,1,Sí
+ap5_3_4,d,No sabe / no responde
+ap5_3_4,r,No responde
+ap5_3_5,0,No
+ap5_3_5,1,Sí
+ap5_3_5,d,No sabe / no responde
+ap5_3_5,r,No responde
+ap5_3_6,0,No
+ap5_3_6,1,Sí
+ap5_3_6,d,No sabe / no responde
+ap5_3_6,r,No responde
+ap5_3_7,0,No
+ap5_3_7,1,Sí
+ap5_3_7,d,No sabe / no responde
+ap5_3_7,r,No responde
+ap5_3_8,0,No
+ap5_3_8,1,Sí
+ap5_3_8,d,No sabe / no responde
+ap5_3_8,r,No responde
+ap5_3_9,0,No
+ap5_3_9,1,Sí
+ap5_3_9,d,No sabe / no responde
+ap5_3_9,r,No responde
+ap5_4_01,1,Mucha confianza
+ap5_4_01,2,Algo de confianza
+ap5_4_01,3,Algo de desconfianza
+ap5_4_01,4,Mucha desconfianza
+ap5_4_01,d,No sabe / no responde
+ap5_4_01_c,1,Mucha
+ap5_4_01_c,2,Algo
+ap5_4_01_c,3,Poca
+ap5_4_01_c,4,Nada
+ap5_4_01_c,d,No sabe / no responde
+ap5_4_01_c_n,1,Mucha
+ap5_4_01_c_n,2,Algo
+ap5_4_01_c_n,3,Poca
+ap5_4_01_c_n,4,Nada
+ap5_4_01_c_n,9,No sabe / no responde
+ap5_4_01_n,1,Mucha confianza | Mucha
+ap5_4_01_n,2,Algo de confianza | Algo
+ap5_4_01_n,3,Algo de desconfianza | Poca
+ap5_4_01_n,4,Mucha desconfianza | Nada
+ap5_4_01_n,9,No sabe / no responde
+ap5_4_02,1,Mucha confianza
+ap5_4_02,2,Algo de confianza
+ap5_4_02,3,Algo de desconfianza
+ap5_4_02,4,Mucha desconfianza
+ap5_4_02,d,No sabe / no responde
+ap5_4_02_c,1,Mucha
+ap5_4_02_c,2,Algo
+ap5_4_02_c,3,Poca
+ap5_4_02_c,4,Nada
+ap5_4_02_c,d,No sabe / no responde
+ap5_4_02_c_n,1,Mucha
+ap5_4_02_c_n,2,Algo
+ap5_4_02_c_n,3,Poca
+ap5_4_02_c_n,4,Nada
+ap5_4_02_c_n,9,No sabe / no responde
+ap5_4_02_n,1,Mucha confianza | Mucha
+ap5_4_02_n,2,Algo de confianza | Algo
+ap5_4_02_n,3,Algo de desconfianza | Poca
+ap5_4_02_n,4,Mucha desconfianza | Nada
+ap5_4_02_n,9,No sabe / no responde
+ap5_4_03,1,Mucha confianza
+ap5_4_03,2,Algo de confianza
+ap5_4_03,3,Algo de desconfianza
+ap5_4_03,4,Mucha desconfianza
+ap5_4_03,d,No sabe / no responde
+ap5_4_03_c,1,Mucha
+ap5_4_03_c,2,Algo
+ap5_4_03_c,3,Poco
+ap5_4_03_c,4,Nada
+ap5_4_03_c,d,No sabe / no responde
+ap5_4_03_c_n,1,Mucha
+ap5_4_03_c_n,2,Algo
+ap5_4_03_c_n,3,Poco
+ap5_4_03_c_n,4,Nada
+ap5_4_03_c_n,9,No sabe / no responde
+ap5_4_03_n,1,Mucha confianza | Mucha
+ap5_4_03_n,2,Algo de confianza | Algo
+ap5_4_03_n,3,Algo de desconfianza | Poco
+ap5_4_03_n,4,Mucha desconfianza | Nada
+ap5_4_03_n,9,No sabe / no responde
+ap5_4_04,1,Mucha confianza
+ap5_4_04,2,Algo de confianza
+ap5_4_04,3,Algo de desconfianza
+ap5_4_04,4,Mucha desconfianza
+ap5_4_04,d,No sabe / no responde
+ap5_4_04_c,1,Mucha
+ap5_4_04_c,2,Algo
+ap5_4_04_c,3,Poco
+ap5_4_04_c,4,Nada
+ap5_4_04_c,d,No sabe / no responde
+ap5_4_04_c_n,1,Mucha
+ap5_4_04_c_n,2,Algo
+ap5_4_04_c_n,3,Poco
+ap5_4_04_c_n,4,Nada
+ap5_4_04_c_n,9,No sabe / no responde
+ap5_4_04_n,1,Mucha confianza | Mucha
+ap5_4_04_n,2,Algo de confianza | Algo
+ap5_4_04_n,3,Algo de desconfianza | Poco
+ap5_4_04_n,4,Mucha desconfianza | Nada
+ap5_4_04_n,9,No sabe / no responde
+ap5_4_05,1,Mucha confianza
+ap5_4_05,2,Algo de confianza
+ap5_4_05,3,Algo de desconfianza
+ap5_4_05,4,Mucha desconfianza
+ap5_4_05,d,No sabe / no responde
+ap5_4_05_c,1,Mucha
+ap5_4_05_c,2,Algo
+ap5_4_05_c,3,Poco
+ap5_4_05_c,4,Nada
+ap5_4_05_c,d,No sabe / no responde
+ap5_4_05_c_n,1,Mucha
+ap5_4_05_c_n,2,Algo
+ap5_4_05_c_n,3,Poco
+ap5_4_05_c_n,4,Nada
+ap5_4_05_c_n,9,No sabe / no responde
+ap5_4_05_n,1,Mucha confianza | Mucha
+ap5_4_05_n,2,Algo de confianza | Algo
+ap5_4_05_n,3,Algo de desconfianza | Poco
+ap5_4_05_n,4,Mucha desconfianza | Nada
+ap5_4_05_n,9,No sabe / no responde
+ap5_4_06,1,Mucha confianza
+ap5_4_06,2,Algo de confianza
+ap5_4_06,3,Algo de desconfianza
+ap5_4_06,4,Mucha desconfianza
+ap5_4_06,d,No sabe / no responde
+ap5_4_06_c,1,Mucha
+ap5_4_06_c,2,Algo
+ap5_4_06_c,3,Poco
+ap5_4_06_c,4,Nada
+ap5_4_06_c,d,No sabe / no responde
+ap5_4_06_c_n,1,Mucha
+ap5_4_06_c_n,2,Algo
+ap5_4_06_c_n,3,Poco
+ap5_4_06_c_n,4,Nada
+ap5_4_06_c_n,9,No sabe / no responde
+ap5_4_06_n,1,Mucha confianza | Mucha
+ap5_4_06_n,2,Algo de confianza | Algo
+ap5_4_06_n,3,Algo de desconfianza | Poco
+ap5_4_06_n,4,Mucha desconfianza | Nada
+ap5_4_06_n,9,No sabe / no responde
+ap5_4_07,1,Mucha confianza
+ap5_4_07,2,Algo de confianza
+ap5_4_07,3,Algo de desconfianza
+ap5_4_07,4,Mucha desconfianza
+ap5_4_07,d,No sabe / no responde
+ap5_4_07_c,1,Mucha
+ap5_4_07_c,2,Algo
+ap5_4_07_c,3,Poco
+ap5_4_07_c,4,Nada
+ap5_4_07_c,d,No sabe / no responde
+ap5_4_07_c_n,1,Mucha
+ap5_4_07_c_n,2,Algo
+ap5_4_07_c_n,3,Poco
+ap5_4_07_c_n,4,Nada
+ap5_4_07_c_n,9,No sabe / no responde
+ap5_4_07_n,1,Mucha confianza | Mucha
+ap5_4_07_n,2,Algo de confianza | Algo
+ap5_4_07_n,3,Algo de desconfianza | Poco
+ap5_4_07_n,4,Mucha desconfianza | Nada
+ap5_4_07_n,9,No sabe / no responde
+ap5_4_08,1,Mucha confianza
+ap5_4_08,2,Algo de confianza
+ap5_4_08,3,Algo de desconfianza
+ap5_4_08,4,Mucha desconfianza
+ap5_4_08,d,No sabe / no responde
+ap5_4_08_c,1,Mucha
+ap5_4_08_c,2,Algo
+ap5_4_08_c,3,Poco
+ap5_4_08_c,4,Nada
+ap5_4_08_c,d,No sabe / no responde
+ap5_4_08_c_n,1,Mucha
+ap5_4_08_c_n,2,Algo
+ap5_4_08_c_n,3,Poco
+ap5_4_08_c_n,4,Nada
+ap5_4_08_c_n,9,No sabe / no responde
+ap5_4_08_n,1,Mucha confianza | Mucha
+ap5_4_08_n,2,Algo de confianza | Algo
+ap5_4_08_n,3,Algo de desconfianza | Poco
+ap5_4_08_n,4,Mucha desconfianza | Nada
+ap5_4_08_n,9,No sabe / no responde
+ap5_4_09,1,Mucha confianza
+ap5_4_09,2,Algo de confianza
+ap5_4_09,3,Algo de desconfianza
+ap5_4_09,4,Mucha desconfianza
+ap5_4_09,d,No sabe / no responde
+ap5_4_09_c,1,Mucha
+ap5_4_09_c,2,Algo
+ap5_4_09_c,3,Poco
+ap5_4_09_c,4,Nada
+ap5_4_09_c,d,No sabe / no responde
+ap5_4_09_c_n,1,Mucha
+ap5_4_09_c_n,2,Algo
+ap5_4_09_c_n,3,Poco
+ap5_4_09_c_n,4,Nada
+ap5_4_09_c_n,9,No sabe / no responde
+ap5_4_09_n,1,Mucha confianza | Mucha
+ap5_4_09_n,2,Algo de confianza | Algo
+ap5_4_09_n,3,Algo de desconfianza | Poco
+ap5_4_09_n,4,Mucha desconfianza | Nada
+ap5_4_09_n,9,No sabe / no responde
+ap5_4_1,1,Mucha
+ap5_4_1,2,Alguna
+ap5_4_1,3,Poca
+ap5_4_1,4,Nada
+ap5_4_1,d,No sabe / no responde
+ap5_4_1,r,No responde
+ap5_4_10,1,Mucha confianza
+ap5_4_10,2,Algo de confianza
+ap5_4_10,3,Algo de desconfianza
+ap5_4_10,4,Mucha desconfianza
+ap5_4_10,d,No sabe / no responde
+ap5_4_10_c,1,Mucha
+ap5_4_10_c,2,Algo
+ap5_4_10_c,3,Poco
+ap5_4_10_c,4,Nada
+ap5_4_10_c,d,No sabe / no responde
+ap5_4_10_c_n,1,Mucha
+ap5_4_10_c_n,2,Algo
+ap5_4_10_c_n,3,Poco
+ap5_4_10_c_n,4,Nada
+ap5_4_10_c_n,9,No sabe / no responde
+ap5_4_10_n,1,Mucha confianza | Mucha
+ap5_4_10_n,2,Algo de confianza | Algo
+ap5_4_10_n,3,Algo de desconfianza | Poco
+ap5_4_10_n,4,Mucha desconfianza | Nada
+ap5_4_10_n,9,No sabe / no responde
+ap5_4_11,1,Mucha confianza
+ap5_4_11,2,Algo de confianza
+ap5_4_11,3,Algo de desconfianza
+ap5_4_11,4,Mucha desconfianza
+ap5_4_11,d,No sabe / no responde
+ap5_4_11_n,1,Mucha confianza | Mucha
+ap5_4_11_n,2,Algo de confianza | Algo
+ap5_4_11_n,3,Algo de desconfianza | Poco
+ap5_4_11_n,4,Mucha desconfianza | Nada
+ap5_4_11_n,9,No sabe / no responde
+ap5_4_2,1,Mucha
+ap5_4_2,2,Alguna
+ap5_4_2,3,Poca
+ap5_4_2,4,Nada
+ap5_4_2,d,No sabe / no responde
+ap5_4_2,r,No responde
+ap5_4_3,1,Mucha
+ap5_4_3,2,Alguna
+ap5_4_3,3,Poca
+ap5_4_3,4,Nada
+ap5_4_3,d,No sabe / no responde
+ap5_4_3,r,No responde
+ap5_4_4,1,Mucha
+ap5_4_4,2,Alguna
+ap5_4_4,3,Poca
+ap5_4_4,4,Nada
+ap5_4_4,d,No sabe / no responde
+ap5_4_4,r,No responde
+ap5_4_5,1,Mucha
+ap5_4_5,2,Alguna
+ap5_4_5,3,Poca
+ap5_4_5,4,Nada
+ap5_4_5,d,No sabe / no responde
+ap5_4_5,r,No responde
+ap5_4_6,1,Mucha
+ap5_4_6,2,Alguna
+ap5_4_6,3,Poca
+ap5_4_6,4,Nada
+ap5_4_6,d,No sabe / no responde
+ap5_4_6,r,No responde
+ap5_4_7,1,Mucha
+ap5_4_7,2,Alguna
+ap5_4_7,3,Poca
+ap5_4_7,4,Nada
+ap5_4_7,d,No sabe / no responde
+ap5_4_7,r,No responde
+ap5_4_8,1,Mucha
+ap5_4_8,2,Alguna
+ap5_4_8,3,Poca
+ap5_4_8,4,Nada
+ap5_4_8,d,No sabe / no responde
+ap5_4_8,r,No responde
+ap5_4_9,1,Mucha
+ap5_4_9,2,Alguna
+ap5_4_9,3,Poca
+ap5_4_9,4,Nada
+ap5_4_9,d,No sabe / no responde
+ap5_4_9,r,No responde
+ap5_5_01,0,No
+ap5_5_01,1,Sí
+ap5_5_01,d,No sabe / no responde
+ap5_5_01_n,1,Sí
+ap5_5_01_n,2,No
+ap5_5_01_n,9,No sabe / no responde
+ap5_5_02,0,No
+ap5_5_02,1,Sí
+ap5_5_02,d,No sabe / no responde
+ap5_5_02_n,1,Sí
+ap5_5_02_n,2,No
+ap5_5_02_n,9,No sabe / no responde
+ap5_5_03,0,No
+ap5_5_03,1,Sí
+ap5_5_03,d,No sabe / no responde
+ap5_5_03_n,1,Sí
+ap5_5_03_n,2,No
+ap5_5_03_n,9,No sabe / no responde
+ap5_5_04,0,No
+ap5_5_04,1,Sí
+ap5_5_04,d,No sabe / no responde
+ap5_5_04_n,1,Sí
+ap5_5_04_n,2,No
+ap5_5_04_n,9,No sabe / no responde
+ap5_5_05,0,No
+ap5_5_05,1,Sí
+ap5_5_05,d,No sabe / no responde
+ap5_5_05_n,1,Sí
+ap5_5_05_n,2,No
+ap5_5_05_n,9,No sabe / no responde
+ap5_5_06,0,No
+ap5_5_06,1,Sí
+ap5_5_06,d,No sabe / no responde
+ap5_5_06_n,1,Sí
+ap5_5_06_n,2,No
+ap5_5_06_n,9,No sabe / no responde
+ap5_5_07,0,No
+ap5_5_07,1,Sí
+ap5_5_07,d,No sabe / no responde
+ap5_5_07_n,1,Sí
+ap5_5_07_n,2,No
+ap5_5_07_n,9,No sabe / no responde
+ap5_5_08,0,No
+ap5_5_08,1,Sí
+ap5_5_08,d,No sabe / no responde
+ap5_5_08_n,1,Sí
+ap5_5_08_n,2,No
+ap5_5_08_n,9,No sabe / no responde
+ap5_5_09,0,No
+ap5_5_09,1,Sí
+ap5_5_09,d,No sabe / no responde
+ap5_5_09_n,1,Sí
+ap5_5_09_n,2,No
+ap5_5_09_n,9,No sabe / no responde
+ap5_5_1,0,No
+ap5_5_1,1,Sí
+ap5_5_1,d,No sabe / no responde
+ap5_5_1,r,No responde
+ap5_5_10,0,No
+ap5_5_10,1,Sí
+ap5_5_10,d,No sabe / no responde
+ap5_5_10_n,1,Sí
+ap5_5_10_n,2,No
+ap5_5_10_n,9,No sabe / no responde
+ap5_5_11,0,No
+ap5_5_11,1,Sí
+ap5_5_11,d,No sabe / no responde
+ap5_5_11_n,1,Sí
+ap5_5_11_n,2,No
+ap5_5_11_n,9,No sabe / no responde
+ap5_5_2,0,No
+ap5_5_2,1,Sí
+ap5_5_2,d,No sabe / no responde
+ap5_5_2,r,No responde
+ap5_5_3,0,No
+ap5_5_3,1,Sí
+ap5_5_3,d,No sabe / no responde
+ap5_5_3,r,No responde
+ap5_5_4,0,No
+ap5_5_4,1,Sí
+ap5_5_4,d,No sabe / no responde
+ap5_5_4,r,No responde
+ap5_5_5,0,No
+ap5_5_5,1,Sí
+ap5_5_5,d,No sabe / no responde
+ap5_5_5,r,No responde
+ap5_5_6,0,No
+ap5_5_6,1,Sí
+ap5_5_6,d,No sabe / no responde
+ap5_5_6,r,No responde
+ap5_5_7,0,No
+ap5_5_7,1,Sí
+ap5_5_7,d,No sabe / no responde
+ap5_5_7,r,No responde
+ap5_5_8,0,No
+ap5_5_8,1,Sí
+ap5_5_8,d,No sabe / no responde
+ap5_5_8,r,No responde
+ap5_5_9,0,No
+ap5_5_9,1,Sí
+ap5_5_9,d,No sabe / no responde
+ap5_5_9,r,No responde
+ap5_6_01,1,Muy efectivo
+ap5_6_01,2,Algo efectivo
+ap5_6_01,3,Poco efectivo
+ap5_6_01,4,Nada efectivo
+ap5_6_01,d,No sabe / no responde
+ap5_6_01_n,1,Muy efectivo
+ap5_6_01_n,2,Algo efectivo
+ap5_6_01_n,3,Poco efectivo
+ap5_6_01_n,4,Nada efectivo
+ap5_6_01_n,9,No sabe / no responde
+ap5_6_02,1,Muy efectivo
+ap5_6_02,2,Algo efectivo
+ap5_6_02,3,Poco efectivo
+ap5_6_02,4,Nada efectivo
+ap5_6_02,d,No sabe / no responde
+ap5_6_02_n,1,Muy efectivo
+ap5_6_02_n,2,Algo efectivo
+ap5_6_02_n,3,Poco efectivo
+ap5_6_02_n,4,Nada efectivo
+ap5_6_02_n,9,No sabe / no responde
+ap5_6_03,1,Muy efectivo
+ap5_6_03,2,Algo efectivo
+ap5_6_03,3,Poco efectivo
+ap5_6_03,4,Nada efectivo
+ap5_6_03,d,No sabe / no responde
+ap5_6_03_n,1,Muy efectivo
+ap5_6_03_n,2,Algo efectivo
+ap5_6_03_n,3,Poco efectivo
+ap5_6_03_n,4,Nada efectivo
+ap5_6_03_n,9,No sabe / no responde
+ap5_6_04,1,Muy efectivo
+ap5_6_04,2,Algo efectivo
+ap5_6_04,3,Poco efectivo
+ap5_6_04,4,Nada efectivo
+ap5_6_04,d,No sabe / no responde
+ap5_6_04_n,1,Muy efectivo
+ap5_6_04_n,2,Algo efectivo
+ap5_6_04_n,3,Poco efectivo
+ap5_6_04_n,4,Nada efectivo
+ap5_6_04_n,9,No sabe / no responde
+ap5_6_05,1,Muy efectivo
+ap5_6_05,2,Algo efectivo
+ap5_6_05,3,Poco efectivo
+ap5_6_05,4,Nada efectivo
+ap5_6_05,d,No sabe / no responde
+ap5_6_05_n,1,Muy efectivo
+ap5_6_05_n,2,Algo efectivo
+ap5_6_05_n,3,Poco efectivo
+ap5_6_05_n,4,Nada efectivo
+ap5_6_05_n,9,No sabe / no responde
+ap5_6_06,1,Muy efectivo
+ap5_6_06,2,Algo efectivo
+ap5_6_06,3,Poco efectivo
+ap5_6_06,4,Nada efectivo
+ap5_6_06,d,No sabe / no responde
+ap5_6_06_n,1,Muy efectivo
+ap5_6_06_n,2,Algo efectivo
+ap5_6_06_n,3,Poco efectivo
+ap5_6_06_n,4,Nada efectivo
+ap5_6_06_n,9,No sabe / no responde
+ap5_6_07,1,Muy efectivo
+ap5_6_07,2,Algo efectivo
+ap5_6_07,3,Poco efectivo
+ap5_6_07,4,Nada efectivo
+ap5_6_07,d,No sabe / no responde
+ap5_6_07_n,1,Muy efectivo
+ap5_6_07_n,2,Algo efectivo
+ap5_6_07_n,3,Poco efectivo
+ap5_6_07_n,4,Nada efectivo
+ap5_6_07_n,9,No sabe / no responde
+ap5_6_08,1,Muy efectivo
+ap5_6_08,2,Algo efectivo
+ap5_6_08,3,Poco efectivo
+ap5_6_08,4,Nada efectivo
+ap5_6_08,d,No sabe / no responde
+ap5_6_08_n,1,Muy efectivo
+ap5_6_08_n,2,Algo efectivo
+ap5_6_08_n,3,Poco efectivo
+ap5_6_08_n,4,Nada efectivo
+ap5_6_08_n,9,No sabe / no responde
+ap5_6_09,1,Muy efectivo
+ap5_6_09,2,Algo efectivo
+ap5_6_09,3,Poco efectivo
+ap5_6_09,4,Nada efectivo
+ap5_6_09,d,No sabe / no responde
+ap5_6_09_n,1,Muy efectivo
+ap5_6_09_n,2,Algo efectivo
+ap5_6_09_n,3,Poco efectivo
+ap5_6_09_n,4,Nada efectivo
+ap5_6_09_n,9,No sabe / no responde
+ap5_6_1,1,Muy efectivo
+ap5_6_1,2,Algo efectivo
+ap5_6_1,3,Poco efectivo
+ap5_6_1,4,Nada efectivo
+ap5_6_1,d,No sabe / no responde
+ap5_6_1,r,No responde
+ap5_6_10,1,Muy efectivo
+ap5_6_10,2,Algo efectivo
+ap5_6_10,3,Poco efectivo
+ap5_6_10,4,Nada efectivo
+ap5_6_10,d,No sabe / no responde
+ap5_6_10_n,1,Muy efectivo
+ap5_6_10_n,2,Algo efectivo
+ap5_6_10_n,3,Poco efectivo
+ap5_6_10_n,4,Nada efectivo
+ap5_6_10_n,9,No sabe / no responde
+ap5_6_11,1,Muy efectivo
+ap5_6_11,2,Algo efectivo
+ap5_6_11,3,Poco efectivo
+ap5_6_11,4,Nada efectivo
+ap5_6_11,d,No sabe / no responde
+ap5_6_11_n,1,Muy efectivo
+ap5_6_11_n,2,Algo efectivo
+ap5_6_11_n,3,Poco efectivo
+ap5_6_11_n,4,Nada efectivo
+ap5_6_11_n,9,No sabe / no responde
+ap5_6_2,1,Muy efectivo
+ap5_6_2,2,Algo efectivo
+ap5_6_2,3,Poco efectivo
+ap5_6_2,4,Nada efectivo
+ap5_6_2,d,No sabe / no responde
+ap5_6_2,r,No responde
+ap5_6_3,1,Muy efectivo
+ap5_6_3,2,Algo efectivo
+ap5_6_3,3,Poco efectivo
+ap5_6_3,4,Nada efectivo
+ap5_6_3,d,No sabe / no responde
+ap5_6_3,r,No responde
+ap5_6_4,1,Muy efectivo
+ap5_6_4,2,Algo efectivo
+ap5_6_4,3,Poco efectivo
+ap5_6_4,4,Nada efectivo
+ap5_6_4,d,No sabe / no responde
+ap5_6_4,r,No responde
+ap5_6_5,1,Muy efectivo
+ap5_6_5,2,Algo efectivo
+ap5_6_5,3,Poco efectivo
+ap5_6_5,4,Nada efectivo
+ap5_6_5,d,No sabe / no responde
+ap5_6_5,r,No responde
+ap5_6_6,1,Muy efectivo
+ap5_6_6,2,Algo efectivo
+ap5_6_6,3,Poco efectivo
+ap5_6_6,4,Nada efectivo
+ap5_6_6,d,No sabe / no responde
+ap5_6_6,r,No responde
+ap5_6_7,1,Muy efectivo
+ap5_6_7,2,Algo efectivo
+ap5_6_7,3,Poco efectivo
+ap5_6_7,4,Nada efectivo
+ap5_6_7,d,No sabe / no responde
+ap5_6_7,r,No responde
+ap5_6_8,1,Muy efectivo
+ap5_6_8,2,Algo efectivo
+ap5_6_8,3,Poco efectivo
+ap5_6_8,4,Nada efectivo
+ap5_6_8,d,No sabe / no responde
+ap5_6_8,r,No responde
+ap5_6_9,1,Muy efectivo
+ap5_6_9,2,Algo efectivo
+ap5_6_9,3,Poco efectivo
+ap5_6_9,4,Nada efectivo
+ap5_6_9,d,No sabe / no responde
+ap5_6_9,r,No responde
+ap5_7_1,0,No
+ap5_7_1,1,Sí
+ap5_7_1,2,No
+ap5_7_1,3,No existe
+ap5_7_1,d,No sabe / no responde
+ap5_7_1,r,No responde
+ap5_7_1_n,1,Sí
+ap5_7_1_n,2,No
+ap5_7_1_n,9,No sabe / no responde
+ap5_7_2,0,No
+ap5_7_2,1,Sí
+ap5_7_2,2,No
+ap5_7_2,3,No existe
+ap5_7_2,d,No sabe / no responde
+ap5_7_2,r,No responde
+ap5_7_2_n,1,Sí
+ap5_7_2_n,2,No
+ap5_7_2_n,9,No sabe / no responde
+ap5_7_3,0,No
+ap5_7_3,1,Sí
+ap5_7_3,2,No
+ap5_7_3,3,No existe
+ap5_7_3,d,No sabe / no responde
+ap5_7_3,r,No responde
+ap5_7_3_n,1,Sí
+ap5_7_3_n,2,No
+ap5_7_3_n,9,No sabe / no responde
+ap5_7_4,0,No
+ap5_7_4,1,Sí
+ap5_7_4,d,No sabe / no responde
+ap5_7_4_n,1,Sí
+ap5_7_4_n,2,No
+ap5_7_4_n,9,No sabe / no responde
+ap5_8,1,Mucha
+ap5_8,2,Alguna
+ap5_8,3,Poca
+ap5_8,4,Nada
+ap5_8,d,No sabe / no responde
+ap5_8,r,No responde
+ap5_8_01_1,0,No
+ap5_8_01_1,1,Sí
+ap5_8_01_1,r,No responde
+ap5_8_01_2,0,No
+ap5_8_01_2,1,Sí
+ap5_8_01_2,r,No responde
+ap5_8_01_3,0,No
+ap5_8_01_3,1,Sí
+ap5_8_01_3,r,No responde
+ap5_8_01_4,0,No
+ap5_8_01_4,1,Sí
+ap5_8_01_4,r,No responde
+ap5_8_01_5,0,No
+ap5_8_01_5,1,Sí
+ap5_8_01_5,r,No responde
+ap5_8_02_1,0,No
+ap5_8_02_1,1,Sí
+ap5_8_02_1,r,No responde
+ap5_8_02_2,0,No
+ap5_8_02_2,1,Sí
+ap5_8_02_2,r,No responde
+ap5_8_02_3,0,No
+ap5_8_02_3,1,Sí
+ap5_8_02_3,r,No responde
+ap5_8_02_4,0,No
+ap5_8_02_4,1,Sí
+ap5_8_02_4,r,No responde
+ap5_8_02_5,0,No
+ap5_8_02_5,1,Sí
+ap5_8_02_5,r,No responde
+ap5_8_03_1,0,No
+ap5_8_03_1,1,Sí
+ap5_8_03_1,r,No responde
+ap5_8_03_2,0,No
+ap5_8_03_2,1,Sí
+ap5_8_03_2,r,No responde
+ap5_8_03_3,0,No
+ap5_8_03_3,1,Sí
+ap5_8_03_3,r,No responde
+ap5_8_03_4,0,No
+ap5_8_03_4,1,Sí
+ap5_8_03_4,r,No responde
+ap5_8_03_5,0,No
+ap5_8_03_5,1,Sí
+ap5_8_03_5,r,No responde
+ap5_8_04_1,0,No
+ap5_8_04_1,1,Sí
+ap5_8_04_1,r,No responde
+ap5_8_04_2,0,No
+ap5_8_04_2,1,Sí
+ap5_8_04_2,r,No responde
+ap5_8_04_3,0,No
+ap5_8_04_3,1,Sí
+ap5_8_04_3,r,No responde
+ap5_8_04_4,0,No
+ap5_8_04_4,1,Sí
+ap5_8_04_4,r,No responde
+ap5_8_04_5,0,No
+ap5_8_04_5,1,Sí
+ap5_8_04_5,r,No responde
+ap5_8_05_1,0,No
+ap5_8_05_1,1,Sí
+ap5_8_05_1,r,No responde
+ap5_8_05_2,0,No
+ap5_8_05_2,1,Sí
+ap5_8_05_2,r,No responde
+ap5_8_05_3,0,No
+ap5_8_05_3,1,Sí
+ap5_8_05_3,r,No responde
+ap5_8_05_4,0,No
+ap5_8_05_4,1,Sí
+ap5_8_05_4,r,No responde
+ap5_8_05_5,0,No
+ap5_8_05_5,1,Sí
+ap5_8_05_5,r,No responde
+ap5_8_06_1,0,No
+ap5_8_06_1,1,Sí
+ap5_8_06_1,r,No responde
+ap5_8_06_2,0,No
+ap5_8_06_2,1,Sí
+ap5_8_06_2,r,No responde
+ap5_8_06_3,0,No
+ap5_8_06_3,1,Sí
+ap5_8_06_3,r,No responde
+ap5_8_06_4,0,No
+ap5_8_06_4,1,Sí
+ap5_8_06_4,r,No responde
+ap5_8_06_5,0,No
+ap5_8_06_5,1,Sí
+ap5_8_06_5,r,No responde
+ap5_8_07_1,0,No
+ap5_8_07_1,1,Sí
+ap5_8_07_1,r,No responde
+ap5_8_07_2,0,No
+ap5_8_07_2,1,Sí
+ap5_8_07_2,r,No responde
+ap5_8_07_3,0,No
+ap5_8_07_3,1,Sí
+ap5_8_07_3,r,No responde
+ap5_8_07_4,0,No
+ap5_8_07_4,1,Sí
+ap5_8_07_4,r,No responde
+ap5_8_07_5,0,No
+ap5_8_07_5,1,Sí
+ap5_8_07_5,r,No responde
+ap5_8_08_1,0,No
+ap5_8_08_1,1,Sí
+ap5_8_08_1,r,No responde
+ap5_8_08_2,0,No
+ap5_8_08_2,1,Sí
+ap5_8_08_2,r,No responde
+ap5_8_08_3,0,No
+ap5_8_08_3,1,Sí
+ap5_8_08_3,r,No responde
+ap5_8_08_4,0,No
+ap5_8_08_4,1,Sí
+ap5_8_08_4,r,No responde
+ap5_8_08_5,0,No
+ap5_8_08_5,1,Sí
+ap5_8_08_5,r,No responde
+ap5_8_09_1,0,No
+ap5_8_09_1,1,Sí
+ap5_8_09_1,r,No responde
+ap5_8_09_2,0,No
+ap5_8_09_2,1,Sí
+ap5_8_09_2,r,No responde
+ap5_8_09_3,0,No
+ap5_8_09_3,1,Sí
+ap5_8_09_3,r,No responde
+ap5_8_09_4,0,No
+ap5_8_09_4,1,Sí
+ap5_8_09_4,r,No responde
+ap5_8_09_5,0,No
+ap5_8_09_5,1,Sí
+ap5_8_09_5,r,No responde
+ap5_8_10_1,0,No
+ap5_8_10_1,1,Sí
+ap5_8_10_1,r,No responde
+ap5_8_10_2,0,No
+ap5_8_10_2,1,Sí
+ap5_8_10_2,r,No responde
+ap5_8_10_3,0,No
+ap5_8_10_3,1,Sí
+ap5_8_10_3,r,No responde
+ap5_8_10_4,0,No
+ap5_8_10_4,1,Sí
+ap5_8_10_4,r,No responde
+ap5_8_10_5,0,No
+ap5_8_10_5,1,Sí
+ap5_8_10_5,r,No responde
+ap5_8_11_1,0,No
+ap5_8_11_1,1,Sí
+ap5_8_11_1,r,No responde
+ap5_8_11_3,0,No
+ap5_8_11_3,1,Sí
+ap5_8_11_3,r,No responde
+ap5_8_11_4,0,No
+ap5_8_11_4,1,Sí
+ap5_8_11_4,r,No responde
+ap5_8_11_5,0,No
+ap5_8_11_5,1,Sí
+ap5_8_11_5,r,No responde
+ap5_9,1,Mucha
+ap5_9,2,Alguna
+ap5_9,3,Poca
+ap5_9,4,Nada
+ap5_9,d,No sabe / no responde
+ap5_9_01,0,No se declaró como opción afirmativa
+ap5_9_01,1,Sí
+ap5_9_02,0,No se declaró como opción afirmativa
+ap5_9_02,1,Sí
+ap5_9_03,0,No se declaró como opción afirmativa
+ap5_9_03,1,Sí
+ap5_9_04,0,No se declaró como opción afirmativa
+ap5_9_04,1,Sí
+ap5_9_05,0,No se declaró como opción afirmativa
+ap5_9_05,1,Sí
+ap5_9_06,0,No se declaró como opción afirmativa
+ap5_9_06,1,Sí
+ap5_9_07,0,No se declaró como opción afirmativa
+ap5_9_07,1,Sí
+ap5_9_08,0,No se declaró como opción afirmativa
+ap5_9_08,1,Sí
+ap5_9_09,0,No se declaró como opción afirmativa
+ap5_9_09,1,Sí
+ap5_9_1,0,No se declaró como opción afirmativa
+ap5_9_1,1,Sí
+ap5_9_10,0,No se declaró como opción afirmativa
+ap5_9_10,1,Sí
+ap5_9_11,0,No se declaró como opción afirmativa
+ap5_9_11,1,Sí
+ap5_9_12,0,No se declaró como opción afirmativa
+ap5_9_12,1,Sí
+ap5_9_13,0,No se declaró como opción afirmativa
+ap5_9_13,1,Sí
+ap5_9_14,0,No se declaró como opción afirmativa
+ap5_9_14,1,Sí
+ap5_9_15,0,No se declaró como opción afirmativa
+ap5_9_15,1,Sí
+ap5_9_2,0,No se declaró como opción afirmativa
+ap5_9_2,1,Sí
+ap5_9_3,0,No se declaró como opción afirmativa
+ap5_9_3,1,Sí
+ap5_9_4,0,No se declaró como opción afirmativa
+ap5_9_4,1,Sí
+ap5_9_5,0,No se declaró como opción afirmativa
+ap5_9_5,1,Sí
+ap5_9_6,0,No se declaró como opción afirmativa
+ap5_9_6,1,Sí
+ap5_9_7,0,No se declaró como opción afirmativa
+ap5_9_7,1,Sí
+ap5_9_8,0,No se declaró como opción afirmativa
+ap5_9_8,1,Sí
+ap5_9_88,0,No se declaró como opción afirmativa
+ap5_9_88,1,Sí
+ap5_9_9,0,No se declaró como opción afirmativa
+ap5_9_9,1,Sí
+ap5_9_99,0,No se declaró como opción afirmativa
+ap5_9_99,1,Sí
+ap6_1,0,No
+ap6_1,1,Sí
+ap6_1,d,No sabe / no responde
+ap6_1,r,No responde
+ap6_10_1,0,No
+ap6_10_1,1,Sí
+ap6_10_1,d,No sabe / no responde
+ap6_11,0,No
+ap6_11,1,Sí
+ap6_11,d,No sabe / no responde
+ap6_11_1,0,No
+ap6_11_1,1,Sí
+ap6_11_1,d,No sabe / no responde
+ap6_11_1_n,1,Sí
+ap6_11_1_n,2,No
+ap6_11_1_n,9,No sabe / no responde
+ap6_11_2,0,No
+ap6_11_2,1,Sí
+ap6_11_2,d,No sabe / no responde
+ap6_11_2_n,1,Sí
+ap6_11_2_n,2,No
+ap6_11_2_n,9,No sabe / no responde
+ap6_11_3,0,No
+ap6_11_3,1,Sí
+ap6_11_3,d,No sabe / no responde
+ap6_11_3_n,1,Sí
+ap6_11_3_n,2,No
+ap6_11_3_n,9,No sabe / no responde
+ap6_11_4,0,No
+ap6_11_4,1,Sí
+ap6_11_4,d,No sabe / no responde
+ap6_11_4_n,1,Sí
+ap6_11_4_n,2,No
+ap6_11_4_n,9,No sabe / no responde
+ap6_11_5,0,No
+ap6_11_5,1,Sí
+ap6_11_5,d,No sabe / no responde
+ap6_11_6,0,No
+ap6_11_6,1,Sí
+ap6_11_6,d,No sabe / no responde
+ap6_11_7,0,No
+ap6_11_7,1,Sí
+ap6_11_7,d,No sabe / no responde
+ap6_12,1,Sí
+ap6_12,2,No
+ap6_12,3,No había menores de 18 años
+ap6_12,d,No sabe / no responde
+ap6_12_3,0,No se declaró como opción afirmativa
+ap6_12_3,1,Sí
+ap6_12a1_1,1,Menos de 24 horas
+ap6_12a1_1,2,De 1 a 3 días
+ap6_12a1_1,3,De 4 a 10 días
+ap6_12a1_1,4,De 11 a 29 días
+ap6_12a1_1,5,De 1 a 3 meses
+ap6_12a1_1,6,Más de 3 meses
+ap6_12a1_1,d,No sabe / no responde
+ap6_12a1_2,1,Menos de 24 horas
+ap6_12a1_2,2,De 1 a 3 días
+ap6_12a1_2,3,De 4 a 10 días
+ap6_12a1_2,4,De 11 a 29 días
+ap6_12a1_2,5,De 1 a 3 meses
+ap6_12a1_2,6,Más de 3 meses
+ap6_12a1_2,d,No sabe / no responde
+ap6_12a1_3,1,Menos de 24 horas
+ap6_12a1_3,2,De 1 a 3 días
+ap6_12a1_3,3,De 4 a 10 días
+ap6_12a1_3,4,De 11 a 29 días
+ap6_12a1_3,5,De 1 a 3 meses
+ap6_12a1_3,6,Más de 3 meses
+ap6_12a1_3,d,No sabe / no responde
+ap6_12a1_4,1,Menos de 24 horas
+ap6_12a1_4,2,De 1 a 3 días
+ap6_12a1_4,3,De 4 a 10 días
+ap6_12a1_4,4,De 11 a 29 días
+ap6_12a1_4,5,De 1 a 3 meses
+ap6_12a1_4,6,Más de 3 meses
+ap6_12a1_4,d,No sabe / no responde
+ap6_12a2_1,1,Menos de 24 horas
+ap6_12a2_1,2,De 1 a 3 días
+ap6_12a2_1,3,De 4 a 10 días
+ap6_12a2_1,4,De 11 a 29 días
+ap6_12a2_1,5,De 1 a 3 meses
+ap6_12a2_1,6,Más de 3 meses
+ap6_12a2_1,d,No sabe / no responde
+ap6_12a2_2,1,Menos de 24 horas
+ap6_12a2_2,2,De 1 a 3 días
+ap6_12a2_2,3,De 4 a 10 días
+ap6_12a2_2,4,De 11 a 29 días
+ap6_12a2_2,5,De 1 a 3 meses
+ap6_12a2_2,6,Más de 3 meses
+ap6_12a2_2,d,No sabe / no responde
+ap6_12a2_3,1,Menos de 24 horas
+ap6_12a2_3,2,De 1 a 3 días
+ap6_12a2_3,3,De 4 a 10 días
+ap6_12a2_3,4,De 11 a 29 días
+ap6_12a2_3,5,De 1 a 3 meses
+ap6_12a2_3,6,Más de 3 meses
+ap6_12a2_3,d,No sabe / no responde
+ap6_12a3_1,1,Menos de 24 horas
+ap6_12a3_1,2,De 1 a 3 días
+ap6_12a3_1,3,De 4 a 10 días
+ap6_12a3_1,4,De 11 a 29 días
+ap6_12a3_1,5,De 1 a 3 meses
+ap6_12a3_1,6,Más de 3 meses
+ap6_12a3_1,d,No sabe / no responde
+ap6_12a4_1,1,Menos de 24 horas
+ap6_12a4_1,2,De 1 a 3 días
+ap6_12a4_1,3,De 4 a 10 días
+ap6_12a4_1,4,De 11 a 29 días
+ap6_12a4_1,5,De 1 a 3 meses
+ap6_12a4_1,6,Más de 3 meses
+ap6_12a4_1,d,No sabe / no responde
+ap6_13,0,No
+ap6_13,1,Sí
+ap6_13,d,No sabe / no responde
+ap6_13_1,0,No
+ap6_13_1,1,Sí
+ap6_13_1,d,No sabe / no responde
+ap6_13_1_1,1,Menos de 24 horas
+ap6_13_1_1,2,De 1 a 3 días
+ap6_13_1_1,3,De 4 a 10 días
+ap6_13_1_1,4,De 11 a 29 días
+ap6_13_1_1,5,De 1 a 3 meses
+ap6_13_1_1,6,Más de 3 meses
+ap6_13_1_1,d,No sabe / no responde
+ap6_13_1_1_n,1,Menos de 24 horas
+ap6_13_1_1_n,2,De 1 a 3 días
+ap6_13_1_1_n,3,De 4 a 10 días
+ap6_13_1_1_n,4,De 11 a 29 días
+ap6_13_1_1_n,5,De 1 a 3 meses
+ap6_13_1_1_n,6,Más de 3 meses
+ap6_13_1_1_n,9,No sabe / no responde
+ap6_13_1_2,1,Menos de 24 horas
+ap6_13_1_2,2,De 1 a 3 días
+ap6_13_1_2,3,De 4 a 10 días
+ap6_13_1_2,4,De 11 a 29 días
+ap6_13_1_2,5,De 1 a 3 meses
+ap6_13_1_2,6,Más de 3 meses
+ap6_13_1_2,d,No sabe / no responde
+ap6_13_1_2_n,1,Menos de 24 horas
+ap6_13_1_2_n,2,De 1 a 3 días
+ap6_13_1_2_n,3,De 4 a 10 días
+ap6_13_1_2_n,4,De 11 a 29 días
+ap6_13_1_2_n,5,De 1 a 3 meses
+ap6_13_1_2_n,6,Más de 3 meses
+ap6_13_1_2_n,9,No sabe / no responde
+ap6_13_1_3,1,Menos de 24 horas
+ap6_13_1_3,2,De 1 a 3 días
+ap6_13_1_3,3,De 4 a 10 días
+ap6_13_1_3,4,De 11 a 29 días
+ap6_13_1_3,5,De 1 a 3 meses
+ap6_13_1_3,6,Más de 3 meses
+ap6_13_1_3,d,No sabe / no responde
+ap6_13_1_3_n,1,Menos de 24 horas
+ap6_13_1_3_n,2,De 1 a 3 días
+ap6_13_1_3_n,3,De 4 a 10 días
+ap6_13_1_3_n,4,De 11 a 29 días
+ap6_13_1_3_n,5,De 1 a 3 meses
+ap6_13_1_3_n,6,Más de 3 meses
+ap6_13_1_3_n,9,No sabe / no responde
+ap6_13_1_4,1,Menos de 24 horas
+ap6_13_1_4,2,De 1 a 3 días
+ap6_13_1_4,3,De 4 a 10 días
+ap6_13_1_4,4,De 11 a 29 días
+ap6_13_1_4,5,De 1 a 3 meses
+ap6_13_1_4,6,Más de 3 meses
+ap6_13_1_4,d,No sabe / no responde
+ap6_13_2,u,No especificado
+ap6_13_2_1,1,Menos de 24 horas
+ap6_13_2_1,2,De 1 a 3 días
+ap6_13_2_1,3,De 4 a 10 días
+ap6_13_2_1,4,De 11 a 29 días
+ap6_13_2_1,5,De 1 a 3 meses
+ap6_13_2_1,6,Más de 3 meses
+ap6_13_2_1,d,No sabe / no responde
+ap6_13_2_1_n,1,Menos de 24 horas
+ap6_13_2_1_n,2,De 1 a 3 días
+ap6_13_2_1_n,3,De 4 a 10 días
+ap6_13_2_1_n,4,De 11 a 29 días
+ap6_13_2_1_n,5,De 1 a 3 meses
+ap6_13_2_1_n,6,Más de 3 meses
+ap6_13_2_1_n,9,No sabe / no responde
+ap6_13_2_2,1,Menos de 24 horas
+ap6_13_2_2,2,De 1 a 3 días
+ap6_13_2_2,3,De 4 a 10 días
+ap6_13_2_2,4,De 11 a 29 días
+ap6_13_2_2,5,De 1 a 3 meses
+ap6_13_2_2,6,Más de 3 meses
+ap6_13_2_2,d,No sabe / no responde
+ap6_13_2_3,1,Menos de 24 horas
+ap6_13_2_3,2,De 1 a 3 días
+ap6_13_2_3,3,De 4 a 10 días
+ap6_13_2_3,4,De 11 a 29 días
+ap6_13_2_3,5,De 1 a 3 meses
+ap6_13_2_3,6,Más de 3 meses
+ap6_13_2_3,d,No sabe / no responde
+ap6_13_3_1,1,Menos de 24 horas
+ap6_13_3_1,2,De 1 a 3 días
+ap6_13_3_1,3,De 4 a 10 días
+ap6_13_3_1,4,De 11 a 29 días
+ap6_13_3_1,5,De 1 a 3 meses
+ap6_13_3_1,6,Más de 3 meses
+ap6_13_3_1,d,No sabe / no responde
+ap6_13_3_1_n,1,Menos de 24 horas
+ap6_13_3_1_n,2,De 1 a 3 días
+ap6_13_3_1_n,3,De 4 a 10 días
+ap6_13_3_1_n,4,De 11 a 29 días
+ap6_13_3_1_n,5,De 1 a 3 meses
+ap6_13_3_1_n,6,Más de 3 meses
+ap6_13_3_1_n,9,No sabe / no responde
+ap6_13_3_2,1,Menos de 24 horas
+ap6_13_3_2,2,De 1 a 3 días
+ap6_13_3_2,3,De 4 a 10 días
+ap6_13_3_2,4,De 11 a 29 días
+ap6_13_3_2,5,De 1 a 3 meses
+ap6_13_3_2,6,Más de 3 meses
+ap6_13_3_2,d,No sabe / no responde
+ap6_13_4_1,1,Menos de 24 horas
+ap6_13_4_1,2,De 1 a 3 días
+ap6_13_4_1,3,De 4 a 10 días
+ap6_13_4_1,4,De 11 a 29 días
+ap6_13_4_1,5,De 1 a 3 meses
+ap6_13_4_1,6,Más de 3 meses
+ap6_13_4_1,d,No sabe / no responde
+ap6_13_4_1_n,1,Menos de 24 horas
+ap6_13_4_1_n,2,De 1 a 3 días
+ap6_13_4_1_n,3,De 4 a 10 días
+ap6_13_4_1_n,4,De 11 a 29 días
+ap6_13_4_1_n,5,De 1 a 3 meses
+ap6_13_4_1_n,6,Más de 3 meses
+ap6_13_4_1_n,9,No sabe / no responde
+ap6_13_5_1,1,Menos de 24 horas
+ap6_13_5_1,2,De 1 a 3 días
+ap6_13_5_1,3,De 4 a 10 días
+ap6_13_5_1,4,De 11 a 29 días
+ap6_13_5_1,5,De 1 a 3 meses
+ap6_13_5_1,6,Más de 3 meses
+ap6_13_5_1,d,No sabe / no responde
+ap6_13_6_1,1,Menos de 24 horas
+ap6_13_6_1,2,De 1 a 3 días
+ap6_13_6_1,3,De 4 a 10 días
+ap6_13_6_1,4,De 11 a 29 días
+ap6_13_6_1,5,De 1 a 3 meses
+ap6_13_6_1,6,Más de 3 meses
+ap6_13_6_1,d,No sabe / no responde
+ap6_13_7_1,1,Menos de 24 horas
+ap6_13_7_1,2,De 1 a 3 días
+ap6_13_7_1,3,De 4 a 10 días
+ap6_13_7_1,4,De 11 a 29 días
+ap6_13_7_1,5,De 1 a 3 meses
+ap6_13_7_1,6,Más de 3 meses
+ap6_13_7_1,d,No sabe / no responde
+ap6_14,0,No
+ap6_14,1,Sí
+ap6_14,d,No sabe / no responde
+ap6_14_1,0,No
+ap6_14_1,1,Sí
+ap6_14_1,d,No sabe / no responde
+ap6_15_1,0,No
+ap6_15_1,1,Sí
+ap6_15_1,d,No sabe / no responde
+ap6_15_2,0,No
+ap6_15_2,1,Sí
+ap6_15_2,d,No sabe / no responde
+ap6_15_3,0,No
+ap6_15_3,1,Sí
+ap6_15_3,d,No sabe / no responde
+ap6_16_1,0,No
+ap6_16_1,1,Sí
+ap6_16_1,2,Continúa desaparecido
+ap6_16_1,3,Apareció muerto
+ap6_16_1,d,No sabe / no responde
+ap6_16_10_n,1,Sí
+ap6_16_10_n,2,No
+ap6_16_10_n,9,No sabe / no responde
+ap6_16_11_n,1,Sí
+ap6_16_11_n,2,No
+ap6_16_11_n,9,No sabe / no responde
+ap6_16_12_n,1,Sí
+ap6_16_12_n,2,No
+ap6_16_12_n,9,No sabe / no responde
+ap6_16_13_n,1,Sí
+ap6_16_13_n,2,No
+ap6_16_13_n,9,No sabe / no responde
+ap6_16_14_n,1,Sí
+ap6_16_14_n,2,No
+ap6_16_14_n,9,No sabe / no responde
+ap6_16_15_n,1,Sí
+ap6_16_15_n,2,No
+ap6_16_15_n,9,No sabe / no responde
+ap6_16_1_n,1,Sí
+ap6_16_1_n,2,No
+ap6_16_1_n,9,No sabe / no responde
+ap6_16_2,0,No
+ap6_16_2,1,Sí
+ap6_16_2,2,Continúa desaparecido
+ap6_16_2,3,Apareció muerto
+ap6_16_2,d,No sabe / no responde
+ap6_16_2_n,1,Sí
+ap6_16_2_n,2,No
+ap6_16_2_n,9,No sabe / no responde
+ap6_16_3,0,No
+ap6_16_3,1,Sí
+ap6_16_3,2,Continúa desaparecido
+ap6_16_3,3,Apareció muerto
+ap6_16_3,d,No sabe / no responde
+ap6_16_3_n,1,Sí
+ap6_16_3_n,2,No
+ap6_16_3_n,9,No sabe / no responde
+ap6_16_4,0,No
+ap6_16_4,1,Sí
+ap6_16_4,2,Continúa desaparecido
+ap6_16_4,3,Apareció muerto
+ap6_16_4,d,No sabe / no responde
+ap6_16_4_n,1,Sí
+ap6_16_4_n,2,No
+ap6_16_4_n,9,No sabe / no responde
+ap6_16_5,0,No
+ap6_16_5,1,Sí
+ap6_16_5,2,Continúa desaparecido
+ap6_16_5,3,Apareció muerto
+ap6_16_5,d,No sabe / no responde
+ap6_16_5_n,1,Sí
+ap6_16_5_n,2,No
+ap6_16_5_n,9,No sabe / no responde
+ap6_16_6,0,No
+ap6_16_6,1,Sí
+ap6_16_6,2,Continúa desaparecido
+ap6_16_6,3,Apareció muerto
+ap6_16_6,d,No sabe / no responde
+ap6_16_6_n,1,Sí
+ap6_16_6_n,2,No
+ap6_16_6_n,9,No sabe / no responde
+ap6_16_7,0,No
+ap6_16_7,1,Sí
+ap6_16_7,d,No sabe / no responde
+ap6_16_7_n,1,Sí
+ap6_16_7_n,2,No
+ap6_16_7_n,9,No sabe / no responde
+ap6_16_8_n,1,Sí
+ap6_16_8_n,2,No
+ap6_16_8_n,9,No sabe / no responde
+ap6_16_9_n,1,Sí
+ap6_16_9_n,2,No
+ap6_16_9_n,9,No sabe / no responde
+ap6_17_1,0,No
+ap6_17_1,1,Sí
+ap6_17_1,2,Continúa desaparecida
+ap6_17_1,3,Apareció muerta
+ap6_17_1,d,No sabe / no responde
+ap6_17_1_n,1,Sí
+ap6_17_1_n,2,Continúa desaparecida
+ap6_17_1_n,3,Apareció muerta
+ap6_17_1_n,9,No sabe / no responde
+ap6_17_2,0,No
+ap6_17_2,1,Sí
+ap6_17_2,2,Continúa desaparecida
+ap6_17_2,3,Apareció muerta
+ap6_17_2,d,No sabe / no responde
+ap6_17_2_n,1,Sí
+ap6_17_2_n,2,Continúa desaparecida
+ap6_17_2_n,3,Apareció muerta
+ap6_17_2_n,9,No sabe / no responde
+ap6_17_3,0,No
+ap6_17_3,1,Sí
+ap6_17_3,2,Continúa desaparecida
+ap6_17_3,3,Apareció muerta
+ap6_17_3,d,No sabe / no responde
+ap6_17_3_n,1,Sí
+ap6_17_3_n,2,Continúa desaparecida
+ap6_17_3_n,3,Apareció muerta
+ap6_17_3_n,9,No sabe / no responde
+ap6_17_4,0,No
+ap6_17_4,1,Sí
+ap6_17_4,2,Continúa desaparecida
+ap6_17_4,3,Apareció muerta
+ap6_17_4,d,No sabe / no responde
+ap6_17_5,0,No
+ap6_17_5,1,Sí
+ap6_17_5,2,Continúa desaparecida
+ap6_17_5,3,Apareció muerta
+ap6_17_5,d,No sabe / no responde
+ap6_17_6,0,No
+ap6_17_6,1,Sí
+ap6_17_6,2,Continúa desaparecida
+ap6_17_6,3,Apareció muerta
+ap6_17_6,d,No sabe / no responde
+ap6_18,0,No
+ap6_18,1,Sí
+ap6_18,d,No sabe / no responde
+ap6_18_1,0,No
+ap6_18_1,1,Sí
+ap6_18_1,d,No sabe / no responde
+ap6_18_1_n,1,Sí
+ap6_18_1_n,2,No
+ap6_18_1_n,9,No sabe / no responde
+ap6_18_2,0,No
+ap6_18_2,1,Sí
+ap6_18_2,d,No sabe / no responde
+ap6_18_2_n,1,Sí
+ap6_18_2_n,2,No
+ap6_18_2_n,9,No sabe / no responde
+ap6_18_3,0,No
+ap6_18_3,1,Sí
+ap6_18_3,d,No sabe / no responde
+ap6_19,0,No
+ap6_19,1,Sí
+ap6_19,d,No sabe / no responde
+ap6_19_1,0,No
+ap6_19_1,1,Sí
+ap6_19_1,d,No sabe / no responde
+ap6_1_1,0,No
+ap6_1_1,1,Sí
+ap6_1_1,d,No sabe / no responde
+ap6_1_2,u,No especificado
+ap6_2,0,No
+ap6_2,1,Sí
+ap6_2,2,No
+ap6_2,d,No sabe / no responde
+ap6_2,r,No responde
+ap6_20_1,0,No
+ap6_20_1,1,Sí
+ap6_20_1,d,No sabe / no responde
+ap6_20_2,0,No
+ap6_20_2,1,Sí
+ap6_20_2,d,No sabe / no responde
+ap6_20_3,0,No
+ap6_20_3,1,Sí
+ap6_20_3,d,No sabe / no responde
+ap6_20_4,0,No
+ap6_20_4,1,Sí
+ap6_20_4,d,No sabe / no responde
+ap6_20_5,0,No
+ap6_20_5,1,Sí
+ap6_20_5,d,No sabe / no responde
+ap6_21_1,0,No
+ap6_21_1,1,Sí
+ap6_21_1,d,No sabe / no responde
+ap6_21_1_n,1,Sí
+ap6_21_1_n,2,No
+ap6_21_1_n,9,No sabe / no responde
+ap6_21_2,0,No
+ap6_21_2,1,Sí
+ap6_21_2,d,No sabe / no responde
+ap6_21_2_n,1,Sí
+ap6_21_2_n,2,No
+ap6_21_2_n,9,No sabe / no responde
+ap6_21_3,0,No
+ap6_21_3,1,Sí
+ap6_21_3,d,No sabe / no responde
+ap6_21_3_n,1,Sí
+ap6_21_3_n,2,No
+ap6_21_3_n,9,No sabe / no responde
+ap6_21_4,0,No
+ap6_21_4,1,Sí
+ap6_21_4,d,No sabe / no responde
+ap6_21_4_n,1,Sí
+ap6_21_4_n,2,No
+ap6_21_4_n,9,No sabe / no responde
+ap6_21_5,0,No
+ap6_21_5,1,Sí
+ap6_21_5,d,No sabe / no responde
+ap6_21_5_n,1,Sí
+ap6_21_5_n,2,No
+ap6_21_5_n,9,No sabe / no responde
+ap6_22_1,0,No
+ap6_22_1,1,Sí
+ap6_22_1,d,No sabe / no responde
+ap6_22_1_n,1,Sí
+ap6_22_1_n,2,No
+ap6_22_1_n,9,No sabe / no responde
+ap6_22_2,0,No
+ap6_22_2,1,Sí
+ap6_22_2,d,No sabe / no responde
+ap6_22_2_n,1,Sí
+ap6_22_2_n,2,No
+ap6_22_2_n,9,No sabe / no responde
+ap6_22_3,0,No
+ap6_22_3,1,Sí
+ap6_22_3,d,No sabe / no responde
+ap6_3,0,No
+ap6_3,1,Sí
+ap6_3,d,No sabe / no responde
+ap6_3,u,No especificado
+ap6_3_1,0,No
+ap6_3_1,1,Sí
+ap6_3_1,d,No sabe / no responde
+ap6_3_2,0,No
+ap6_3_2,1,Sí
+ap6_3_2,d,No sabe / no responde
+ap6_3_3,0,No
+ap6_3_3,1,Sí
+ap6_3_3,d,No sabe / no responde
+ap6_4_01,0,No
+ap6_4_01,1,Sí
+ap6_4_01,d,No sabe / no responde
+ap6_4_02,0,No
+ap6_4_02,1,Sí
+ap6_4_02,d,No sabe / no responde
+ap6_4_03,0,No
+ap6_4_03,1,Sí
+ap6_4_03,d,No sabe / no responde
+ap6_4_04,0,No
+ap6_4_04,1,Sí
+ap6_4_04,d,No sabe / no responde
+ap6_4_1,0,No
+ap6_4_1,1,Sí
+ap6_4_2,0,No
+ap6_4_2,1,Sí
+ap6_4_2,d,No sabe / no responde
+ap6_5_01,0,No
+ap6_5_01,1,Sí
+ap6_5_01,d,No sabe / no responde
+ap6_5_01_n,1,Sí
+ap6_5_01_n,2,No
+ap6_5_01_n,9,No sabe / no responde
+ap6_5_02,0,No
+ap6_5_02,1,Sí
+ap6_5_02,d,No sabe / no responde
+ap6_5_02_n,1,Sí
+ap6_5_02_n,2,No
+ap6_5_02_n,9,No sabe / no responde
+ap6_6,0,No
+ap6_6,1,Sí
+ap6_6,d,No sabe / no responde
+ap6_7,0,No
+ap6_7,1,Sí
+ap6_7,d,No sabe / no responde
+ap6_8,1,Sí
+ap6_8,2,No
+ap6_8,3,No había menores de 18 años
+ap6_8,d,No sabe / no responde
+ap6_8_n,1,Sí
+ap6_8_n,2,No
+ap6_8_n,3,No había menores de 18 años
+ap6_8_n,9,No sabe / no responde
+ap6_9,0,No
+ap6_9,1,Sí
+ap6_9,2,No
+ap6_9,d,No sabe / no responde
+ap7_1,0,No
+ap7_1,1,Sí
+ap7_1,d,No sabe / no responde
+ap7_1,r,No responde
+ap7_2,0,No
+ap7_2,1,Sí
+ap7_2,d,No sabe / no responde
+ap7_2,r,No responde
+ap7_3_05,0,No
+ap7_3_05,1,Sí
+ap7_3_05,d,No sabe / no responde
+ap7_3_06,0,No
+ap7_3_06,1,Sí
+ap7_3_06,d,No sabe / no responde
+ap7_3_07,0,No
+ap7_3_07,1,Sí
+ap7_3_07,d,No sabe / no responde
+ap7_3_08,0,No
+ap7_3_08,1,Sí
+ap7_3_08,d,No sabe / no responde
+ap7_3_09,0,No
+ap7_3_09,1,Sí
+ap7_3_09,d,No sabe / no responde
+ap7_3_1,0,No
+ap7_3_1,1,Sí
+ap7_3_1,d,No sabe / no responde
+ap7_3_1,u,No especificado
+ap7_3_10,0,No
+ap7_3_10,1,Sí
+ap7_3_10,d,No sabe / no responde
+ap7_3_11,0,No
+ap7_3_11,1,Sí
+ap7_3_11,d,No sabe / no responde
+ap7_3_12,0,No
+ap7_3_12,1,Sí
+ap7_3_12,d,No sabe / no responde
+ap7_3_13,0,No
+ap7_3_13,1,Sí
+ap7_3_13,d,No sabe / no responde
+ap7_3_14,0,No
+ap7_3_14,1,Sí
+ap7_3_14,d,No sabe / no responde
+ap7_3_15,0,No
+ap7_3_15,1,Sí
+ap7_3_15,d,No sabe / no responde
+ap7_3_2,0,No
+ap7_3_2,1,Sí
+ap7_3_2,d,No sabe / no responde
+ap7_3_2,u,No especificado
+ap7_3_3,0,No
+ap7_3_3,1,Sí
+ap7_3_3,d,No sabe / no responde
+ap7_3_4,0,No
+ap7_3_4,1,Sí
+ap7_3_4,d,No sabe / no responde
+ap7_3_5,0,No
+ap7_3_5,1,Sí
+ap7_3_5,d,No sabe / no responde
+ap7_3_6,0,No
+ap7_3_6,1,Sí
+ap7_3_6,d,No sabe / no responde
+ap7_3_7,0,No
+ap7_3_7,1,Sí
+ap7_3_7,d,No sabe / no responde
+ap7_3_8,0,No
+ap7_3_8,1,Sí
+ap7_3_8,d,No sabe / no responde
+ap7_3_9,0,No
+ap7_3_9,1,Sí
+ap7_3_9,d,No sabe / no responde
+ap7_4_1,0,No
+ap7_4_1,1,Sí
+ap7_4_1,u,No especificado
+ap7_5_1,0,No
+ap7_5_1,1,Sí
+ap7_5_1,u,No especificado
+ap7_6_1,0,No
+ap7_6_1,1,Sí
+ap7_6_1,u,No especificado
+ap7_7_1,0,No
+ap7_7_1,1,Sí
+ap7_7_1,u,No especificado
+ap8_1,0,No
+ap8_1,1,Sí
+ap8_1,d,No sabe / no responde
+ap8_1,r,No responde
+ap8_2,0,No
+ap8_2,1,Sí
+ap8_2,d,No sabe / no responde
+ap8_2,r,No responde
+ap8_3_1,0,No
+ap8_3_1,1,Sí
+ap8_3_1,d,No sabe / no responde
+ap8_3_1,r,No responde
+ap8_3_10,0,No
+ap8_3_10,1,Sí
+ap8_3_10,d,No sabe / no responde
+ap8_3_10,r,No responde
+ap8_3_11,0,No
+ap8_3_11,1,Sí
+ap8_3_11,d,No sabe / no responde
+ap8_3_11,r,No responde
+ap8_3_12,0,No
+ap8_3_12,1,Sí
+ap8_3_12,d,No sabe / no responde
+ap8_3_12,r,No responde
+ap8_3_13,0,No
+ap8_3_13,1,Sí
+ap8_3_13,d,No sabe / no responde
+ap8_3_13,r,No responde
+ap8_3_14,0,No
+ap8_3_14,1,Sí
+ap8_3_14,d,No sabe / no responde
+ap8_3_14,r,No responde
+ap8_3_2,0,No
+ap8_3_2,1,Sí
+ap8_3_2,d,No sabe / no responde
+ap8_3_2,r,No responde
+ap8_3_3,0,No
+ap8_3_3,1,Sí
+ap8_3_3,d,No sabe / no responde
+ap8_3_3,r,No responde
+ap8_3_4,0,No
+ap8_3_4,1,Sí
+ap8_3_4,d,No sabe / no responde
+ap8_3_4,r,No responde
+ap8_3_5,0,No
+ap8_3_5,1,Sí
+ap8_3_5,d,No sabe / no responde
+ap8_3_5,r,No responde
+ap8_3_6,0,No
+ap8_3_6,1,Sí
+ap8_3_6,d,No sabe / no responde
+ap8_3_6,r,No responde
+ap8_3_7,0,No
+ap8_3_7,1,Sí
+ap8_3_7,d,No sabe / no responde
+ap8_3_7,r,No responde
+ap8_3_8,0,No
+ap8_3_8,1,Sí
+ap8_3_8,d,No sabe / no responde
+ap8_3_8,r,No responde
+ap8_3_9,0,No
+ap8_3_9,1,Sí
+ap8_3_9,d,No sabe / no responde
+ap8_3_9,r,No responde
+gra,u,No especificado
+niv,0,Ninguno
+niv,1,Preescolar
+niv,2,Primaria
+niv,3,Secundaria
+niv,4,Carrera técnica con secundaria terminada
+niv,5,Normal básica (con antecedente en secundaria)
+niv,6,Preparatoria o bachillerato
+niv,7,Carrera técnica con preparatoria terminada
+niv,8,Licenciatura o profesional
+niv,9,Maestría o doctorado
+niv,10,Posgrado
+niv,d,No sabe / no responde
+niv,u,No especificado
+paren,1,Jefe(a)
+paren,2,Esposo(a)
+paren,3,Hijo(a)
+paren,4,Padre o madre
+paren,5,"Otro parentesco: tío(a), sobrino(a), primo(a)"
+paren,6,Sin parentesco
+paren,u,No especificado
+sexo,1,Hombre
+sexo,2,Mujer
