@@ -13,7 +13,7 @@ Input  (this folder):
     envipe_mun_part*.csv   municipalities
     envipe_aum_part*.csv   urban areas
     envipe_catalog.csv, envipe_value_labels.csv,
-    envipe_municipios.csv, envipe_areas.csv
+    envipe_municipios.csv, envipe_areas.csv, envipe_settings.csv
 
 Output (this folder):
     envipe-meta.js                        catalog, labels, lookups, part counts
@@ -96,6 +96,7 @@ def main():
         "labels": read_text(os.path.join(HERE, "envipe_value_labels.csv")),
         "municipios": read_text(os.path.join(HERE, "envipe_municipios.csv")),
         "areas": read_text(os.path.join(HERE, "envipe_areas.csv")),
+        "settings": read_text(os.path.join(HERE, "envipe_settings.csv")),
     }
     out = os.path.join(HERE, "envipe-meta.js")
     with open(out, "w", encoding="utf-8") as f:

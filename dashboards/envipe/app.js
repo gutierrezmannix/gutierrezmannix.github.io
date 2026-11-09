@@ -38,7 +38,7 @@
       zoomIn: 'Zoom in', zoomOut: 'Zoom out', zoomReset: 'Show all of Mexico',
       rankSt: 'All 32 states', rankMu: 'Municipalities · {n} with data', rankAu: 'Urban areas · {n}',
       minSt: 'smallest state n', minMu: 'smallest municipality n', minAu: 'smallest urban area n',
-      noteSt: '', noteMu: 'Only municipalities with at least 100 interviews in that edition are shown; the rest are grey. Scroll or pinch to zoom, drag to move.',
+      noteSt: '', noteMu: 'Only municipalities with at least {n} interviews in that edition are shown; the rest are grey. Scroll or pinch to zoom, drag to move.',
       noteAu: 'INEGI urban areas of interest, placed on and named after the municipality where most of their respondents live. Scroll or pinch to zoom, drag to move.',
       areaOf: '{m} urban area', areaN: 'Urban area {n}', fewN: 'Few answers (n < 50) — read with care', fewLeg: 'faded = fewer than 50 answers',
       natAll: 'Mexico (all adults)',
@@ -70,7 +70,7 @@
       zoomIn: 'Acercar', zoomOut: 'Alejar', zoomReset: 'Ver todo México',
       rankSt: 'Las 32 entidades', rankMu: 'Municipios · {n} con datos', rankAu: 'Áreas urbanas · {n}',
       minSt: 'n mínima por entidad', minMu: 'n mínima por municipio', minAu: 'n mínima por área urbana',
-      noteSt: '', noteMu: 'Solo se muestran los municipios con al menos 100 entrevistas en esa edición; los demás aparecen en gris. Usa la rueda o pellizca para acercar; arrastra para moverte.',
+      noteSt: '', noteMu: 'Solo se muestran los municipios con al menos {n} entrevistas en esa edición; los demás aparecen en gris. Usa la rueda o pellizca para acercar; arrastra para moverte.',
       noteAu: 'Áreas urbanas de interés del INEGI, ubicadas en el municipio donde vive la mayoría de sus informantes y nombradas por él. Usa la rueda o pellizca para acercar; arrastra para moverte.',
       areaOf: 'Área urbana de {m}', areaN: 'Área urbana {n}', fewN: 'Pocas respuestas (n < 50): interpretar con cautela', fewLeg: 'tenue = menos de 50 respuestas',
       natAll: 'México (toda la población adulta)',
@@ -118,6 +118,7 @@
   const AREAS = {};     // edition -> area code -> {state, main, name, n}
   let AREA_CODES = [];
   let PICK = [];        // [{v,label,sec}]
+  const SETTINGS = { minmun: '100' };   // overwritten by envipe_settings.csv when present
 
   function cleanLabel(s) {
     if (!s) return s;
@@ -176,6 +177,7 @@
     const ac = new Set();
     if (meta.areas) D.parseCSV(meta.areas).slice(1).forEach((r) => { if (r[0] && r[1]) { (AREAS[+r[0]] = AREAS[+r[0]] || {})[r[1]] = { state: r[2], main: r[3], name: r[4], n: +r[5] || 0 }; ac.add(r[1]); } });
     AREA_CODES = [...ac].sort();
+    if (meta.settings) D.parseCSV(meta.settings).slice(1).forEach((r) => { if (r[0]) SETTINGS[r[0]] = r[1]; });
     PICK = Object.keys(LINES).filter((v) => CAT[v])
       .map((v) => ({ v, label: CAT[v].label, sec: SECTIONS.slice(1).find((s) => s.test(v)).id }))
       .sort((x, y) => x.v.localeCompare(y.v, 'en', { numeric: true }));
@@ -432,7 +434,7 @@
     D.$$('#lvl button').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.l === S.lvl)); b.disabled = b.dataset.l !== 'st' && !(CAT[S.v] && CAT[S.v][b.dataset.l === 'mu' ? 'mun' : 'aum']); });
     D.$$('#who button').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.g === g)); b.disabled = S.lvl !== 'st' || (b.dataset.g !== 'all' && !(CAT[S.v] && CAT[S.v].grp)); });
     $('#who-note').textContent = S.lvl !== 'st' ? D.t('whoNote') : '';
-    $('#lvl-note').textContent = D.t(S.lvl === 'mu' ? 'noteMu' : S.lvl === 'au' ? 'noteAu' : 'noteSt');
+    $('#lvl-note').textContent = D.t(S.lvl === 'mu' ? 'noteMu' : S.lvl === 'au' ? 'noteAu' : 'noteSt', { n: SETTINGS.minmun });
     // ---- years ----
     const yi = V.years.indexOf(S.y);
     const yr = $('#yr'); yr.max = V.years.length - 1; yr.value = yi;
