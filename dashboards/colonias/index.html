@@ -5,7 +5,7 @@
 <title>Texas Colonias Dashboard</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <!-- Offline copy of images/ColoniasDashboardv2.html: Leaflet, fonts and county outlines are stored in ./lib;
-     the dark street background loads from the internet when available, otherwise the county outlines are shown. -->
+     the dark street map (Esri) loads from the internet when available, otherwise the county outlines are shown. -->
 <link rel="stylesheet" href="lib/leaflet/leaflet.css"/>
 <link href="lib/fonts.css" rel="stylesheet">
 <style>.back-link{display:inline-block;margin-bottom:10px;font-size:13px;color:var(--ink-2);text-decoration:none}.back-link:hover{color:var(--ink)}</style>
@@ -282,7 +282,7 @@
     pointer-events: none;
     text-shadow: 0 0 2px #1b1d22, 0 0 4px #1b1d22, 0 0 6px rgba(27,29,34,0.85), 1px 0 1px #1b1d22, -1px 0 1px #1b1d22, 0 1px 1px #1b1d22, 0 -1px 1px #1b1d22;
   }
-  .hide-city-labels .city-label { display: none; }
+  .hide-city-labels .city-label, .base-has-labels .city-label { display: none; }
   .hide-city-pins .city-pin { width: 5px; height: 5px; border-width: 1px; }
   .city-pop { padding: 4px 4px 2px; min-width: 180px; }
   .city-pop-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--ink-2); letter-spacing: 0.1em; text-transform: uppercase; }
@@ -766,22 +766,39 @@
   window.__dashboard = { map, renderer };
   L.control.zoom({ position: 'topright' }).addTo(map);
 
-  // One dark background (CARTO Dark Matter) so every shade of the dots stands out.
-  // Without internet it falls back to county outlines drawn on the same dark color.
-  const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 19,
-  });
+  // One dark street map so every shade of the dots stands out:
+  //   1. Esri World Dark Gray Canvas (roads, rivers, the border) + its city/place-name labels
+  //   2. County outlines stored with the page, if there is no internet
+  // (CARTO, used by the original dashboard, now requires a paid API key and returns
+  //  "API KEY REQUIRED" images, so it is no longer used.)
+  const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
+  map.createPane('baselabels'); map.getPane('baselabels').style.zIndex = 390;   // under the dots
+  map.getPane('baselabels').style.pointerEvents = 'none';
+  const darkSources = [
+    [L.tileLayer(ESRI + 'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+       attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors', maxNativeZoom: 16, maxZoom: 19 }),
+     L.tileLayer(ESRI + 'World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+       pane: 'baselabels', maxNativeZoom: 16, maxZoom: 19 })],
+  ];
   map.createPane('counties'); map.getPane('counties').style.zIndex = 350;
   const countyLayer = window.TX_COUNTIES ? L.geoJSON(window.TX_COUNTIES, { pane: 'counties', interactive: false,
       style: { color: '#5d636f', weight: 0.8, fill: false } }) : null;
-  function useOutlines() {
-    if (map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
-    if (countyLayer && !map.hasLayer(countyLayer)) countyLayer.addTo(map);
+  let srcIndex = -1;
+  function useSource(i) {
+    if (darkSources[srcIndex]) darkSources[srcIndex].forEach((l) => map.removeLayer(l));
+    srcIndex = i;
+    if (darkSources[i]) { darkSources[i].forEach((l) => l.addTo(map)); return; }
+    document.body.classList.remove('base-has-labels');
+    if (countyLayer && !map.hasLayer(countyLayer)) countyLayer.addTo(map);   // last resort: outlines
   }
-  let tileFails = 0, tileOk = false;
-  darkTiles.on('tileload', () => { tileOk = true; });
-  darkTiles.on('tileerror', () => { if (++tileFails === 4 && !tileOk) useOutlines(); });
-  if (navigator.onLine === false) useOutlines(); else darkTiles.addTo(map);
+  // When the street map's own place names load, hide the dashboard's duplicate city text (pins stay clickable).
+  if (darkSources[0][1]) darkSources[0][1].on('tileload', () => document.body.classList.add('base-has-labels'));
+  darkSources.forEach((layers, i) => {
+    let fails = 0, ok = false;
+    layers[0].on('tileload', () => { ok = true; });
+    layers[0].on('tileerror', () => { if (++fails === 4 && !ok && srcIndex === i) useSource(i + 1); });
+  });
+  useSource(navigator.onLine === false ? darkSources.length : 0);
 
   const allCoords = data.map(d => [d.lat, d.lon]);
 
