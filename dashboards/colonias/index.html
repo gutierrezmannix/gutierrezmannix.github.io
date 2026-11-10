@@ -5,7 +5,7 @@
 <title>Texas Colonias Dashboard</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <!-- Offline copy of images/ColoniasDashboardv2.html: Leaflet, fonts and county outlines are stored in ./lib;
-     street/terrain backgrounds still load from the internet when it is available. -->
+     the dark street background loads from the internet when available, otherwise the county outlines are shown. -->
 <link rel="stylesheet" href="lib/leaflet/leaflet.css"/>
 <link href="lib/fonts.css" rel="stylesheet">
 <style>.back-link{display:inline-block;margin-bottom:10px;font-size:13px;color:var(--ink-2);text-decoration:none}.back-link:hover{color:var(--ink)}</style>
@@ -185,7 +185,7 @@
 
   /* ---- MAP AREA ---- */
   #map-wrap { position: relative; overflow: hidden; }
-  #map { position: absolute; inset: 0; background: var(--paper-2); }
+  #map { position: absolute; inset: 0; background: #1b1d22; }
   .map-overlay { position: absolute; z-index: 500; pointer-events: auto; }
 
   .search { top: 14px; left: 14px; background: var(--paper); border: 1px solid var(--line-strong); width: 320px; box-shadow: 0 2px 8px rgba(20,21,26,0.06); }
@@ -214,8 +214,6 @@
   .basemap-toggle button:last-child { border-right: 0; }
   .basemap-toggle button.on { background: var(--ink); color: var(--paper); }
 
-  .base-note { bottom: 52px; right: 14px; max-width: 300px; background: var(--ink); color: var(--paper); padding: 8px 12px; font-size: 12px; line-height: 1.4; display: none; }
-  @media (max-width: 860px) { .base-note { bottom: 60px; right: 10px; left: 10px; max-width: none; } }
 
   /* ---- PROFILE PANEL ---- */
   #profile {
@@ -259,29 +257,30 @@
   .leaflet-popup-tip { background: var(--paper); border: 1px solid var(--line-strong); }
   .leaflet-popup-content { margin: 10px 14px; font-family: inherit; font-size: 12.5px; line-height: 1.4; }
   .leaflet-popup-content b { font-size: 13.5px; }
-  .leaflet-container { background: var(--paper-2); font-family: inherit; }
-  .leaflet-control-attribution { background: rgba(249,247,242,0.85) !important; font-size: 9.5px !important; }
+  .leaflet-container { background: #1b1d22; font-family: inherit; }
+  .leaflet-control-attribution { background: rgba(27,29,34,0.8) !important; color: #9a9da6 !important; font-size: 9.5px !important; }
+  .leaflet-control-attribution a { color: #c9ccd3 !important; }
 
   /* ---- CITY HALL MARKERS ---- */
   .city-marker { overflow: visible !important; pointer-events: auto; }
   .city-pin {
     position: absolute; left: 50%; top: 50%;
     width: 7px; height: 7px; transform: translate(-50%, -50%);
-    background: var(--ink); border: 1.5px solid #fff;
+    background: #f9f7f2; border: 1.5px solid #14151a;
     border-radius: 50%;
-    box-shadow: 0 0 0 1px rgba(20,21,26,0.25), 0 1px 3px rgba(20,21,26,0.35);
+    box-shadow: 0 0 0 1px rgba(249,247,242,0.35), 0 1px 3px rgba(0,0,0,0.5);
     transition: transform 0.12s ease, background 0.12s ease;
   }
   .city-marker:hover .city-pin { background: var(--accent); transform: translate(-50%, -50%) scale(1.35); }
   .city-marker:hover .city-label { color: var(--accent); }
   .city-label {
     position: absolute; left: 50%; top: 100%; transform: translate(-50%, 5px);
-    color: var(--ink); background: transparent;
+    color: #f4f2ec; background: transparent;
     font-family: 'Inter Tight', system-ui, sans-serif;
     font-size: 11px; font-weight: 600; letter-spacing: 0.005em;
     white-space: nowrap; line-height: 1.1;
     pointer-events: none;
-    text-shadow: 0 0 2px #f9f7f2, 0 0 4px #f9f7f2, 0 0 6px rgba(249,247,242,0.85), 1px 0 1px #f9f7f2, -1px 0 1px #f9f7f2, 0 1px 1px #f9f7f2, 0 -1px 1px #f9f7f2;
+    text-shadow: 0 0 2px #1b1d22, 0 0 4px #1b1d22, 0 0 6px rgba(27,29,34,0.85), 1px 0 1px #1b1d22, -1px 0 1px #1b1d22, 0 1px 1px #1b1d22, 0 -1px 1px #1b1d22;
   }
   .hide-city-labels .city-label { display: none; }
   .hide-city-pins .city-pin { width: 5px; height: 5px; border-width: 1px; }
@@ -418,8 +417,6 @@
     .current-var { display: none; }
     .counter-card { top: auto; right: auto; bottom: 22px; left: 10px; padding: 6px 9px; font-size: 10px; }
     .counter-card .n { font-size: 12px; }
-    .basemap-toggle { bottom: 22px; right: 10px; }
-    .basemap-toggle button { padding: 7px 7px; font-size: 9.5px; letter-spacing: 0.03em; }
     .leaflet-top.leaflet-right { top: 0; right: 0; }
     .chip { padding: 7px 10px; font-size: 12.5px; }
     .var-select { font-size: 16px; }
@@ -466,7 +463,7 @@
           or a sewer hookup. The state of Texas tracks <b>1,716</b> of them.
         </p>
         <p class="about-tip">
-          ● &nbsp;Black dots on the map mark major border cities &mdash; click one for its city hall.
+          ● &nbsp;White dots on the map mark major border cities &mdash; click one for its city hall.
         </p>
       </div>
     </div>
@@ -523,12 +520,6 @@
       <div class="label">Now coloring by</div>
       <div class="title" id="cv-title">Median household income</div>
       <div class="desc" id="cv-desc">From ACS 5-year. Quintile breaks across all colonias.</div>
-    </div>
-    <div class="map-overlay basemap-toggle" id="basemap">
-      <button data-b="light" class="on">Light</button>
-      <button data-b="terrain">Terrain</button>
-      <button data-b="plain">Plain</button>
-      <button data-b="none" title="County outlines only — works without internet">Outline</button>
     </div>
   </div>
 
@@ -775,55 +766,22 @@
   window.__dashboard = { map, renderer };
   L.control.zoom({ position: 'topright' }).addTo(map);
 
-  const basemaps = {
-    light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 19,
-    }),
-    terrain: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap, SRTM | &copy; OpenTopoMap', maxZoom: 17,
-    }),
-    plain: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 19,
-    }),
-  };
-  // Offline base: county outlines stored with the page. Always drawn under the dots,
-  // and the whole background when "Outline" is chosen or the tiles can't load.
-  map.createPane('counties'); map.getPane('counties').style.zIndex = 350;
-  // The outlines are shown only in "Outline" mode, so they never cover the Light / Terrain / Plain backgrounds.
-  const countyLayer = window.TX_COUNTIES ? L.geoJSON(window.TX_COUNTIES, { pane: 'counties', interactive: false,
-      style: { color: '#a59f92', weight: 0.8, fill: true, fillColor: '#efece4', fillOpacity: 0.35 } }) : null;
-  basemaps.none = null;
-  const BASE_NAMES = { light: 'Light', terrain: 'Terrain', plain: 'Plain' };
-  let activeBasemap = null, activeKey = null;
-  function setBasemap(key) {
-    if (activeBasemap) map.removeLayer(activeBasemap);
-    activeKey = key;
-    activeBasemap = basemaps[key] ? basemaps[key].addTo(map) : null;
-    if (activeBasemap) activeBasemap.bringToBack();
-    if (countyLayer) { if (key === 'none') countyLayer.addTo(map); else map.removeLayer(countyLayer); }
-    document.querySelectorAll('#basemap button').forEach((b) => b.classList.toggle('on', b.dataset.b === key));
-  }
-  // Each online background is checked on its own: if one can't load (no internet, or the
-  // tile server is down), fall back to the outlines and say so, instead of a blank map.
-  const tileFails = {}, tileOk = {};
-  function baseNote(msg) {
-    let n = document.getElementById('base-note');
-    if (!n) { n = document.createElement('div'); n.id = 'base-note'; n.className = 'map-overlay base-note'; document.getElementById('map-wrap').appendChild(n); }
-    n.textContent = msg; n.style.display = 'block';
-    clearTimeout(baseNote.t); baseNote.t = setTimeout(() => { n.style.display = 'none'; }, 5000);
-  }
-  Object.keys(basemaps).forEach((k) => {
-    if (!basemaps[k]) return;
-    basemaps[k].on('tileload', () => { tileOk[k] = true; });
-    basemaps[k].on('tileerror', () => {
-      tileFails[k] = (tileFails[k] || 0) + 1;
-      if (activeKey === k && !tileOk[k] && tileFails[k] === 4) {
-        setBasemap('none');
-        baseNote('The ' + BASE_NAMES[k] + ' background could not load (it needs internet), so the county outlines are shown.');
-      }
-    });
+  // One dark background (CARTO Dark Matter) so every shade of the dots stands out.
+  // Without internet it falls back to county outlines drawn on the same dark color.
+  const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 19,
   });
-  setBasemap(navigator.onLine === false ? 'none' : 'light');
+  map.createPane('counties'); map.getPane('counties').style.zIndex = 350;
+  const countyLayer = window.TX_COUNTIES ? L.geoJSON(window.TX_COUNTIES, { pane: 'counties', interactive: false,
+      style: { color: '#5d636f', weight: 0.8, fill: false } }) : null;
+  function useOutlines() {
+    if (map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
+    if (countyLayer && !map.hasLayer(countyLayer)) countyLayer.addTo(map);
+  }
+  let tileFails = 0, tileOk = false;
+  darkTiles.on('tileload', () => { tileOk = true; });
+  darkTiles.on('tileerror', () => { if (++tileFails === 4 && !tileOk) useOutlines(); });
+  if (navigator.onLine === false) useOutlines(); else darkTiles.addTo(map);
 
   const allCoords = data.map(d => [d.lat, d.lon]);
 
@@ -1068,7 +1026,7 @@
         const ci = classOf(val, breaks);
         color = ci === -1 ? NA_COLOR : RAMP[ci];
       }
-      m.setStyle({ fillColor: color, color: color, fillOpacity: 0.88, opacity: 1 });
+      m.setStyle({ fillColor: color, color: 'rgba(249,247,242,0.55)', weight: 0.7, fillOpacity: 0.9, opacity: 1 }); // faint light rim keeps the darkest reds visible on the dark map
       const popLine = d.pop_est != null
         ? `<br><span style="font-family:JetBrains Mono,monospace;font-size:11px;color:#5a5d68">est. residents: ${d.pop_est.toLocaleString()}</span>`
         : '';
@@ -1142,7 +1100,7 @@
     profileBody.innerHTML = renderProfile(d);
     // highlight on map
     if (selectedHighlight) map.removeLayer(selectedHighlight);
-    selectedHighlight = L.circleMarker([d.lat, d.lon], { radius: 11, color: '#14151a', weight: 2, fillColor: 'transparent', fillOpacity: 0 }).addTo(map);
+    selectedHighlight = L.circleMarker([d.lat, d.lon], { radius: 11, color: '#ffffff', weight: 2, fillColor: 'transparent', fillOpacity: 0 }).addTo(map);
     // Recompute layout for leaflet (panel changes width)
     setTimeout(() => map.invalidateSize(), 280);
   }
@@ -1243,13 +1201,6 @@
     return html;
   }
 
-  // ---------- Basemap toggle ----------
-  $('#basemap').addEventListener('click', e => {
-    const btn = e.target.closest('button'); if (!btn) return;
-    const k = btn.dataset.b;
-    if (!tileOk[k]) tileFails[k] = 0; // a fresh try each time the button is pressed
-    setBasemap(k);
-  });
 
   // ---------- ANALYSIS MODAL ----------
   const backdrop = $('#analysis-backdrop');
