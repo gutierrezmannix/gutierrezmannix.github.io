@@ -214,6 +214,9 @@
   .basemap-toggle button:last-child { border-right: 0; }
   .basemap-toggle button.on { background: var(--ink); color: var(--paper); }
 
+  .base-note { bottom: 52px; right: 14px; max-width: 300px; background: var(--ink); color: var(--paper); padding: 8px 12px; font-size: 12px; line-height: 1.4; display: none; }
+  @media (max-width: 860px) { .base-note { bottom: 60px; right: 10px; left: 10px; max-width: none; } }
+
   /* ---- PROFILE PANEL ---- */
   #profile {
     background: var(--paper); border-left: 1px solid var(--line);
@@ -786,24 +789,39 @@
   // Offline base: county outlines stored with the page. Always drawn under the dots,
   // and the whole background when "Outline" is chosen or the tiles can't load.
   map.createPane('counties'); map.getPane('counties').style.zIndex = 350;
-  if (window.TX_COUNTIES) {
-    L.geoJSON(window.TX_COUNTIES, { pane: 'counties', interactive: false,
-      style: { color: '#a59f92', weight: 0.8, fill: true, fillColor: '#efece4', fillOpacity: 0.35 } }).addTo(map);
-  }
+  // The outlines are shown only in "Outline" mode, so they never cover the Light / Terrain / Plain backgrounds.
+  const countyLayer = window.TX_COUNTIES ? L.geoJSON(window.TX_COUNTIES, { pane: 'counties', interactive: false,
+      style: { color: '#a59f92', weight: 0.8, fill: true, fillColor: '#efece4', fillOpacity: 0.35 } }) : null;
   basemaps.none = null;
-  let activeBasemap = null;
+  const BASE_NAMES = { light: 'Light', terrain: 'Terrain', plain: 'Plain' };
+  let activeBasemap = null, activeKey = null;
   function setBasemap(key) {
     if (activeBasemap) map.removeLayer(activeBasemap);
+    activeKey = key;
     activeBasemap = basemaps[key] ? basemaps[key].addTo(map) : null;
     if (activeBasemap) activeBasemap.bringToBack();
+    if (countyLayer) { if (key === 'none') countyLayer.addTo(map); else map.removeLayer(countyLayer); }
     document.querySelectorAll('#basemap button').forEach((b) => b.classList.toggle('on', b.dataset.b === key));
   }
-  // No internet: start on the outlines; if the tiles keep failing, switch to them.
-  let tileFails = 0, tileOk = false;
+  // Each online background is checked on its own: if one can't load (no internet, or the
+  // tile server is down), fall back to the outlines and say so, instead of a blank map.
+  const tileFails = {}, tileOk = {};
+  function baseNote(msg) {
+    let n = document.getElementById('base-note');
+    if (!n) { n = document.createElement('div'); n.id = 'base-note'; n.className = 'map-overlay base-note'; document.getElementById('map-wrap').appendChild(n); }
+    n.textContent = msg; n.style.display = 'block';
+    clearTimeout(baseNote.t); baseNote.t = setTimeout(() => { n.style.display = 'none'; }, 5000);
+  }
   Object.keys(basemaps).forEach((k) => {
     if (!basemaps[k]) return;
-    basemaps[k].on('tileload', () => { tileOk = true; });
-    basemaps[k].on('tileerror', () => { if (++tileFails >= 4 && !tileOk) setBasemap('none'); });
+    basemaps[k].on('tileload', () => { tileOk[k] = true; });
+    basemaps[k].on('tileerror', () => {
+      tileFails[k] = (tileFails[k] || 0) + 1;
+      if (activeKey === k && !tileOk[k] && tileFails[k] === 4) {
+        setBasemap('none');
+        baseNote('The ' + BASE_NAMES[k] + ' background could not load (it needs internet), so the county outlines are shown.');
+      }
+    });
   });
   setBasemap(navigator.onLine === false ? 'none' : 'light');
 
@@ -1228,7 +1246,9 @@
   // ---------- Basemap toggle ----------
   $('#basemap').addEventListener('click', e => {
     const btn = e.target.closest('button'); if (!btn) return;
-    setBasemap(btn.dataset.b);
+    const k = btn.dataset.b;
+    if (!tileOk[k]) tileFails[k] = 0; // a fresh try each time the button is pressed
+    setBasemap(k);
   });
 
   // ---------- ANALYSIS MODAL ----------
