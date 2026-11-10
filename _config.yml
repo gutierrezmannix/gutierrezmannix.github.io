@@ -86,5 +86,8 @@ exclude:
   - LICENSE
   - README.md
   - CNAME
+  # ENVIPE source CSVs stay in the repo but are not published: the dashboard reads the
+  # .js copies of the same data, and leaving them out halves the size of every Pages deploy.
+  - dashboards/envipe/data/*.csv
 
 theme: jekyll-theme-leap-day
