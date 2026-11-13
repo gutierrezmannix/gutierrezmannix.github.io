@@ -23,7 +23,7 @@
     const mk = (base, label) => { const name = E.tlVarName((SV.prefix || '') + base, taken); taken.add(name); return { name, label }; };
     const rowMask = SV.rows === 'subgroup' ? this.mask() : null;
     const perRow = (fn) => { const a = new Float64Array(n).fill(NaN); for (let d = 0; d < nd; d++) { const r = this.tlRowOf(C, d); if (rowMask && !rowMask[r]) continue; if (C.blank[d]) continue; const v = fn(d); a[r] = isFinite(a[r]) ? a[r] + v : v; } return a; };
-    const words = this.memo('tlNW|' + C.key, () => { const w = new Float64Array(nd); for (let d = 0; d < nd; d++) { let k = 0; for (let i = C.off[d]; i < C.off[d + 1]; i++) if (C.kind[C.tok[i]] === 1) k++; w[d] = k; } return w; });
+    const words = this.tlRawWords(C);
     const nwRow = perRow(d => words[d]);
     const names = cats.map(c => c.name.toLowerCase()); const dup = names.find((x, i) => names.indexOf(x) !== i);
     if (dup) problems.push('Two dictionary categories are both called “' + dup + '”. Rename one in Measure → Dictionary.');
@@ -232,20 +232,25 @@
       h('text', { x: mid, y: H - 8, fontSize: 10.5, textAnchor: 'middle', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#5D5648' }, 'signed ' + lab + ' (textplot_keyness)'));
   }
   tlLinesSvg(key, xs, series, o) {
-    const h = React.createElement, W = 800, H = 330, L = 56, R = 170, Tt = 30, B = 46, n = xs.length;
+    const h = React.createElement, W = 800, H = 330, L = 56, R = 170, eras = o.eras && o.eras.length ? o.eras : null, Tt = eras ? 50 : 30, B = 46, n = xs.length;
     const all = series.flatMap(s => s.pts).filter(isFinite), hi = Math.max(...all, 0) || 1, lo = Math.min(0, ...all), ticks = this.tlTicks(lo, hi, 5), t0 = ticks[0], t1 = ticks[ticks.length - 1];
     const X = i => L + (W - L - R) * (n > 1 ? i / (n - 1) : 0.5), Y = v => H - B - (H - B - Tt) * (v - t0) / ((t1 - t0) || 1), every = Math.ceil(n / 10);
     return h('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': o.title, ref: this.svgRef(key), className: 'tl-svg' }, h('rect', { width: W, height: H, fill: '#FFFFFF' }),
       h('text', { x: 8, y: 18, fontSize: 12.5, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", fill: '#1A1711' }, o.title),
       ticks.map((t, i) => h('g', { key: i }, h('line', { x1: L, x2: W - R, y1: Y(t), y2: Y(t), stroke: '#ECE6DA' }), h('text', { x: L - 6, y: Y(t) + 3.5, fontSize: 10, textAnchor: 'end', fontFamily: "'Space Mono', monospace", fill: '#6B6455' }, o.pct ? t + '%' : this.fmt(t, (t1 - t0) < 5 ? 2 : 0)))),
       xs.map((x, i) => i % every === 0 ? h('text', { key: i, x: X(i), y: H - B + 15, fontSize: 9.5, textAnchor: 'middle', fontFamily: "'Space Mono', monospace", fill: '#6B6455' }, x) : null),
-      series.map((s, si) => { const segs = []; let cur = []; s.pts.forEach((v, i) => { if (isFinite(v)) cur.push(X(i).toFixed(1) + ',' + Y(v).toFixed(1)); else if (cur.length && !o.connect) { segs.push(cur); cur = []; } }); if (cur.length) segs.push(cur); const lastI = s.pts.map((v, i) => isFinite(v) ? i : -1).filter(i => i >= 0).pop(); return h('g', { key: si }, segs.map((sg, k) => h('polyline', { key: k, points: sg.join(' '), fill: 'none', stroke: s.color, strokeWidth: 2.2, strokeLinejoin: 'round' })), s.pts.map((v, i) => isFinite(v) && n <= 60 ? h('circle', { key: i, cx: X(i), cy: Y(v), r: 2.6, fill: s.color }) : null), null); }),
+      // build .98: the eras of the groups (presidents …): a bracket and a name over each span, a dashed line where one ends and the next begins
+      eras ? h('g', null, eras.map((e, i) => { const xa = X(e.a), xb = X(e.b), row = eras.slice(0, i).some(p => p.b > e.a) ? 1 : 0, y = 34 + row * 12, nx = eras[i + 1], sep = nx && nx.a >= e.b && !row ? (nx.a > e.b ? (xb + X(nx.a)) / 2 : xb) : null;
+        return h('g', { key: i }, h('path', { d: 'M' + xa.toFixed(1) + ',' + (y + 2) + 'V' + (y + 5) + 'H' + xb.toFixed(1) + 'V' + (y + 2), fill: 'none', stroke: '#A79E8C', strokeWidth: 1 }), h('text', { x: ((xa + xb) / 2).toFixed(1), y: y - 1, fontSize: 10.5, fontWeight: 700, textAnchor: 'middle', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#5D5648' }, String(e.name).slice(0, 28)),
+          sep != null ? h('line', { x1: sep.toFixed(1), x2: sep.toFixed(1), y1: Tt, y2: H - B, stroke: '#A79E8C', strokeDasharray: '4 3' }) : null); })) : null,
+      series.map((s, si) => { const segs = []; let cur = []; s.pts.forEach((v, i) => { if (isFinite(v)) cur.push(X(i).toFixed(1) + ',' + Y(v).toFixed(1)); else if (cur.length && !o.connect) { segs.push(cur); cur = []; } }); if (cur.length) segs.push(cur); const lastI = s.pts.map((v, i) => isFinite(v) ? i : -1).filter(i => i >= 0).pop(); return h('g', { key: si }, segs.map((sg, k) => h('polyline', { key: k, points: sg.join(' '), fill: 'none', stroke: s.color, strokeWidth: 2.2, strokeLinejoin: 'round', strokeDasharray: s.dash || undefined })), s.pts.map((v, i) => isFinite(v) && n <= 60 ? h('circle', { key: i, cx: X(i), cy: Y(v), r: 2.6, fill: s.color }) : null), null); }),
       (() => { // end labels, pushed apart so they never overlap
-        const labs = series.map((s, si) => { const lastI = s.pts.map((v, i) => isFinite(v) ? i : -1).filter(i => i >= 0).pop(); return lastI == null ? null : { si, x: X(lastI), y0: Y(s.pts[lastI]), y: Y(s.pts[lastI]), s }; }).filter(Boolean).sort((p, q) => p.y0 - q.y0);
+        // build .98: every label sits in the right margin; a line that ends early (a president who left office) gets a leader from its last point
+        const xr = X(n - 1) + 12, labs = series.map((s, si) => { const lastI = s.pts.map((v, i) => isFinite(v) ? i : -1).filter(i => i >= 0).pop(); return lastI == null ? null : { si, x: X(lastI), y0: Y(s.pts[lastI]), y: Y(s.pts[lastI]), s, early: lastI < n - 1 }; }).filter(Boolean).sort((p, q) => p.y0 - q.y0);
         for (let i = 1; i < labs.length; i++) labs[i].y = Math.max(labs[i].y, labs[i - 1].y + 13);
         const over = labs.length ? labs[labs.length - 1].y - (H - B) : 0; if (over > 0) for (const l of labs) l.y -= over;
         for (let i = labs.length - 2; i >= 0; i--) labs[i].y = Math.min(labs[i].y, labs[i + 1].y - 13);
-        return h('g', null, labs.map(l => h('g', { key: l.si }, Math.abs(l.y - l.y0) > 3 ? h('path', { d: 'M' + (l.x + 3) + ',' + l.y0 + 'L' + (l.x + 10) + ',' + l.y, stroke: l.s.color, strokeWidth: 0.8, fill: 'none' }) : null, h('text', { x: l.x + 12, y: l.y + 4, fontSize: 11, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", fill: l.s.color }, String(l.s.name).slice(0, 26)))));
+        return h('g', null, labs.map(l => h('g', { key: l.si }, l.early || Math.abs(l.y - l.y0) > 3 ? h('path', { d: 'M' + (l.x + 3).toFixed(1) + ',' + l.y0.toFixed(1) + 'L' + (xr - 2).toFixed(1) + ',' + l.y.toFixed(1), stroke: l.s.color, strokeWidth: 0.8, strokeDasharray: l.early ? '2 2' : undefined, fill: 'none' }) : null, h('text', { x: xr, y: l.y + 4, fontSize: 11, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", fill: l.s.color }, String(l.s.name).slice(0, 26)))));
       })(),
       h('text', { x: 14, y: (H - B + Tt) / 2, fontSize: 10.5, textAnchor: 'middle', transform: 'rotate(-90 14 ' + (H - B + Tt) / 2 + ')', fontFamily: "'Hanken Grotesk', sans-serif", fill: '#5D5648' }, o.ylab));
   }

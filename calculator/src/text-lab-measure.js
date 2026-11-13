@@ -131,27 +131,19 @@
     if (!D || !D.ok) return h('div', { className: 'tl-col tl-dtime' }, title, h('div', { className: 'tl-row wide' }, head), this.tlBanner('warn', '“' + T.date + '” does not look like dates.'));
     const unit = this.tlTimeUnit(DT, D), all = DT.cat === 'all', ci = all ? -1 : Math.min(L.cats.length - 1, Math.max(0, Number(DT.cat) || 0));
     const ylab = this.tlMeasureLab(DT.measure), sig = '|' + C.key + '|' + JSON.stringify(L.cats) + '|' + T.date + '|' + T.time.order + '|' + unit + '|' + DT.measure + '|' + T.by + '|' + T.mergeCase + '|' + this.filterSig();
+    // build .98: the same layouts as Explore → Over time (a line per category with the groups' eras marked, category × group …)
+    const parts = (all ? L.cats.map((c, k) => k) : [ci]).filter(k => L.res[k]).map(k => ({ name: L.cats[k].name, x: d => L.res[k].counts[d] }));
+    const many = parts.length > 1, lineOpts = this.tlTimeLayouts(ctx, many, null, 'category'), lines = lineOpts.some(o => o[0] === DT.lines) ? DT.lines : this.tlTimeDefault(ctx, many);
     const ctl = h('div', { className: 'tl-row wide' }, head,
-      this.tlField('Category', this.tlSelect(all ? 'all' : String(ci), [['all', 'All categories (one chart per group)']].concat(L.cats.map((c, i) => [String(i), c.name])), v => set({ cat: v }), 'Timeline category')),
+      this.tlField('Category', this.tlSelect(all ? 'all' : String(ci), [['all', 'All categories']].concat(L.cats.map((c, i) => [String(i), c.name])), v => set({ cat: v }), 'Timeline category')),
       // a line (or a chart) per author, party, outlet …: the same setting as Groups to compare in step 1
-      this.tlField('Plot by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); }, 'Plot timeline by')),
+      this.tlField('Plot by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); set({ lines: 'auto' }); }, 'Plot timeline by')),
+      many && lineOpts.length > 1 ? this.tlField('Layout', this.tlSeg(lineOpts, lines, v => set({ lines: v }))) : null,
       this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], DT.measure, v => set({ measure: v }))),
       this.tlField('By', this.tlSeg([['auto', 'Auto (' + unit + ')'], ['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']], DT.unit, v => set({ unit: v }))));
-    const charts = [];
-    if (!all) {
-      const counts = L.res[ci].counts, { defs } = this.tlGroupDefs(ctx, d => counts[d]);
-      const data = this.memo('tlDT' + ci + sig, () => this.tlTimeAgg(ctx, D, unit, defs, DT.measure));
-      charts.push(h('div', { key: 'one', className: 'tl-col' }, this.tlLinesSvg('tldt', data.xs, data.series, { ylab, pct: DT.measure === 'pct', title: L.cats[ci].name + ' · ' + ylab }), this.tlExportRow('tldt', 'timeline-' + this._E.tlVarName(L.cats[ci].name))));
-    } else {
-      const { defs: gdefs } = this.tlGroupDefs(ctx, null);
-      gdefs.slice(0, 6).forEach((gd, gi) => {
-        const defs = L.cats.map((c, k) => ({ name: c.name, color: this.tlPal(k), inc: gd.inc, x: d => L.res[k].counts[d] }));
-        const data = this.memo('tlDTall' + gi + sig, () => this.tlTimeAgg(ctx, D, unit, defs, DT.measure));
-        charts.push(h('div', { key: gi, className: 'tl-col' }, this.tlLinesSvg('tldt' + gi, data.xs, data.series, { ylab, pct: DT.measure === 'pct', title: gd.name + ' · ' + ylab })));
-      });
-      charts.push(h('div', { key: 'exp', className: 'tl-row' }, ...gdefs.slice(0, 6).map((gd, gi) => this.tlBtn('Download ' + String(gd.name).slice(0, 18), () => this.tlExport('tldt' + gi, 'timeline-' + this._E.tlVarName(gd.name), 'png', 300), '', { key: gi, title: 'PNG at 300 dpi' }))));
-    }
-    const by = T.by ? ' + `' + T.by + '`' : '';
+    const chartDefs = parts.length ? this.tlTimeCharts(ctx, D, unit, { key: 'tldt', parts, single: parts[0], lines, measure: DT.measure, ylab, sig: 'tlDT' + sig, fill: false, t1: parts[0].name + ' · ' + ylab, itemLab: 'category' }) : [];
+    const charts = chartDefs.map(ch => h('div', { key: ch.key, className: 'tl-col' }, this.tlLinesSvg(ch.key, ch.data.xs, ch.data.series, { ylab, pct: DT.measure === 'pct', title: ch.title, eras: ch.eras }), this.tlExportRow(ch.key, 'timeline-' + this._E.tlVarName(ch.title.split(' · ')[0]))));
+    const by = T.by && this.tlTimeUsesBy(lines) ? ' + `' + T.by + '`' : '';
     return h('div', { className: 'tl-col tl-dtime' }, title, ctl, ...charts,
       this.tlRcode('hits <- convert(dfm(tokens_lookup(toks, dict, nested_scope = "key")), to = "data.frame")\ndf$period <- ' + this.tlRPeriod(T, unit) + '\n' + (all ? L.cats.map(c => 'aggregate(hits[["' + c.name + '"]] > 0 ~ period' + by + ', data = df, FUN = mean)').join('\n') : (DT.measure === 'rate' ? 'agg <- aggregate(cbind(hits = hits[["' + L.cats[ci].name + '"]], words = ntoken(toks_clean)) ~ period' + by + ', data = df, FUN = sum)\nagg$per10k <- 10000 * agg$hits / agg$words   # mentions per 10,000 words\nagg'
         : 'aggregate(' + (DT.measure === 'pct' ? '100 * (hits[["' + L.cats[ci].name + '"]] > 0)' : 'hits[["' + L.cats[ci].name + '"]]') + ' ~ period' + by + ', data = df, FUN = ' + (DT.measure === 'pct' ? 'mean' : 'sum') + ')' + (DT.measure === 'pct' ? '   # % of texts that mention it' : '   # times mentioned')))));

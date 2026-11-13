@@ -153,3 +153,38 @@ date — named like a date. Change them above if they are not right.* A restored
 On the files used for testing: the tweets and *The_Mananeras_Data* open ready (with the notice); *MananerasSA* (text /
 text1) and a file with a transcript and a summary ask first. Tests: `tests/text-lab-autopick.test.mjs`;
 `tests/text-lab-e2e.cjs` logs what was chosen or asked and answers the question as a person would.
+
+## Build .98 — In context, Over time and the Measure timeline
+
+Tested on *mananeras.dta* (288 conferences, AMLO and Sheinbaum, 2018–2026).
+
+**In context (kwic)**
+
+- The row number is the row in the loaded data (the Data tab's numbering). It is now a link: clicking *row 42* opens
+  the Data tab at that row with the text column in view.
+- Each side is as wide as its words need (about 62 px a word), so 12 or 20 words each side are no longer cut. The
+  table scrolls sideways, with the keyword in the middle when it opens; the row column stays pinned on the left.
+- Clicking a line shows the passage around it (60 words each side, from the original text) under that line; clicking
+  again closes it.
+
+**Over time**
+
+- *Length of the texts* (Show) charts how long the texts are: all words before cleaning, words kept after cleaning, or
+  characters; as the mean or median per text, or the total per period; a line per group with Plot by. The old *Words
+  per text* (after cleaning only) is one of its options. R: `ntoken(toks)`, `ntoken(toks_clean)` or `nchar(df$text)`
+  with `aggregate(..., FUN = mean | median | sum)`.
+- Layouts with several words and a group column:
+  - **One line per word, *group* marked** (the default): each word is one line across the whole period; the groups'
+    eras (where each group's texts begin and end) are drawn as brackets with their names, with a dashed line where one
+    group's era ends and the next begins. Made for presidents, legislatures and other groups that follow one another.
+  - **Word × group**: a line per combination, colour by word and dashes by group, labelled *brasil · Sheinbaum*. For
+    groups that overlap in time (parties, outlets).
+  - *One line per word, groups pooled*, *One chart per group*, *One chart per word* and *All together* as before.
+- End labels always sit in the right margin; a line that ends early (a president who left office) gets a dotted
+  leader from its last point, so labels no longer sit over other lines.
+
+**Measure → Timeline** uses the same layouts (with *category* instead of *word*): *All categories* no longer means one
+chart per group; the default is one chart with a line per category and the groups' eras marked.
+
+Tests: `tests/text-lab-component.test.mjs` (the layouts, eras and dashes, the length options and their R code, the row
+link and the passage); `tests/text-lab-e2e.cjs` in a browser.

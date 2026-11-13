@@ -3089,6 +3089,15 @@ code, kbd, samp { font-family: var(--font-mono); }
 .tl-kwic td.post{color:var(--c5D5648,#5D5648)}
 .tl-kwic td.meta{color:var(--c6B6455,#6B6455);font-size:10.5px}
 .tl-kwic td.mark{white-space:nowrap}
+.tl-kwicwrap{overflow:auto}
+.tl-kwic td.pre,.tl-kwic td.post{max-width:none}
+.tl-kwic tbody tr{cursor:pointer}
+.tl-kwic tbody tr.open td:not(.kw){background:#F7F3EB}
+.tl-kwic td.meta{position:sticky;left:0;z-index:1;background:#fff;box-shadow:2px 0 0 #fff}
+.tl-kwic td.meta .tl-link{font:inherit;padding:0;white-space:nowrap}
+.tl-kwic tr.tl-kwic-pass td{white-space:normal;max-width:none;font-family:var(--fUI,'Hanken Grotesk',sans-serif);font-size:12.5px;line-height:1.55;color:var(--c2B271E,#2B271E);background:#FBF9F4;padding:8px 14px 10px;direction:ltr;text-align:left;cursor:default;border-bottom:1px solid var(--cE3D8C4,#E3D8C4)}
+.tl-pass{width:calc(var(--kwvw,640px) - 40px);box-sizing:border-box;will-change:transform}
+.tl-pass mark{background:var(--cC4681E,#C4681E);color:#fff;border-radius:3px;padding:0 3px}
 .tl-details{border:1px solid var(--cE3DCCE,#E3DCCE);border-radius:8px;padding:6px 10px;display:flex;flex-direction:column;gap:6px}
 .tl-details>summary{cursor:pointer;font-size:12px;color:var(--c194F39,#194F39);font-weight:600}
 .tl-details[open]{gap:8px}
@@ -4063,7 +4072,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-08.97</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-13.98</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>

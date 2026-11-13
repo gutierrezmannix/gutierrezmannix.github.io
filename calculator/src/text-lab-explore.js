@@ -205,7 +205,17 @@
     if (T.sort === 'pre') rows.sort((a, b) => (a.pre.split(' ').pop() || '').localeCompare(b.pre.split(' ').pop() || ''));
     else if (T.sort === 'post') rows.sort((a, b) => a.post.localeCompare(b.post));
     else if (T.sort === 'group' && G) rows.sort((a, b) => (G.g[a.doc] - G.g[b.doc]) || a.doc - b.doc);
-    const kwic = h('div', { className: 'tl-tblwrap tall' }, h('table', { className: 'tl-kwic' }, h('tbody', null, rows.slice(0, 200).map((r, i) => h('tr', { key: i }, h('td', { className: 'meta' }, 'row ' + this.fmtN(this.tlRowOf(C, r.doc) + 1) + (G && G.g[r.doc] >= 0 ? ' · ' + G.labels[G.g[r.doc]] : '')), h('td', { className: 'pre' }, r.pre), h('td', { className: 'kw' }, r.kw), h('td', { className: 'post' }, r.post))))));
+    // build .98: each side is as wide as its words need (about 62 px a word), the table scrolls sideways with the keyword in
+    // the middle, the row number opens that row in the Data tab, and clicking a line shows the passage around it
+    const side = Math.max(300, Math.round(T.win * 62)), openI = T.kwOpen != null ? T.kwOpen : -1;
+    const kwic = h('div', { className: 'tl-tblwrap tall tl-kwicwrap', ref: el => { if (!el) return; el.style.setProperty('--kwvw', el.clientWidth + 'px'); el.onscroll = () => { for (const d of el.querySelectorAll('.tl-pass')) d.style.transform = 'translateX(' + el.scrollLeft + 'px)'; }; if (el.dataset.c !== String(T.win) + '|' + q) { el.dataset.c = String(T.win) + '|' + q; el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2); } } },
+      h('table', { className: 'tl-kwic' }, h('tbody', null, rows.slice(0, 200).flatMap((r, i) => {
+        const open = openI === i, rowN = this.tlRowOf(C, r.doc) + 1;
+        const tr = h('tr', { key: i, className: open ? 'open' : '', title: open ? 'Click to close the passage' : 'Click to read the passage around it', onClick: () => this.tlSet({ kwOpen: open ? -1 : i }) },
+          h('td', { className: 'meta' }, h('button', { type: 'button', className: 'tl-link', title: 'Open row ' + this.fmtN(rowN) + ' in the Data tab', 'aria-label': 'Open row ' + rowN + ' in the Data tab', onClick: e => { e.stopPropagation(); this.tlGoRow(C, r.doc); } }, 'row ' + this.fmtN(rowN)), G && G.g[r.doc] >= 0 ? ' · ' + G.labels[G.g[r.doc]] : ''),
+          h('td', { className: 'pre', style: { minWidth: side + 'px', maxWidth: side + 'px' } }, r.pre), h('td', { className: 'kw' }, r.kw), h('td', { className: 'post', style: { minWidth: side + 'px', maxWidth: side + 'px' } }, r.post));
+        return open ? [tr, h('tr', { key: 'p' + i, className: 'tl-kwic-pass' }, h('td', { colSpan: 4 }, this.tlPassage(C, r, 60)))] : [tr];
+      }))));
     const copy = this.tlBtn(this.state.copied === 'tlk' ? 'Copied ✓' : 'Copy all ' + this.fmtN(K.rows.length) + ' lines', () => this.copyTSV('tlk', 'row\tgroup\tbefore\tkeyword\tafter\n' + K.rows.map(r => [this.tlRowOf(C, r.doc) + 1, G && G.g[r.doc] >= 0 ? G.labels[G.g[r.doc]] : '', r.pre, r.kw, r.post].join('\t')).join('\n')));
     let byG = null;
     if (G) {
@@ -222,6 +232,17 @@
       byG ? this.tlPanel('By ' + T.by, null, null, byG, this.tlExportRow('tlkwg', 'mentions-by-group')) : null);
   }
 
+  // the row of a kwic line, opened in the Data tab (its text column in view)
+  tlGoRow(C, d) { const r = this.tlRowOf(C, d), T = this.tlS(); this.deBrowse(T.v); this.setState({ bRow: r, mfMobile: 'analysis' }); this.flash('Row ' + this.fmtN(r + 1) + ' in the Data tab'); }
+  // the passage around a kwic line: win words each side of the keyword, from the original text
+  tlPassage(C, r, win) {
+    const h = React.createElement, a = C.off[r.doc], b = C.off[r.doc + 1], i = a + r.pos, L = Math.max(1, String(r.kw).split(' ').length), lo = Math.max(a, i - win), hi = Math.min(b - 1, i + L - 1 + win), s = String(C.texts[r.doc]), cl = x => x.replace(/\s+/g, ' ');
+    // sticky does not work inside a table cell, so the passage follows the table's sideways scroll by hand
+    return h('div', { className: 'tl-pass', ref: el => { const w = el && el.closest && el.closest('.tl-kwicwrap'); if (w) el.style.transform = 'translateX(' + w.scrollLeft + 'px)'; } }, (lo > a ? '… ' : '') + cl(s.slice(C.start[lo], C.start[i])), h('mark', null, cl(s.slice(C.start[i], C.end[i + L - 1]))), cl(s.slice(C.end[i + L - 1], C.end[hi])) + (hi < b - 1 ? ' …' : ''));
+  }
+  // words in each text before cleaning (links, numbers and stop words are not words; shared with Save → n_words)
+  tlRawWords(C) { return this.memo('tlNW|' + C.key, () => { const nd = C.off.length - 1, w = new Float64Array(nd); for (let d = 0; d < nd; d++) { let k = 0; for (let i = C.off[d]; i < C.off[d + 1]; i++) if (C.kind[C.tok[i]] === 1) k++; w[d] = k; } return w; }); }
+
   // over time
   tlTimeUnit(TM, D) { const span = D.max - D.min; return TM.unit && TM.unit !== 'auto' ? TM.unit : D.yearOnly || span > 365 * 6 ? 'year' : span > 365 * 2 ? 'quarter' : span > 120 ? 'month' : span > 30 ? 'week' : 'day'; }
   // one value per period for each series; defs: [{ name, color, inc(d), x(d) }]
@@ -231,16 +252,52 @@
     for (let d = 0; d < nd; d++) {
       if (C.blank[d] || (mask && !mask[d])) continue;
       const pr = E.tlPeriod(D.day[d], unit); if (!pr) continue;
-      let o = per.get(pr.k); if (!o) { o = { k: pr.k, label: pr.label, s: defs.map(() => ({ n: 0, hit: 0, sum: 0, words: 0 })) }; per.set(pr.k, o); }
+      let o = per.get(pr.k); if (!o) { o = { k: pr.k, label: pr.label, s: defs.map(() => ({ n: 0, hit: 0, sum: 0, words: 0, v: measure === 'median' ? [] : null })) }; per.set(pr.k, o); }
       const words = FT.foff[d + 1] - FT.foff[d];
-      for (let i = 0; i < defs.length; i++) { const df = defs[i]; if (!df.inc(d)) continue; const x = df.x(d); if (!isFinite(x)) continue; const s = o.s[i]; s.n++; s.sum += x; if (x > 0) s.hit++; s.words += words; }
+      for (let i = 0; i < defs.length; i++) { const df = defs[i]; if (!df.inc(d)) continue; const x = df.x(d); if (!isFinite(x)) continue; const s = o.s[i]; s.n++; s.sum += x; if (x > 0) s.hit++; s.words += words; if (s.v) s.v.push(x); }
     }
     let ps = [...per.values()].sort((p, q) => p.k - q.k);
-    if (fill && ps.length > 1) { const all = []; for (let k = ps[0].k, i = 0; k <= ps[ps.length - 1].k; k++) { if (ps[i] && ps[i].k === k) all.push(ps[i++]); else all.push({ k, label: this.tlPeriodLabel(k, unit), s: defs.map(() => ({ n: 0, hit: 0, sum: 0, words: 0 })) }); } ps = all; }
-    const val = s => !s.n ? (fill ? 0 : NaN) : measure === 'pct' ? 100 * s.hit / s.n : measure === 'count' || measure === 'sum' ? s.sum : measure === 'rate' ? (s.words ? 1e4 * s.sum / s.words : NaN) : s.sum / s.n;
+    if (fill && ps.length > 1) { const all = []; for (let k = ps[0].k, i = 0; k <= ps[ps.length - 1].k; k++) { if (ps[i] && ps[i].k === k) all.push(ps[i++]); else all.push({ k, label: this.tlPeriodLabel(k, unit), s: defs.map(() => ({ n: 0, hit: 0, sum: 0, words: 0, v: measure === 'median' ? [] : null })) }); } ps = all; }
+    const med = v => { const a = v.slice().sort((p, q) => p - q), m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
+    const val = s => !s.n ? (fill ? 0 : NaN) : measure === 'pct' ? 100 * s.hit / s.n : measure === 'count' || measure === 'sum' ? s.sum : measure === 'rate' ? (s.words ? 1e4 * s.sum / s.words : NaN) : measure === 'median' ? med(s.v) : s.sum / s.n;
     // with zero-filling, each line runs from that series' first to its last observed period
-    const series = defs.map((df, i) => { const pts = ps.map(p => val(p.s[i])); if (fill) { const has = ps.map(p => p.s[i].n > 0), a = has.indexOf(true), b = has.lastIndexOf(true); for (let j = 0; j < pts.length; j++) if (a < 0 || j < a || j > b) pts[j] = NaN; } return { name: df.name, color: df.color, pts }; });
+    const series = defs.map((df, i) => { const pts = ps.map(p => val(p.s[i])); if (fill) { const has = ps.map(p => p.s[i].n > 0), a = has.indexOf(true), b = has.lastIndexOf(true); for (let j = 0; j < pts.length; j++) if (a < 0 || j < a || j > b) pts[j] = NaN; } return { name: df.name, color: df.color, dash: df.dash, pts }; });
     return { xs: ps.map(p => p.label), series };
+  }
+  // build .98: the layouts of a timeline with several words / categories. With a group column (president, party …):
+  // one chart with a line per word and the groups' eras marked along the time axis (the default: presidents follow one
+  // another, so each word stays one line); word × group (colour = word, dashes = group); the groups pooled; one chart
+  // per group; one chart per word.
+  tlTimeLayouts(ctx, many, combined, itemLab) {
+    const { T, C } = ctx, by = T.by, G = by ? this.tlGroupsOf(T, C, by) : null;
+    if (!many) return G ? [['author', '']] : [['none', '']];
+    const L = [];
+    if (G) L.push(['item-era', 'One line per ' + itemLab + ', ' + by + ' marked'], ['item-group', itemLab + ' × ' + by]);
+    L.push(['item', G ? 'One line per ' + itemLab + ', groups pooled' : 'One line per ' + itemLab]);
+    if (G) L.push(['grid-author', 'One chart per ' + by], ['grid-item', 'One chart per ' + itemLab]);
+    if (combined && G) L.push(['author', 'All together, one line per ' + by]);
+    return L;
+  }
+  tlTimeDefault(ctx, many) { return ctx.T.by ? (many ? 'item-era' : 'author') : (many ? 'item' : 'none'); }
+  tlTimeUsesBy(lines) { return ['author', 'item-group', 'grid-author', 'grid-item'].includes(lines); }
+  tlTimeCharts(ctx, D, unit, o) {
+    const { T } = ctx, charts = [], DASH = ['', '7 4', '2 3', '9 3 2 3', '4 2', '12 3'], key = o.key || 'tltime';
+    const one = (k, title, defs, eras) => charts.push({ key: k, title, eras: !!eras, data: this.memo(o.sig + '|' + o.lines + '|' + k, () => this.tlTimeAgg(ctx, D, unit, defs, o.measure, !!o.fill)) });
+    const parts = o.parts, single = o.single, ylab = o.ylab, lines = o.lines, gdefs = this.tlGroupDefs(ctx, null).defs;
+    if (lines === 'author') one(key, o.t1, this.tlGroupDefs(ctx, single.x).defs);
+    else if (lines === 'none') one(key, o.t1, [{ name: 'All texts', color: this.tlPal(0), inc: () => true, x: single.x }]);
+    else if (lines === 'item' || lines === 'item-era') one(key, ylab + ' · each ' + o.itemLab, parts.map((it, k) => ({ name: it.name, color: this.tlPal(k), inc: () => true, x: it.x })), lines === 'item-era');
+    else if (lines === 'item-group') one(key, ylab + ' · each ' + o.itemLab + ' by ' + T.by, parts.flatMap((it, k) => gdefs.map((gd, gi) => ({ name: it.name + ' · ' + gd.name, color: this.tlPal(k), dash: DASH[gi % DASH.length], inc: gd.inc, x: it.x }))));
+    else if (lines === 'grid-author') gdefs.slice(0, 6).forEach((gd, gi) => one(key + gi, gd.name + ' · ' + ylab, parts.map((it, k) => ({ name: it.name, color: this.tlPal(k), inc: gd.inc, x: it.x }))));
+    else parts.slice(0, 9).forEach((it, k) => one(key + k, it.name + ' · ' + ylab, this.tlGroupDefs(ctx, it.x).defs));
+    charts.forEach(ch => { ch.eras = ch.eras ? this.memo(o.sig + '|eras|' + ch.key, () => this.tlEras(ctx, D, unit, ch.data.xs, gdefs)) : null; });
+    return charts;
+  }
+  // where each group's texts begin and end along the time axis (as positions among the periods drawn)
+  tlEras(ctx, D, unit, xs, gdefs) {
+    const { C } = ctx, E = this._E, nd = C.off.length - 1, mask = ctx.mask, at = new Map(xs.map((x, i) => [x, i])), span = gdefs.map(() => ({ a: Infinity, b: -Infinity }));
+    for (let d = 0; d < nd; d++) { if (C.blank[d] || (mask && !mask[d])) continue; const pr = E.tlPeriod(D.day[d], unit); if (!pr) continue; const i = at.get(pr.label); if (i == null) continue; for (let g = 0; g < gdefs.length; g++) if (gdefs[g].inc(d)) { const s = span[g]; if (i < s.a) s.a = i; if (i > s.b) s.b = i; } }
+    return gdefs.map((gd, g) => ({ name: gd.name, a: span[g].a, b: span[g].b })).filter(e => e.a <= e.b).sort((p, q) => p.a - q.a || p.b - q.b);
   }
   // one line per group (groups too small to chart are left out)
   tlGroupDefs(ctx, x) {
@@ -282,7 +339,7 @@
     if (!D || !D.ok) return this.tlPanel('Over time', null, null, head, this.tlBanner('warn', '“' + T.date + '” does not look like dates.'));
     const unit = this.tlTimeUnit(TM, D), cats = this.tlCats(T), V = this.tlVarOpts(T), fold = !!T.rec.fold;
     const isVar = /^var:/.test(TM.what), vname = isVar ? TM.what.slice(4) : '';
-    const whatOpts = [['ntexts', 'Number of texts'], ['search', 'Search: ' + (T.q || '—')]].concat(cats.length > 1 ? [['catall', 'All dictionary categories']] : []).concat(cats.map((c, j) => ['cat' + j, 'Category: ' + c.name])).concat([['words', 'Words per text']]).concat(isVar ? [[TM.what, 'Saved variable →']] : []);
+    const whatOpts = [['ntexts', 'Number of texts'], ['search', 'Search: ' + (T.q || '—')]].concat(cats.length > 1 ? [['catall', 'All dictionary categories']] : []).concat(cats.map((c, j) => ['cat' + j, 'Category: ' + c.name])).concat([['len', 'Length of the texts']]).concat(isVar ? [[TM.what, 'Saved variable →']] : []);
     const varOpts = [['', V.made.length ? 'pick a saved variable' : 'none saved yet (Save step)']].concat(V.made.map(n => ['var:' + n, n])).concat(V.other.map(n => ['var:' + n, n + ' · data']));
     // the things to chart: each is a word, a category or a variable with a value per text
     let items = [], measure = TM.measure, ylab, kind = 'count';
@@ -293,7 +350,10 @@
       items = names.map(n => { const vv = this.valsCore(n); return vv && vv.kind === 'num' ? { name: n, x: d => first[d] ? vv.a[this.tlRowOf(C, d)] : NaN } : null; }).filter(Boolean);
       ylab = measure === 'pct' ? '% of texts above 0' : measure === 'sum' ? 'total' : 'mean per text';
     } else if (TM.what === 'ntexts') { kind = 'ntexts'; measure = 'sum'; const first = this.tlFirstDoc(C); items = [{ name: 'Number of texts', x: d => first[d] ? 1 : NaN }]; ylab = 'number of texts'; }
-    else if (TM.what === 'words') { kind = 'words'; measure = 'mean'; items = [{ name: 'words per text', x: d => FT.foff[d + 1] - FT.foff[d] }]; ylab = 'words per text (after cleaning)'; }
+    else if (TM.what === 'words' || TM.what === 'len') { // build .98: how long the texts are, and how that changed
+      kind = 'len'; const of = TM.lenOf || 'all', as = TM.lenAs || 'mean'; measure = as; const rawW = of === 'all' ? this.tlRawWords(C) : null;
+      items = [{ name: of === 'chars' ? 'characters per text' : of === 'kept' ? 'words per text (after cleaning)' : 'words per text', x: of === 'kept' ? d => FT.foff[d + 1] - FT.foff[d] : of === 'chars' ? d => String(C.texts[d] == null ? '' : C.texts[d]).length : d => rawW[d] }];
+      ylab = (as === 'sum' ? 'total ' : as === 'median' ? 'median ' : 'mean ') + (of === 'chars' ? 'characters' : 'words') + (as === 'sum' ? ' per ' + unit : ' per text') + (of === 'kept' ? ' (after cleaning)' : ''); }
     else if (TM.what === 'search') {
       const ps = E.tlParsePatterns(T.q || ''), inc = ps.filter(p => !p.neg), neg = ps.filter(p => p.neg).map(p => p.src).join(', ');
       if (inc.length) { const all = qLook(T.q); items = [{ name: T.q, x: d => all[d], combined: true }].concat(inc.length > 1 ? inc.map(p => { const keys = (p.parts.length > 1 ? '"' + p.parts.join(' ') + '"' : p.src) + (neg ? ', ' + neg : ''), cn = qLook(keys); return { name: p.parts.join(' '), x: d => cn[d] }; }) : []); }
@@ -305,25 +365,15 @@
     }
     const combined = items.find(it => it.combined), parts = items.filter(it => !it.combined), many = parts.length > 1;
     const G = T.by ? this.tlGroupsOf(T, C, T.by) : null;
-    const lineOpts = many ? [['item', 'One line per ' + (kind === 'var' ? 'variable' : 'word / category')]].concat(G ? [['grid-author', 'One chart per ' + T.by], ['grid-item', 'One chart per ' + (kind === 'var' ? 'variable' : 'word / category')]] : []).concat(combined && G ? [['author', 'All together, one line per ' + T.by]] : [])
-      : (G ? [['author', '']] : [['none', '']]);   // one series: the Plot by variable alone decides (a line per group, or all texts)
+    const itemLab = kind === 'var' ? 'variable' : 'word / category', lineOpts = this.tlTimeLayouts(ctx, many, combined, itemLab);   // one series: the Plot by variable alone decides
     const lines = lineOpts.some(o => o[0] === TM.lines) ? TM.lines : lineOpts[0][0];
     // number of texts: as a count, or as the % of all texts (each line's texts spread over the periods)
     const nOpts = [['count', 'Count'], ['share', '% of all texts']];
     const nm = kind === 'ntexts' && nOpts.some(o => o[0] === TM.nmeasure) ? TM.nmeasure : 'count';
     if (kind === 'ntexts' && nm === 'share') ylab = '% of all texts';
-    const sig = 'tlTA|' + FT.sig + '|' + T.date + '|' + T.time.order + '|' + unit + '|' + TM.what + '|' + measure + '|' + lines + '|' + T.by + '|' + T.mergeCase + '|' + this.filterSig() + '|' + (kind === 'var' ? (this._dataRev || 0) + items.map(i => i.name).join(',') : JSON.stringify(this.tlCats(T)) + '|' + (T.q || '') + '|' + (T.qOff || []).join(','));
-    const charts = [];   // [{ key, title, data }]
-    const one = (key, title, defs) => charts.push({ key, title, data: this.memo(sig + '|' + key, () => this.tlTimeAgg(ctx, D, unit, defs, measure, kind === 'ntexts')) });
-    if (items.length) {
-      const single = combined || parts[0];
-      const t1 = kind === 'ntexts' ? (nm === 'count' ? 'Number of texts per ' + unit : 'Share of all texts in each ' + unit) : single.name + ' · ' + ylab;
-      if (lines === 'author') one('tltime', t1, this.tlGroupDefs(ctx, single.x).defs);
-      else if (lines === 'none') one('tltime', t1, [{ name: 'All texts', color: this.tlPal(0), inc: () => true, x: single.x }]);
-      else if (lines === 'item') one('tltime', ylab + (kind === 'var' ? '' : ' · each word / category'), parts.map((it, k) => ({ name: it.name, color: this.tlPal(k), inc: () => true, x: it.x })));
-      else if (lines === 'grid-author') this.tlGroupDefs(ctx, null).defs.slice(0, 6).forEach((gd, gi) => one('tltime' + gi, gd.name + ' · ' + ylab, parts.map((it, k) => ({ name: it.name, color: this.tlPal(k), inc: gd.inc, x: it.x }))));
-      else parts.slice(0, 9).forEach((it, k) => one('tltime' + k, it.name + ' · ' + ylab, this.tlGroupDefs(ctx, it.x).defs));
-    }
+    const sig = 'tlTA|' + FT.sig + '|' + T.date + '|' + T.time.order + '|' + unit + '|' + TM.what + (kind === 'len' ? ':' + (TM.lenOf || 'all') : '') + '|' + measure + '|' + lines + '|' + T.by + '|' + T.mergeCase + '|' + this.filterSig() + '|' + (kind === 'var' ? (this._dataRev || 0) + items.map(i => i.name).join(',') : JSON.stringify(this.tlCats(T)) + '|' + (T.q || '') + '|' + (T.qOff || []).join(','));
+    const single = combined || parts[0], t1 = !single ? '' : kind === 'ntexts' ? (nm === 'count' ? 'Number of texts per ' + unit : 'Share of all texts in each ' + unit) : kind === 'len' ? ylab[0].toUpperCase() + ylab.slice(1) : single.name + ' · ' + ylab;
+    const charts = items.length ? this.tlTimeCharts(ctx, D, unit, { parts, single, lines, measure, ylab, sig, fill: kind === 'ntexts', t1, itemLab }) : [];
     if (kind === 'ntexts' && nm !== 'count') charts.forEach(ch => {
       const S = ch.data.series, xs = ch.data.xs, fin = v => isFinite(v) ? v : 0;
       const series = S.map(se => { const tot = se.pts.reduce((a, v) => a + fin(v), 0); return Object.assign({}, se, { pts: se.pts.map(v => isFinite(v) && tot ? 100 * v / tot : NaN) }); });
@@ -334,28 +384,29 @@
         this.tlField('Or a saved variable', this.tlSelect(isVar ? TM.what : '', varOpts, v => set({ what: v || 'words' }), 'Saved variable')),
         isVar ? this.tlField('As', this.tlSeg([['mean', 'Mean per text'], ['pct', '% of texts above 0'], ['sum', 'Total']], TM.vmeasure, v => set({ vmeasure: v })))
           : TM.what === 'ntexts' ? this.tlField('As', this.tlSeg(nOpts, nm, v => set({ nmeasure: v })))
-          : TM.what !== 'words' ? this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], TM.measure, v => set({ measure: v }))) : null),
-      isVar && V.made.length > 1 ? this.tlField('Compare with other saved variables', h('div', { className: 'tl-row' }, ...V.made.filter(n => n !== vname).map(n => { const on = (TM.vars || []).includes(n); return this.tlChip((on ? '✓ ' : '+ ') + n, on, () => set({ vars: on ? (TM.vars || []).filter(x => x !== n) : (TM.vars || []).concat([n]), lines: on ? TM.lines : (TM.lines === 'auto' || TM.lines === 'author' || TM.lines === 'none' ? (G ? 'grid-author' : 'item') : TM.lines) }), { key: n }); }))) : null,
+          : kind === 'len' ? h(React.Fragment, null, this.tlField('Count', this.tlSeg([['all', 'All words'], ['kept', 'Words kept after cleaning'], ['chars', 'Characters']], TM.lenOf || 'all', v => set({ lenOf: v }))), this.tlField('As', this.tlSeg([['mean', 'Mean per text'], ['median', 'Median per text'], ['sum', 'Total per ' + unit]], TM.lenAs || 'mean', v => set({ lenAs: v }))))
+          : this.tlField('As', this.tlSeg([['pct', '% of texts'], ['count', 'Count'], ['rate', 'Per 10k words']], TM.measure, v => set({ measure: v })))),
+      isVar && V.made.length > 1 ? this.tlField('Compare with other saved variables', h('div', { className: 'tl-row' }, ...V.made.filter(n => n !== vname).map(n => { const on = (TM.vars || []).includes(n); return this.tlChip((on ? '✓ ' : '+ ') + n, on, () => set({ vars: on ? (TM.vars || []).filter(x => x !== n) : (TM.vars || []).concat([n]), lines: on ? TM.lines : (TM.lines === 'auto' || TM.lines === 'author' || TM.lines === 'none' ? (G ? 'item-era' : 'item') : TM.lines) }), { key: n }); }))) : null,
       // search right here (the same search as In context): typing switches Show to it
       h('div', { className: 'tl-row wide' }, this.tlSearchField(T, v => set({ what: v.trim() ? 'search' : (TM.what === 'search' ? 'ntexts' : TM.what) }), 'qt'), this.tlSearchHelp(T)),
       TM.what === 'search' ? this.tlSearchForms(ctx) : null,
       TM.what === 'search' && (T.q || '').trim() && parts.length < 2 ? h('span', { className: 'tl-hint' }, 'Tip: search several words separated by commas (e.g. salud, covid, pandemia) to give each word its own line.') : null,
       h('div', { className: 'tl-row wide' },
         // the group column can be chosen here too (the same setting as Groups to compare in step 1): a line per author, party, outlet …
-        this.tlField('Plot by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); set({ lines: v ? (many ? 'grid-author' : 'author') : (many ? 'item' : 'none') }); }, 'Plot by variable')),
+        this.tlField('Plot by', this.tlSelect(T.by || '', [['', 'none — all texts together']].concat(this.tlGroupCols(T.v).map(n => [n, n])), v => { this._tlByTouched = true; this.tlSet({ by: v }); set({ lines: v ? (many ? 'item-era' : 'author') : (many ? 'item' : 'none') }); }, 'Plot by variable')),
         many && lineOpts.length > 1 ? this.tlField('Layout', this.tlSeg(lineOpts, lines, v => set({ lines: v }))) : null,
         this.tlField('By', this.tlSeg([['auto', 'Auto (' + unit + ')'], ['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']], TM.unit, v => set({ unit: v })))));
-    const P = this.tlRPeriod(T, unit), by = G && lines !== 'none' && lines !== 'item' ? ' + `' + T.by + '`' : '';
+    const P = this.tlRPeriod(T, unit), by = G && this.tlTimeUsesBy(lines) ? ' + `' + T.by + '`' : '';
     const rcode = kind === 'var' ? 'df$period <- ' + P + '\naggregate(cbind(' + items.map(i => '`' + i.name + '`').join(', ') + ') ~ period' + by + ', data = df, FUN = ' + (measure === 'pct' ? 'function(v) 100 * mean(v > 0)' : measure === 'sum' ? 'sum' : 'mean') + ')'
       : kind === 'ntexts' ? 'df$period <- ' + P + '\n' + (nm === 'count' ? 'table(df$period' + (by ? ', df$`' + T.by + '`' : '') + ')        # number of texts per period' + (by ? ' and ' + T.by : '')
         : '100 * prop.table(table(df$period' + (by ? ', df$`' + T.by + '`), margin = 2)   # % of each ' + T.by + '’s texts in each period' : '))   # % of all texts in each period'))
-      : kind === 'words' ? 'df$words <- ntoken(toks_clean)\ndf$period <- ' + P + '\naggregate(words ~ period' + by + ', data = df, FUN = mean)'
+      : kind === 'len' ? 'df$len <- ' + ((TM.lenOf || 'all') === 'chars' ? 'nchar(df$`' + T.v + '`)' : (TM.lenOf || 'all') === 'kept' ? 'ntoken(toks_clean)' : 'ntoken(toks)') + '   # ' + items[0].name + '\ndf$period <- ' + P + '\naggregate(len ~ period' + by + ', data = df, FUN = ' + (TM.lenAs || 'mean') + ')'
       : this.tlTimeRDict(T, TM, parts.length ? parts : items, measure, P, by);
     const need = !items.length;
     return this.tlPanel('Over time', 'by ' + unit + (G ? ' · ' + T.by : ''), null, ctl,
       D.ambiguous ? this.tlBanner('info', 'Dates like 02.03.18 are read as ' + (D.order === 'dmy' ? 'day.month.year' : 'month.day.year') + '. ', this.tlBtn('Switch', () => set({ order: D.order === 'dmy' ? 'mdy' : 'dmy' }))) : null,
       need ? this.tlBanner('info', isVar ? '“' + vname + '” is not a numeric variable.' : 'Type a search in the Search box above (several words separated by commas give one line each), build dictionary categories in Measure, or pick a saved variable to chart it over time.') : null,
-      ...charts.map(ch => h('div', { key: ch.key, className: 'tl-col' }, this.tlLinesSvg(ch.key, ch.data.xs, ch.data.series, { ylab, pct: measure === 'pct' || (kind === 'ntexts' && nm !== 'count'), title: ch.title }), this.tlExportRow(ch.key, 'over-time-' + this._E.tlVarName(ch.title.split(' · ')[0])))),
+      ...charts.map(ch => h('div', { key: ch.key, className: 'tl-col' }, this.tlLinesSvg(ch.key, ch.data.xs, ch.data.series, { ylab, pct: measure === 'pct' || (kind === 'ntexts' && nm !== 'count'), title: ch.title, eras: ch.eras }), this.tlExportRow(ch.key, 'over-time-' + this._E.tlVarName(ch.title.split(' · ')[0])))),
       need ? null : this.tlRcode(rcode));
   }
 

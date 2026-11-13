@@ -149,7 +149,14 @@ test('every step and sub-tab renders; dictionary, topics, clusters and saving wo
     const dtree = c.tlRender(), dtext = text(dtree);
     assert.match(dtext, /Timeline · each category over time by autor/);
     assert.match(dtext, /Category cloud/);
-    assert.ok(find(dtree, n => n.tag === 'svg').length >= 4, 'timeline charts per author and category clouds per author');
+    // build .98: all categories by author draw one chart, a line per category with the authors' eras marked (plus the clouds per author)
+    assert.ok(find(dtree, n => n.tag === 'svg').length >= 3, 'one timeline chart and category clouds per author');
+    assert.match(dtext, /One line per category, autor marked/); assert.match(dtext, /category × autor/);
+    { const tl = find(dtree, n => n.tag === 'svg' && /each category/.test(n.props['aria-label'] || ''))[0]; assert.ok(tl, 'the timeline chart'); const bold = find(tl, n => n.tag === 'text' && n.props.fontWeight === 700).map(text); assert.ok(bold.includes('Andrés Manuel') && bold.includes('Claudia Sheinbaum'), 'eras labelled: ' + bold.join(' | ')); }
+    c.state.tl = { ...c.state.tl, dtime: { cat: 'all', measure: 'pct', lines: 'item-group' } };
+    { const tl = find(c.tlRender(), n => n.tag === 'svg' && /each category/.test(n.props['aria-label'] || ''))[0]; const dashes = find(tl, n => n.tag === 'polyline').map(l => l.props.strokeDasharray || 'solid'); assert.ok(dashes.includes('solid') && dashes.includes('7 4'), 'category × autor: solid and dashed lines'); }
+    c.state.tl = { ...c.state.tl, dtime: { cat: 'all', measure: 'pct', lines: 'grid-author' } };
+    assert.ok(find(c.tlRender(), n => n.tag === 'svg' && /· %/.test(n.props['aria-label'] || '')).length >= 2, 'one chart per autor still available');
     c.state.tl = { ...c.state.tl, dcloud: { show: true, mode: 'names', split: false } };
     const names = find(c.tlRender(), n => n.tag === 'text').map(text);
     assert.ok(['economía', 'corrupción'].every(n => names.includes(n)), 'category names cloud');
@@ -161,4 +168,40 @@ test('every step and sub-tab renders; dictionary, topics, clusters and saving wo
     assert.match(r, /tokens_lookup\(toks, dict, nested_scope = "key"\)/);
     assert.match(r, /stri_trans_general/);
   }
+});
+
+test('build .98: Over time layouts with a group column, the length of the texts, and the kwic row link and passage', async () => {
+  const c = await make(await E.parseCSV(buf(csvText), () => {}));
+  c.state.tl = { v: 'texto', by: 'autor', date: 'fecha', step: 'explore', sub: 'time', q: 'corrup*, inversi*', time: { what: 'search', unit: 'auto', measure: 'pct', vmeasure: 'mean', order: 'auto', lines: 'auto', vars: [] } };
+  const render = async () => { let t = c.tlRender(); for (let i = 0; i < 60; i++) { await tick(); t = c.tlRender(); if (!find(t, n => n.props && /tl-pending/.test(n.props.className || '')).length) break; } return t; };
+  let t = await render(), s = text(t);
+  // two words by author: the default is one line per word with the authors' eras marked
+  const chips = find(t, n => n.props && n.props['aria-pressed'] === 'true').map(text);
+  assert.ok(chips.includes('One line per word / category, autor marked'), 'default layout: ' + chips.join(' | '));
+  assert.match(s, /word \/ category × autor/); assert.match(s, /groups pooled/);
+  let svg = find(t, n => n.tag === 'svg')[0], bold = find(svg, n => n.tag === 'text' && n.props.fontWeight === 700).map(text);
+  assert.ok(bold.includes('Andrés Manuel') && bold.includes('Claudia Sheinbaum') && bold.some(b => /^corrup/.test(b)) && bold.some(b => /^inversi/.test(b)), 'eras and both words on one chart: ' + bold.join(' | '));
+  assert.equal(find(svg, n => n.tag === 'polyline').length, 2, 'one line per word');
+  assert.doesNotMatch(s, /\+ `autor`/, 'the R code pools the authors for this layout');
+  // word × author: colour by word, dashes by author, labels "word · author"
+  c.state.tl.time.lines = 'item-group'; t = await render(); s = text(t); svg = find(t, n => n.tag === 'svg')[0];
+  const lines = find(svg, n => n.tag === 'polyline'); assert.equal(lines.length, 4); assert.deepEqual([...new Set(lines.map(l => l.props.strokeDasharray || 'solid'))].sort(), ['7 4', 'solid']);
+  assert.ok(find(svg, n => n.tag === 'text').map(text).some(x => /^corrup.* · Claudia/.test(x)), 'end labels name the word and the author'); assert.match(s, /\+ `autor`/);
+  // the length of the texts: all words / kept / characters, mean / median / total
+  c.state.tl.time = { ...c.state.tl.time, what: 'len', lines: 'auto' }; t = await render(); s = text(t);
+  assert.match(s, /All words/); assert.match(s, /Words kept after cleaning/); assert.match(s, /Characters/); assert.match(s, /Median per text/); assert.match(s, /Total per/);
+  svg = find(t, n => n.tag === 'svg')[0]; assert.equal(svg.props['aria-label'], 'Mean words per text'); assert.equal(find(svg, n => n.tag === 'polyline').length, 2, 'a line per author');
+  assert.match(s, /df\$len <- ntoken\(toks\)/);
+  const raw = c.tlRawWords(c.tlCtx ? c.tlCtx().C : c._tlJobs[Object.keys(c._tlJobs)[0]].value); assert.ok(raw.length >= 230 && raw[0] > 0 && raw[7] === 0, 'words per text before cleaning (the blank text has 0)');
+  c.state.tl.time.lenOf = 'chars'; c.state.tl.time.lenAs = 'median'; t = await render(); s = text(t);
+  assert.equal(find(t, n => n.tag === 'svg')[0].props['aria-label'], 'Median characters per text'); assert.match(s, /nchar\(df\$`texto`\)/); assert.match(s, /FUN = median/);
+  { const ys = find(t, n => n.tag === 'svg')[0], tk = find(ys, n => n.tag === 'text').map(text).map(Number).filter(v => isFinite(v) && v > 0); assert.ok(Math.max(...tk) >= 60, 'characters, not words, on the axis: ' + tk.join(' ')); }
+  c.state.tl.time.lenOf = 'kept'; c.state.tl.time.lenAs = 'sum'; t = await render(); assert.match(find(t, n => n.tag === 'svg')[0].props['aria-label'], /^Total words per (year|quarter|month|week|day) \(after cleaning\)$/);
+  // kwic: wide sides, the row number opens the Data tab at that row, a click shows the passage
+  c.state.tl = { ...c.state.tl, sub: 'context', q: 'corrup*', win: 12 }; t = await render();
+  const pre = find(t, n => n.props && n.props.className === 'pre')[0]; assert.equal(pre.props.style.minWidth, '744px');
+  const link = find(t, n => n.tag === 'button' && /^Open row \d+ in the Data tab$/.test(n.props['aria-label'] || ''))[0]; assert.ok(link, 'row link');
+  link.props.onClick({ stopPropagation() {} }); assert.equal(c.state.tab, 'browse'); assert.equal(c.state.browseMode, 'data'); assert.equal(c.state.bRow + 1, Number(link.props['aria-label'].match(/\d+/)[0]));
+  c.state.tab = 'text'; const tr = find(t, n => n.tag === 'tr')[0]; tr.props.onClick(); t = await render();
+  const pass = find(t, n => n.props && n.props.className === 'tl-pass')[0]; assert.ok(pass, 'the passage opens'); assert.ok(find(pass, n => n.tag === 'mark').length === 1, 'with the keyword marked');
 });
