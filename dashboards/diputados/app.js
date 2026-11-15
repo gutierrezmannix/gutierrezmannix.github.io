@@ -20,7 +20,7 @@
       stripNote: 'Each dot is one deputy; the tick is the party median and the band its middle half. Hollow dots are one-sided estimates, pinned at the edge of the scale. The picture carries no names: this page publishes summaries, not the member-level file.',
       ptableNote: 'Scored / seats: deputies with an estimate out of the titulares on the roster. Median and middle half are on the oriented scale.',
       party: 'Party', seats: 'Seats', scored: 'Scored', median: 'Median', half: 'Middle half', termTitle: '{r} Legislature · {y}', termSub: '{n} deputies with an estimate · opposition to the left, governing party ({g}) to the right',
-      fYears: 'Years', fGov: "President's party", fScored: 'Deputies with an estimate', fOne: 'One-sided estimates', fVotes: 'Median votes per deputy', fSe: 'Median standard error', fSeat: 'Seats', fPartial: 'Partial term', fPartialV: 'votes up to {d}; estimates will move as the term goes on', fNoGeo: 'No state or seat-type data for this term',
+      fYears: 'Years', fGov: "President's party", fScored: 'Deputies with an estimate', fOne: 'One-sided estimates', fVotes: 'Median votes per deputy', fSe: 'Median standard error', fSeat: 'Seat-type records', fPartial: 'Partial term', fPartialV: 'votes up to {d}; estimates will move as the term goes on', fNoGeo: 'No state or seat-type data for this term',
       legMedian: 'party median', legBand: 'middle half of the caucus', legOne: 'one-sided estimate',
       measure: 'Measure', mIqr: 'Width of the middle half', mSd: 'Standard deviation', mMed: 'Median position',
       cohIqr: 'How tightly each caucus votes', cohSd: 'Spread of each caucus', cohMed: 'Where each caucus sits',
@@ -30,8 +30,10 @@
       cohNote: 'Hollow points mark caucuses with fewer than 10 scored deputies. Hover a point for the numbers.', legFew: 'fewer than 10 scored deputies',
       colour: 'Colour the map by', modeParty: 'Largest party', modePos: 'Mean position', delegation: 'Delegation', pickState: 'Click a state',
       mapTitle: 'State delegations · {r} Legislature', mapSubParty: 'Each state coloured by the party with most scored titulares in its delegation; paler when that party holds less than half.',
-      mapSubPos: 'Mean position of the delegation on the oriented scale; grey where fewer than five deputies have an estimate.', noGeo: 'The LVIII Legislature has no state data. Pick another term.',
-      stNote: 'Titulares with an estimate, by the party they sat with. The mean position is shown only for delegations of five or more scored deputies, so that no single member’s value can be read off the map. The LVIII Legislature has no state data.',
+      mapSubPos: 'Mean position of the delegation on the oriented scale; grey where fewer than five deputies have an estimate.', noGeo: 'No scored titulares with a recorded state are available for this term.',
+      stNote: 'The map uses scored members explicitly recorded as titulares, grouped by their recorded state and party. Members with an unknown role or state are excluded. Mean positions are shown only for groups of five or more scored deputies.',
+      mapCoverage: '{n} recorded titulares mapped across {s}/32 states. Excluded: {missing} scored titulares without a state; {unknown} scored members with unknown titular/suplente status.',
+      tie: 'Tie for largest party', fGeo: 'Titulares on the state map',
       stSub: '{n} titulares with an estimate{m}', stMean: ' · mean position {v}', stFew: ' · mean not shown (fewer than five)', opp: 'opposition', gov: 'government', noData: 'No data',
       perTerm: 'Per term', kRows: 'deputy-terms, {l} legislatures', kScored: 'with an estimate ({p}%)', kSe: 'median standard error', kSupl: 'suplentes among them',
       cTerm: 'Term', cN: 'Deputies', cScored: 'Scored', cPct: '%', cOne: 'One-sided', cVotes: 'Median votes', cSe: 'Median SE', cUnder: '< 20 votes', cDropped: 'Dropped', cPending: 'Pending',
@@ -46,7 +48,7 @@
       stripNote: 'Cada punto es un diputado; la raya es la mediana del partido y la banda su mitad central. Los puntos huecos son estimaciones de un solo lado, fijadas en el borde de la escala. La imagen no lleva nombres: esta página publica resúmenes, no el archivo por diputado.',
       ptableNote: 'Estimados / escaños: diputados con posición entre los titulares de la nómina. Mediana y mitad central están en la escala orientada.',
       party: 'Partido', seats: 'Escaños', scored: 'Estimados', median: 'Mediana', half: 'Mitad central', termTitle: 'Legislatura {r} · {y}', termSub: '{n} diputados con estimación · oposición a la izquierda, partido en el gobierno ({g}) a la derecha',
-      fYears: 'Años', fGov: 'Partido del presidente', fScored: 'Diputados con estimación', fOne: 'Estimaciones de un solo lado', fVotes: 'Mediana de votos por diputado', fSe: 'Mediana del error estándar', fSeat: 'Escaños', fPartial: 'Legislatura en curso', fPartialV: 'votaciones hasta el {d}; las estimaciones cambiarán conforme avance', fNoGeo: 'Sin datos de estado ni de tipo de elección en esta legislatura',
+      fYears: 'Años', fGov: 'Partido del presidente', fScored: 'Diputados con estimación', fOne: 'Estimaciones de un solo lado', fVotes: 'Mediana de votos por diputado', fSe: 'Mediana del error estándar', fSeat: 'Registros por tipo de elección', fPartial: 'Legislatura en curso', fPartialV: 'votaciones hasta el {d}; las estimaciones cambiarán conforme avance', fNoGeo: 'Sin datos de estado ni de tipo de elección en esta legislatura',
       legMedian: 'mediana del partido', legBand: 'mitad central de la bancada', legOne: 'estimación de un solo lado',
       measure: 'Medida', mIqr: 'Ancho de la mitad central', mSd: 'Desviación estándar', mMed: 'Posición mediana',
       cohIqr: 'Qué tan unida vota cada bancada', cohSd: 'Dispersión de cada bancada', cohMed: 'Dónde se ubica cada bancada',
@@ -56,8 +58,10 @@
       cohNote: 'Los puntos huecos marcan bancadas con menos de 10 diputados estimados. Pase el cursor por un punto para ver las cifras.', legFew: 'menos de 10 diputados estimados',
       colour: 'Colorear el mapa por', modeParty: 'Partido mayoritario', modePos: 'Posición media', delegation: 'Delegación', pickState: 'Elija un estado',
       mapTitle: 'Delegaciones estatales · Legislatura {r}', mapSubParty: 'Cada estado con el color del partido con más titulares estimados en su delegación; más pálido cuando ese partido tiene menos de la mitad.',
-      mapSubPos: 'Posición media de la delegación en la escala orientada; gris donde menos de cinco diputados tienen estimación.', noGeo: 'La LVIII Legislatura no tiene datos por estado. Elija otra.',
-      stNote: 'Titulares con estimación, según el partido con el que se sentaron. La posición media se muestra solo para delegaciones de cinco o más diputados estimados, para que ningún valor individual pueda leerse del mapa. La LVIII Legislatura no tiene datos por estado.',
+      mapSubPos: 'Posición media de la delegación en la escala orientada; gris donde menos de cinco diputados tienen estimación.', noGeo: 'No hay titulares estimados con estado registrado para esta legislatura.',
+      stNote: 'El mapa usa integrantes con estimación registrados explícitamente como titulares, agrupados por su estado y partido registrados. Se excluyen los registros sin estado o sin condición de titular/suplente. Las posiciones medias se muestran solo para grupos de cinco o más diputados estimados.',
+      mapCoverage: '{n} titulares registrados en el mapa, en {s}/32 estados. Excluidos: {missing} titulares estimados sin estado; {unknown} integrantes estimados sin condición de titular/suplente registrada.',
+      tie: 'Empate en el partido mayoritario', fGeo: 'Titulares en el mapa estatal',
       stSub: '{n} titulares con estimación{m}', stMean: ' · posición media {v}', stFew: ' · media no mostrada (menos de cinco)', opp: 'oposición', gov: 'gobierno', noData: 'Sin datos',
       perTerm: 'Por legislatura', kRows: 'diputado-legislaturas, {l} legislaturas', kScored: 'con estimación ({p}%)', kSe: 'mediana del error estándar', kSupl: 'suplentes entre ellos',
       cTerm: 'Legislatura', cN: 'Diputados', cScored: 'Estimados', cPct: '%', cOne: 'Un solo lado', cVotes: 'Mediana de votos', cSe: 'Mediana EE', cUnder: '< 20 votos', cDropped: 'Excluidos', cPending: 'En revisión',
@@ -106,6 +110,7 @@
     kv('fYears', L.years); kv('fGov', L.gov); kv('fScored', D.num(L.scored) + ' / ' + D.num(L.n) + (L.scoredSupl ? ' (' + D.num(L.scoredSupl) + ' supl.)' : ''));
     kv('fOne', D.num(L.oneSided)); kv('fVotes', D.num(L.medVotes)); kv('fSe', fmt(L.medSe, 3));
     if (L.hasGeo) kv('fSeat', D.num(L.nMR) + ' MR · ' + D.num(L.nRP) + ' RP'); else f.append(D.el('span', { style: { gridColumn: '1 / -1', color: 'var(--accent-2)' }, text: D.t('fNoGeo') }));
+    if (L.geoMapped != null) kv('fGeo', D.num(L.geoMapped) + ' · ' + L.geoStates + '/32');
     if (L.partial) kv('fPartial', D.t('fPartialV', { d: L.cutoff }));
   }
 
@@ -147,12 +152,12 @@
     window.MX_STATES.states.forEach((s) => {
       const p = D.svg('path', { d: s.d, class: 'st na' }); p.dataset.cve = s.cve; PATHS[s.cve] = p;
       p.addEventListener('mousemove', (ev) => hoverState(s, ev.clientX, ev.clientY)); p.addEventListener('mouseleave', () => D.hideTip());
-      p.addEventListener('click', () => { if (!p.classList.contains('na')) { S.state = s.cve; renderStates(); } });
+      p.addEventListener('click', () => { if (stRow(s.cve)) { S.state = s.cve; renderStates(); } });
       svg.append(p);
     });
   }
   const stRow = (cve) => DIP.states.find((r) => r.legislature === S.leg && r.cve === cve);
-  const largest = (r) => { let best = null, bn = 0, tot = 0; for (const p in r.parties) { tot += r.parties[p]; if (r.parties[p] > bn) { bn = r.parties[p]; best = p; } } return { p: best, share: bn / tot }; };
+  const largest = (r) => { const entries = Object.entries(r.parties), total = entries.reduce((n, e) => n + e[1], 0), max = Math.max(...entries.map((e) => e[1])), leaders = entries.filter((e) => e[1] === max); return { p: leaders.length === 1 ? leaders[0][0] : null, share: max / total }; };
   const posColor = (v) => { const t = Math.max(-1, Math.min(1, v)); const mix = (a, b, f) => a.map((c, i) => Math.round(c + (b[i] - c) * f)); const g = [61, 57, 52], c = t < 0 ? mix(g, [76, 135, 217], -t) : mix(g, [229, 145, 42], t); return 'rgb(' + c.join(',') + ')'; };
   function hoverState(s, x, y) {
     const r = stRow(s.cve); if (!r) return D.showTip('<strong>' + s.name + '</strong><div class="rows"><span>' + D.t('noData') + '</span><span></span></div>', x, y);
@@ -162,15 +167,18 @@
   function renderStates() {
     legButtons('#legbtns2'); seg('#mapmode', 'mapmode', 'mode');
     const L = byLeg[S.leg]; $('#map-title').textContent = D.t('mapTitle', { r: L.roman });
+    $('#map').setAttribute('aria-label', D.t('mapTitle', { r: L.roman }));
     $('#map-sub').textContent = L.hasGeo ? D.t(S.mapmode === 'party' ? 'mapSubParty' : 'mapSubPos') : D.t('noGeo');
+    $('#map-coverage').textContent = L.geoMapped == null ? '' : D.t('mapCoverage', { n: D.num(L.geoMapped), s: L.geoStates, missing: D.num(L.geoMissingState), unknown: D.num(L.geoUnknownRole) });
     window.MX_STATES.states.forEach((s) => {
       const p = PATHS[s.cve], r = L.hasGeo ? stRow(s.cve) : null; p.classList.toggle('sel', S.state === s.cve);
+      p.style.cursor = r ? 'pointer' : 'default';
       if (!r) { p.classList.add('na'); p.style.fill = ''; p.style.fillOpacity = ''; return; }
       p.classList.remove('na');
-      if (S.mapmode === 'party') { const b = largest(r); p.style.fill = COL[b.p]; p.style.fillOpacity = b.share >= .5 ? 1 : .55; }
+      if (S.mapmode === 'party') { const b = largest(r); p.style.fill = b.p ? COL[b.p] : '#B8AA96'; p.style.fillOpacity = !b.p || b.share >= .5 ? 1 : .55; }
       else if (r.mean != null) { p.style.fill = posColor(r.mean); p.style.fillOpacity = 1; } else { p.classList.add('na'); p.style.fill = ''; }
     });
-    $('#map-leg').innerHTML = S.mapmode === 'party' ? ORDER.map((p) => '<span><i style="background:' + COL[p] + '"></i>' + p + '</span>').join('') : '<span class="scale">' + D.t('opp') + ' <span class="ramp" style="display:inline-block;width:160px"></span> ' + D.t('gov') + '</span><span><i style="background:#34302C"></i>' + D.t('stFew') .replace(/^ · /, '') + '</span>';
+    $('#map-leg').innerHTML = S.mapmode === 'party' ? ORDER.map((p) => '<span><i style="background:' + COL[p] + '"></i>' + p + '</span>').join('') + '<span><i style="background:#B8AA96"></i>' + D.t('tie') + '</span><span><i style="background:#34302C"></i>' + D.t('noData') + '</span>' : '<span class="scale">' + D.t('opp') + ' <span class="ramp" style="display:inline-block;width:160px"></span> ' + D.t('gov') + '</span><span><i style="background:#34302C"></i>' + D.t('stFew') .replace(/^ · /, '') + '</span>';
     const nm = $('#st-name'), sub = $('#st-sub'), bars = $('#st-bars'); bars.innerHTML = '';
     const st = S.state && window.MX_STATES.states.find((s) => s.cve === S.state), r = st && stRow(st.cve);
     if (!r) { nm.textContent = D.t('pickState'); sub.textContent = ''; return; }
@@ -195,3 +203,4 @@
   function render() { renderTabs(); if (S.view === 'term') renderTerm(); else if (S.view === 'coh') renderCoh(); else if (S.view === 'states') renderStates(); else renderCov(); }
   buildMap(); render(); D.onLang(render);
 })();
+

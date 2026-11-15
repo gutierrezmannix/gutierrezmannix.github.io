@@ -14,3 +14,16 @@ summaries and pictures that you build locally from it:
 
 Orientation: each term is flipped so the president's party sits to the right (`gov` in `build_data.R`).
 Delegations with fewer than five scored deputies get no mean position, so no single member can be read off the map.
+
+## Refresh geography without changing the voting views
+
+Run `python build/refresh_geography.py /private/path/to/the.dta` (requires pandas).
+This updates only state aggregates, geography coverage, and election-type record counts in the existing public summaries.
+It checks the existing all-member voting summaries and orientation first; it preserves voting summaries and strip pictures.
+The geography source is tracked separately because a metadata update can retain the previous score version internally.
+
+State maps include every legislature with eligible records, including LVIII. They use only scored members explicitly recorded
+as titulares with a recognized state. Missing roles are excluded rather than assumed to be titulares; blank and `.` states
+are not geographic data. Coverage is shown for each term. Tied leading parties are neutral, not assigned arbitrarily.
+The input Stata file is read locally and is never copied into the site. No export button or downloadable dataset is created.
+

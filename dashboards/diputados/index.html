@@ -147,6 +147,7 @@
     <div class="row">
       <div class="grow card stack" style="gap:10px">
         <div class="card-head"><h2 class="h2" id="map-title">—</h2><span class="small" id="map-sub"></span></div>
+        <p class="small" id="map-coverage"></p>
         <svg id="map" viewBox="0 0 1000 641" role="img" style="width:100%;height:auto;display:block"></svg>
         <div class="leg" id="map-leg"></div>
       </div>
@@ -155,7 +156,7 @@
         <h2 class="h2" id="st-name" data-i18n="pickState">Click a state</h2>
         <p class="small" id="st-sub"></p>
         <div class="bars" id="st-bars"></div>
-        <p class="small" data-i18n="stNote">Titulares with an estimate, by the party they sat with. The mean position is shown only for delegations of five or more scored deputies, so that no single member's value can be read off the map. The LVIII Legislature has no state data.</p>
+        <p class="small" data-i18n="stNote">The map uses scored members explicitly recorded as titulares, grouped by their recorded state and party. Members with an unknown role or state are excluded. Mean positions are shown only for groups of five or more scored deputies.</p>
       </div>
     </div>
   </section>
@@ -170,7 +171,8 @@
 
 <script src="../shared/dash.js"></script>
 <script src="../envipe/mx-states.js"></script>
-<script src="data/diputados-agg.js"></script>
-<script src="app.js?v=20261115-no-export"></script>
+<script src="data/diputados-agg.js?v=20261115-geography-v11"></script>
+<script src="app.js?v=20261115-geography-v11"></script>
 </body>
 </html>
+
