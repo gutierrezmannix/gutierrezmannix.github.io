@@ -6,6 +6,7 @@
         ['Correlation', goT({ tab: 'corr' })],
         ['Regression', goT({ tab: 'reg' })],
         ['Text analysis', goT({ tab: 'text' })],
+        ['Predict (machine learning)', goT({ tab: 'predict' })],
         ['Time series', goT({ tab: 'ts' })],
         ['Networks analysis', goT({ tab: 'ergm' })],
         ['Structural equation modeling', goT({ tab: 'sem' })],

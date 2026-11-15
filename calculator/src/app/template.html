@@ -3150,6 +3150,25 @@ code, kbd, samp { font-family: var(--font-mono); }
 /* See one text change: the word list scrolls in its own window when opened (build .84) */
 .tl-aftercl .tl-toks{max-height:420px;overflow-y:auto;padding-right:4px;overscroll-behavior:contain}
 </style><sc-if value="{{ isText }}" hint-placeholder-val="{{ false }}"><div data-screen-label="Text analysis">{{ tlEl }}</div></sc-if><!-- GM26 text lab end -->
+<!-- GM26 predict lab begin --><style>.pr .pr-task{margin:2px 0 6px;font-size:13px;font-weight:600;color:var(--c194F39,#194F39)}
+.pr .pr-card{border:1px solid var(--cE3DCCE,#E3DCCE);border-radius:10px;padding:10px 12px;background:#fff;font-size:13px;line-height:1.5;color:var(--c3D3629,#3D3629)}
+.pr .pr-card.warn{border-left:4px solid var(--cC4681E,#C4681E);background:#FFF8F0}
+.pr .pr-card.lock{border-left:4px solid #6B6455;background:#F7F5F0}
+.pr .pr-card .tl-btn{margin-left:4px}
+.pr .pr-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pr .pr-three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media (max-width:900px){.pr .pr-two,.pr .pr-three{grid-template-columns:1fr}}
+.pr table.pr-lb td.n,.pr table.pr-lb th.n{text-align:right;font-family:var(--fMono,'Space Mono',monospace);font-size:12px;white-space:nowrap}
+.pr table.pr-lb tr.best td{background:var(--cEDF5F0,#EDF5F0);font-weight:700}
+.pr table.pr-lb tr.null td{color:#8C8372;font-style:italic}
+.pr .pr-pill{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap}
+.pr .pr-pill.g{background:var(--cEDF5F0,#EDF5F0);color:var(--c194F39,#194F39)}.pr .pr-pill.o{background:#FFF1E4;color:#A8521A}.pr .pr-pill.b{background:#EAF3F6;color:#357F93}
+.pr .pr-big{font-size:22px;font-weight:700;color:var(--c194F39,#194F39);margin:6px 0}
+.pr .pr-pre{white-space:pre-wrap;font-family:var(--fMono,'Space Mono',monospace);font-size:11.5px;line-height:1.5;margin:8px 0 0;color:var(--c2B271E,#2B271E)}
+.pr input[type=range]{width:160px;accent-color:var(--c194F39,#194F39)}
+.pr .pr-two>*,.pr .pr-three>*{min-width:0}
+.pr .tl-code{max-width:100%}
+</style><sc-if value="{{ isPredict }}" hint-placeholder-val="{{ false }}"><div data-screen-label="Predict">{{ prEl }}</div></sc-if><!-- GM26 predict lab end -->
 
           <sc-if value="{{ isSem }}" hint-placeholder-val="{{ false }}">
             <div data-screen-label="SEM" style="display: flex; flex-direction: column; gap: 8px;">
@@ -4072,7 +4091,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-13.98</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-15.99</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>

@@ -38,7 +38,7 @@ ROOT = TOOLS.parent
 APP = ROOT / 'src' / 'app'
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-11-13.98'
+BUILD = '2026-11-15.99'
 LANGS = ['es', 'en', 'pt', 'fr']
 SCRIPT = r'<script type="__bundler/{}">(.*?)</script>'
 COMPONENT = re.compile(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', re.S)
@@ -162,7 +162,7 @@ def load_app():
 # ---------- the build ----------
 def integrate(template, component, engine):
     """Every integrator, in order. Each one is idempotent: re-running it on its own output changes nothing."""
-    import text_lab, breakdown, net_lab, data_edit, chart_builder, analysis_suite, console_stata, map_lab, intro_page, compare_means, regression_guide
+    import text_lab, breakdown, net_lab, data_edit, chart_builder, analysis_suite, console_stata, map_lab, intro_page, compare_means, regression_guide, predict_lab
     text_lab.BUILD = BUILD
     full = join_component(template, component)
     m = COMPONENT.search(full)
@@ -184,6 +184,7 @@ def integrate(template, component, engine):
     c = intro_page.integrate_component(c)
     c = compare_means.integrate_component(c)
     c = regression_guide.integrate_component(c)
+    c = predict_lab.integrate_component(c)
     full = full[:m.start(2)] + c + full[m.end(2):]
     t = text_lab.integrate_template(full)
     t = breakdown.integrate_template(t)
@@ -195,10 +196,12 @@ def integrate(template, component, engine):
     t = intro_page.integrate_template(t)
     t = compare_means.integrate_template(t)
     t = regression_guide.integrate_template(t)
+    t = predict_lab.integrate_template(t)
     t = re.sub(r'2026-1[0-2]-\d{2}\.\d+', BUILD, t)
     e = text_lab.integrate_engine(engine)
     e = net_lab.integrate_engine(e)
     e = chart_builder.integrate_engine(e)
+    e = predict_lab.integrate_engine(e)
     e = sync_analysis_engine(e)
     template, component = split_component(t)
     return template, component, e
