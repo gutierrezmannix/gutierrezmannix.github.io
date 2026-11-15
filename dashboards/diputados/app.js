@@ -13,7 +13,7 @@
   D.strings({
     en: {
       navPubs: 'Publications', navTeach: 'Teaching', navData: 'Data', navDocs: 'Recommendations', navCalc: 'Calculator', navDash: 'Dashboards',
-      title: 'Voting alignment in the Chamber of Deputies', offline: 'Works offline', download: 'Download summaries (CSV)',
+      title: 'Voting alignment in the Chamber of Deputies',
       lede: 'Where each deputy sits on the main voting dimension of every legislature since 2000, estimated from roll-call votes. Positions are comparable inside a term; across terms, compare how tightly each caucus votes.',
       tabTerm: 'One legislature', tabCoh: 'Cohesion over time', tabStates: 'States', tabCov: 'Coverage & method',
       legislature: 'Legislature', who: 'Deputies', whoTit: 'Titulares', whoAll: 'Including suplentes', parties: 'Parties in this term', about: 'About this term',
@@ -36,11 +36,10 @@
       perTerm: 'Per term', kRows: 'deputy-terms, {l} legislatures', kScored: 'with an estimate ({p}%)', kSe: 'median standard error', kSupl: 'suplentes among them',
       cTerm: 'Term', cN: 'Deputies', cScored: 'Scored', cPct: '%', cOne: 'One-sided', cVotes: 'Median votes', cSe: 'Median SE', cUnder: '< 20 votes', cDropped: 'Dropped', cPending: 'Pending',
       method: '<p><strong>What the numbers are.</strong> For each legislature separately, every deputy’s recorded votes are scaled with a within-term NOMINATE model. The first dimension orders deputies from one voting bloc to the other; it is the dimension that explains most of the recorded divisions. Each estimate comes with a standard error from a {b}-draw parametric bootstrap.</p><p><strong>Orientation.</strong> The sign of the dimension is arbitrary in every term, so each term is flipped so that the caucus of the president’s party lies to the right and the opposition to the left. Nothing else is changed.</p><p><strong>Across terms.</strong> The scale is estimated anew in every legislature, so a position of 0.4 in one term is not the same as 0.4 in another. What does compare across terms is how tightly a caucus votes (the width of its middle half, its standard deviation) and ranks within the chamber.</p><p><strong>Who is left out.</strong> Deputies with fewer than 20 usable votes, members not retained after the identity review, and a few records still under review. Suplentes score on far fewer votes than titulares and are off by default. The LXVI Legislature is a partial term: its estimates will move as more votes are recorded.</p><p><strong>What is published.</strong> This page carries only summaries per term, party and state, and pictures without names. The member-level file stays with the author; data version {v}, built {d}.</p>',
-      csvName: 'diputados-summaries.csv'
     },
     es: {
       navPubs: 'Publicaciones', navTeach: 'Docencia', navData: 'Datos', navDocs: 'Recomendaciones', navCalc: 'Calculadora', navDash: 'Tableros',
-      title: 'Alineamiento de voto en la Cámara de Diputados', offline: 'Funciona sin internet', download: 'Descargar resúmenes (CSV)',
+      title: 'Alineamiento de voto en la Cámara de Diputados',
       lede: 'Dónde se ubica cada diputado en la dimensión principal de votación de cada legislatura desde 2000, estimada a partir de las votaciones nominales. Las posiciones se comparan dentro de una legislatura; entre legislaturas, compare qué tan unida vota cada bancada.',
       tabTerm: 'Una legislatura', tabCoh: 'Cohesión en el tiempo', tabStates: 'Estados', tabCov: 'Cobertura y método',
       legislature: 'Legislatura', who: 'Diputados', whoTit: 'Titulares', whoAll: 'Con suplentes', parties: 'Partidos en esta legislatura', about: 'Sobre esta legislatura',
@@ -63,7 +62,6 @@
       perTerm: 'Por legislatura', kRows: 'diputado-legislaturas, {l} legislaturas', kScored: 'con estimación ({p}%)', kSe: 'mediana del error estándar', kSupl: 'suplentes entre ellos',
       cTerm: 'Legislatura', cN: 'Diputados', cScored: 'Estimados', cPct: '%', cOne: 'Un solo lado', cVotes: 'Mediana de votos', cSe: 'Mediana EE', cUnder: '< 20 votos', cDropped: 'Excluidos', cPending: 'En revisión',
       method: '<p><strong>Qué son las cifras.</strong> Para cada legislatura por separado, las votaciones registradas de cada diputado se escalan con un modelo NOMINATE dentro de la legislatura. La primera dimensión ordena a los diputados de un bloque de votación al otro; es la que explica la mayor parte de las divisiones registradas. Cada estimación lleva un error estándar de un bootstrap paramétrico de {b} réplicas.</p><p><strong>Orientación.</strong> El signo de la dimensión es arbitrario en cada legislatura, así que cada una se voltea para que la bancada del partido del presidente quede a la derecha y la oposición a la izquierda. Nada más cambia.</p><p><strong>Entre legislaturas.</strong> La escala se estima de nuevo en cada legislatura, de modo que 0.4 en una no es lo mismo que 0.4 en otra. Lo que sí se compara es qué tan unida vota una bancada (el ancho de su mitad central, su desviación estándar) y los rangos dentro de la cámara.</p><p><strong>Quién queda fuera.</strong> Diputados con menos de 20 votaciones utilizables, integrantes no conservados tras la revisión de identidades y unos pocos registros aún en revisión. Los suplentes se estiman con muchas menos votaciones que los titulares y están apagados por defecto. La LXVI Legislatura está en curso: sus estimaciones cambiarán conforme se registren más votaciones.</p><p><strong>Qué se publica.</strong> Esta página solo lleva resúmenes por legislatura, partido y estado, e imágenes sin nombres. El archivo por diputado queda con el autor; versión de datos {v}, construida el {d}.</p>',
-      csvName: 'diputados-resumenes.csv'
     }
   });
 
@@ -194,15 +192,6 @@
     $('#method').innerHTML = D.t('method', { b: DIP.meta.bootDraws, v: D.esc(DIP.meta.version), d: DIP.meta.built });
   }
 
-  /* ---------- CSV of the summaries ---------- */
-  $('#dl').addEventListener('click', () => {
-    const lines = ['table,legislature,years,party_or_state,who,n,median,q1,q3,iqr,sd'];
-    DIP.coh.forEach((c) => lines.push(['party', c.legislature, byLeg[c.legislature].years, c.p, c.who, c.n, c.med, c.q1, c.q3, c.iqr, c.sd].join(',')));
-    DIP.states.forEach((s) => lines.push(['state', s.legislature, byLeg[s.legislature].years, window.MX_STATES.states.find((x) => x.cve === s.cve).name, 'tit', s.n, s.med == null ? '' : s.med, '', '', '', ''].join(',')));
-    D.download(D.t('csvName'), lines.join('\n'));
-  });
-
   function render() { renderTabs(); if (S.view === 'term') renderTerm(); else if (S.view === 'coh') renderCoh(); else if (S.view === 'states') renderStates(); else renderCov(); }
-  $('#pill-version').textContent = (D.lang === 'es' ? 'Datos de trabajo' : 'Working data') + ' · v' + (String(DIP.meta.version).match(/v(\d+)/) || [, '?'])[1] + ' · ' + DIP.meta.cutoff;
-  buildMap(); render(); D.onLang(() => { $('#pill-version').textContent = (D.lang === 'es' ? 'Datos de trabajo' : 'Working data') + ' · v' + (String(DIP.meta.version).match(/v(\d+)/) || [, '?'])[1] + ' · ' + DIP.meta.cutoff; render(); });
+  buildMap(); render(); D.onLang(render);
 })();
