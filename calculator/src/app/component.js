@@ -7206,6 +7206,25 @@ class Component extends DCLogic {
       return { name: r.fileName, sub: [sm, this.asWhen(r.at)].filter(Boolean).join(' · ') + (r.hasFull ? '' : ' · open the file again to restore it'), canRestore: !!r.hasFull, restore: () => this.autoRestore(r.sig), discard: () => this.autoDiscard(r.sig) };
     });
     out.hasIntroRecent = out.introRecent.length > 0;
+    out.dlProgram = () => this.dlProgram();
+    out.showDl = this.dlOnSite(); out.hasDlMsg = !!S.dlMsg; out.dlMsg = S.dlMsg || '';
+  }
+  // ---- download the program: the page itself, one file named by its build (GM26-calculator-<build>.html).
+  // On the website the link saves index.html; on a downloaded copy (file://) the browser cannot read its own file, so the
+  // entry-page line is hidden and File → opens the website; the new-version notice downloads the newer build from the site.
+  dlOnSite() { return typeof location !== 'undefined' && /^https?:$/.test(location.protocol); }
+  dlSay(msg) { this.setState({ dlMsg: msg }); this.flash(msg); clearTimeout(this._dlT); this._dlT = setTimeout(() => this.setState({ dlMsg: '' }), 9000); }
+  async dlProgram(build) {
+    const site = 'https://gutierrezmannix.github.io/calculator/';
+    if (!build && !this.dlOnSite()) { window.open(site, '_blank'); return; }
+    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-15.100') + '.html';
+    try {
+      const r = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw new Error(r.status);
+      const blob = await r.blob(); if (blob.size < 100000) throw new Error('short');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      this.dlSay('Saved ' + name + ' · double-click it to open the calculator; it works without internet and installs nothing. If Edge says the file "isn\'t commonly downloaded", choose Keep.');
+    } catch (e) { this.dlSay(build ? 'Could not download build ' + build + ' from here — open the website and use "Download the program".' : 'Could not save the program from here — use your browser\'s Save page as… (Ctrl/\u2318+S), "Webpage, HTML only".'); }
   }
   // GM26 intro page end
   // GM26 compare means begin
@@ -11056,7 +11075,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-15.99') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-15.100') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -11102,8 +11121,8 @@ class Component extends DCLogic {
         const fl = 'border-left: 4px solid var(--cC4681E, #C4681E); position: fixed; right: 16px; bottom: 16px; z-index: 9000; max-width: min(400px, calc(100vw - 32px)); box-sizing: border-box; box-shadow: 0 6px 24px rgba(0,0,0,0.18);';
         if (nv.site) BAN.push({ text: '↻ New version of the calculator available (build ' + nv.build + ').' + (nv.note ? ' ' + nv.note : '') + (this.rlHasWork() ? ' Save your session first (File → Save session): reloading closes the data open now.' : ''), style: fl,
           acts: [btn('Reload now', () => this.askReload('update', nv.build), true), later] });
-        else BAN.push({ text: '↻ New version of the calculator available (build ' + nv.build + '). This is a downloaded copy — get the new one from the website.' + (nv.note ? ' ' + nv.note : ''), style: fl,
-          acts: [btn('Open the website', () => { window.open('https://gutierrezmannix.github.io/calculator/', '_blank'); }, true), later] });
+        else BAN.push({ text: '↻ New version of the calculator available (build ' + nv.build + '). This is a downloaded copy; download the new one here, or get it from the website. Your current copy stays on disk.' + (nv.note ? ' ' + nv.note : ''), style: fl,
+          acts: [btn('Download build ' + nv.build, () => { this.dlProgram(nv.build); }, true), btn('Open the website', () => { window.open('https://gutierrezmannix.github.io/calculator/', '_blank'); }), later] });
       }
       if (out.showWork && S.asOffer) {
         const o = S.asOffer, sm = this.asSummary(o.sum);
@@ -11463,7 +11482,9 @@ class Component extends DCLogic {
         ['Open a saved session…', () => { this.setState(closeMenu); this.openFileDialog(); }],
         SEP,
         ['Copy session log', () => { this.setState(closeMenu); if (!(S.conLog || []).length) { this.flash('The session log is empty — run a command or an analysis first.'); return; } if (out.copyLog) out.copyLog(); }],
-        ['Print lab report…', go({ reportMode: true })]
+        ['Print lab report…', go({ reportMode: true })],
+        SEP,
+        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-15.100)', () => { this.setState(closeMenu); this.dlProgram(); }]
       ]],
       ['Data', { tab: 'data' }, 'Create, replace, recode and rename variables', [
         [(this._undo || []).length ? 'Undo: ' + (S.undoLabel || 'last change') + '   (Ctrl/\u2318+Z)' : 'Undo (nothing to undo)', () => { this.setState(closeMenu); this.undo(); }],

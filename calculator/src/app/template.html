@@ -168,6 +168,10 @@
 .gi-remove{font-family:inherit;font-size:14px;color:var(--c5D5648,#5D5648);background:none;border:0;padding:10px 6px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;min-height:44px}
 .gi button:focus-visible,.gi a:focus-visible{outline:2px solid var(--c194F39,#194F39);outline-offset:2px}
 @media (max-width:640px){.gi{padding:28px 16px 56px;align-items:flex-start}.gi-browse{width:100%}.gi-drop{padding:28px 16px}}
+.gi-dl{margin:-10px 0 0;text-align:center;font-family:var(--fUI,'Hanken Grotesk',sans-serif);font-size:12.5px;color:var(--c8C8372,#8C8372)}
+.gi-dllink{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.gi-dllink:hover{color:var(--c194F39,#194F39)}
+.gi-dlmsg{margin-top:-14px;color:var(--c194F39,#194F39)}
 </style><!-- GM26 intro css end --><!-- GM26 chart directory --><style>.cs-workspace,.cs-directory { color:var(--c2B271E,#20362F); padding:8px; min-width:0; }
 .cs-heading h2,.cs-directory h2 {font-family:var(--fUI,sans-serif);font-size:22px;margin:12px 0;}
 .cs-heading nav {font-size:12px;line-height:1.7;}
@@ -1101,6 +1105,8 @@ code, kbd, samp { font-family: var(--font-mono); }
             <div class="gi-release">RELEASE TO LOAD</div>
           </sc-if>
         </div>
+        <sc-if value="{{ showDl }}" hint-placeholder-val="{{ true }}"><p class="gi-dl"><button type="button" class="gi-dllink" sc-camel-on-click="{{ dlProgram }}">Download the program</button> · one file, works offline</p></sc-if>
+        <sc-if value="{{ hasDlMsg }}" hint-placeholder-val="{{ false }}"><p class="gi-dl gi-dlmsg" role="status">{{ dlMsg }}</p></sc-if>
 
         <sc-if value="{{ parsing }}" hint-placeholder-val="{{ false }}">
           <div style="background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 10px 14px; box-shadow: inset 0 1px 2px rgba(43,39,30,0.06); display: flex; flex-direction: column; gap: 8px;">
@@ -4091,7 +4097,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-15.99</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-15.100</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>

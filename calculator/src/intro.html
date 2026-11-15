@@ -9,6 +9,8 @@
             <div class="gi-release">RELEASE TO LOAD</div>
           </sc-if>
         </div>
+        <sc-if value="{{ showDl }}" hint-placeholder-val="{{ true }}"><p class="gi-dl"><button type="button" class="gi-dllink" sc-camel-on-click="{{ dlProgram }}">Download the program</button> · one file, works offline</p></sc-if>
+        <sc-if value="{{ hasDlMsg }}" hint-placeholder-val="{{ false }}"><p class="gi-dl gi-dlmsg" role="status">{{ dlMsg }}</p></sc-if>
 
         <sc-if value="{{ parsing }}" hint-placeholder-val="{{ false }}">
           <div style="background: var(--cFFFFFF, #FFFFFF); border: 1px solid var(--cD2C5AF, #D2C5AF); border-radius: 9px; padding: 10px 14px; box-shadow: inset 0 1px 2px rgba(43,39,30,0.06); display: flex; flex-direction: column; gap: 8px;">

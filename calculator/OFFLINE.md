@@ -3,6 +3,16 @@
 GM26.1 now runs every function without an internet connection, including from a downloaded copy of
 `index.html` opened from disk (`file://`). Nothing is fetched at run time.
 
+## Download the program (build .100)
+
+The entry page has a small line under the data box, **Download the program · one file, works offline**, and
+File has **Download program here**. Both save the page itself as `GM26-calculator-<build>.html` (about 6 MB),
+so a replication folder can keep the exact build that produced the results next to the data and the session
+file. Double-click the file to open it; it needs no internet and installs nothing. A downloaded copy hides the
+line (a browser cannot read its own file from disk); its File entry opens the website instead, and when a newer
+build is published the "new version" notice on the copy offers **Download build X** directly from the site.
+Nothing updates by itself: an old copy stays as it was.
+
 ## What changed
 
 **Tests ▾ analyses no longer download R.** The 65 advanced analyses (proportions and categorical tests,
