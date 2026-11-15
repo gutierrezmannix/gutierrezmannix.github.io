@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voting Alignment in Mexico's Chamber of Deputies</title>
+<meta name="description" content="Where every deputy sits on the main voting dimension of Mexico's Chamber of Deputies, LVIII–LXVI (2000–2026): party cohesion, state delegations and coverage. Summaries only; works offline.">
+<link rel="stylesheet" href="../shared/dash.css">
+<style>
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); }
+  .tabs button { padding: 10px 14px; border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; background: transparent; color: var(--fg-3); font-weight: 600; font-size: 14px; }
+  .tabs button:hover { color: var(--fg); }
+  .tabs button[aria-selected="true"] { background: var(--panel); color: var(--fg); border-color: var(--line); margin-bottom: -1px; }
+  .legbtns { display: flex; flex-wrap: wrap; gap: 4px; }
+  .legbtns button { min-width: 58px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-deep); color: var(--fg-2); font: 600 12px var(--font-mono); }
+  .legbtns button:hover { border-color: var(--fg-4); color: var(--fg); }
+  .legbtns button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg-deep); }
+  .legbtns button .yrs { display: block; font-size: 9px; opacity: .75; font-weight: 400; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-end; }
+  .ctl .c { display: flex; flex-direction: column; gap: 8px; min-width: 0; max-width: 100%; }
+  .strip { width: 100%; height: auto; border-radius: 10px; display: block; background: var(--panel); }
+  .ptable { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ptable th { text-align: left; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-4); font-weight: 400; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  .ptable td { padding: 6px 5px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ptable th { padding: 4px 5px; }
+  .ptable td.n, .ptable th.n { text-align: right; font-family: var(--font-mono); font-size: 12px; }
+  .ptable .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; }
+  .ptable tr.gov td:first-child { font-weight: 700; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13.5px; color: var(--fg-3); }
+  .facts b { color: var(--fg); font-weight: 500; }
+  .leg { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--fg-2); }
+  .leg i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .leg i.hollow { background: none !important; border: 1.5px solid var(--fg-2); }
+  .leg i.band { border-radius: 2px; opacity: .35; }
+  svg.chart { display: block; width: 100%; height: auto; }
+  svg.chart text { font-family: var(--font-sans); }
+  svg.chart text.mono { font-family: var(--font-mono); }
+  #map path.st { stroke: var(--bg-deep); stroke-width: 1; cursor: pointer; transition: opacity 120ms; }
+  #map path.st:hover { stroke: var(--fg); stroke-width: 1.6; }
+  #map path.st.sel { stroke: #fff; stroke-width: 2.6; }
+  #map path.st.na { fill: #34302C; cursor: default; }
+  .bars { display: flex; flex-direction: column; gap: 6px; }
+  .bar { display: grid; grid-template-columns: 64px 1fr 68px; align-items: center; gap: 10px; font-size: 13px; }
+  .bar .tr { height: 12px; background: #24221F; border-radius: 3px; position: relative; }
+  .bar .tr i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+  .bar .v { font-family: var(--font-mono); font-size: 12px; text-align: right; color: var(--fg-2); }
+  .scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--fg-3); }
+  .scale .ramp { flex: 1; height: 10px; border-radius: 3px; background: linear-gradient(90deg, #4C87D9, #3D3934 50%, #E5912A); max-width: 220px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .kpi { background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .kpi .big { font-size: 32px; font-family: var(--font-mono); }
+  .kpi .l { font-size: 12.5px; color: var(--fg-3); margin-top: 4px; }
+  .cov { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .cov th { text-align: right; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-4); font-weight: 400; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  .cov th:first-child, .cov td:first-child { text-align: left; }
+  .cov td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+  .cov td:first-child { font-family: var(--font-sans); font-size: 13px; }
+  .cov .pb { display: inline-block; width: 90px; height: 8px; background: #24221F; border-radius: 2px; vertical-align: middle; margin-left: 8px; position: relative; }
+  .cov .pb i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 2px; }
+  .method p { margin: 0 0 10px; font-size: 14px; color: var(--fg-2); max-width: 78ch; }
+  .method p strong { color: var(--fg); }
+  .scroll { overflow-x: auto; }
+  .tip { max-width: 300px; }
+  .tip .rows { margin-top: 6px; display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; font-size: 12px; color: #433D31; }
+  [hidden] { display: none !important; }
+  @media (max-width: 640px) { .bar { grid-template-columns: 58px 1fr 64px; } }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="../../index.html">
+      <svg width="26" height="27" viewBox="0 0 30 31" aria-hidden="true"><path d="M9 1.5 H14.5 V9.3 L26.3 10.3 L28.3 16.6 L24.3 21.8 L18.4 29.4 L15.2 24.8 L12 21.8 L9 19 H6.2 L1.7 12.5 L3.6 7.2 L9 6.1 Z" fill="#E5912A"/></svg>
+      <span>Carlos Gutiérrez-Mannix</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../../index.html#pubs" data-i18n="navPubs">Publications</a>
+      <a href="../../index.html#teaching" data-i18n="navTeach">Teaching</a>
+      <a href="../../index.html#data" data-i18n="navData">Data</a>
+      <a href="../../Documentaries/" data-i18n="navDocs">Recommendations</a>
+      <a href="../../calculator/index.html" data-i18n="navCalc">Calculator</a>
+      <a href="../index.html" aria-current="page" data-i18n="navDash">Dashboards</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en">EN</button><button type="button" data-lang="es">ES</button></div>
+  </div>
+</header>
+
+<main class="page" id="top">
+  <div class="head-row">
+    <div class="grow">
+      <p class="crumbs"><a href="../index.html" data-i18n="navDash">Dashboards</a> / <span data-i18n="title">Voting alignment in the Chamber of Deputies</span></p>
+      <p class="eyebrow" style="margin-top:8px">México · Cámara de Diputados · LVIII–LXVI · 2000–2026</p>
+      <h1 class="title" data-i18n="title">Voting alignment in the Chamber of Deputies</h1>
+      <p class="lede" data-i18n="lede">Where each deputy sits on the main voting dimension of every legislature since 2000, estimated from roll-call votes. Positions are comparable inside a term; across terms, compare how tightly each caucus votes.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <span class="pill" id="pill-version">Working data</span>
+      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#80B79B" stroke-width="2.4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="offline">Works offline</span></span>
+      <button type="button" class="btn" id="dl"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></svg><span data-i18n="download">Download summaries (CSV)</span></button>
+    </div>
+  </div>
+
+  <div id="error" class="err" hidden></div>
+
+  <div class="tabs" role="tablist" id="tabs">
+    <button type="button" role="tab" data-view="term" aria-selected="true" data-i18n="tabTerm">One legislature</button>
+    <button type="button" role="tab" data-view="coh" aria-selected="false" data-i18n="tabCoh">Cohesion over time</button>
+    <button type="button" role="tab" data-view="states" aria-selected="false" data-i18n="tabStates">States</button>
+    <button type="button" role="tab" data-view="cov" aria-selected="false" data-i18n="tabCov">Coverage &amp; method</button>
+  </div>
+
+  <!-- ===== one legislature ===== -->
+  <section id="view-term" class="stack" style="gap:20px">
+    <div class="card ctl">
+      <div class="c"><span class="label" data-i18n="legislature">Legislature</span><div class="legbtns" id="legbtns"></div></div>
+      <div class="c"><span class="label" data-i18n="who">Deputies</span><div class="seg neutral" id="who"><button type="button" data-who="tit" aria-pressed="true" data-i18n="whoTit">Titulares</button><button type="button" data-who="all" aria-pressed="false" data-i18n="whoAll">Including suplentes</button></div></div>
+    </div>
+    <div class="row">
+      <div class="grow card stack" style="gap:12px">
+        <div class="card-head"><h2 class="h2" id="term-title">—</h2><span class="small" id="term-sub"></span></div>
+        <img class="strip" id="strip" alt="" width="800" height="400">
+        <div class="leg" id="strip-leg"></div>
+        <p class="small" data-i18n="stripNote">Each dot is one deputy; the tick is the party median and the band its middle half. Hollow dots are one-sided estimates, pinned at the edge of the scale. The picture carries no names: this page publishes summaries, not the member-level file.</p>
+        <span class="label" style="margin-top:8px" data-i18n="parties">Parties in this term</span><div class="scroll"><table class="ptable" id="ptable"></table></div><p class="small" data-i18n="ptableNote">Scored / seats: deputies with an estimate out of the titulares on the roster. Median and middle half are on the oriented scale.</p>
+      </div>
+      <div class="side stack" style="gap:20px">
+        <div class="card stack" style="gap:10px"><span class="label" data-i18n="about">About this term</span><div class="facts" id="facts"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== cohesion ===== -->
+  <section id="view-coh" class="stack" style="gap:20px" hidden>
+    <div class="card ctl">
+      <div class="c"><span class="label" data-i18n="measure">Measure</span><div class="seg neutral wrap" id="measure"><button type="button" data-m="iqr" aria-pressed="true" data-i18n="mIqr">Width of the middle half</button><button type="button" data-m="sd" aria-pressed="false" data-i18n="mSd">Standard deviation</button><button type="button" data-m="med" aria-pressed="false" data-i18n="mMed">Median position</button></div></div>
+      <div class="c"><span class="label" data-i18n="who">Deputies</span><div class="seg neutral" id="who2"><button type="button" data-who="tit" aria-pressed="true" data-i18n="whoTit">Titulares</button><button type="button" data-who="all" aria-pressed="false" data-i18n="whoAll">Including suplentes</button></div></div>
+    </div>
+    <div class="card stack" style="gap:12px">
+      <div class="card-head"><h2 class="h2" id="coh-title">—</h2><span class="small" id="coh-sub"></span></div>
+      <svg class="chart" id="coh" viewBox="0 0 1180 320" role="img"></svg>
+      <div class="leg" id="coh-leg"></div>
+      <p class="small" id="coh-note"></p>
+    </div>
+  </section>
+
+  <!-- ===== states ===== -->
+  <section id="view-states" class="stack" style="gap:20px" hidden>
+    <div class="card ctl">
+      <div class="c"><span class="label" data-i18n="legislature">Legislature</span><div class="legbtns" id="legbtns2"></div></div>
+      <div class="c"><span class="label" data-i18n="colour">Colour the map by</span><div class="seg neutral" id="mapmode"><button type="button" data-mode="party" aria-pressed="true" data-i18n="modeParty">Largest party</button><button type="button" data-mode="pos" aria-pressed="false" data-i18n="modePos">Mean position</button></div></div>
+    </div>
+    <div class="row">
+      <div class="grow card stack" style="gap:10px">
+        <div class="card-head"><h2 class="h2" id="map-title">—</h2><span class="small" id="map-sub"></span></div>
+        <svg id="map" viewBox="0 0 1000 641" role="img" style="width:100%;height:auto;display:block"></svg>
+        <div class="leg" id="map-leg"></div>
+      </div>
+      <div class="side card stack" style="gap:10px">
+        <span class="label" data-i18n="delegation">Delegation</span>
+        <h2 class="h2" id="st-name" data-i18n="pickState">Click a state</h2>
+        <p class="small" id="st-sub"></p>
+        <div class="bars" id="st-bars"></div>
+        <p class="small" data-i18n="stNote">Titulares with an estimate, by the party they sat with. The mean position is shown only for delegations of five or more scored deputies, so that no single member's value can be read off the map. The LVIII Legislature has no state data.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== coverage ===== -->
+  <section id="view-cov" class="stack" style="gap:20px" hidden>
+    <div class="kpis" id="kpis"></div>
+    <div class="card stack" style="gap:10px"><span class="label" data-i18n="perTerm">Per term</span><div class="scroll"><table class="cov" id="covtable"></table></div></div>
+    <div class="card method" id="method"></div>
+  </section>
+</main>
+
+<script src="../shared/dash.js"></script>
+<script src="../envipe/mx-states.js"></script>
+<script src="data/diputados-agg.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
