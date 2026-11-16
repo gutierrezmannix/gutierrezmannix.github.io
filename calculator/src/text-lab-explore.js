@@ -379,6 +379,22 @@
       const series = S.map(se => { const tot = se.pts.reduce((a, v) => a + fin(v), 0); return Object.assign({}, se, { pts: se.pts.map(v => isFinite(v) && tot ? 100 * v / tot : NaN) }); });
       ch.data = { xs, series };
     });
+    // build .101: show only part of the time axis (from … to, in the periods of the current unit); the aggregation is untouched
+    const allXs = charts.reduce((a, ch) => ch.data.xs.length > a.length ? ch.data.xs : a, []);
+    const RG = TM.range && TM.range.unit === unit && (TM.range.from || TM.range.to) ? TM.range : null;
+    if (RG) charts.forEach(ch => {
+      const xs = ch.data.xs; let i0 = 0, i1 = xs.length - 1;
+      if (RG.from) { i0 = xs.findIndex(x => x >= RG.from); if (i0 < 0) i0 = xs.length; }
+      if (RG.to) { for (i1 = xs.length - 1; i1 >= 0 && xs[i1] > RG.to; i1--); }
+      if (i0 > i1) { i0 = 0; i1 = -1; }
+      ch.data = { xs: xs.slice(i0, i1 + 1), series: ch.data.series.map(se => Object.assign({}, se, { pts: se.pts.slice(i0, i1 + 1) })) };
+      if (ch.eras) ch.eras = ch.eras.map(e => ({ name: e.name, a: Math.max(0, e.a - i0), b: Math.min(i1 - i0, e.b - i0) })).filter(e => e.a <= e.b);
+    });
+    const rangeRow = allXs.length > 2 ? h('div', { className: 'tl-row wide', style: { alignItems: 'flex-end' } },
+      this.tlField('Show from', this.tlSelect(RG && RG.from && allXs.includes(RG.from) ? RG.from : '', [['', 'start · ' + allXs[0]]].concat(allXs.map(x => [x, x])), v => set({ range: { unit, from: v, to: RG ? RG.to : '' } }), 'Show from period')),
+      this.tlField('To', this.tlSelect(RG && RG.to && allXs.includes(RG.to) ? RG.to : '', [['', 'end · ' + allXs[allXs.length - 1]]].concat(allXs.map(x => [x, x])), v => set({ range: { unit, from: RG ? RG.from : '', to: v } }), 'Show to period')),
+      RG ? this.tlBtn('Show everything', () => set({ range: null })) : h('span', { className: 'tl-hint' }, 'Narrow the time axis without changing the counts: the periods outside the range are only left out of the chart.'),
+      RG && charts.length && !charts[0].data.xs.length ? h('span', { className: 'tl-hint' }, 'Nothing falls between those two periods.') : null) : null;
     const ctl = h('div', { className: 'tl-col' }, h('div', { className: 'tl-row wide' }, head,
         this.tlField('Show', this.tlSelect(TM.what, whatOpts, v => set({ what: v }), 'What to show')),
         this.tlField('Or a saved variable', this.tlSelect(isVar ? TM.what : '', varOpts, v => set({ what: v || 'words' }), 'Saved variable')),
@@ -403,11 +419,13 @@
       : kind === 'len' ? 'df$len <- ' + ((TM.lenOf || 'all') === 'chars' ? 'nchar(df$`' + T.v + '`)' : (TM.lenOf || 'all') === 'kept' ? 'ntoken(toks_clean)' : 'ntoken(toks)') + '   # ' + items[0].name + '\ndf$period <- ' + P + '\naggregate(len ~ period' + by + ', data = df, FUN = ' + (TM.lenAs || 'mean') + ')'
       : this.tlTimeRDict(T, TM, parts.length ? parts : items, measure, P, by);
     const need = !items.length;
-    return this.tlPanel('Over time', 'by ' + unit + (G ? ' · ' + T.by : ''), null, ctl,
+    const rcodeR = RG ? rcode.replace(/(df\$period <- [^\n]+)/, '$1\ndf <- df[' + [RG.from ? 'df$period >= "' + RG.from + '"' : '', RG.to ? 'df$period <= "' + RG.to + '"' : ''].filter(Boolean).join(' & ') + ', ]   # the periods shown') : rcode;
+    return this.tlPanel('Over time', 'by ' + unit + (G ? ' · ' + T.by : '') + (RG ? ' · ' + (RG.from || allXs[0]) + ' → ' + (RG.to || allXs[allXs.length - 1]) : ''), null, ctl,
       D.ambiguous ? this.tlBanner('info', 'Dates like 02.03.18 are read as ' + (D.order === 'dmy' ? 'day.month.year' : 'month.day.year') + '. ', this.tlBtn('Switch', () => set({ order: D.order === 'dmy' ? 'mdy' : 'dmy' }))) : null,
       need ? this.tlBanner('info', isVar ? '“' + vname + '” is not a numeric variable.' : 'Type a search in the Search box above (several words separated by commas give one line each), build dictionary categories in Measure, or pick a saved variable to chart it over time.') : null,
       ...charts.map(ch => h('div', { key: ch.key, className: 'tl-col' }, this.tlLinesSvg(ch.key, ch.data.xs, ch.data.series, { ylab, pct: measure === 'pct' || (kind === 'ntexts' && nm !== 'count'), title: ch.title, eras: ch.eras }), this.tlExportRow(ch.key, 'over-time-' + this._E.tlVarName(ch.title.split(' · ')[0])))),
-      need ? null : this.tlRcode(rcode));
+      need ? null : rangeRow,
+      need ? null : this.tlRcode(rcodeR));
   }
 
   // connections: fcm + textplot_network

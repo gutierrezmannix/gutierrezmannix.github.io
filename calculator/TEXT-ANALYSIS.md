@@ -22,6 +22,8 @@ The Dictionary results include the same timeline and a category cloud, shown by 
 category sized in proportion to its mentions, texts or % of texts (one cloud per author on a common
 scale), or the words inside each category coloured by category.
 
+**Show from … to (build .101).** Under every Over time chart, two dropdowns narrow the time axis to the periods you pick (in the unit shown: years, quarters, months …), and *Show everything* restores it. Only the chart is cut; the counts inside each period are unchanged, the R code adds the same filter on `period`, and a range set by month is kept when you come back to months but does not apply to years.
+
 **Plot by (builds .79–.80).** Explore → Over time and the Dictionary timeline have a **Plot by** box: pick the
 column with the authors (president, party, outlet …) to get one line per author, or *none — all texts together* for a
 single line. There is no separate "one line per …" switch any more: the variable you pick decides. When several words
