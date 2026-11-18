@@ -75,7 +75,9 @@ command; `macro list`, `scalar list`, `… drop`. `display` takes text, expressi
 prints the stored results.
 
 **Loops.** `foreach v of varlist|local|global|numlist …`, `foreach x in …` and `forvalues i = 1/5` (or `1(2)9`), typed
-line by line (the prompt counts the lines, as Stata's `2.`) or in the do-file box; nested loops work; 600 commands at most.
+line by line (the prompt counts the lines, as Stata's `2.`, and the command line says it is inside a loop) or in the
+do-file box; nested loops work; 600 commands at most. Esc cancels an open loop (build .107); a do-file that ends before
+the loop's `}` reports it instead of waiting.
 
 **Prefixes.** `quietly` (no output; errors still show), `capture` (no output, no error; sets `_rc`), `noisily`,
 `by` / `bysort varlist:` (the command once per group, under `-> g = value`; with `egen` it becomes `, by()`).

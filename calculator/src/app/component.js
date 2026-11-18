@@ -7316,7 +7316,7 @@ class Component extends DCLogic {
   async dlProgram(build) {
     const site = 'https://gutierrezmannix.github.io/calculator/';
     if (!build && !this.dlOnSite()) { window.open(site, '_blank'); return; }
-    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-18.106') + '.html';
+    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-18.107') + '.html';
     try {
       const r = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw new Error(r.status);
       const blob = await r.blob(); if (blob.size < 100000) throw new Error('short');
@@ -8624,7 +8624,7 @@ class Component extends DCLogic {
     for (const raw of String(text || '').split(/\r?\n/)) { const l = raw.replace(/\s+$/, ''); if (/\s\/\/\/\s*$/.test(l) || /^\/\/\/$/.test(l.trim())) { buf += l.replace(/\/\/\/\s*$/, ' '); continue; } lines.push(buf + l); buf = ''; }
     if (buf) lines.push(buf);
     const todo = lines.map(l => l.trim()).filter(Boolean); let i = 0;
-    const next = () => { if (i >= todo.length) return; const l = todo[i++]; this.cpRun(l, () => setTimeout(next, 120)); };
+    const next = () => { if (i >= todo.length) { if (this._cqLoop && this.cqLoopCancel) this.cqLoopCancel('program error: the loop is not closed — add } on a line of its own'); return; } const l = todo[i++]; this.cpRun(l, () => setTimeout(next, 120)); };
     next();
   }
   // text of the session for Copy / Save log (.log) and the commands alone for Save do-file (.do)
@@ -8666,6 +8666,7 @@ class Component extends DCLogic {
       let i = this._cpHi == null ? hist.length : this._cpHi; i += e.key === 'ArrowUp' ? -1 : 1; i = Math.max(0, Math.min(hist.length, i)); this._cpHi = i;
       el.value = i === hist.length ? '' : hist[i]; const p = el.value.length; el.setSelectionRange(p, p); return;
     }
+    if (e.key === 'Escape' && this._cqLoop && this.cqLoopCancel) { e.preventDefault(); e.stopPropagation(); this.cqLoopCancel(''); return; }
     if (e.key === 'Escape') { if (this.state.cpSug && this.state.cpSug.list && this.state.cpSug.list.length) { e.stopPropagation(); this._cpSugKey = ''; this.setState({ cpSug: null }); } }
   }
   cpKeys() {
@@ -8728,7 +8729,7 @@ class Component extends DCLogic {
       doBox,
       sg ? h('div', { className: 'cp-sug', role: 'listbox' }, sg.list.map((x, i) => h('button', { key: x.name, type: 'button', role: 'option', className: i === 0 ? 'on' : '', onMouseDown: e => { e.preventDefault(); this.cpInsert(x.name, true); } }, h('span', null, x.name), h('em', null, i === 0 ? 'Tab · ' + x.sub : x.sub)))) : null,
       h('div', { className: 'cp-cl' }, h('span', { className: 'cp-prompt' }, S.cpLoopN ? '  ' + (S.cpLoopN + 1) + '.' : prompt.trim()),
-        h('input', { ref: el => { this._cpIn = el; }, className: 'cp-in', type: 'text', autoComplete: 'off', spellCheck: false, 'aria-label': 'Command', placeholder: dial === 'r' ? 'Stata command (the console reads Stata and a few R calls)' : 'Stata command — e.g.  tabulate sexo  ·  ↑ ↓ earlier commands · Tab completes', onKeyDown: e => this.cpKey(e), onInput: () => this.cpSuggest(), onClick: () => this.cpSuggest(), onBlur: () => setTimeout(() => { if (this.state.cpSug) { this._cpSugKey = ''; this.setState({ cpSug: null }); } }, 150) }),
+        h('input', { ref: el => { this._cpIn = el; }, className: 'cp-in', type: 'text', autoComplete: 'off', spellCheck: false, 'aria-label': 'Command', placeholder: S.cpLoopN ? 'inside a loop: each line waits for } on a line of its own · Esc cancels the loop' : dial === 'r' ? 'Stata command (the console reads Stata and a few R calls)' : 'Stata command — e.g.  tabulate sexo  ·  ↑ ↓ earlier commands · Tab completes', onKeyDown: e => this.cpKey(e), onInput: () => this.cpSuggest(), onClick: () => this.cpSuggest(), onBlur: () => setTimeout(() => { if (this.state.cpSug) { this._cpSugKey = ''; this.setState({ cpSug: null }); } }, 150) }),
         h('div', { className: 'cp-mwrap' }, btn('Commands ▾', () => this.setState({ cpMenu: !S.cpMenu }), 'Pick a command to fill in'), menu),
         btn('Do-file', () => this.setState({ cpDo: !S.cpDo }), 'Several commands at once'),
         btn('Run', () => { const el = this._cpIn; if (!el) return; const v = el.value; el.value = ''; this.cpRun(v); }, 'Run the command (Enter)', 'run')));
@@ -9305,6 +9306,8 @@ class Component extends DCLogic {
     };
     iter();
   }
+  // an open loop is dropped (Esc in the command line, or a do-file that ends before its })
+  cqLoopCancel(err) { const L = this._cqLoop; if (!L) return; this._cqLoop = null; this.setState({ cpLoopN: 0 }); this.cpNote(L.lines.join('\n'), err || '(loop cancelled — nothing ran)', err ? 'err' : 'note'); }
   cqNumlist(s, range) {
     const out = [], toks = String(s).trim().replace(/\s*\/\s*/g, '/').replace(/\s*\(\s*/g, '(').replace(/\s*\)\s*/g, ')').split(/\s+/).filter(Boolean);
     for (const t of toks) { let m;
@@ -12261,7 +12264,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-18.106') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-18.107') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -12670,7 +12673,7 @@ class Component extends DCLogic {
         ['Copy session log', () => { this.setState(closeMenu); if (!(S.conLog || []).length) { this.flash('The session log is empty — run a command or an analysis first.'); return; } if (out.copyLog) out.copyLog(); }],
         ['Print lab report…', go({ reportMode: true })],
         SEP,
-        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-18.106)', () => { this.setState(closeMenu); this.dlProgram(); }]
+        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-18.107)', () => { this.setState(closeMenu); this.dlProgram(); }]
       ]],
       ['Data', { tab: 'data' }, 'Create, replace, recode and rename variables', [
         [(this._undo || []).length ? 'Undo: ' + (S.undoLabel || 'last change') + '   (Ctrl/\u2318+Z)' : 'Undo (nothing to undo)', () => { this.setState(closeMenu); this.undo(); }],

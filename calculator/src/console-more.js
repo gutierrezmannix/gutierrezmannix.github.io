@@ -207,6 +207,8 @@
     };
     iter();
   }
+  // an open loop is dropped (Esc in the command line, or a do-file that ends before its })
+  cqLoopCancel(err) { const L = this._cqLoop; if (!L) return; this._cqLoop = null; this.setState({ cpLoopN: 0 }); this.cpNote(L.lines.join('\n'), err || '(loop cancelled — nothing ran)', err ? 'err' : 'note'); }
   cqNumlist(s, range) {
     const out = [], toks = String(s).trim().replace(/\s*\/\s*/g, '/').replace(/\s*\(\s*/g, '(').replace(/\s*\)\s*/g, ')').split(/\s+/).filter(Boolean);
     for (const t of toks) { let m;
