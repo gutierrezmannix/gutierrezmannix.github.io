@@ -94,3 +94,18 @@ test('build .109: generate x = "" makes an empty text variable, as in Stata', as
   c.setState({ mfCmdErr: '' }); c.runCmdLine('generate str10 note = ""'); assert.equal(c.state.mfCmdErr, ''); assert.ok(c._raw.names.includes('note'));
   c.setState({ mfCmdErr: '' }); c.runCmdLine('generate label2 = "yes"'); assert.equal(c._raw.cols[c._raw.names.indexOf('label2')].a[0], 'yes');
 });
+
+test('build .110: set obs grows the data as in Stata; a value typed after the last row adds one observation', async () => {
+  const c = await setup();
+  c.setState({ mfCmdErr: '' }); c.runCmdLine('set obs 25'); assert.equal(c.state.mfCmdErr, ''); assert.equal(c._raw.n, 25);
+  assert.equal(c.state.conLog.at(-1).tbl, 'Number of observations (_N) was 20, now 25.');
+  assert.ok(Number.isNaN(c._raw.cols[c._raw.names.indexOf('y')].a[24])); assert.equal(c._raw.cols[c._raw.names.indexOf('g')].a[24], '');
+  c.setState({ mfCmdErr: '' }); c.runCmdLine('set obs 10'); assert.match(c.state.mfCmdErr, /cannot drop observations/); assert.equal(c._raw.n, 25);
+  const yi = c._raw.names.indexOf('y');
+  c._browseDraft = { raw: c._raw, r: 25, idx: yi, value: '7' }; c.browseSaveDraft(); assert.equal(c._raw.n, 26); assert.equal(c._raw.cols[yi].a[25], 7);
+  c._browseDraft = { raw: c._raw, r: 26, idx: yi, value: '' }; c.browseSaveDraft(); assert.equal(c._raw.n, 26, 'an empty value adds nothing');
+  c._browseDraft = { raw: c._raw, r: 3, idx: yi, value: '5' }; c.browseSaveDraft(); assert.equal(c._raw.n, 26, 'editing a cell inside the data adds no rows');
+  // 0 observations: commands that need data say so, as Stata (r(2000))
+  const e = await setup(); e._raw = { n: 0, names: ['y'], labels: [''], vlabs: {}, cols: [{ k: 'n', a: new Float64Array(0) }] };
+  e.setState({ mfCmdErr: '' }); e.runCmdLine('regress y y'); assert.match(e.state.mfCmdErr, /^no observations/);
+});

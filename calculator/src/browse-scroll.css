@@ -41,3 +41,5 @@
   .mf-work input.mf-browse-cell { border: 1px solid ButtonText !important; }
 }
 .mf-browse-empty code { font-family: var(--fMono, 'Space Mono', monospace); font-size: .9em; color: var(--c194F39, #194F39); background: var(--cEDF5F0, #EDF5F0); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+.mf-browse-new .mf-browse-number { color: var(--c8A8070, #8A8070); font-style: italic; }
+.mf-browse-new .mf-browse-cell { background: var(--cFBFAF6, #FBFAF6); border-bottom-style: dashed; }

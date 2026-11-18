@@ -26,7 +26,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   const fileName = async p => ((await body(p)).match(/GM 26\.11 (\S+) \d/) || [])[1];
   const menu = async (p, item) => { await p.getByRole('button', { name: /^File/ }).first().click(); await p.waitForTimeout(250); await p.getByText(item, { exact: true }).first().click(); };
   const load = async (p, f) => { const fc = await chooser(p, () => p.locator('.gi-browse').click()); await fc.setFiles(f); await p.waitForSelector('.mf-main', { timeout: 60000 }); await p.waitForTimeout(1200); };
-  const cmd = async (p, s) => { const box = p.locator('input[placeholder*="Stata command"]').first(); if (!(await box.isVisible().catch(() => false))) { await p.evaluate(() => [...document.querySelectorAll('button')].find(e => e.offsetParent && /^(Output|Console)/.test(e.textContent.trim()))?.click()); await p.waitForTimeout(400); } await box.fill(s); await box.press('Enter'); await p.waitForTimeout(900); };
+  const cmd = async (p, s) => { const box = p.locator('input[placeholder*="Stata command"]').first(); if (!(await box.isVisible().catch(() => false))) { await p.locator('.mf-cpbtn').click(); await p.waitForSelector('section.cp'); await p.waitForTimeout(400); } /* the console page (build .103) */ await box.fill(s); await box.press('Enter'); await p.waitForTimeout(900); };
 
   // ---- Create your own dataset
   let { ctx, p } = await fresh();
@@ -77,7 +77,7 @@ const { chromium } = require('playwright'); const path = require('path'), os = r
   check(await fileName(p) === 'tricky.csv' && /5 ROWS × 3 VARS/.test(await body(p)), 'the saved session opens (5 rows × 3 variables)');
   await cmd(p, 'summarize edad');
   await menu(p, 'Copy session log'); await p.waitForTimeout(400);
-  check(/^\. summarize edad, detail\nci means edad/.test(await p.evaluate(() => window.__clip.at(-1) || '')), 'Copy session log copies the commands with their output');
+  { const clip = await p.evaluate(() => window.__clip.at(-1) || ''); check(/^\. summarize edad\n[\s\S]*Variable \|\s+Obs\s+Mean/.test(clip), 'Copy session log copies the commands with their output (the console prints summarize as Stata since build .103)'); }
   await menu(p, 'Print lab report…'); await p.waitForTimeout(800); check(/Analysis session report/.test(await body(p)), 'Print lab report opens the report');
   await p.getByRole('button', { name: /Print \/ save as PDF/i }).click(); await p.waitForTimeout(300); check(await p.evaluate(() => window.__printed) === 1, 'Print / save as PDF calls the browser print');
   await p.getByRole('button', { name: /Back to workbench/i }).click(); await p.waitForTimeout(600); check(await p.locator('.mf-main').count() === 1, 'Back to workbench returns');

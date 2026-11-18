@@ -253,7 +253,7 @@ class Component extends DCLogic {
       rows = new Uint32Array(count);
       for (let i = 0, j = 0; i < raw.n; i++) if (mask[i]) rows[j++] = i;
     }
-    return this._browseIndex = { raw, n: raw.n, mask, rows, count: rows ? rows.length : raw.n };
+    return this._browseIndex = { raw, n: raw.n, mask, rows, count: rows ? rows.length : raw.n, extra: rows ? 0 : 1 };
   }
   browseWindow(count, cols, top, left, height, width) {
     const rh = 28, hh = 30, cw = 96, nw = 60;
@@ -273,6 +273,8 @@ class Component extends DCLogic {
   browseSaveDraft() {
     const d = this._browseDraft;
     this._browseDraft = null;
+    // build .110: a value typed in the row after the last adds one observation, as in Stata's Data Editor
+    if (d && this._raw === d.raw && d.r === d.raw.n && d.idx < d.raw.cols.length && String(d.value).trim() !== '' && String(d.value).trim() !== '.') { this.addRows(1); this.commitCell(d.r, d.idx, d.value); return; }
     if (d && this._raw === d.raw && d.r < d.raw.n && d.idx < d.raw.cols.length) {
       const col = d.raw.cols[d.idx], v = col.a[d.r], t = String(d.value).trim();
       const same = col.k === 'n' ? ((t === '' || t === '.') ? !Number.isFinite(v) : Number(t) === v) : String(v == null ? '' : v) === t;
@@ -311,16 +313,17 @@ class Component extends DCLogic {
       const el = this._browseEl;
       if (!el || this.state.tab !== 'browse' || this.state.browseMode === 'vars') return;
       this._browsePosition = { top: el.scrollTop, left: el.scrollLeft };
-      const g = this.browseWindow(this.browseIndex().count, this._browseColumns.length, el.scrollTop, el.scrollLeft, el.clientHeight, el.clientWidth);
+      const bi = this.browseIndex(), g = this.browseWindow(bi.count + (this._browseColumns.length ? bi.extra : 0), this._browseColumns.length, el.scrollTop, el.scrollLeft, el.clientHeight, el.clientWidth);
       const d = this._browseDraft;
       if (d && (d.pos < g.first || d.pos >= g.end || d.col < g.colFirst || d.col >= g.colEnd)) this.browseSaveDraft();
       this.forceUpdate();
     });
   }
   browseMove(pos, col) {
-    const ix = this.browseIndex(), cols = this._browseColumns, el = this._browseEl, g = this._browseGeometry;
-    if (!el || !g || pos < 0 || pos >= ix.count || col < 0 || col >= cols.length) return false;
+    // save first: a value typed in the new-observation row adds that observation, so the next row exists to move to
     this.browseSaveDraft();
+    const ix = this.browseIndex(), cols = this._browseColumns, el = this._browseEl, g = this._browseGeometry;
+    if (!el || !g || pos < 0 || pos >= ix.count + ix.extra || col < 0 || col >= cols.length) return false;
     const r = ix.rows ? ix.rows[pos] : pos;
     this._focusNext = r + ':' + cols[col].idx;
     const bodyH = Math.max(1, el.clientHeight - g.hh);
@@ -341,7 +344,8 @@ class Component extends DCLogic {
       if (this._browseEl) { this._browseEl.scrollTop = 0; this._browseEl.scrollLeft = 0; }
     }
     const el = this._browseEl;
-    const g = this._browseGeometry = this.browseWindow(ix.count, columns.length, el ? el.scrollTop : 0, el ? el.scrollLeft : 0, el ? el.clientHeight : 480, el ? el.clientWidth : 800);
+    const total = ix.count + (columns.length ? ix.extra : 0);
+    const g = this._browseGeometry = this.browseWindow(total, columns.length, el ? el.scrollTop : 0, el ? el.scrollLeft : 0, el ? el.clientHeight : 480, el ? el.clientWidth : 800);
     const visible = columns.slice(g.colFirst, g.colEnd), nodes = [], headers = [];
     for (let ci = g.colFirst; ci < g.colEnd; ci++) {
       const c = columns[ci];
@@ -350,7 +354,7 @@ class Component extends DCLogic {
     nodes.push(h('div', { key: 'head', role: 'row', 'aria-rowindex': 1, className: 'mf-browse-head' }, h('div', { className: 'mf-browse-number', role: 'columnheader' }, 'Row'), ...headers));
     // no visible variables: no empty rows under the message (build .109)
     for (let pos = g.first; columns.length && pos < g.end; pos++) {
-      const r = ix.rows ? ix.rows[pos] : pos;
+      const r = ix.rows ? ix.rows[pos] : pos, isNew = pos >= ix.count;
       const cells = visible.map((c, k) => {
         const ci = g.colFirst + k, col = raw.cols[c.idx], v = col.a[r], num = col.k === 'n';
         const missing = num ? !Number.isFinite(v) : v == null || v === '';
@@ -358,8 +362,8 @@ class Component extends DCLogic {
         const label = !missing && num && raw.vlabs && raw.vlabs[c.name] ? raw.vlabs[c.name].get(v) : '';
         const draft = this._browseDraft;
         return h('input', { key: ck + '|' + (S.dver || 0), className: 'mf-browse-cell', 'data-ck': ck,
-          'aria-label': c.name + ', row ' + (r + 1), 'aria-colindex': ci + 2,
-          defaultValue: draft && draft.ck === ck ? draft.value : value, placeholder: missing ? '.' : undefined,
+          'aria-label': c.name + ', row ' + (r + 1) + (isNew ? ' (new observation)' : ''), 'aria-colindex': ci + 2,
+          defaultValue: draft && draft.ck === ck ? draft.value : value, placeholder: isNew ? '' : missing ? '.' : undefined,
           title: label ? value + ' — ' + label : value, spellCheck: false,
           style: { left: g.nw + ci * g.cw, textAlign: num ? 'right' : 'left', color: !num ? 'var(--cB0342C, #B0342C)' : label ? 'var(--c194F39, #1D5443)' : undefined },
           onFocus: e => { this._browseDraft = { ck, raw, r, idx: c.idx, pos, col: ci, value: e.target.value }; },
@@ -372,15 +376,16 @@ class Component extends DCLogic {
             else if (e.key === 'ArrowUp') row--;
             else if (e.key === 'Tab') { column += e.shiftKey ? -1 : 1; if (column >= columns.length) { column = 0; row++; } if (column < 0) { column = columns.length - 1; row--; } }
             else return;
-            if (row >= 0 && row < ix.count && column >= 0 && column < columns.length) { e.preventDefault(); this.browseMove(row, column); }
+            if (row >= 0 && row <= ix.count + ix.extra && column >= 0 && column < columns.length) { e.preventDefault(); this.browseMove(row, column); }
           }
         });
       });
-      nodes.push(h('div', { key: 'row-' + r, className: 'mf-browse-row', role: 'row', 'aria-rowindex': pos + 2,
+      nodes.push(h('div', { key: 'row-' + r, className: 'mf-browse-row' + (isNew ? ' mf-browse-new' : ''), role: 'row', 'aria-rowindex': pos + 2, title: isNew ? 'Type here to add observation ' + (r + 1) : undefined,
         style: { top: g.hh + g.top + pos * g.rh - g.logical } },
         h('div', { className: 'mf-browse-number', role: 'rowheader' }, String(r + 1)), ...cells));
     }
-    if (!ix.count || !columns.length) nodes.push(h('div', { key: 'empty', className: 'mf-browse-empty', role: 'status' }, !columns.length ? ['Your dataset has no visible variables yet. Create one under Data → New variable, or type ', h('code', { key: 'n' }, 'generate name = .'), ' (a number) or ', h('code', { key: 's' }, 'generate name = ""'), ' (text) in the Console. Hidden variables come back under Edit data.'] : 'No rows match the current subgroup. Change or clear the subgroup to browse the data.'));
+    if (columns.length && !ix.rows && !raw.n) nodes.push(h('div', { key: 'none', className: 'mf-browse-empty', role: 'status', style: { marginTop: g.hh + g.rh + 16 } }, ['No observations yet. Type in row 1 to add the first one, or type ', h('code', { key: 'o' }, 'set obs 100'), ' in the Console to make 100 empty observations.']));
+    if (!columns.length || (!ix.count && ix.rows)) nodes.push(h('div', { key: 'empty', className: 'mf-browse-empty', role: 'status' }, !columns.length ? ['Your dataset has no visible variables yet. Create one under Data → New variable, or type ', h('code', { key: 'n' }, 'generate name = .'), ' (a number) or ', h('code', { key: 's' }, 'generate name = ""'), ' (text) in the Console. Hidden variables come back under Edit data.'] : 'No rows match the current subgroup. Change or clear the subgroup to browse the data.'));
     if (!this._browseRef) this._browseRef = node => {
       if (this._browseEl === node) return;
       if (this._browseRO) { this._browseRO.disconnect(); this._browseRO = null; }
@@ -7317,7 +7322,7 @@ class Component extends DCLogic {
   async dlProgram(build) {
     const site = 'https://gutierrezmannix.github.io/calculator/';
     if (!build && !this.dlOnSite()) { window.open(site, '_blank'); return; }
-    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-18.109') + '.html';
+    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-18.110') + '.html';
     try {
       const r = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw new Error(r.status);
       const blob = await r.blob(); if (blob.size < 100000) throw new Error('short');
@@ -8879,6 +8884,8 @@ class Component extends DCLogic {
     let body = String(s || '').trim(), m, svy = false;
     if ((m = body.match(/^svy\s*(?:,[^:]*)?:\s*/i))) { svy = true; body = body.slice(m[0].length); }
     const v0 = ((body.match(/^[a-z]\w*/i) || [''])[0]).toLowerCase();
+    // build .110: with 0 observations, commands that need data answer as Stata does (r(2000))
+    if (this._raw && this._raw.n === 0 && /^(ta|tab|tabu|tabul|tabula|tabulat|tabulate|tab1|tab2|pwcorr|cor|corr|correlate|ttest|oneway|anova|regress|reg|logit|logistic|ologit|probit|poisson|mlogit|nbreg|qreg|ranksum|kwallis|signrank|prtest|bitest|mcc|pwmean|histogram|hist|scatter|twoway|tw|graph|gr|line|tsline|kdensity|spearman|sdtest|swilk|ci|proportion|prop|mean|tabstat|table|xtreg|mixed|melogit|mepoisson|menbreg|stcox|streg|sts|stset|pca|factor|alpha|margins|cluster|lasso|elasticnet|bootstrap|levelsof|misstable|xtile|egen)$/.test(v0)) { this.setState({ mfCmdErr: 'no observations — the dataset has 0 observations; add them with  set obs 100  or type them in the Data Editor', mfCmdOk: '' }); return true; }
     if (!svy && v0 === 'xtset') { const mm = body.match(/^xtset\s+(\w+)\s+(\w+)/i), L = mm ? this.cxVarlist(mm[1] + ' ' + mm[2]) : null; if (L && !L.bad.length && L.vars.length === 2) this._cpXt = { id: L.vars[0], t: L.vars[1] }; return false; }
     const ENG = /^(ranksum|signrank|kwallis|prtest|prtesti|bitest|bitesti|mcc|anova|pwmean|mlogit|probit|nbreg|qreg|mixed|xtmixed|melogit|mepoisson|menbreg|xtreg|stset|sts|stcox|streg|pca|factor|rotate|misstable|cluster|duplicates|lasso|elasticnet|bootstrap)$/;
     const TAB = /^(ta|tab|tabu|tabul|tabula|tabulat|tabulate|tab2)$/;
@@ -9323,10 +9330,11 @@ class Component extends DCLogic {
   // ---- commands read by the parser (console page and the command bar)
   cqRun(s) {
     const w0 = ((s.match(/^[a-z_]\w*/i) || [''])[0]).toLowerCase(), raw = this._raw;
-    const known = /^(lookfor|lookf|ds|levelsof|levelso|levels|isid|label|lab|labe|table|proportion|proportio|proporti|proport|propor|propo|prop|ci|cii|spearman|spearma|spearm|spear|sdtest|swilk|egen|encode|decode|xtile|return|ereturn|preserve|restore|kdensity|kdens|graph|gr|order|sort|gsort|format|compress|notes|collapse|reshape|merge|append|qnorm|pnorm)$/;
+    const known = /^(lookfor|lookf|ds|levelsof|levelso|levels|isid|label|lab|labe|table|proportion|proportio|proporti|proport|propor|propo|prop|ci|cii|spearman|spearma|spearm|spear|sdtest|swilk|egen|encode|decode|xtile|return|ereturn|preserve|restore|kdensity|kdens|graph|gr|order|sort|gsort|format|compress|notes|collapse|reshape|merge|append|qnorm|pnorm|set)$/;
     if (!known.test(w0) || /^[A-Za-z_][\w.]*\(/.test(s)) return false; // R calls (table(df$x)) are not Stata
     if (/^(label|lab|labe)$/.test(w0) && !/^\w+\s+(list|li|lis|dir)\b/i.test(s)) return false;
     if (/^(graph|gr)$/.test(w0) && !/^\w+\s+pie\b/i.test(s)) return false;
+    if (w0 === 'set' && !/^set\s+obs\b/i.test(s)) return false;
     if (w0 === 'table' && /,/.test(s)) return false;
     const fail = msg => { this.setState({ mfCmdErr: msg, mfCmdOk: '' }); return true; };
     const ok = msg => { this.setState({ mfCmdErr: '', mfCmdOk: '✓ ' + (msg || s) }); return true; };
@@ -9452,6 +9460,15 @@ class Component extends DCLogic {
       case 'graph': case 'gr': {
         const ov = O.over || T[1]; if (!ov) return fail('graph pie: use  graph pie, over(x)'); const v = list([String(ov).split(/[\s,]/)[0]])[0];
         this.cpArm('typed'); this.setState({ tab: 'plots', plotKind: 'pie', pX: v, pY: '', mfMobile: 'analysis', mfCmdErr: '', mfCmdOk: '✓ ' + s }); return true;
+      }
+      case 'set': {
+        const m = s.match(/^set\s+obs\s+(\d[\d,]*)\s*$/i); if (!m) return fail('set obs: use  set obs 100');
+        const N = Number(m[1].replace(/,/g, '')), n0 = raw.n;
+        if (N < n0) return fail('obs was ' + this.fmtN(n0) + ', now ' + this.fmtN(N) + ' — set obs cannot drop observations; keep the ones you want with  keep if …');
+        if (N * Math.max(1, raw.cols.length) > 4e6) return fail(this.fmtN(N) + ' observations × ' + raw.cols.length + ' variables is more than the browser can hold here (4 million cells)');
+        if (N > n0) this.addRows(N - n0);
+        this.pushLog({ t: 'stata', stata: s, r: N > n0 ? 'df[(nrow(df) + 1):' + N + ', ] <- NA' : '# nrow(df) is already ' + N, tbl: 'Number of observations (_N) was ' + this.fmtN(n0) + ', now ' + this.fmtN(N) + '.', res: '' });
+        return ok('set obs ' + N);
       }
       case 'qnorm': case 'pnorm': return fail(w0 + ' (normal probability plot) is not drawn here — swilk ' + (T[0] || 'x') + ' tests normality, and histogram ' + (T[0] || 'x') + ', normal compares the shape');
       case 'order': { const vars = list(T); if (!vars.length) return fail('order needs a varlist'); this.cpNote(s, 'note: the calculator keeps the file\'s variable order; the console accepts order and changes nothing', 'note'); return ok(); }
@@ -10683,8 +10700,8 @@ class Component extends DCLogic {
     return { f: Object.assign({}, f, { rows: [...m.values()].sort((x, y) => y.c - x.c) }), unit, first, last, days, med, nDays: f.rows.length, withTime: f.rows.some(r => String(r.label).length > 10) };
   }
   newDataset() {
-    const data = { n: 20, names: [], labels: [], cols: [], vlabs: {} };
-    this.ingest(null, 'my-dataset', { tab: 'data', nvTab: 'build', deTask: 'new', de: { task: 'new', recipe: '' } }, data); // GM26 .68: start with Make a new variable (create it, then set its values)
+    const data = { n: 0, names: [], labels: [], cols: [], vlabs: {} }; // GM26 .110: no observations, as Stata's new dataset (set obs N, or type in the Data Editor's next row)
+    this.ingest(null, 'my-dataset', { tab: 'data', nvTab: 'build', deTask: 'new', de: { task: 'new', recipe: '' }, cpOpen: false }, data); // GM26 .68: start with Make a new variable (create it, then set its values)
   }
   reprofile(idxs) {
     const raw = this._raw, E = this._E, set = new Set(idxs);
@@ -10703,7 +10720,6 @@ class Component extends DCLogic {
       else if (isFinite(x)) col.a[r] = x;
       else { const s = Array.from(col.a, v => this.numberText(v)); s[r] = t; raw.cols[idx] = { k: 's', a: s }; }
     } else col.a[r] = miss ? '' : t;
-    if (!miss && r >= raw.n - 1) setTimeout(() => this.addRows(10), 0);
     const now = raw.cols[idx].a[r];
     if (!(prev === now || (typeof prev === 'number' && typeof now === 'number' && isNaN(prev) && isNaN(now)))) this.reprofile([idx]);
   }
@@ -12266,7 +12282,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-18.109') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-18.110') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -12675,7 +12691,7 @@ class Component extends DCLogic {
         ['Copy session log', () => { this.setState(closeMenu); if (!(S.conLog || []).length) { this.flash('The session log is empty — run a command or an analysis first.'); return; } if (out.copyLog) out.copyLog(); }],
         ['Print lab report…', go({ reportMode: true })],
         SEP,
-        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-18.109)', () => { this.setState(closeMenu); this.dlProgram(); }]
+        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-18.110)', () => { this.setState(closeMenu); this.dlProgram(); }]
       ]],
       ['Data', { tab: 'data' }, 'Create, replace, recode and rename variables', [
         [(this._undo || []).length ? 'Undo: ' + (S.undoLabel || 'last change') + '   (Ctrl/\u2318+Z)' : 'Undo (nothing to undo)', () => { this.setState(closeMenu); this.undo(); }],

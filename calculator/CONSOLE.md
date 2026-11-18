@@ -107,3 +107,15 @@ nothing; `clear` is refused (it would remove the data).
 - A dataset with no visible variables shows its Data Editor message on its own (it was drawn over twenty blank rows and
   half hidden under the row numbers), with the two commands that make a variable. The build now refreshes the Data
   Editor block from `src/browse-scroll.js`.
+
+## Observations as in Stata (build .110)
+
+- **A new dataset has 0 observations**, as `clear` leaves Stata. `generate` works on it (empty variables), and commands
+  that need data answer `no observations` (Stata's r(2000)) instead of printing empty tables.
+- **`set obs N`** adds observations (missing values, empty text) and prints `Number of observations (_N) was 0, now N.`;
+  it cannot reduce the count (as in Stata — use `keep if`). Limit: 4 million cells in the browser.
+- **The Data Editor shows one row after the last observation**, as Stata's Data Editor: a value typed there adds exactly
+  one observation, and Enter / Tab move on to the next new row. It replaces the old behaviour of adding ten blank rows
+  whenever the last row was edited (those blank rows counted as observations). The new row is not shown while a
+  subgroup or filter narrows the rows.
+- Creating a new dataset closes the console page, so its first step (Make a new variable) is on screen.

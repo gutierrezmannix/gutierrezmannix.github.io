@@ -55,7 +55,7 @@ test('saved CSV names drop the data extension (libro.xlsx → libro.csv)', async
 test('a new dataset opens on Make a new variable (create it · set its values); Fix a variable explains what to do', async () => {
   const c = comp(); c.state = { ...c.state, screen: 'upload' };
   c.newDataset(); await new Promise(r => setTimeout(r, 50));
-  assert.equal(c.state.screen, 'work'); assert.equal(c._raw.n, 20); assert.equal(c._raw.names.length, 0);
+  assert.equal(c.state.screen, 'work'); assert.equal(c._raw.n, 0); assert.equal(c._raw.names.length, 0); // build .110: no observations, as Stata's new dataset
   const D = c.deS(); assert.equal(D.task, 'new'); assert.equal(D.recipe, '');
   assert.match(txt(c.deRender()), /1 · Create it.*2 · Change values/);
   c.deGo('var'); const t = txt(c.deRender());

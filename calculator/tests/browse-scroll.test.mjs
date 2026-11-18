@@ -53,7 +53,7 @@ el.scrollTop=0;el.scrollLeft=0;out={};c.browseScrollVals(out,c.state.cols);
 const row0=inputs(out)[0];let prevented=0;row0.props.onKeyDown({key:'Tab',preventDefault(){prevented++;}});assert.equal(c._focusNext,'0:1');
 row0.props.onKeyDown({key:'Enter',preventDefault(){prevented++;}});assert.equal(c._focusNext,'1:0');assert.equal(prevented,2);
 assert.ok(c.browseMove(1000000,85));assert.equal(c._focusNext,'1000000:85');assert.ok(el.scrollTop>0&&el.scrollLeft>0);
-assert.equal(c.browseMove(a.length,0),false);
+assert.equal(c.browseMove(a.length,0),true,'the row after the last is the new-observation row (build .110)');assert.equal(c.browseMove(a.length+1,0),false);
 // Window fitting accounts for text-size zoom and is stable after page scrolling.
 globalThis.window.innerHeight=936;globalThis.window.scrollY=200;
 el.style={};el.offsetHeight=500;el.getBoundingClientRect=()=>({top:200,height:560});

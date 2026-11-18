@@ -9,7 +9,7 @@
       rows = new Uint32Array(count);
       for (let i = 0, j = 0; i < raw.n; i++) if (mask[i]) rows[j++] = i;
     }
-    return this._browseIndex = { raw, n: raw.n, mask, rows, count: rows ? rows.length : raw.n };
+    return this._browseIndex = { raw, n: raw.n, mask, rows, count: rows ? rows.length : raw.n, extra: rows ? 0 : 1 };
   }
   browseWindow(count, cols, top, left, height, width) {
     const rh = 28, hh = 30, cw = 96, nw = 60;
@@ -29,6 +29,8 @@
   browseSaveDraft() {
     const d = this._browseDraft;
     this._browseDraft = null;
+    // build .110: a value typed in the row after the last adds one observation, as in Stata's Data Editor
+    if (d && this._raw === d.raw && d.r === d.raw.n && d.idx < d.raw.cols.length && String(d.value).trim() !== '' && String(d.value).trim() !== '.') { this.addRows(1); this.commitCell(d.r, d.idx, d.value); return; }
     if (d && this._raw === d.raw && d.r < d.raw.n && d.idx < d.raw.cols.length) {
       const col = d.raw.cols[d.idx], v = col.a[d.r], t = String(d.value).trim();
       const same = col.k === 'n' ? ((t === '' || t === '.') ? !Number.isFinite(v) : Number(t) === v) : String(v == null ? '' : v) === t;
@@ -67,16 +69,17 @@
       const el = this._browseEl;
       if (!el || this.state.tab !== 'browse' || this.state.browseMode === 'vars') return;
       this._browsePosition = { top: el.scrollTop, left: el.scrollLeft };
-      const g = this.browseWindow(this.browseIndex().count, this._browseColumns.length, el.scrollTop, el.scrollLeft, el.clientHeight, el.clientWidth);
+      const bi = this.browseIndex(), g = this.browseWindow(bi.count + (this._browseColumns.length ? bi.extra : 0), this._browseColumns.length, el.scrollTop, el.scrollLeft, el.clientHeight, el.clientWidth);
       const d = this._browseDraft;
       if (d && (d.pos < g.first || d.pos >= g.end || d.col < g.colFirst || d.col >= g.colEnd)) this.browseSaveDraft();
       this.forceUpdate();
     });
   }
   browseMove(pos, col) {
-    const ix = this.browseIndex(), cols = this._browseColumns, el = this._browseEl, g = this._browseGeometry;
-    if (!el || !g || pos < 0 || pos >= ix.count || col < 0 || col >= cols.length) return false;
+    // save first: a value typed in the new-observation row adds that observation, so the next row exists to move to
     this.browseSaveDraft();
+    const ix = this.browseIndex(), cols = this._browseColumns, el = this._browseEl, g = this._browseGeometry;
+    if (!el || !g || pos < 0 || pos >= ix.count + ix.extra || col < 0 || col >= cols.length) return false;
     const r = ix.rows ? ix.rows[pos] : pos;
     this._focusNext = r + ':' + cols[col].idx;
     const bodyH = Math.max(1, el.clientHeight - g.hh);
@@ -97,7 +100,8 @@
       if (this._browseEl) { this._browseEl.scrollTop = 0; this._browseEl.scrollLeft = 0; }
     }
     const el = this._browseEl;
-    const g = this._browseGeometry = this.browseWindow(ix.count, columns.length, el ? el.scrollTop : 0, el ? el.scrollLeft : 0, el ? el.clientHeight : 480, el ? el.clientWidth : 800);
+    const total = ix.count + (columns.length ? ix.extra : 0);
+    const g = this._browseGeometry = this.browseWindow(total, columns.length, el ? el.scrollTop : 0, el ? el.scrollLeft : 0, el ? el.clientHeight : 480, el ? el.clientWidth : 800);
     const visible = columns.slice(g.colFirst, g.colEnd), nodes = [], headers = [];
     for (let ci = g.colFirst; ci < g.colEnd; ci++) {
       const c = columns[ci];
@@ -106,7 +110,7 @@
     nodes.push(h('div', { key: 'head', role: 'row', 'aria-rowindex': 1, className: 'mf-browse-head' }, h('div', { className: 'mf-browse-number', role: 'columnheader' }, 'Row'), ...headers));
     // no visible variables: no empty rows under the message (build .109)
     for (let pos = g.first; columns.length && pos < g.end; pos++) {
-      const r = ix.rows ? ix.rows[pos] : pos;
+      const r = ix.rows ? ix.rows[pos] : pos, isNew = pos >= ix.count;
       const cells = visible.map((c, k) => {
         const ci = g.colFirst + k, col = raw.cols[c.idx], v = col.a[r], num = col.k === 'n';
         const missing = num ? !Number.isFinite(v) : v == null || v === '';
@@ -114,8 +118,8 @@
         const label = !missing && num && raw.vlabs && raw.vlabs[c.name] ? raw.vlabs[c.name].get(v) : '';
         const draft = this._browseDraft;
         return h('input', { key: ck + '|' + (S.dver || 0), className: 'mf-browse-cell', 'data-ck': ck,
-          'aria-label': c.name + ', row ' + (r + 1), 'aria-colindex': ci + 2,
-          defaultValue: draft && draft.ck === ck ? draft.value : value, placeholder: missing ? '.' : undefined,
+          'aria-label': c.name + ', row ' + (r + 1) + (isNew ? ' (new observation)' : ''), 'aria-colindex': ci + 2,
+          defaultValue: draft && draft.ck === ck ? draft.value : value, placeholder: isNew ? '' : missing ? '.' : undefined,
           title: label ? value + ' — ' + label : value, spellCheck: false,
           style: { left: g.nw + ci * g.cw, textAlign: num ? 'right' : 'left', color: !num ? 'var(--cB0342C, #B0342C)' : label ? 'var(--c194F39, #1D5443)' : undefined },
           onFocus: e => { this._browseDraft = { ck, raw, r, idx: c.idx, pos, col: ci, value: e.target.value }; },
@@ -128,15 +132,16 @@
             else if (e.key === 'ArrowUp') row--;
             else if (e.key === 'Tab') { column += e.shiftKey ? -1 : 1; if (column >= columns.length) { column = 0; row++; } if (column < 0) { column = columns.length - 1; row--; } }
             else return;
-            if (row >= 0 && row < ix.count && column >= 0 && column < columns.length) { e.preventDefault(); this.browseMove(row, column); }
+            if (row >= 0 && row <= ix.count + ix.extra && column >= 0 && column < columns.length) { e.preventDefault(); this.browseMove(row, column); }
           }
         });
       });
-      nodes.push(h('div', { key: 'row-' + r, className: 'mf-browse-row', role: 'row', 'aria-rowindex': pos + 2,
+      nodes.push(h('div', { key: 'row-' + r, className: 'mf-browse-row' + (isNew ? ' mf-browse-new' : ''), role: 'row', 'aria-rowindex': pos + 2, title: isNew ? 'Type here to add observation ' + (r + 1) : undefined,
         style: { top: g.hh + g.top + pos * g.rh - g.logical } },
         h('div', { className: 'mf-browse-number', role: 'rowheader' }, String(r + 1)), ...cells));
     }
-    if (!ix.count || !columns.length) nodes.push(h('div', { key: 'empty', className: 'mf-browse-empty', role: 'status' }, !columns.length ? ['Your dataset has no visible variables yet. Create one under Data → New variable, or type ', h('code', { key: 'n' }, 'generate name = .'), ' (a number) or ', h('code', { key: 's' }, 'generate name = ""'), ' (text) in the Console. Hidden variables come back under Edit data.'] : 'No rows match the current subgroup. Change or clear the subgroup to browse the data.'));
+    if (columns.length && !ix.rows && !raw.n) nodes.push(h('div', { key: 'none', className: 'mf-browse-empty', role: 'status', style: { marginTop: g.hh + g.rh + 16 } }, ['No observations yet. Type in row 1 to add the first one, or type ', h('code', { key: 'o' }, 'set obs 100'), ' in the Console to make 100 empty observations.']));
+    if (!columns.length || (!ix.count && ix.rows)) nodes.push(h('div', { key: 'empty', className: 'mf-browse-empty', role: 'status' }, !columns.length ? ['Your dataset has no visible variables yet. Create one under Data → New variable, or type ', h('code', { key: 'n' }, 'generate name = .'), ' (a number) or ', h('code', { key: 's' }, 'generate name = ""'), ' (text) in the Console. Hidden variables come back under Edit data.'] : 'No rows match the current subgroup. Change or clear the subgroup to browse the data.'));
     if (!this._browseRef) this._browseRef = node => {
       if (this._browseEl === node) return;
       if (this._browseRO) { this._browseRO.disconnect(); this._browseRO = null; }

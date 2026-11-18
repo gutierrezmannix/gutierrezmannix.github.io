@@ -223,10 +223,11 @@
   // ---- commands read by the parser (console page and the command bar)
   cqRun(s) {
     const w0 = ((s.match(/^[a-z_]\w*/i) || [''])[0]).toLowerCase(), raw = this._raw;
-    const known = /^(lookfor|lookf|ds|levelsof|levelso|levels|isid|label|lab|labe|table|proportion|proportio|proporti|proport|propor|propo|prop|ci|cii|spearman|spearma|spearm|spear|sdtest|swilk|egen|encode|decode|xtile|return|ereturn|preserve|restore|kdensity|kdens|graph|gr|order|sort|gsort|format|compress|notes|collapse|reshape|merge|append|qnorm|pnorm)$/;
+    const known = /^(lookfor|lookf|ds|levelsof|levelso|levels|isid|label|lab|labe|table|proportion|proportio|proporti|proport|propor|propo|prop|ci|cii|spearman|spearma|spearm|spear|sdtest|swilk|egen|encode|decode|xtile|return|ereturn|preserve|restore|kdensity|kdens|graph|gr|order|sort|gsort|format|compress|notes|collapse|reshape|merge|append|qnorm|pnorm|set)$/;
     if (!known.test(w0) || /^[A-Za-z_][\w.]*\(/.test(s)) return false; // R calls (table(df$x)) are not Stata
     if (/^(label|lab|labe)$/.test(w0) && !/^\w+\s+(list|li|lis|dir)\b/i.test(s)) return false;
     if (/^(graph|gr)$/.test(w0) && !/^\w+\s+pie\b/i.test(s)) return false;
+    if (w0 === 'set' && !/^set\s+obs\b/i.test(s)) return false;
     if (w0 === 'table' && /,/.test(s)) return false;
     const fail = msg => { this.setState({ mfCmdErr: msg, mfCmdOk: '' }); return true; };
     const ok = msg => { this.setState({ mfCmdErr: '', mfCmdOk: '✓ ' + (msg || s) }); return true; };
@@ -352,6 +353,15 @@
       case 'graph': case 'gr': {
         const ov = O.over || T[1]; if (!ov) return fail('graph pie: use  graph pie, over(x)'); const v = list([String(ov).split(/[\s,]/)[0]])[0];
         this.cpArm('typed'); this.setState({ tab: 'plots', plotKind: 'pie', pX: v, pY: '', mfMobile: 'analysis', mfCmdErr: '', mfCmdOk: '✓ ' + s }); return true;
+      }
+      case 'set': {
+        const m = s.match(/^set\s+obs\s+(\d[\d,]*)\s*$/i); if (!m) return fail('set obs: use  set obs 100');
+        const N = Number(m[1].replace(/,/g, '')), n0 = raw.n;
+        if (N < n0) return fail('obs was ' + this.fmtN(n0) + ', now ' + this.fmtN(N) + ' — set obs cannot drop observations; keep the ones you want with  keep if …');
+        if (N * Math.max(1, raw.cols.length) > 4e6) return fail(this.fmtN(N) + ' observations × ' + raw.cols.length + ' variables is more than the browser can hold here (4 million cells)');
+        if (N > n0) this.addRows(N - n0);
+        this.pushLog({ t: 'stata', stata: s, r: N > n0 ? 'df[(nrow(df) + 1):' + N + ', ] <- NA' : '# nrow(df) is already ' + N, tbl: 'Number of observations (_N) was ' + this.fmtN(n0) + ', now ' + this.fmtN(N) + '.', res: '' });
+        return ok('set obs ' + N);
       }
       case 'qnorm': case 'pnorm': return fail(w0 + ' (normal probability plot) is not drawn here — swilk ' + (T[0] || 'x') + ' tests normality, and histogram ' + (T[0] || 'x') + ', normal compares the shape');
       case 'order': { const vars = list(T); if (!vars.length) return fail('order needs a varlist'); this.cpNote(s, 'note: the calculator keeps the file\'s variable order; the console accepts order and changes nothing', 'note'); return ok(); }
