@@ -7,7 +7,7 @@
   cpArm(src) { this._cpArm = Date.now(); this._cpArmSrc = src || 'page'; }
   cpArmed() { return !!this.state.conAuto || !!(this._cpArm && Date.now() - this._cpArm < 8000); }
   cpTakeArm() { const s = this._cpArm ? (this._cpArmSrc || 'page') : 'page'; this._cpArm = 0; return s; }
-  cpSrc() { return this._cpTyping && Date.now() - this._cpTyping < 3000 ? 'typed' : 'page'; }
+  cpSrc() { return this._cpEngBusy || (this._cpTyping && Date.now() - this._cpTyping < 3000) ? 'typed' : 'page'; }
   cpOpenPage() { this._cpBack = this.state.tab; this.setState({ cpOpen: true, mfNav: '', mfFile: false, menu: '' }, () => { try { window.scrollTo(0, 0); } catch (e) {} setTimeout(() => this._cpIn && this._cpIn.focus({ preventScroll: true }), 30); }); }
   cpClose() { this.setState({ cpOpen: false }); }
   // the view on screen, printed once (the Print in console button above each page)
@@ -26,14 +26,21 @@
       try { this.runCmdLine(s); } catch (e) { this.setState({ mfCmdErr: String(e && e.message || e) }); }
       setTimeout(() => {
         const S = this.state;
-        if (S.mfCmdErr) { this.cpNote(s, S.mfCmdErr, 'err'); this.setState({ mfCmdErr: '' }); }
-        else if (S.conLog.length === n0) {
-          const ok = String(S.mfCmdOk || '').replace(/^✓\s*/, '').trim();
-          // a command that opened a page logs when the page has run (a regression); anything else gets its note now
-          const pending = this._cpArm && Date.now() - this._cpArm < 3000;
-          setTimeout(() => { if (this.state.conLog.length === n0) this.cpNote(s, ok && ok.toLowerCase() !== s.toLowerCase() ? ok : '', 'note'); }, pending ? 1500 : 0);
-        }
-        if (then) then();
+        if (S.mfCmdErr) { this.cpNote(s, S.mfCmdErr, 'err'); this.setState({ mfCmdErr: '' }); if (then) then(); return; }
+        const settle = () => {
+          if (this._cpEngBusy) { setTimeout(settle, 200); return; }
+          const engErr = this._cpEngErr, engNote = this._cpEngNote; this._cpEngErr = ''; this._cpEngNote = '';
+          const engMsg = /only one PSU/i.test(engErr) ? engErr + ' — Stata would print the estimates with missing standard errors. Merge that stratum with a neighbour, or svyset without strata(), and run it again.' : engErr;
+          if (engErr) { if (this.state.conLog.length === n0) this.cpNote(s, engMsg, 'err'); else this.cpNote('', engMsg, 'err'); }
+          else if (this.state.conLog.length === n0) {
+            const ok = String(this.state.mfCmdOk || '').replace(/^✓\s*/, '').trim();
+            // a command that opened a page logs when the page has run (a regression); anything else gets its note now
+            const pending = this._cpArm && Date.now() - this._cpArm < 3000;
+            setTimeout(() => { if (this.state.conLog.length === n0) this.cpNote(s, ok && ok.toLowerCase() !== s.toLowerCase() ? ok : '', 'note'); }, pending ? 1500 : 0);
+          } else if (engNote) this.cpNote('', engNote, 'note');
+          if (then) then();
+        };
+        settle();
       }, 90);
     });
   }
@@ -48,7 +55,7 @@
   }
   // text of the session for Copy / Save log (.log) and the commands alone for Save do-file (.do)
   cpLogText(items, dial) {
-    return items.map(it => it.err ? '. ' + it.err.cmd + (it.err.msg ? '\n' + it.err.msg : '') : this.cpCmdOf(it.d, dial).split('\n').map(l => (dial === 'r' ? '> ' : '. ') + l).join('\n') + (this.cpTblOf(it.d, dial) ? '\n\n' + this.cpTblOf(it.d, dial) : it.d.res ? '\n' + it.d.res : '')).join('\n\n');
+    return items.map(it => it.err ? (it.err.cmd ? '. ' + it.err.cmd + (it.err.msg ? '\n' : '') : '') + (it.err.msg || '') : this.cpCmdOf(it.d, dial).split('\n').map(l => (dial === 'r' ? '> ' : '. ') + l).join('\n') + (this.cpTblOf(it.d, dial) ? '\n\n' + this.cpTblOf(it.d, dial) : it.d.res ? '\n' + it.d.res : '')).join('\n\n');
   }
   cpCmdOf(d, dial) { try { return this.cmdText(d, dial) || ''; } catch (e) { return ''; } }
   cpTblOf(d, dial) { try { return this.conTable(d, dial) || ''; } catch (e) { return ''; } }
@@ -101,13 +108,13 @@
     if (!this._cpOpenedAt || !this._cpWasOpen) this._cpOpenedAt = Date.now(); this._cpWasOpen = true;
     const base = (S.fileName || 'gm26').replace(/\.[^.]+$/, ''), prompt = dial === 'r' ? '> ' : '. ', CAP = 400;
     // Review: every command, numbered; a click puts it back in the command line, a double click runs it
-    const revRows = items.map((it, k) => {
+    const revRows = items.map((it, k) => { if (it.err && !it.err.cmd) return null;
       const cmd = it.err ? it.err.cmd : this.cpCmdOf(it.d, dial).split('\n')[0], cls = 'cp-rv' + (it.err && it.err.kind === 'err' ? ' err' : !it.err && it.d.src !== 'typed' ? ' page' : '');
       return h('button', { key: k, type: 'button', className: cls, title: (it.err && it.err.kind === 'err' ? 'Error · ' : !it.err && it.d.src !== 'typed' ? 'From a button on the page · ' : '') + 'click to edit, double-click to run again', onClick: () => { if (this._cpIn) { this._cpIn.value = cmd; this._cpIn.focus(); } }, onDoubleClick: () => this.cpRun(cmd) }, h('span', { className: 'n' }, k + 1), cmd);
     });
     // Results: oldest first; long tables are cut on screen (Copy and Save log keep everything)
     const resRows = items.map((it, k) => {
-      if (it.err) return h('div', { key: 'e' + k, className: 'cp-item' }, h('div', { className: 'cp-cmd' + (it.err.kind === 'comment' ? ' cmt' : '') }, prompt + it.err.cmd), it.err.msg ? h('div', { className: it.err.kind === 'err' ? 'cp-err' : 'cp-note' }, it.err.msg) : null);
+      if (it.err) return h('div', { key: 'e' + k, className: 'cp-item' + (it.err.cmd ? '' : ' cp-after') }, it.err.cmd ? h('div', { className: 'cp-cmd' + (it.err.kind === 'comment' ? ' cmt' : '') }, prompt + it.err.cmd) : null, it.err.msg ? h('div', { className: it.err.kind === 'err' ? 'cp-err' : 'cp-note' }, it.err.msg) : null);
       const d = it.d, cmd = this.cpCmdOf(d, dial), tbl = this.cpTblOf(d, dial), lines = tbl ? tbl.split('\n') : [];
       const cut = lines.length > CAP ? lines.slice(0, CAP).join('\n') + '\n\n  … ' + this.fmtN(lines.length - CAP) + ' more lines (Copy or Save log keeps the whole table)' : tbl;
       return h('div', { key: 'd' + it.at, className: 'cp-item' },
@@ -133,8 +140,8 @@
       btn(dial === 'r' ? 'Save script' : 'Save do-file', () => this.cpDownload((dial === 'r' ? '# ' : '* ') + 'Commands from GM26 · ' + (S.fileName || '') + '\n' + items.filter(it => !it.err || it.err.kind !== 'err').map(it => it.err ? it.err.cmd : this.cpCmdOf(it.d, dial)).filter(Boolean).join('\n') + '\n', base + (dial === 'r' ? '.R' : '.do')), 'Download the commands only'),
       btn('Clear', () => this.setState({ conFrom: S.conLog.length }), 'Clear the Results window (the log is kept in the session; like Stata’s cls)'),
       btn('← Back to ' + this.cpTabName(S.tab), () => this.cpClose(), 'Esc', 'back'));
-    const rev = h('div', { className: 'cp-rev' }, h('div', { className: 'cp-ph' }, h('span', null, 'Review'), h('span', null, items.length)),
-      h('div', { className: 'cp-list' }, revRows.length ? revRows : h('p', { className: 'cp-empty' }, 'Commands you run appear here.')),
+    const rev = h('div', { className: 'cp-rev' }, h('div', { className: 'cp-ph' }, h('span', null, 'Review'), h('span', null, revRows.filter(Boolean).length)),
+      h('div', { className: 'cp-list' }, revRows.some(Boolean) ? revRows.filter(Boolean) : h('p', { className: 'cp-empty' }, 'Commands you run appear here.')),
       h('p', { className: 'cp-hint' }, 'Click a line to edit it, double-click to run it again. Blue lines came from buttons on the page.'));
     const vars = h('div', { className: 'cp-vars' }, h('div', { className: 'cp-ph' }, h('span', null, 'Variables'), h('span', null, this.fmtN(cols.length))),
       h('input', { className: 'cp-vq', type: 'search', placeholder: 'filter variables', 'aria-label': 'Filter variables', defaultValue: S.cpVarQ || '', onChange: e => { const v = e.target.value; clearTimeout(this._cpVqT); this._cpVqT = setTimeout(() => this.setState({ cpVarQ: v }), 150); } }),
@@ -274,5 +281,244 @@
     if (snap.psu !== prev.psu || snap.st !== prev.st) this.pushLog({ t: 'stata', stata: snap.psu || snap.st ? 'svyset ' + (snap.psu || '_n') + (snap.w ? ' [pw=' + snap.w + ']' : '') + (snap.st ? ', strata(' + snap.st + ')' : '') : 'svyset, clear', r: snap.psu || snap.st ? 'des <- survey::svydesign(ids = ~' + (snap.psu || '1') + (snap.st ? ', strata = ~' + snap.st : '') + (snap.w ? ', weights = ~' + snap.w : '') + ', data = df, nest = TRUE)' : 'rm(des)', res: '' });
     if (snap.mc !== prev.mc && snap.mc) this.pushLog({ t: 'stata', stata: 'mvdecode _all, mv(' + snap.mc.split(/[\s,;]+/).filter(Boolean).join(' ') + ')', r: 'df[df %in% c(' + snap.mc.split(/[\s,;]+/).filter(Boolean).join(', ') + ')] <- NA', res: 'treated as missing in every numeric variable' });
     if (snap.a !== prev.a && Number(snap.a) > 0) this.pushLog({ t: 'stata', stata: 'set level ' + +(100 * (1 - Number(snap.a))).toFixed(2), r: '# conf.level = ' + +(1 - Number(snap.a)).toFixed(4), res: '' });
+  }
+  // ---- build .105: typed commands that run on the Tests ▾ engine (the built-in engine, validated against R)
+  // ranksum, signrank, kwallis, prtest / prtesti, bitest / bitesti, mcc, tab a b, exact, anova, pwmean, mlogit,
+  // probit, nbreg, qreg, mixed, melogit / mepoisson / menbreg, xtreg (after xtset), stset, sts, stcox, streg, pca,
+  // factor, rotate, misstable, cluster kmeans, duplicates report, lasso, elasticnet, bootstrap, and svy: mean /
+  // total / proportion / tabulate. Each fills its Tests page and runs it; the console prints the result once, under
+  // the Stata command that reproduces it (which can carry options the engine always uses, e.g. vce(cluster id)).
+  // an if typed on the command becomes the page's subgroup until the next command, as for regress
+  cpIfPatch(ifs) {
+    const S = this.state, E = this._E, r = this.stataConds(ifs); if (r.err) return { err: r.err };
+    let all = [...((S.subg && S.subg.all) || [])];
+    for (const c of r.conds) {
+      const isNum = !c.cat, val = c.val, numV = /^-?\d+(\.\d+)?$/.test(String(val).trim());
+      all.push(c.t === 'in' || c.t === 'rng' ? c : c.op === '==' && c.val !== '.' ? { v: c.v, t: 'in', vals: [numV ? (isNum ? E.numLab(parseFloat(val)) : String(this.vlabel(c.v, parseFloat(val)))) : val] } : { v: c.v, t: 'op', op: c.op, val, cat: c.cat });
+    }
+    this._cxIf = { prev: S.subg, sig: JSON.stringify(all) };
+    return { subg: Object.assign({}, S.subg, { all }) };
+  }
+  cpEngine(s) {
+    let body = String(s || '').trim(), m, svy = false;
+    if ((m = body.match(/^svy\s*(?:,[^:]*)?:\s*/i))) { svy = true; body = body.slice(m[0].length); }
+    const v0 = ((body.match(/^[a-z]\w*/i) || [''])[0]).toLowerCase();
+    if (!svy && v0 === 'xtset') { const mm = body.match(/^xtset\s+(\w+)\s+(\w+)/i), L = mm ? this.cxVarlist(mm[1] + ' ' + mm[2]) : null; if (L && !L.bad.length && L.vars.length === 2) this._cpXt = { id: L.vars[0], t: L.vars[1] }; return false; }
+    const ENG = /^(ranksum|signrank|kwallis|prtest|prtesti|bitest|bitesti|mcc|anova|pwmean|mlogit|probit|nbreg|qreg|mixed|xtmixed|melogit|mepoisson|menbreg|xtreg|stset|sts|stcox|streg|pca|factor|rotate|misstable|cluster|duplicates|lasso|elasticnet|bootstrap)$/;
+    const TAB = /^(ta|tab|tabu|tabul|tabula|tabulat|tabulate|tab2)$/;
+    if (svy) { if (!/^(mean|total|proportion|prop|ta|tab|tabu|tabul|tabula|tabulat|tabulate)$/.test(v0)) return false; }
+    else if (!ENG.test(v0) && !(TAB.test(v0) && /,.*\bexact\b/i.test(body))) return false;
+    const fail = msg => { this.setState({ mfCmdErr: msg, mfCmdOk: '' }); return true; };
+    if (this._asBusy || this._cpEngBusy) return fail('The Tests engine is still running the last command — wait a moment and run this one again');
+    try { return this.cpEngineParse(body, v0, svy, fail); } catch (e) { return fail(String(e && e.message || e)); }
+  }
+  cpEngineParse(body, v0, svy, fail) {
+    const S = this.state, raw = this._raw;
+    if (v0 === 'bootstrap') {
+      const b = body.match(/^bootstrap\s+(?:\w+\s*=\s*)?r\(\s*(mean|p50|sd)\s*\)\s*(?:,([^:]*))?:\s*su(?:m|mm|mma|mmar|mmari|mmariz|mmarize)?\s+(\S+)(?:\s+if\s+([^,]+?))?\s*(?:,\s*(\w+))?\s*$/i);
+      if (!b) return fail('bootstrap: use  bootstrap r(mean), reps(999) seed(1729): summarize y   (r(mean), r(p50) with , detail, or r(sd))');
+      const O = this.cxOpts(b[2] || ''), stat = { mean: 'mean', p50: 'median', sd: 'sd' }[b[1].toLowerCase()];
+      if (stat === 'median' && !/^d/i.test(b[5] || '')) return fail('r(p50) needs  summarize ' + b[3] + ', detail');
+      const reps = O.reps !== undefined ? Number(O.reps) : 999, seed = O.seed !== undefined ? Number(O.seed) : 1729;
+      if (!(Number.isInteger(reps) && reps >= 50)) return fail('reps() takes a whole number of 50 or more');
+      return this.cpEngRun('bootstrap', { y: [this.cpVar(b[3])] }, { statistic: stat, repetitions: reps, seed }, { ifs: b[4] || '', O });
+    }
+    // mixed models: the random part after ||
+    let rePart = '';
+    if (/^(mixed|xtmixed|melogit|mepoisson|menbreg)$/.test(v0)) { const k = body.indexOf('||'); if (k < 0) return fail(v0 + ' needs the group after ||, e.g.  ' + v0 + ' y x || id:'); rePart = body.slice(k + 2).trim(); body = body.slice(0, k).trim(); }
+    const P = this.cxSplit(body), O = this.cxOpts(P.opt), T = P.toks, V = t => this.cpVar(t), one = t => (t ? V(t) : null);
+    let reOpts = {}; if (rePart) { const ci = rePart.indexOf(','); if (ci >= 0) { reOpts = this.cxOpts(rePart.slice(ci + 1)); rePart = rePart.slice(0, ci).trim(); } Object.assign(O, reOpts); }
+    const ctx = { ifs: P.ifs, O };
+    if (P.wt && !svy) return fail(v0 + ' runs unweighted here — drop [' + P.wt + '=' + P.wv + ']  (for survey weights: svyset, then svy: …)');
+    if (/\sin\s+-?\d/.test(body)) return fail('in ranges are not available with ' + v0 + ' here — use if');
+    const only = (...allowed) => { const k = Object.keys(O).find(k => !['level', 'nolog', 'noheader', 'nohead', ...allowed].some(a => a === k || (k.length >= 3 && a.startsWith(k)))); if (k) throw new Error('option ' + k + ' not allowed with ' + v0 + ' here'); };
+    const list = toks => { const L = this.cxVarlist(toks.join(' ')); if (L.bad.length) throw new Error('variable ' + L.bad[0] + ' not found'); return L.vars; };
+    // factor-variable terms: i.x categorical, c.x continuous; interactions only where the method fits them
+    const terms = toks => { const vars = [], treat = {}; for (const t of toks) { if (/#/.test(t)) throw new Error('interactions (#) are not available with ' + v0 + ' here'); const mm = t.match(/^(?:(i|ib\w*|c)\.)?(.+)$/i), pre = (mm[1] || '').toLowerCase(); for (const v of list([mm[2]])) { if (!vars.includes(v)) vars.push(v); if (pre) treat[v] = pre === 'c' ? 'numeric' : 'categorical'; } } if (!vars.length) throw new Error(v0 + ' needs at least one predictor'); return { vars, treat }; };
+    const numArg = (x, what) => { const n = Number(x); if (!Number.isFinite(n)) throw new Error(what + ' must be a number'); return n; };
+    if (svy) {
+      if (!S.weightVar) return fail('Declare the survey design first:  svyset psu [pweight = w], strata(s)');
+      const design = { weight: [S.weightVar] }; if (S.svyPsu) design.psu = [S.svyPsu]; if (S.svyStrata) design.strata = [S.svyStrata];
+      only('over');
+      if (/^ta/.test(v0) && P.toks.length !== 2) return false;
+      if (/^ta/.test(v0)) {
+        if (T.length === 2) return this.cpEngRun('survey_test', Object.assign({ y: [V(T[0])], group: [V(T[1])] }, design), { surveyTest: 'categorical' }, ctx);
+        return false; // one variable: the weighted table (as before)
+      }
+      if (O.over) return fail('svy: ' + v0 + ', over() is not available here — for two groups use  svy: mean y  if group == …  one group at a time, or Tests ▾ → Survey inference');
+      const vars = list(T); if (!vars.length) return fail('svy: ' + v0 + ' needs a variable');
+      const treat = /^prop/.test(v0) ? Object.fromEntries(vars.map(v => [v, 'categorical'])) : {};
+      return this.cpEngRun('survey_desc', Object.assign({ variables: vars }, design), { surveyStat: v0 === 'total' ? 'total' : 'mean' }, Object.assign(ctx, { treat }));
+    }
+    if (/^(ta|tab|tabu|tabul|tabula|tabulat|tabulate|tab2)$/.test(v0)) { if (T.length !== 2) return fail('tabulate …, exact takes two variables'); return this.cpEngRun('fisher', { group: [V(T[0])], group2: [V(T[1])] }, {}, ctx); }
+    switch (v0) {
+      case 'ranksum': case 'kwallis': { only('by', 'porder', 'exact'); const y = T.length === 1 ? V(T[0]) : null, g = one(O.by); if (!y || !g) return fail(v0 + ': use  ' + v0 + ' y, by(group)'); return this.cpEngRun(v0 === 'ranksum' ? 'mannwhitney' : 'kruskal', { y: [y], group: [g] }, {}, ctx); }
+      case 'signrank': { only(); const mm = T.join(' ').match(/^(\S+)\s*=\s*(\S+)$/); if (!mm) return fail('signrank: use  signrank before = after'); if (/^-?[\d.]+$/.test(mm[2])) return fail('signrank here compares two variables (signrank before = after); for one variable against a number use  gen d = y - ' + mm[2] + '  then  signrank d = …'); return this.cpEngRun('signedrank', { y: [V(mm[1])], y2: [V(mm[2])] }, {}, ctx); }
+      case 'prtest': { only('by'); if (O.by) { if (T.length !== 1) return fail('prtest: use  prtest y, by(group)'); return this.cpEngRun('prop2', { y: [V(T[0])], group: [V(O.by)] }, {}, ctx); } const mm = T.join(' ').match(/^(\S+)\s*==\s*(\S+)$/); if (!mm) return fail('prtest: use  prtest y == 0.5   or   prtest y, by(group)'); if (!/^[\d.]+$/.test(mm[2])) return fail('prtest y1 == y2 (two variables) is not available here — use  prtest y, by(group)'); const p = numArg(mm[2], 'the proportion'); if (!(p > 0 && p < 1)) return fail('the hypothesized proportion must be between 0 and 1'); return this.cpEngRun('prop1', { y: [V(mm[1])] }, { null: p }, ctx); }
+      case 'bitest': { only('detail'); const mm = T.join(' ').match(/^(\S+)\s*==\s*([\d.]+)$/); if (!mm) return fail('bitest: use  bitest y == 0.5'); const p = numArg(mm[2], 'the probability'); if (!(p > 0 && p < 1)) return fail('the hypothesized probability must be between 0 and 1'); return this.cpEngRun('binomial', { y: [V(mm[1])] }, { null: p }, ctx); }
+      case 'prtesti': case 'bitesti': {
+        only('count', 'detail'); const x = T.map(Number); if (x.some(v => !Number.isFinite(v))) return fail(v0 + ' takes numbers only');
+        const cnt = (n, p, k) => { if (O.count || v0 === 'bitesti') { if (!Number.isInteger(p) || p < 0 || p > n) throw new Error('the count ' + p + ' must be a whole number from 0 to ' + n); return p; } const c = Math.round(p * n); if (!(p >= 0 && p <= 1)) throw new Error('the proportion ' + p + ' must be between 0 and 1 (or add , count)'); if (Math.abs(p * n - c) > 0.01) throw new Error('#obs × p' + k + ' = ' + +(p * n).toFixed(3) + ' is not a whole number of successes — type the counts and add , count'); return c; };
+        const N = (n, k) => { if (!(Number.isInteger(n) && n >= 1)) throw new Error('#obs' + k + ' must be a whole number of 1 or more'); return n; };
+        if (v0 === 'bitesti') { if (x.length !== 3) return fail('bitesti: use  bitesti #N #successes #p'); const n = N(x[0], ''); if (!(x[2] > 0 && x[2] < 1)) return fail('#p must be between 0 and 1'); return this.cpEngRun('binomial', {}, { trials: n, successes: cnt(n, x[1], ''), null: x[2] }, Object.assign(ctx, { mode: 'summary' })); }
+        if (x.length === 3) { const n = N(x[0], ''); if (!(x[2] > 0 && x[2] < 1)) return fail('the hypothesized proportion must be between 0 and 1'); return this.cpEngRun('prop1', {}, { trials: n, successes: cnt(n, x[1], ''), null: x[2] }, Object.assign(ctx, { mode: 'summary' })); }
+        if (x.length === 4) { const n1 = N(x[0], '1'), n2 = N(x[2], '2'); return this.cpEngRun('prop2', {}, { trials1: n1, successes1: cnt(n1, x[1], '1'), trials2: n2, successes2: cnt(n2, x[3], '2') }, Object.assign(ctx, { mode: 'summary' })); }
+        return fail('prtesti: use  prtesti #obs #p #p0   (one sample)   or   prtesti #obs1 #p1 #obs2 #p2   (two samples); add , count for counts');
+      }
+      case 'mcc': { only(); if (T.length !== 2) return fail('mcc: use  mcc exposed_case exposed_control'); return this.cpEngRun('mcnemar_exact', { y: [V(T[1])], y2: [V(T[0])] }, {}, ctx); }
+      case 'anova': {
+        only('partial', 'sequential'); if (O.sequential) return fail('sequential sums of squares are not available here — anova reports partial (type III) sums of squares, as Stata does by default');
+        if (T.length < 2) return fail('anova: use  anova y a b   or   anova y a##b   or   anova y a c.x');
+        const y = V(T[0]), facs = [], cov = []; let hash = false;
+        for (const t of T.slice(1)) { if (/#/.test(t)) hash = true; for (const part of t.split(/##|#/)) { const mm = part.match(/^(?:(i|ib\w*|c)\.)?(.+)$/i), isC = (mm[1] || '').toLowerCase() === 'c'; for (const v of list([mm[2]])) { if (isC) { if (!cov.includes(v)) cov.push(v); } else if (!facs.includes(v)) facs.push(v); } } }
+        if (!facs.length) return fail('anova needs at least one categorical factor');
+        if (cov.length) { if (hash || facs.length !== 1) return fail('analysis of covariance here takes one factor and continuous covariates:  anova y group c.x'); return this.cpEngRun('ancova', { y: [y], group: facs, covariates: cov }, { ss: 'III', interactions: false }, ctx); }
+        if (hash && facs.length > 2 && !T.slice(1).some(t => (t.match(/##/g) || []).length === facs.length - 1)) return fail('with three or more factors only the full factorial is available here:  anova y a##b##c');
+        return this.cpEngRun('factorial', { y: [y], factors: facs }, { ss: 'III', interactions: hash }, ctx);
+      }
+      case 'pwmean': {
+        only('over', 'mcompare', 'effects', 'cimeans', 'pveffects', 'cieffects'); const y = T.length === 1 ? V(T[0]) : null, g = one(O.over); if (!y || !g) return fail('pwmean: use  pwmean y, over(group) mcompare(tukey)');
+        const mc = String(O.mcompare || 'noadjust').toLowerCase();
+        if (/^tuk/.test(mc)) return this.cpEngRun('tukey', { y: [y], group: [g] }, {}, ctx);
+        if (/^dun/.test(mc)) return this.cpEngRun('dunnett', { y: [y], group: [g] }, {}, ctx);
+        if (/^(bon|noadj)/.test(mc)) return this.cpEngRun('pairwise', { y: [y], group: [g] }, { adjust: /^bon/.test(mc) ? 'bonferroni' : 'none', rank: false }, ctx);
+        return fail('mcompare(' + mc + ') is not available here — use tukey, dunnett, bonferroni or noadjust');
+      }
+      case 'mlogit': case 'probit': case 'nbreg': case 'qreg': {
+        if (v0 === 'qreg') only('quantile'); else only();
+        if (T.length < 2) return fail(v0 + ' needs an outcome and at least one predictor');
+        const y = V(T[0]), X = terms(T.slice(1)), opts = {};
+        if (v0 === 'qreg') { const q = O.quantile !== undefined ? numArg(O.quantile, 'quantile()') : 0.5, tau = q >= 1 ? q / 100 : q; if (!(tau > 0 && tau < 1)) return fail('quantile() takes a number between 0 and 1 (or 1 and 99)'); opts.tau = tau; }
+        return this.cpEngRun({ mlogit: 'multinomial', probit: 'probit', nbreg: 'negbin', qreg: 'quantile' }[v0], { y: [y], predictors: X.vars.filter(v => v !== y) }, opts, Object.assign(ctx, { treat: X.treat }));
+      }
+      case 'mixed': case 'xtmixed': case 'melogit': case 'mepoisson': case 'menbreg': {
+        only('reml', 'mle', 'ml', 'covariance', 'intmethod', 'stddeviations', 'variance');
+        const re = rePart.match(/^(\w+)\s*:\s*(.*)$/); if (!re) return fail(v0 + ': write the group as  || id:   (e.g.  ' + v0 + ' y x || id:)');
+        const id = V(re[1]), sl = re[2].trim().split(/\s+/).filter(Boolean); if (sl.length > 1) return fail('one random slope at most here:  || id: x');
+        if (T.length < 2) return fail(v0 + ' needs an outcome and at least one predictor');
+        const y = V(T[0]), X = terms(T.slice(1)), slope = sl.length ? V(sl[0]) : '';
+        if (slope && !X.vars.includes(slope)) return fail('put ' + slope + ' in the fixed part too:  ' + v0 + ' ' + T.join(' ') + ' ' + slope + ' || ' + id + ': ' + slope);
+        if (slope && O.covariance && !/^un/i.test(O.covariance)) return fail('the random intercept and slope are fitted with covariance(unstructured) here (as R\'s lme4 does)');
+        const opts = { randomSlope: slope }; let note = '';
+        if (/mixed$/.test(v0)) { opts.reml = !!O.reml; } else { opts.family = { melogit: 'binomial', mepoisson: 'poisson', menbreg: 'negbin' }[v0]; if (!O.intmethod) note = 'note: fitted by the Laplace approximation, as Stata does with  , intmethod(laplace)'; }
+        if (slope && !O.covariance) note = (note ? note + '\n' : '') + 'note: the random intercept and slope are correlated, as Stata\'s  covariance(unstructured)';
+        return this.cpEngRun(/mixed$/.test(v0) ? 'mixed' : 'glmm', { y: [y], predictors: X.vars.filter(v => v !== y), subject: [id] }, opts, Object.assign(ctx, { treat: X.treat, note }));
+      }
+      case 'xtreg': {
+        only('fe', 're', 'vce', 'robust', 'cluster');
+        const xt = this._cpXt || (S.tsU && S.tsT ? { id: S.tsU, t: S.tsT } : null); if (!xt) return fail('declare the panel first:  xtset id year');
+        if (T.length < 2) return fail('xtreg needs an outcome and at least one predictor');
+        const y = V(T[0]), X = terms(T.slice(1)), fe = !!O.fe;
+        const note = O.vce || O.robust || O.cluster ? '' : 'note: standard errors are clustered by ' + xt.id + ', as  vce(cluster ' + xt.id + ')';
+        return this.cpEngRun(fe ? 'panel_fe' : 'panel_re', { y: [y], predictors: X.vars.filter(v => v !== y), subject: [xt.id], time: [xt.t] }, {}, Object.assign(ctx, { treat: X.treat, note }));
+      }
+      case 'stset': return this.cpStset(body, P, O, fail);
+      case 'sts': case 'stcox': case 'streg': {
+        const st = this._cpSt; if (!st || !raw.names.includes(st.t) || !raw.names.includes(st.d)) return fail('stset your data first:  stset time, failure(event)');
+        const base = { time: [st.t], event: [st.d] };
+        if (v0 === 'sts') {
+          const sub = (T[0] || '').toLowerCase();
+          if (/^(l|li|lis|list|g|gr|gra|grap|graph)$/.test(sub)) { only('by', 'at', 'compare'); if (T.length > 1) return fail('sts ' + sub + ' takes no variables; groups go in by()'); const g = one(O.by); return this.cpEngRun('km', g ? Object.assign(base, { group: [g] }) : base, {}, ctx); }
+          if (/^(t|te|tes|test)$/.test(sub)) { only('logrank'); if (T.length !== 2) return fail('sts test: use  sts test group'); return this.cpEngRun('km', Object.assign(base, { group: [V(T[1])] }), {}, ctx); }
+          return fail('sts: use  sts list, sts graph, by(group)  or  sts test group');
+        }
+        if (!T.length) return fail(v0 + ' needs at least one predictor');
+        const X = terms(T);
+        if (v0 === 'stcox') { only('efron', 'breslow', 'nohr'); if (O.breslow) return fail('stcox here handles ties by the Efron method (R\'s default) — use  , efron'); const note = O.efron ? '' : 'note: ties handled by the Efron method, as  stcox …, efron'; return this.cpEngRun('cox', Object.assign(base, { predictors: X.vars }), {}, Object.assign(ctx, { treat: X.treat, note })); }
+        only('distribution', 'time', 'nohr');
+        const dm = String(O.distribution || 'exponential').toLowerCase(), dist = /^e/.test(dm) ? 'exponential' : /^w/.test(dm) ? 'weibull' : /^(logn|ln)/.test(dm) ? 'lognormal' : /^(logl|ll)/.test(dm) ? 'loglogistic' : '';
+        if (!dist) return fail('distribution() takes exponential, weibull, lognormal or loglogistic here');
+        const note = O.time || /^log/.test(dist) ? '' : 'note: coefficients in the accelerated failure-time metric, as  streg …, time';
+        return this.cpEngRun('survreg', Object.assign(base, { predictors: X.vars }), { distribution: dist }, Object.assign(ctx, { treat: X.treat, note }));
+      }
+      case 'pca': { only('covariance', 'components', 'mineigen'); const vars = list(T); if (vars.length < 2) return fail('pca needs two or more variables'); return this.cpEngRun('pca', { variables: vars }, { standardize: !O.covariance }, ctx); }
+      case 'factor': {
+        only('factors', 'ml', 'pf', 'ipf', 'pcf', 'mineigen'); const vars = list(T); if (vars.length < 3) return fail('factor needs three or more variables');
+        if (O.pcf) return fail('principal-component factoring (pcf) is not available here — use pf, ipf or ml');
+        let kmax = 1; while ((vars.length - kmax - 1) ** 2 >= vars.length + kmax + 1) kmax++;
+        const nf = O.factors !== undefined ? numArg(O.factors, 'factors()') : Math.min(2, kmax); if (!(Number.isInteger(nf) && nf >= 1 && nf < vars.length)) return fail('factors() takes a whole number from 1 to ' + (vars.length - 1));
+        const opts = { nfactors: nf, rotation: 'none', factorMethod: O.ml ? 'ml' : 'pa' };
+        this._cpFa = { variables: vars, options: opts, ifs: P.ifs };
+        const note = O.ml || O.ipf ? '' : 'note: principal factors are iterated, as  factor …, ipf';
+        return this.cpEngRun('efa', { variables: vars }, opts, Object.assign(ctx, { note }));
+      }
+      case 'rotate': {
+        only('varimax', 'promax', 'oblimin', 'quartimin', 'oblique', 'orthogonal');
+        const fa = this._cpFa; if (!fa) return fail('run factor first, e.g.  factor x1-x6, factors(2)');
+        if (O.oblimin && !O.oblique) return fail('rotate, oblimin is orthogonal in Stata; the calculator fits the oblique version — type  rotate, oblimin oblique');
+        const rot = O.promax ? 'promax' : O.oblimin ? 'oblimin' : O.quartimin ? 'quartimin' : 'varimax';
+        return this.cpEngRun('efa', { variables: fa.variables }, Object.assign({}, fa.options, { rotation: rot }), { ifs: fa.ifs, O: {} });
+      }
+      case 'misstable': { only('all', 'showzeros'); const sub = (T[0] || '').toLowerCase(); if (!/^(sum|summ|summa|summar|summari|summariz|summarize|pat|patt|patte|patter|pattern|patterns)$/.test(sub)) return fail('misstable: use  misstable summarize [varlist]'); const vars = T.length > 1 ? list(T.slice(1)) : raw.names.slice(); return this.cpEngRun('missing', { variables: vars }, {}, ctx); }
+      case 'cluster': {
+        const sub = (T[0] || '').toLowerCase(); if (!/^(k|km|kmeans)$/.test(sub)) return fail('cluster: use  cluster kmeans x1 x2 x3, k(3)');
+        only('k', 'name', 'generate', 'start', 'measure'); const vars = list(T.slice(1)); if (!vars.length) return fail('cluster kmeans needs variables');
+        const k = O.k !== undefined ? numArg(O.k, 'k()') : NaN; if (!(Number.isInteger(k) && k >= 2)) return fail('cluster kmeans needs k(#), a whole number of 2 or more');
+        return this.cpEngRun('kmeans', { variables: vars }, { clusters: k, standardize: false }, Object.assign(ctx, { note: 'note: the variables are used as they are (not standardized), as in Stata; starting centres differ, so cluster numbers can differ' }));
+      }
+      case 'duplicates': { only(); const sub = (T[0] || '').toLowerCase(); if (!/^(r|re|rep|repo|repor|report)$/.test(sub)) return fail('duplicates ' + sub + ' is not available here — use  duplicates report [varlist]'); return this.cpDupReport(T.length > 1 ? list(T.slice(1)) : null, P.ifs, body); }
+      case 'lasso': case 'elasticnet': {
+        only('folds', 'rseed', 'selection', 'alpha'); const fam = (T[0] || '').toLowerCase(); if (!/^(linear|logit)$/.test(fam)) return fail(v0 + ': use  ' + v0 + ' linear y x1 x2 …   or   ' + v0 + ' logit y x1 x2 …');
+        if (T.length < 3) return fail(v0 + ' needs an outcome and predictors');
+        const y = V(T[1]), X = terms(T.slice(2)), opts = { family: fam === 'logit' ? 'binomial' : 'gaussian' };
+        if (O.folds !== undefined) { const k = numArg(O.folds, 'folds()'); if (!(Number.isInteger(k) && k >= 3 && k <= 20)) return fail('folds() takes a whole number from 3 to 20'); opts.folds = k; }
+        if (O.rseed !== undefined) opts.seed = numArg(O.rseed, 'rseed()');
+        let id = 'lasso'; if (v0 === 'elasticnet') { const a = O.alpha !== undefined ? numArg(O.alpha, 'alpha()') : 0.5; if (!(a >= 0 && a <= 1)) return fail('alpha() takes one number from 0 to 1'); if (a === 0) id = 'ridge'; else if (a === 1) id = 'lasso'; else { id = 'elastic'; opts.penalty = a; } }
+        return this.cpEngRun(id, { y: [y], predictors: X.vars.filter(v => v !== y) }, opts, Object.assign(ctx, { treat: X.treat, note: 'note: 80% of the rows train the model and 20% test it (the Stata command shows the same split)' }));
+      }
+    }
+    return false;
+  }
+  // duplicates report, as Stata prints it (copies, observations, surplus)
+  cpDupReport(vars, ifs, s) {
+    let conds = []; if (ifs) { const r = this.stataConds(ifs); if (r.err) throw new Error(r.err); conds = r.conds; }
+    const mk = this.cxMaskFor(conds), raw = this._raw, keys = vars || raw.names, idx = keys.map(v => raw.names.indexOf(v)), cnt = new Map();
+    for (let i = 0; i < raw.n; i++) { if (mk && !mk[i]) continue; const key = idx.map(j => { const x = raw.cols[j].a[i]; return x == null || (typeof x === 'number' && !Number.isFinite(x)) ? '.' : String(x); }).join('\u0001'); cnt.set(key, (cnt.get(key) || 0) + 1); }
+    const by = new Map(); for (const c of cnt.values()) by.set(c, (by.get(c) || 0) + c);
+    const f = v => this.fmtN(v), line = '-'.repeat(38), rows = [...by.entries()].sort((a, b) => a[0] - b[0]);
+    const tbl = ['Duplicates in terms of ' + (vars ? vars.join(' ') : 'all variables'), '', line, '   Copies | Observations       Surplus', '----------+---------------------------', ...rows.map(([c, o]) => String(c).padStart(9) + ' | ' + f(o).padStart(12) + f(o - o / c).padStart(14)), line].join('\n');
+    const cols = 'df[c(' + keys.map(v => JSON.stringify(v)).join(', ') + ')]';
+    this.pushLog({ t: 'stata', stata: s.replace(/^duplicates\s+\w+/i, 'duplicates report'), r: 'n <- ave(seq_len(nrow(df)), ' + cols + ', FUN = length)\ntable(copies = n)', tbl, res: '' });
+    this.setState({ mfCmdOk: '✓ duplicates report' }); return true;
+  }
+  cpVar(t) { const L = this.cxVarlist(String(t || '')); if (L.bad.length || L.vars.length !== 1) throw new Error(L.vars.length > 1 ? t + ' names several variables; give one' : 'variable ' + (L.bad[0] || t) + ' not found'); return L.vars[0]; }
+  // fill the method's Tests page and run it; the result is logged by asLog (once), the note after it
+  cpEngRun(id, fields, options, x) {
+    const S = this.state, info = this.asCatalog().find(q => q.id === id); if (!info) { this.setState({ mfCmdErr: 'This method is not available in this build' }); return true; }
+    x = x || {}; const O = x.O || {}, patch = {};
+    if (x.ifs) { const r = this.cpIfPatch(x.ifs); if (r.err) { this.setState({ mfCmdErr: r.err }); return true; } patch.subg = r.subg; }
+    if (O.level !== undefined) { const lv = Number(O.level); if (!(lv >= 10 && lv <= 99.99)) { this.setState({ mfCmdErr: 'level() takes a confidence level between 10 and 99.99, e.g. level(90)' }); return true; } patch.alphaSel = String(+(1 - lv / 100).toFixed(8)); this._cxLevel = { prev: S.alphaSel, val: patch.alphaSel }; }
+    if (x.treat && Object.keys(x.treat).length) patch.treat = Object.assign({}, S.treat || {}, x.treat);
+    let wNote = ''; if (S.weightVar && !/^survey_/.test(id) && info.group !== 'Data management' && x.mode !== 'summary') { this._cxW = { prev: S.weightVar, prevAuto: S.weightAuto, val: '' }; patch.weightVar = ''; patch.weightAuto = false; wNote = 'note: unweighted, as in Stata — the weight ' + S.weightVar + ' applies to svy: commands'; }
+    if (patch.subg || patch.treat || patch.alphaSel || 'weightVar' in patch) this.clearMemo();
+    const pages = Object.assign({}, S.analysisPages || {}); pages[id] = { fields, options: options || {}, inputMode: x.mode || 'raw' };
+    this._cpEngBusy = true; this._cpEngErr = ''; this._cpEngNote = [x.note, wNote].filter(Boolean).join('\n');
+    this.setState(Object.assign(patch, { tab: 'analysis', analysisId: id, analysisSub: 'Setup', analysisPages: pages, analysisError: '', mfMobile: 'analysis', mfNav: '', menu: '', mfCmdErr: '' }), () => {
+      Promise.resolve().then(() => this.asRun()).catch(e => { this.setState({ analysisError: String(e && e.message || e) }); }).then(() => { this._cpEngErr = this.state.analysisError || ''; this._cpEngBusy = false; });
+    });
+    return true;
+  }
+  // stset: remembers the time and event for sts / stcox / streg and prints Stata's summary
+  cpStset(body, P, O, fail) {
+    const raw = this._raw, T = P.toks; if (T.length !== 1) return fail('stset: use  stset time, failure(event)');
+    const k = Object.keys(O).find(k => !/^(f|fa|fai|fail|failu|failur|failure)$/.test(k)); if (k) return fail('option ' + k + ' not allowed with stset here');
+    const fo = O.failure || O.fail || O.f || ''; if (!fo || fo === true) return fail('add the event:  stset ' + T[0] + ', failure(event)   (the event variable is 1 for a failure, 0 for censored)');
+    const t = this.cpVar(T[0]), fm = String(fo).match(/^\s*(\w+)\s*(?:==\s*(-?[\d.]+))?\s*$/); if (!fm) return fail('failure() takes  failure(event)  or  failure(event == 1)');
+    const d = this.cpVar(fm[1]), cond = fm[2] !== undefined ? Number(fm[2]) : null;
+    const tc = raw.cols[raw.names.indexOf(t)], dc = raw.cols[raw.names.indexOf(d)]; if (tc.k !== 'n' || dc.k !== 'n') return fail('stset needs numeric time and event variables');
+    const vals = new Set(); for (const v of dc.a) if (v != null && Number.isFinite(v)) vals.add(v);
+    const ok01 = [...vals].every(v => v === 0 || v === 1);
+    if (!ok01 || (cond !== null && cond !== 1)) return fail('the calculator\'s survival methods need the event coded 0/1 — make one first:  generate byte ev = (' + d + ' == ' + (cond !== null ? cond : '…') + ') if !missing(' + d + ')   then  stset ' + t + ', failure(ev)');
+    this._cpSt = { t, d };
+    const n = raw.n, A = tc.a, B = dc.a; let excl = 0, nf = 0, risk = 0, last = 0;
+    for (let i = 0; i < n; i++) { const x = A[i]; if (x == null || !Number.isFinite(x) || x <= 0) { excl++; continue; } risk += x; if (x > last) last = x; const e = B[i]; if (e != null && Number.isFinite(e) && e !== 0) nf++; }
+    const f = v => this.fmtN(v).padStart(11), num = v => String(Number.isInteger(v) ? v : +v.toPrecision(7)).padStart(10), rule = '-'.repeat(74);
+    const tbl = ['Survival-time data settings', '', '         Failure event: ' + (cond !== null ? d + '==' + cond : d + '!=0 & ' + d + '<.'), 'Observed time interval: (0, ' + t + ']', '     Exit on or before: failure', '', rule,
+      f(n) + '  total observations', f(excl) + '  ' + (excl ? 'observations end on or before enter() or have missing ' + t : 'exclusions'), rule,
+      f(n - excl) + '  observations remaining, representing', f(nf) + '  failures in single-record/single-failure data', (Number.isInteger(+risk.toPrecision(10)) ? this.fmtN(+risk.toPrecision(10)) : (+risk.toPrecision(10)).toLocaleString('en-US', { maximumFractionDigits: 2 })).padStart(11) + '  total analysis time at risk and under observation',
+      '                                                At risk from t = ' + num(0), '                                     Earliest observed entry t = ' + num(0), '                                          Last observed exit t = ' + num(last)].join('\n');
+    this.pushLog({ t: 'stata', stata: 'stset ' + t + ', failure(' + d + (cond !== null ? '==' + cond : '') + ')', r: 'library(survival)\nS <- Surv(df$' + t + ', df$' + d + (cond !== null ? ' == ' + cond : '') + ')', tbl, res: '' });
+    this.setState({ mfCmdOk: '✓ stset' });
+    return true;
   }
   // GM26 console page end

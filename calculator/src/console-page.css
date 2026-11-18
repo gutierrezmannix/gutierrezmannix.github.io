@@ -58,3 +58,4 @@
 .cp-dorow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .mf-cpbtn kbd{font-family:var(--fMono,'Space Mono',monospace);font-size:10px;font-weight:400;opacity:.75;margin-left:4px}
 @media (max-width:900px){.cp{grid-template-columns:minmax(0,1fr)}.cp-rev,.cp-vars{display:none}.cp-sug{left:12px;right:12px}}
+.cp-item.cp-after{margin-top:-10px}

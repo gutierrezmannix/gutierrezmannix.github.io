@@ -39,3 +39,29 @@ The side pane keeps Plots, Report and Help. Source: `src/console-page.js`, `src/
 | Regression, Tests ▾, Time series, SEM, data edits | as before | Run / Fit / Apply |
 
 Text analysis and network models have no Stata equivalent; they keep their R code.
+
+## Typed commands that run on the Tests engine (build .105)
+
+These commands fill their Tests ▾ page and run it on the built-in engine (validated against R). The console prints the
+result once, under the Stata command that reproduces it; where the engine always uses an option (Efron ties,
+clustered panel errors, the Laplace approximation), that option is in the printed command and a `note:` says so.
+
+| Typed | Runs | Notes |
+|---|---|---|
+| `ranksum y, by(g)` · `kwallis y, by(g)` · `signrank a = b` | Mann–Whitney · Kruskal–Wallis · signed-rank | |
+| `prtest y == p` · `prtest y, by(g)` · `prtesti` · `bitest y == p` · `bitesti` | one / two proportions, exact binomial | `prtesti` takes proportions or `, count` |
+| `tab a b, exact` · `mcc case control` | Fisher's exact · exact McNemar | |
+| `anova y a b` · `anova y a##b` · `anova y g c.x` | factorial ANOVA · ANCOVA | partial (type III) sums of squares, as Stata |
+| `pwmean y, over(g) mcompare(tukey\|dunnett\|bonferroni\|noadjust)` | pairwise comparisons | |
+| `mlogit` · `probit` · `nbreg` · `qreg …, quantile(.25)` | the models (`i.x`, `c.x` work) | |
+| `mixed y x \|\| id: [z]` · `melogit` · `mepoisson` · `menbreg` | multilevel models | `mixed` is ML unless `, reml`; slopes use `covariance(unstructured)` |
+| `xtset id t` then `xtreg y x, fe` / `re` | panel models | errors clustered by id |
+| `stset t, failure(d)` then `sts list` · `sts graph, by(g)` · `sts test g` · `stcox` · `streg …, distribution()` | survival | `stset` prints Stata's summary; the event must be 0/1 |
+| `pca` · `factor …, factors(k) [ml\|ipf]` · `rotate, varimax\|promax\|oblimin oblique` | PCA, factor analysis | |
+| `misstable summarize` · `duplicates report` · `cluster kmeans …, k(3)` | missing values, duplicates (Stata's table), k-means | |
+| `lasso linear\|logit` · `elasticnet …, alpha()` | penalized regression | 80/20 split, shown in the command |
+| `bootstrap r(mean), reps(#) seed(#): summarize y` | bootstrap | `r(p50)` needs `, detail` |
+| `svyset …` then `svy: mean` · `svy: total` · `svy: proportion` · `svy: tabulate a b` | design-based estimates, Rao–Scott F | |
+
+An `if` on these commands applies to that command only. Weights are refused except under `svy:`; after `svyset`, the
+other commands run unweighted, as in Stata, with a note.

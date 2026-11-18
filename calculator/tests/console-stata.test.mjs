@@ -156,3 +156,25 @@ test('build .104: page functions print their Stata command', async () => {
   c.cpPrint({ stata: 'table g, statistic(mean y)', r: 'aggregate(y ~ g, df, mean)', tbl: 'g | mean' }); const d = c.state.conLog.at(-1);
   assert.equal(d.src, 'page'); assert.equal(c.cmdText(d, 'stata'), 'table g, statistic(mean y)'); assert.equal(c.cmdText(d, 'r'), 'aggregate(y ~ g, df, mean)');
 });
+
+test('build .105: typed Stata commands fill and run their Tests page', async () => {
+  const c = await setup(); const ran = []; c.asRun = async () => { ran.push({ id: c.state.analysisId, page: c.state.analysisPages[c.state.analysisId], subg: c.state.subg }); };
+  const tick = () => new Promise(r => setTimeout(r, 0));
+  const go = async cmd => { c.setState({ mfCmdErr: '' }); c.runCmdLine(cmd); clearTimeout(c._mfOkT); await tick(); await tick(); return c.state.mfCmdErr; };
+  const last = () => ran.at(-1);
+  assert.equal(await go('ranksum y, by(g)'), ''); assert.equal(last().id, 'mannwhitney'); assert.deepEqual(last().page.fields, { y: ['y'], group: ['g'] });
+  assert.equal(await go('kwallis y, by(g)'), ''); assert.equal(last().id, 'kruskal');
+  assert.equal(await go('anova y g##hi'), ''); assert.equal(last().id, 'factorial'); assert.deepEqual(last().page.fields.factors, ['g', 'hi']); assert.deepEqual(last().page.options, { ss: 'III', interactions: true });
+  assert.equal(await go('anova y g c.x'), ''); assert.equal(last().id, 'ancova'); assert.deepEqual(last().page.fields, { y: ['y'], group: ['g'], covariates: ['x'] });
+  assert.equal(await go('mlogit g x z'), ''); assert.equal(last().id, 'multinomial'); assert.deepEqual(last().page.fields.predictors, ['x', 'z']);
+  assert.equal(await go('qreg y x, quantile(25)'), ''); assert.equal(last().page.options.tau, 0.25);
+  assert.equal(await go('mixed y x || g:'), ''); assert.equal(last().id, 'mixed'); assert.deepEqual(last().page.fields.subject, ['g']); assert.equal(last().page.options.reml, false);
+  assert.equal(await go('tab g hi, exact'), ''); assert.equal(last().id, 'fisher');
+  assert.equal(await go('prtesti 100 0.4 0.5'), ''); assert.equal(last().id, 'prop1'); assert.equal(last().page.inputMode, 'summary'); assert.deepEqual(last().page.options, { trials: 100, successes: 40, null: 0.5 });
+  assert.equal(await go('ranksum y if x > 3, by(g)'), ''); assert.equal(last().subg.all.at(-1).v, 'x');
+  assert.match(await go('xtreg y x'), /xtset/); assert.match(await go('stcox x'), /stset/);
+  assert.match(await go('stset y, failure(z)'), /coded 0\/1/); assert.match(await go('kwallis y [aw=x], by(g)'), /unweighted/);
+  assert.match(await go('rotate, varimax'), /factor first/);
+  const n = ran.length; assert.equal(await go('duplicates report g'), ''); assert.equal(ran.length, n);
+  assert.match(c.state.conLog.at(-1).tbl, /Copies \| Observations\s+Surplus/);
+});

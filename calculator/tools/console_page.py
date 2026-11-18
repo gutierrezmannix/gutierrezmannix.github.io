@@ -97,6 +97,9 @@ def integrate_component(c):
     c = _one(c, "    if ((m = s.match(/^(destring|tostring)\\s+(.+?)(?:\\s*,.*)?$/i))) {",
              "    if (/^tostring\\s.*\\bgen(?:erate)?\\s*\\(/i.test(s)) return this.cpTostringGen(s, varlist, fail, ok);\n    if ((m = s.match(/^(destring|tostring)\\s+(.+?)(?:\\s*,.*)?$/i))) {", 'tostring gen()')
     c = _one(c, GEN_OLD, GEN_INS + GEN_OLD, 'generate if missing()')
+    # build .105: typed commands that run on the Tests engine (ranksum, kwallis, anova, mlogit, mixed, stcox, pca …)
+    c = _one(c, "    if (this.runStataExtra(s)) return;\n    const low = {};",
+             "    if (this.cpEngine && this.cpEngine(s)) return;\n    if (this.runStataExtra(s)) return;\n    const low = {};", 'engine commands')
     return c
 
 
