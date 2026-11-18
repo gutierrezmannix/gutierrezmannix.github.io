@@ -99,6 +99,9 @@ def integrate_component(c):
     c = _one(c, "    if ((m = s.match(/^(destring|tostring)\\s+(.+?)(?:\\s*,.*)?$/i))) {",
              "    if (/^tostring\\s.*\\bgen(?:erate)?\\s*\\(/i.test(s)) return this.cpTostringGen(s, varlist, fail, ok);\n    if ((m = s.match(/^(destring|tostring)\\s+(.+?)(?:\\s*,.*)?$/i))) {", 'tostring gen()')
     c = _one(c, GEN_OLD, GEN_INS + GEN_OLD, 'generate if missing()')
+    # build .111: every log entry passes tagSg, which now records the typed command; svyset weights scope to svy:
+    c = _one(c, "  tagSg(entry) { if (!entry.at) entry = { ...entry, at: Date.now() };", "  tagSg(entry) { if (!entry.at) entry = { ...entry, at: Date.now() }; if (this.cpTag) entry = this.cpTag(entry);", 'typed command on each entry')
+    c = _one(c, "    if (this.cxScopeIf(text)) return;\n", "    if (this.cxScopeIf(text)) return;\n    if (this.cqSvyScope && this.cqSvyScope(text)) return;\n", 'svyset weight scope')
     # build .105 / .106: typed commands that run on the Tests engine (ranksum, anova, mixed, stcox, pca …) and the
     # inspection and statistics commands of src/console-more.js (lookfor, levelsof, table, ci, swilk, egen …)
     c = _one(c, "    if (this.runStataExtra(s)) return;\n    const low = {};",

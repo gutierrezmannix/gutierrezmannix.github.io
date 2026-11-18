@@ -4,18 +4,23 @@
   // bottom. Opened from Console in the top bar or Ctrl+K; Esc or Back returns to the page underneath, which stays as
   // it was. The console records actions, not views: a typed command, a Run / Fit / Apply button, or Print in console.
   // Looking at a variable or switching tabs writes nothing (the Record switch brings the old behaviour back).
-  cpArm(src) { this._cpArm = Date.now(); this._cpArmSrc = src || 'page'; }
+  cpArm(src) { this._cpArm = Date.now(); this._cpArmSrc = this._cpInner > 0 ? 'inner' : src || 'page'; }
   cpArmed() { return !!this.state.conAuto || !!(this._cpArm && Date.now() - this._cpArm < 8000); }
   cpTakeArm() { const s = this._cpArm ? (this._cpArmSrc || 'page') : 'page'; this._cpArm = 0; return s; }
-  cpSrc() { return this._cpEngBusy || (this._cpTyping && Date.now() - this._cpTyping < 3000) ? 'typed' : 'page'; }
+  cpSrc() { if (this._cpInner > 0) return 'inner'; return this._cpEngBusy || (this._cpTyping && Date.now() - this._cpTyping < 3000) ? 'typed' : 'page'; }
   cpOpenPage() { this._cpBack = this.state.tab; this.setState({ cpOpen: true, mfNav: '', mfFile: false, menu: '' }, () => { try { window.scrollTo(0, 0); } catch (e) {} setTimeout(() => this._cpIn && this._cpIn.focus({ preventScroll: true }), 30); }); }
   cpClose() { this.setState({ cpOpen: false }); }
   // the view on screen, printed once (the Print in console button above each page)
   cpPrintView() { const d = this.descFor(); if (!d) { this.flash('Nothing on this page to print yet'); return; } this.cpArm('page'); this.setState({ conSig: '' }); this.flash('Printed in the console'); }
-  cpNote(cmd, msg, kind) { this.setState(s => ({ cpErrs: [...(s.cpErrs || []), { at: s.conLog.length, cmd, msg: msg || '', kind: kind || 'note' }].slice(-300) })); }
+  cpNote(cmd, msg, kind, raw) { const inner = this._cpInner > 0, run = !inner && cmd ? this._cpRunId : 0, typed = run ? this._cpRunText : ''; this.setState(s => ({ cpErrs: [...(s.cpErrs || []), { at: s.conLog.length, cmd, msg: msg || '', kind: kind || 'note', inner, raw: raw || '', run, typed }].slice(-300) })); }
+  // build .111: a result of a typed command carries the command as typed (Review and the do-file show it, as Stata's)
+  cpTag(entry) { const src = entry.src || this.cpSrc(); return src === 'typed' && this._cpRunText && !entry.typed ? { ...entry, typed: this._cpRunText, run: this._cpRunId } : entry; }
   cpTabName(t) { return ({ one: 'Univariate', two: 'Bivariate', corr: 'Correlation matrix', ttest: 't-tests', reg: 'Regression', plots: 'Charts', sem: 'SEM', ergm: 'Networks', text: 'Text analysis', predict: 'Predict', ts: 'Time series', data: 'Data', browse: 'Browse', analysis: 'Tests', maps: 'Maps' })[t] || 'the page'; }
   // run one line: what the console prints comes from the log; errors and notes are kept beside it, in order
   cpRun(text, then, inner) {
+    // build .111: a command a loop or by-group runs is 'inner' until it has finished (its log entries carry src 'inner')
+    if (!inner) { const ty = String(text || '').replace(/^\s*[.>]\s*/, '').trim(); if (ty) { this._cpRunId = (this._cpRunId || 0) + 1; this._cpRunText = ty; } }
+    if (inner) { this._cpInner = (this._cpInner || 0) + 1; const t0 = then; let fired = false; then = () => { if (fired) return; fired = true; this._cpInner = Math.max(0, (this._cpInner || 1) - 1); if (t0) t0(); }; }
     let s = String(text || '').replace(/^\s*[.>]\s*/, '').trim(); if (!s) { if (then) then(); return; }
     if (!inner) { this._cpHist = (this._cpHist || []).concat([s]).slice(-300); this._cpHi = null; }
     const n0 = this.state.conLog.length; this._cpTyping = Date.now();
@@ -39,7 +44,8 @@
             const ok = String(this.state.mfCmdOk || '').replace(/^✓\s*/, '').trim();
             // a command that opened a page logs when the page has run (a regression); anything else gets its note now
             const pending = this._cpArm && Date.now() - this._cpArm < 3000;
-            setTimeout(() => { if (this.state.conLog.length === n0) this.cpNote(s, ok && ok.toLowerCase() !== s.toLowerCase() ? ok : '', 'note'); }, pending ? 1500 : 0);
+            const wait = k => { if (this.state.conLog.length > n0) { if (then) then(); return; } if ((pending && k < 15) || Date.now() < (this._cpWaitUntil || 0)) { setTimeout(() => wait(k + 1), 100); return; } this.cpNote(s, ok && ok.toLowerCase() !== s.toLowerCase() ? ok : '', 'note'); if (then) then(); };
+            wait(0); return;
           } else if (engNote) this.cpNote('', engNote, 'note');
           if (then) then();
         };
@@ -59,6 +65,17 @@
   // text of the session for Copy / Save log (.log) and the commands alone for Save do-file (.do)
   cpLogText(items, dial) {
     return items.map(it => it.err ? (it.err.cmd ? '. ' + it.err.cmd + (it.err.msg ? '\n' : '') : '') + (it.err.msg || '') : this.cpCmdOf(it.d, dial).split('\n').map(l => (dial === 'r' ? '> ' : '. ') + l).join('\n') + (this.cpTblOf(it.d, dial) ? '\n\n' + this.cpTblOf(it.d, dial) : it.d.res ? '\n' + it.d.res : '')).join('\n\n');
+  }
+  // the do-file: what was typed or run from the page, in order; a loop as typed; not the commands a loop or by-group ran
+  cpDoFileText(items, dial) {
+    const seen = new Set(), out = [];
+    for (const it of items) {
+      if (it.err) { const e = it.err; if (e.kind === 'err' || e.inner || !e.cmd) continue; if (e.run && seen.has(e.run) && !e.raw) continue; if (e.run) seen.add(e.run); out.push(e.raw || (dial === 'r' ? e.cmd : e.typed || e.cmd)); continue; }
+      const d = it.d; if (d.src === 'inner') continue;
+      if (d.src === 'typed' && d.typed && dial !== 'r') { if (seen.has(d.run)) continue; seen.add(d.run); out.push(d.typed); continue; }
+      out.push(this.cpCmdOf(d, dial));
+    }
+    return (dial === 'r' ? '# ' : '* ') + 'Commands from GM26 · ' + (this.state.fileName || '') + '\n' + out.filter(Boolean).join('\n') + '\n';
   }
   cpCmdOf(d, dial) { try { return this.cmdText(d, dial) || ''; } catch (e) { return ''; } }
   cpTblOf(d, dial) { try { return this.conTable(d, dial) || ''; } catch (e) { return ''; } }
@@ -112,9 +129,9 @@
     if (!this._cpOpenedAt || !this._cpWasOpen) this._cpOpenedAt = Date.now(); this._cpWasOpen = true;
     const base = (S.fileName || 'gm26').replace(/\.[^.]+$/, ''), prompt = dial === 'r' ? '> ' : '. ', CAP = 400;
     // Review: every command, numbered; a click puts it back in the command line, a double click runs it
-    let revN = 0; const revRows = items.map((it, k) => { if (it.err && !it.err.cmd) return null; const num = ++revN;
-      const cmd = it.err ? it.err.cmd : this.cpCmdOf(it.d, dial).split('\n')[0], cls = 'cp-rv' + (it.err && it.err.kind === 'err' ? ' err' : !it.err && it.d.src !== 'typed' ? ' page' : '');
-      return h('button', { key: k, type: 'button', className: cls, title: (it.err && it.err.kind === 'err' ? 'Error · ' : !it.err && it.d.src !== 'typed' ? 'From a button on the page · ' : '') + 'click to edit, double-click to run again', onClick: () => { if (this._cpIn) { this._cpIn.value = cmd; this._cpIn.focus(); } }, onDoubleClick: () => this.cpRun(cmd) }, h('span', { className: 'n' }, num), cmd);
+    let revN = 0; const revSeen = new Set(); const revRows = items.map((it, k) => { if (it.err ? !it.err.cmd || it.err.inner : it.d.src === 'inner') return null; const run = it.err ? it.err.run : it.d.src === 'typed' ? it.d.run : 0; if (run && revSeen.has(run) && !(it.err && it.err.raw)) return null; if (run) revSeen.add(run); const num = ++revN; const raw = it.err && it.err.raw;
+      const cmd = it.err ? (raw ? raw.split('\n')[0] + ' …' : it.err.typed || it.err.cmd) : it.d.src === 'typed' && it.d.typed && dial !== 'r' ? it.d.typed : this.cpCmdOf(it.d, dial).split('\n')[0], cls = 'cp-rv' + (it.err && it.err.kind === 'err' ? ' err' : !it.err && it.d.src !== 'typed' ? ' page' : '');
+      return h('button', { key: k, type: 'button', className: cls, title: (it.err && it.err.kind === 'err' ? 'Error · ' : !it.err && it.d.src !== 'typed' ? 'From a button on the page · ' : '') + 'click to edit, double-click to run again', onClick: () => { if (raw) { this._cpDoText = raw; this.setState({ cpDo: true, cpDoText: raw, cpDoKey: (S.cpDoKey || 0) + 1 }); return; } if (this._cpIn) { this._cpIn.value = cmd; this._cpIn.focus(); } }, onDoubleClick: () => raw ? this.cpRunMany(raw) : this.cpRun(cmd) }, h('span', { className: 'n' }, num), cmd);
     });
     // Results: oldest first; long tables are cut on screen (Copy and Save log keep everything)
     const resRows = items.map((it, k) => {
@@ -122,7 +139,7 @@
       const d = it.d, cmd = this.cpCmdOf(d, dial), tbl = this.cpTblOf(d, dial), lines = tbl ? tbl.split('\n') : [];
       const cut = lines.length > CAP ? lines.slice(0, CAP).join('\n') + '\n\n  … ' + this.fmtN(lines.length - CAP) + ' more lines (Copy or Save log keeps the whole table)' : tbl;
       return h('div', { key: 'd' + it.at, className: 'cp-item' },
-        cmd.split('\n').map((l, i) => h('div', { key: i, className: 'cp-cmd' }, (/^\s/.test(l) || /^\}/.test(l) ? '  ' : prompt) + l, i === 0 && d.src !== 'typed' ? h('span', { className: 'cp-src' }, (dial === 'r' ? '  # ' : '  * ') + 'from ' + (d.t === 'asx' ? 'Tests ▾' : 'the page')) : null)),
+        cmd.split('\n').map((l, i) => h('div', { key: i, className: 'cp-cmd' }, (/^\s/.test(l) || /^\}/.test(l) ? '  ' : prompt) + l, i === 0 && d.src !== 'typed' && d.src !== 'inner' ? h('span', { className: 'cp-src' }, (dial === 'r' ? '  # ' : '  * ') + 'from ' + (d.t === 'asx' ? 'Tests ▾' : 'the page')) : null)),
         cut ? h('pre', { className: 'cp-tbl' }, cut) : d.res ? h('div', { className: 'cp-note' }, d.res) : null,
         d.t === 'plot' ? h('button', { type: 'button', className: 'cp-link', onClick: () => { this.rerunCmd(d); this.cpClose(); } }, 'View the graph →') : null);
     });
@@ -141,7 +158,7 @@
       h('div', { style: { flex: 1 } }),
       btn('Copy', () => this.copyTSV('cplog', this.cpLogText(items, dial)), 'Copy the commands and output'),
       btn('Save log', () => this.cpDownload(this.cpLogText(items, dial) + '\n', base + (dial === 'r' ? '-console.txt' : '.log')), 'Download the commands and output as text'),
-      btn(dial === 'r' ? 'Save script' : 'Save do-file', () => this.cpDownload((dial === 'r' ? '# ' : '* ') + 'Commands from GM26 · ' + (S.fileName || '') + '\n' + items.filter(it => !it.err || it.err.kind !== 'err').map(it => it.err ? it.err.cmd : this.cpCmdOf(it.d, dial)).filter(Boolean).join('\n') + '\n', base + (dial === 'r' ? '.R' : '.do')), 'Download the commands only'),
+      btn(dial === 'r' ? 'Save script' : 'Save do-file', () => this.cpDownload(this.cpDoFileText(items, dial), base + (dial === 'r' ? '.R' : '.do')), 'Download the commands only'),
       btn('Clear', () => this.setState({ conFrom: S.conLog.length }), 'Clear the Results window (the log is kept in the session; like Stata’s cls)'),
       btn('← Back to ' + this.cpTabName(S.tab), () => this.cpClose(), 'Esc', 'back'));
     const rev = h('div', { className: 'cp-rev' }, h('div', { className: 'cp-ph' }, h('span', null, 'Review'), h('span', null, revRows.filter(Boolean).length)),
@@ -151,7 +168,7 @@
       h('input', { className: 'cp-vq', type: 'search', placeholder: 'filter variables', 'aria-label': 'Filter variables', defaultValue: S.cpVarQ || '', onChange: e => { const v = e.target.value; clearTimeout(this._cpVqT); this._cpVqT = setTimeout(() => this.setState({ cpVarQ: v }), 150); } }),
       h('div', { className: 'cp-list' }, shown.map(c => h('button', { key: c.name, type: 'button', className: 'cp-var', title: (c.label || c.name) + ' — click to type it', onClick: () => this.cpInsert(c.name) }, h('span', null, c.name), h('em', null, c.label || '')))),
       h('p', { className: 'cp-hint' }, 'Click a name to type it at the cursor.'));
-    const doBox = S.cpDo ? h('div', { className: 'cp-do' }, h('textarea', { 'aria-label': 'Do-file', placeholder: '* several commands, one per line\nsummarize edad\ntabulate sexo', defaultValue: S.cpDoText || '', spellCheck: false, onChange: e => { this._cpDoText = e.target.value; } }),
+    const doBox = S.cpDo ? h('div', { className: 'cp-do' }, h('textarea', { key: 'do' + (S.cpDoKey || 0), 'aria-label': 'Do-file', placeholder: '* several commands, one per line\nsummarize edad\ntabulate sexo', defaultValue: S.cpDoText || '', spellCheck: false, onChange: e => { this._cpDoText = e.target.value; } }),
       h('div', { className: 'cp-dorow' }, btn('Run all', () => { const t = this._cpDoText != null ? this._cpDoText : (S.cpDoText || ''); this.setState({ cpDoText: t }); this.cpRunMany(t); }, 'Run every line in order', 'run'), btn('Close', () => this.setState({ cpDo: false, cpDoText: this._cpDoText != null ? this._cpDoText : S.cpDoText })), h('span', { className: 'cp-hint' }, 'Lines run one after another; * and // lines are comments; /// continues a line.'))) : null;
     const mid = h('div', { className: 'cp-mid' },
       h('div', { className: 'cp-res', ref: resRef, role: 'log', 'aria-live': 'polite', 'aria-label': 'Results' }, resRows.length ? resRows : h('div', { className: 'cp-empty big' }, h('b', null, 'Type a Stata command below and press Enter.'), h('br'), 'For example  summarize ' + ((cols.find(c => c.type === 'numeric') || {}).name || 'x') + '  or  tabulate ' + ((cols.find(c => c.type !== 'numeric') || cols[0] || {}).name || 'x') + '. Buttons on the page that run something print their command here too.')),
@@ -337,6 +354,8 @@
     const ctx = { ifs: P.ifs, O };
     if (P.wt && !svy) return fail(v0 + ' runs unweighted here — drop [' + P.wt + '=' + P.wv + ']  (for survey weights: svyset, then svy: …)');
     if (/\sin\s+-?\d/.test(body)) return fail('in ranges are not available with ' + v0 + ' here — use if');
+    // build .111: these five are computed and printed as Stata does (src/console-more.js)
+    if (!svy && this.cqTests && /^(ranksum|kwallis|signrank|prtest|bitest)$/.test(v0)) return this.cqTests(body, v0, fail);
     const only = (...allowed) => { const k = Object.keys(O).find(k => !['level', 'nolog', 'noheader', 'nohead', ...allowed].some(a => a === k || (k.length >= 3 && a.startsWith(k)))); if (k) throw new Error('option ' + k + ' not allowed with ' + v0 + ' here'); };
     const list = toks => { const L = this.cxVarlist(toks.join(' ')); if (L.bad.length) throw new Error('variable ' + L.bad[0] + ' not found'); return L.vars; };
     // factor-variable terms: i.x categorical, c.x continuous; interactions only where the method fits them

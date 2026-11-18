@@ -119,3 +119,34 @@ nothing; `clear` is refused (it would remove the data).
   whenever the last row was edited (those blank rows counted as observations). The new row is not shown while a
   subgroup or filter narrows the rows.
 - Creating a new dataset closes the console page, so its first step (Make a new variable) is on screen.
+
+## Audit fixes (build .111)
+
+A final audit ran about 140 commands from every family through the console (each printed once, no
+`undefined`/`NaN` leaks, an R version for each, no page errors), saved the session as a do-file and ran it again on a
+fresh page. It found and fixed:
+
+- **Save do-file and Review hold what you typed**, as Stata's. Before, they held what each command ran: `regress y x i.g`
+  was saved as `encode g, generate(g_c)` + `regress y x i.g_c` (which failed when run again), engine commands repeated
+  their `xtset` / `stset` / `svyset` lines, `lasso` expanded into setup lines that create variables, and
+  `keep if y > 0` became a two-condition line. A loop is saved as typed (not with the `2.` line numbers), and the
+  commands a loop or `by` ran are shown in Results but are not in Review or the do-file (re-running would repeat them).
+  Results still print the command that reproduces each result. A command that opens a page (`regress`) is waited for
+  before the next do-file line runs.
+- **`ranksum`, `signrank`, `kwallis`, `prtest` and `bitest` are computed and printed as Stata does.** They went to the
+  Tests engine, which follows R: its Wilcoxon tests carry a continuity correction, so p-values differed slightly from
+  Stata's. Checked against Stata's manual examples (fuel data: `signrank` z = −1.973, p = .0485; `ranksum` z = −1.279,
+  p = .2010) and against R (`wilcox.test(correct = FALSE)`, `kruskal.test`, `prop.test(correct = FALSE)`, `binom.test`).
+- **A weight from a typed `svyset` applies to `svy:` commands only**, as in Stata; `summarize`, `regress`, `ttest`, R
+  calls … run unweighted after it (they were weighted, and `ttest` refused). A weight chosen in Settings still applies
+  to every analysis and shows in the printed command (`[aw=w]`).
+- `count` prints the number as Stata does (and stores `r(N)`); `preserve`, `restore`, `sort`, `order`, `format`,
+  `compress` and `notes` printed their command twice; `cii` and `return list` had no R line.
+- **Post-estimation works on the last model**, as in Stata: after `regress y x [pw=w]` or `regress y x if …`, the
+  weight and `if` stay in force for `estat`, `margins`, `predict`, `test` … (before, `estat vif` answered "Run a
+  regression first"). `estat vif` prints Stata's VIF table and `margins` prints Stata's "Predictive margins" table
+  (delta-method standard errors; `_at` rows for a continuous variable) once the Regression page has computed it.
+- Engine tables print long numbers to 6 significant digits (the `svy: tabulate` degrees of freedom showed 15 digits).
+
+Kept on purpose: value labels you define are remembered by variable name and come back when a file with that variable
+is opened (a calculator convenience Stata does not have).

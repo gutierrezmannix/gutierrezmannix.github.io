@@ -153,7 +153,7 @@
       this.cpRun(inner, () => {
         const S = this.state, base = (S.cpErrs || []).slice(0, e0), added = (S.cpErrs || []).slice(e0), errs = added.filter(e => e.kind === 'err');
         this._cqRc = errs.length ? 198 : 0;
-        const echo = { at: n0, cmd: s, msg: '', kind: 'note' }, patch = {};
+        const echo = { at: n0, cmd: s, msg: '', kind: 'note', run: this._cpRunId, typed: this._cpRunText }, patch = {};
         if (kind === 'q') { patch.conLog = S.conLog.slice(0, n0); patch.cpErrs = [...base, echo, ...errs.map(e => Object.assign({}, e, { at: n0 }))]; }
         else if (!noisy) { patch.conLog = S.conLog.slice(0, n0); patch.cpErrs = [...base, echo]; }
         else patch.cpErrs = [...base, echo, ...added.filter(e => e.kind === 'err' || e.cmd === '')];
@@ -199,7 +199,7 @@
       else throw new Error('could not read the loop: use  foreach v of varlist a b c {   or   forvalues i = 1/5 {');
     } catch (e) { this.cpNote(echo, e.message, 'err'); return fin(); }
     if (vals.length * Math.max(1, body.length) > 600) { this.cpNote(echo, 'this loop would run ' + vals.length * body.length + ' commands — 600 at most here', 'err'); return fin(); }
-    this.cpNote(echo, '', 'note'); const L = this.cqStore('L'); let vi = 0;
+    this.cpNote(echo, '', 'note', lines.join('\n')); const L = this.cqStore('L'); let vi = 0;
     const iter = () => {
       if (vi >= vals.length) return fin(); L[name] = vals[vi++]; let li = 0;
       const step = () => { if (li >= body.length) return setTimeout(iter, 20); const l = body[li++]; if (!l.trim()) return step(); this.cpRun(l, () => setTimeout(step, 30), true); };
@@ -237,6 +237,7 @@
     const raw = this._raw, E = this._E, P = this.cxSplit(s), O = this.cxOpts(P.opt), T = P.toks, R = (x, n) => String(x).padStart(n), G = v => this.stataG(v);
     const list = toks => { const L = this.cxVarlist(toks.join(' ')); if (L.bad.length) throw new Error('variable ' + L.bad[0] + ' not found'); return L.vars; };
     const maskOf = () => { let conds = []; if (P.ifs) { const r = this.stataConds(P.ifs); if (r.err) throw new Error(r.err); conds = r.conds; } return this.cxMaskFor(conds); };
+    const say = (msg, okMsg) => { this.pushLog({ t: 'stata', stata: s, r: '# ' + w0 + ' changes nothing in R', tbl: msg || '', res: '' }); return ok(okMsg); };
     const meta = v => this.effMeta(v) || {}, rcode = v => 'df$' + (/^[A-Za-z.][\w.]*$/.test(v) ? v : '`' + v + '`');
     if (P.wt) return fail(w0 + ' runs unweighted here — drop [' + P.wt + '=' + P.wv + ']');
     switch (w0) {
@@ -330,21 +331,21 @@
       }
       case 'return': case 'ereturn': {
         if (!/^(list|li)$/i.test(T[0] || '')) return fail(w0 + ': use  ' + w0 + ' list');
-        if (w0 === 'ereturn') { this.cqPrint(s, ''); return ok('ereturn list: model results are shown on the Regression page'); }
+        if (w0 === 'ereturn') { this.cqPrint(s, '', '# e(): keep the model object in R, e.g. m <- lm(…); summary(m)'); return ok('ereturn list: model results are shown on the Regression page'); }
         const r = this._cpR || {}, ks = Object.keys(r), sc = ks.filter(k => typeof r[k] === 'number'), mc = ks.filter(k => typeof r[k] !== 'number');
         const out = []; if (sc.length) out.push('', 'scalars:', ...sc.map(k => R('r(' + k + ')', 17) + ' =  ' + (Number.isFinite(r[k]) ? String(+r[k].toPrecision(15)) : '.'))); if (mc.length) out.push('', 'macros:', ...mc.map(k => R('r(' + k + ')', 17) + ' : "' + r[k] + '"'));
-        this.cqPrint(s, out.join('\n')); return ok();
+        this.cqPrint(s, out.join('\n'), '# r(): in R, keep the result object, e.g. s <- summary(x)'); return ok();
       }
       case 'preserve': {
         const S = this.state; this._cqKeep = { flt: S.flt, hiddenVars: (S.hiddenVars || []).slice(), subg: S.subg, names: raw.names.slice() };
-        this.cpNote(s, '', 'note'); return ok('preserve: keep / drop since now can be undone with restore');
+        return say('', 'preserve: keep / drop since now can be undone with restore');
       }
       case 'restore': {
         const k = this._cqKeep; if (!k) return fail('nothing to restore');
         const patch = { hiddenVars: k.hiddenVars, subg: k.subg }; if (JSON.stringify(this.state.flt) !== JSON.stringify(k.flt)) patch.flt = k.flt;
         if (!O.preserve && !O.p) this._cqKeep = null;
         const added = raw.names.filter(n => !k.names.includes(n)); this.clearMemo(); this.setState(patch);
-        this.cpNote(s, added.length ? 'note: the row filters and hidden variables are back as they were; variables created since (' + added.join(' ') + ') stay — drop them under Edit data if needed' : '', 'note'); return ok('restored');
+        return say(added.length ? 'note: the row filters and hidden variables are back as they were; variables created since (' + added.join(' ') + ') stay — drop them under Edit data if needed' : '', 'restored');
       }
       case 'kdensity': case 'kdens': {
         if (T.length !== 1) return fail('kdensity takes one variable'); const v = list(T)[0]; if (raw.cols[raw.names.indexOf(v)].k !== 'n') return fail(v + ' is not numeric');
@@ -364,11 +365,11 @@
         return ok('set obs ' + N);
       }
       case 'qnorm': case 'pnorm': return fail(w0 + ' (normal probability plot) is not drawn here — swilk ' + (T[0] || 'x') + ' tests normality, and histogram ' + (T[0] || 'x') + ', normal compares the shape');
-      case 'order': { const vars = list(T); if (!vars.length) return fail('order needs a varlist'); this.cpNote(s, 'note: the calculator keeps the file\'s variable order; the console accepts order and changes nothing', 'note'); return ok(); }
-      case 'sort': case 'gsort': { list(T.map(t => t.replace(/^[+-]/, ''))); this.cpNote(s, 'note: row order does not change any result here; Browse shows the file\'s order', 'note'); return ok(); }
-      case 'format': { const fm = T[T.length - 1] || ''; if (!/^%/.test(fm)) return fail('format: use  format varlist %fmt'); list(T.slice(0, -1)); this.cpNote(s, 'note: the console prints numbers in Stata\'s default formats; display formats are not stored', 'note'); return ok(); }
-      case 'compress': { this.cpNote(s, '  (0 bytes saved)', 'note'); return ok(); }
-      case 'notes': { this.cpNote(s, '', 'note'); return ok(); }
+      case 'order': { const vars = list(T); if (!vars.length) return fail('order needs a varlist'); return say('note: the calculator keeps the file\'s variable order; the console accepts order and changes nothing'); }
+      case 'sort': case 'gsort': { list(T.map(t => t.replace(/^[+-]/, ''))); return say('note: row order does not change any result here; Browse shows the file\'s order'); }
+      case 'format': { const fm = T[T.length - 1] || ''; if (!/^%/.test(fm)) return fail('format: use  format varlist %fmt'); list(T.slice(0, -1)); return say('note: the console prints numbers in Stata\'s default formats; display formats are not stored'); }
+      case 'compress': return say('  (0 bytes saved)');
+      case 'notes': return say('');
       case 'collapse': return fail('collapse would replace the data — use Univariate → Break down by groups for the same table, or Time series to collapse records into a series');
       case 'reshape': return fail('reshape: use Tests ▾ → Data management → Reshape long / wide, which saves the reshaped data as a new file');
       case 'merge': case 'append': return fail(w0 + ': the console cannot open other files — use Tests ▾ → Data management → ' + (w0 === 'merge' ? 'Merge' : 'Append') + ' and pick the second file there');
@@ -437,9 +438,9 @@
   cqCii(s, kind, toks, O, lv, fail, ok) {
     const E = this._E, R = (x, n) => String(x).padStart(n), G = v => this.stataG(v), x = toks.map(Number), lvl = +lv.lv.toFixed(2); if (x.some(v => !Number.isFinite(v))) return fail('cii takes numbers');
     if (kind === 'means') { if (x.length !== 3) return fail('cii means #obs #mean #sd'); const [n, m, sd] = x, se = sd / Math.sqrt(n), t = E.critInv(lv.a, n - 1);
-      this.cqPrint(s, ['    Variable |        Obs        Mean    Std. err.       [' + lvl + '% conf. interval]', '-------------+---------------------------------------------------------------', '             |' + R(this.fmtN(n), 11) + R(G(m), 12) + R(G(se), 12) + R(G(m - t * se), 15) + R(G(m + t * se), 11)].join('\n')); return ok(); }
+      this.cqPrint(s, ['    Variable |        Obs        Mean    Std. err.       [' + lvl + '% conf. interval]', '-------------+---------------------------------------------------------------', '             |' + R(this.fmtN(n), 11) + R(G(m), 12) + R(G(se), 12) + R(G(m - t * se), 15) + R(G(m + t * se), 11)].join('\n'), 'm <- ' + m + '; s <- ' + sd + '; n <- ' + n + '\nm + c(-1, 1) * qt(' + (1 - lv.a / 2) + ', n - 1) * s / sqrt(n)'); return ok(); }
     if (kind === 'props') { if (x.length !== 2) return fail('cii proportions #obs #successes'); const [n, k] = x; if (!(Number.isInteger(n) && Number.isInteger(k) && k >= 0 && k <= n && n > 0)) return fail('#successes must be a whole number from 0 to #obs'); const r = this.cqPropCi(k, n, lv.a, O);
-      this.cqPrint(s, [' '.repeat(57) + (O.wald ? '-- Wald ---' : O.wilson ? '-- Wilson --' : O.agresti ? '-- Agresti–Coull --' : O.jeffreys ? '-- Jeffreys --' : '-- Binomial exact --'), '    Variable |        Obs  Proportion    Std. err.       [' + lvl + '% conf. interval]', '-------------+---------------------------------------------------------------', '             |' + R(this.fmtN(n), 11) + R(G(k / n), 12) + R(G(Math.sqrt(k / n * (1 - k / n) / n)), 12) + R(G(r[0]), 15) + R(G(r[1]), 11) + (r[2] || '')].join('\n')); return ok(); }
+      this.cqPrint(s, [' '.repeat(57) + (O.wald ? '-- Wald ---' : O.wilson ? '-- Wilson --' : O.agresti ? '-- Agresti–Coull --' : O.jeffreys ? '-- Jeffreys --' : '-- Binomial exact --'), '    Variable |        Obs  Proportion    Std. err.       [' + lvl + '% conf. interval]', '-------------+---------------------------------------------------------------', '             |' + R(this.fmtN(n), 11) + R(G(k / n), 12) + R(G(Math.sqrt(k / n * (1 - k / n) / n)), 12) + R(G(r[0]), 15) + R(G(r[1]), 11) + (r[2] || '')].join('\n'), 'binom.test(' + k + ', ' + n + ', conf.level = ' + (1 - lv.a) + ')$conf.int'); return ok(); }
     return fail('cii: use  cii means #obs #mean #sd   or   cii proportions #obs #successes');
   }
   // proportion intervals: exact (Clopper–Pearson, Stata's default), Wald, Wilson, Agresti–Coull, Jeffreys
@@ -558,5 +559,146 @@
     const miss = out.reduce((k, x) => k + (Number.isFinite(x) ? 0 : 1), 0);
     this.pushLog({ t: 'stata', stata: s, r: rcode, tbl: miss ? '(' + this.fmtN(miss) + ' missing value' + (miss === 1 ? '' : 's') + ' generated)' : '', res: '' });
     return ok(gen + ' created');
+  }
+  // ---- build .111: ranksum, signrank, kwallis, prtest and bitest computed and printed as Stata does. Stata's
+  // normal approximations carry no continuity correction (R's wilcox.test default does), and signrank keeps the zero
+  // differences in the ranking with their own variance adjustment, as Stata documents.
+  cqRank(xs) {
+    const idx = xs.map((_, i) => i).sort((i, j) => xs[i] - xs[j]), r = new Array(xs.length); let ties = 0;
+    for (let i = 0; i < idx.length;) { let j = i; while (j + 1 < idx.length && xs[idx[j + 1]] === xs[idx[i]]) j++; const t = j - i + 1, avg = (i + j) / 2 + 1; for (let k = i; k <= j; k++) r[idx[k]] = avg; ties += t * t * t - t; i = j + 1; }
+    return { r, ties };
+  }
+  cqTests(body, v0, fail) {
+    const raw = this._raw, P = this.cxSplit(body), O = this.cxOpts(P.opt), T = P.toks, R = (x, n) => String(x).padStart(n), G = v => this.stataG(v);
+    let conds = []; if (P.ifs) { const r = this.stataConds(P.ifs); if (r.err) return fail(r.err); conds = r.conds; }
+    const mk = this.cxMaskFor(conds), V = t => this.cpVar(t), num = v => { const a = this.cxNum(v, mk); if (!a) throw new Error(v + ' is not numeric'); return a; };
+    const sum = a => a.reduce((s, v) => s + v, 0), pz = z => 2 * (1 - this.cqPhi(Math.abs(z))), p4 = x => x.toFixed(4);
+    const lab = (g, x) => typeof x === 'string' ? g + '=="' + x + '"' : g + '==' + this.cqNum(x);
+    const print = (tbl, r) => { this.pushLog({ t: 'stata', stata: body, r, tbl, res: '' }); this.setState({ mfCmdOk: '✓ ' + v0 }); return true; };
+    const varLines = rows => rows.map(([l, v]) => l.padEnd(19) + R(v.toFixed(2), 11));
+    const twoGroups = (gv, a) => { const gc = raw.cols[raw.names.indexOf(gv)].a, groups = this.cqGroups([gv], mk).filter(x => x[0] != null && !(typeof x[0] === 'number' && !Number.isFinite(x[0]))), out = [[], []];
+      if (groups.length !== 2) throw new Error(groups.length > 2 ? 'more than 2 groups found, only 2 allowed' : 'only one group found');
+      for (let i = 0; i < raw.n; i++) { if (!Number.isFinite(a[i])) continue; const j = gc[i] === groups[0][0] ? 0 : gc[i] === groups[1][0] ? 1 : -1; if (j >= 0) out[j].push(a[i]); }
+      return { groups: groups.map(x => x[0]), out }; };
+    if (v0 === 'ranksum') {
+      if (T.length !== 1 || !O.by) return fail('ranksum: use  ranksum y, by(group)');
+      const y = V(T[0]), g = V(O.by), { groups, out } = twoGroups(g, num(y)), xs = [...out[0], ...out[1]], n1 = out[0].length, n2 = out[1].length, n = n1 + n2;
+      if (!n1 || !n2) return fail('insufficient observations');
+      const { r, ties } = this.cqRank(xs), T1 = sum(r.slice(0, n1)), T2 = n * (n + 1) / 2 - T1, E1 = n1 * (n + 1) / 2, E2 = n2 * (n + 1) / 2;
+      const vu = n1 * n2 * (n + 1) / 12, adj = n > 1 ? -n1 * n2 * ties / (12 * n * (n - 1)) : 0, va = vu + adj, z = (T1 - E1) / Math.sqrt(va), p = pz(z);
+      this._cpR = { N_1: n1, N_2: n2, z, Var_a: va, sum_obs: T1, sum_exp: E1, p };
+      const gl = x => this.abbr(this.cqValText(g, x), 12);
+      return print(['', 'Two-sample Wilcoxon rank-sum (Mann–Whitney) test', '', R(this.abbr(g, 12), 12) + ' |      Obs    Rank sum    Expected', '-------------+---------------------------------',
+        R(gl(groups[0]), 12) + ' |' + R(this.fmtN(n1), 9) + R(G(T1), 12) + R(G(E1), 12), R(gl(groups[1]), 12) + ' |' + R(this.fmtN(n2), 9) + R(G(T2), 12) + R(G(E2), 12), '-------------+---------------------------------',
+        R('Combined', 12) + ' |' + R(this.fmtN(n), 9) + R(G(T1 + T2), 12) + R(G(E1 + E2), 12), '', ...varLines([['Unadjusted variance', vu], ['Adjustment for ties', adj]]), ' '.repeat(22) + '----------', ...varLines([['Adjusted variance', va]]), '',
+        'H0: ' + y + '(' + lab(g, groups[0]) + ') = ' + y + '(' + lab(g, groups[1]) + ')', '         z = ' + z.toFixed(3), 'Prob > |z| = ' + p4(p)].join('\n'),
+        'wilcox.test(' + y + ' ~ ' + g + ', data = df, exact = FALSE, correct = FALSE)  # Stata: no continuity correction');
+    }
+    if (v0 === 'signrank') {
+      const mm = T.join(' ').match(/^(\S+)\s*=\s*(\S+)$/); if (!mm) return fail('signrank: use  signrank before = after   or   signrank y = #');
+      const a = num(V(mm[1])), isC = /^-?(\d+\.?\d*|\.\d+)$/.test(mm[2]), b = isC ? null : num(V(mm[2])), c = isC ? Number(mm[2]) : 0, d = [];
+      for (let i = 0; i < raw.n; i++) { const x = a[i], w = isC ? c : b[i]; if (Number.isFinite(x) && Number.isFinite(w)) d.push(x - w); }
+      const n = d.length; if (!n) return fail('no observations');
+      const { r } = this.cqRank(d.map(Math.abs)), nz = d.filter(x => x !== 0), { ties } = this.cqRank(nz.map(Math.abs));
+      let sp = 0, sn = 0, s0 = 0, np = 0, nn = 0, n0 = 0; d.forEach((x, i) => { if (x > 0) { sp += r[i]; np++; } else if (x < 0) { sn += r[i]; nn++; } else { s0 += r[i]; n0++; } });
+      const tot = n * (n + 1) / 2, E = (tot - s0) / 2, vu = n * (n + 1) * (2 * n + 1) / 24, ta = -ties / 48, za = -n0 * (n0 + 1) * (2 * n0 + 1) / 24, va = vu + ta + za, z = va > 0 ? (sp - E) / Math.sqrt(va) : NaN, p = pz(z);
+      this._cpR = { N_pos: np, N_neg: nn, N_tie: n0, sum_pos: sp, sum_neg: sn, z, Var_a: va, p };
+      const row = (l, k, s, e) => R(l, 12) + ' |' + R(this.fmtN(k), 9) + R(G(s), 12) + R(G(e), 12);
+      return print(['', 'Wilcoxon signed-rank test', '', '        Sign |      Obs   Sum ranks    Expected', '-------------+---------------------------------', row('Positive', np, sp, E), row('Negative', nn, sn, E), row('Zero', n0, s0, s0), '-------------+---------------------------------', row('All', n, tot, tot), '',
+        ...varLines([['Unadjusted variance', vu], ['Adjustment for ties', ta], ['Adjustment for zeros', za]]), ' '.repeat(22) + '----------', ...varLines([['Adjusted variance', va]]), '', 'H0: ' + mm[1] + ' = ' + mm[2], '         z = ' + z.toFixed(3), 'Prob > |z| = ' + p4(p)].join('\n'),
+        isC ? 'wilcox.test(df$' + mm[1] + ', mu = ' + c + ', exact = FALSE, correct = FALSE)' : 'wilcox.test(df$' + mm[1] + ', df$' + mm[2] + ', paired = TRUE, exact = FALSE, correct = FALSE)  # R drops zero differences; Stata keeps them');
+    }
+    if (v0 === 'kwallis') {
+      if (T.length !== 1 || !O.by) return fail('kwallis: use  kwallis y, by(group)');
+      const y = V(T[0]), g = V(O.by), a = num(y), gc = raw.cols[raw.names.indexOf(g)].a, groups = this.cqGroups([g], mk).filter(x => x[0] != null), xs = [], gi = [];
+      for (let i = 0; i < raw.n; i++) { if (!Number.isFinite(a[i])) continue; const j = groups.findIndex(x => x[0] === gc[i]); if (j >= 0) { xs.push(a[i]); gi.push(j); } }
+      const n = xs.length, k = groups.length; if (k < 2) return fail('only one group found');
+      const { r, ties } = this.cqRank(xs), Rs = new Array(k).fill(0), ns = new Array(k).fill(0); r.forEach((v, i) => { Rs[gi[i]] += v; ns[gi[i]]++; });
+      const H = 12 / (n * (n + 1)) * Rs.reduce((s, v, j) => s + v * v / ns[j], 0) - 3 * (n + 1), Ht = H / (1 - ties / (n * n * n - n)), df = k - 1, E = this._E;
+      const p = E.pChi2(H, df), pt = E.pChi2(Ht, df);
+      this._cpR = { df, chi2: H, chi2_adj: Ht };
+      const labs = groups.map(x => this.abbr(this.cqValText(g, x[0]), 20)), w1 = Math.max(g.length, ...labs.map(l => l.length)), w2 = Math.max(3, ...ns.map(v => this.fmtN(v).length)), w3 = Math.max(8, ...Rs.map(v => v.toFixed(2).length));
+      const line = '  +' + '-'.repeat(w1 + 2) + '-' + '-'.repeat(w2 + 2) + '-' + '-'.repeat(w3 + 2) + '+', mid = '  |' + '-'.repeat(w1 + 2) + '+' + '-'.repeat(w2 + 2) + '+' + '-'.repeat(w3 + 2) + '|';
+      return print(['', 'Kruskal–Wallis equality-of-populations rank test', '', line, '  | ' + R(g, w1) + ' | ' + R('Obs', w2) + ' | ' + R('Rank sum', w3) + ' |', mid, ...labs.map((l, j) => '  | ' + R(l, w1) + ' | ' + R(this.fmtN(ns[j]), w2) + ' | ' + R(Rs[j].toFixed(2), w3) + ' |'), line, '',
+        'chi2(' + df + ') = ' + R(H.toFixed(3), 9), 'Prob = ' + R(p4(p), 11), '', 'chi2(' + df + ') with ties = ' + R(Ht.toFixed(3), 9), 'Prob = ' + R(p4(pt), 11)].join('\n'),
+        'kruskal.test(' + y + ' ~ ' + g + ', data = df)  # = the "with ties" line');
+    }
+    const lv = this.cqLevel(O); if (lv.err) return fail(lv.err); const z0 = this.cqInv(t => this.cqPhi(t), 1 - lv.a / 2, -40, 40, true), lvl = +lv.lv.toFixed(2);
+    const tails = (z, l) => ['', l[0], ' Pr(Z < z) = ' + p4(this.cqPhi(z)) + '         Pr(|Z| > |z|) = ' + p4(pz(z)) + '          Pr(Z > z) = ' + p4(1 - this.cqPhi(z))];
+    if (v0 === 'prtest') {
+      if (O.by) {
+        if (T.length !== 1) return fail('prtest: use  prtest y, by(group)'); const y = V(T[0]), g = V(O.by), { groups, out } = twoGroups(g, num(y));
+        if (out.some(x => x.some(v => v !== 0 && v !== 1))) return fail(y + ' is not a 0/1 variable');
+        const [a1, a2] = out, n1 = a1.length, n2 = a2.length, p1 = sum(a1) / n1, p2 = sum(a2) / n2, d = p1 - p2, pp = (sum(a1) + sum(a2)) / (n1 + n2);
+        const s1 = Math.sqrt(p1 * (1 - p1) / n1), s2 = Math.sqrt(p2 * (1 - p2) / n2), sd = Math.sqrt(s1 * s1 + s2 * s2), s0 = Math.sqrt(pp * (1 - pp) * (1 / n1 + 1 / n2)), z = d / s0;
+        this._cpR = { N_1: n1, N_2: n2, P_1: p1, P_2: p2, z, p: pz(z) };
+        const l1 = this.cqValText(g, groups[0]), l2 = this.cqValText(g, groups[1]), row = (l, m, s) => R(this.abbr(l, 12), 12) + ' |' + R(G(m), 11) + R(G(s), 11) + ' '.repeat(22) + R(G(m - z0 * s), 11) + R(G(m + z0 * s), 12);
+        return print(['', 'Two-sample test of proportions' + R(this.abbr(l1, 12) + ': Number of obs = ' + R(this.fmtN(n1), 8), 48), R(this.abbr(l2, 12) + ': Number of obs = ' + R(this.fmtN(n2), 8), 78), '-'.repeat(78),
+          '       Group |       Mean   Std. err.      z    P>|z|     [' + lvl + '% conf. interval]', '-------------+' + '-'.repeat(64), row(l1, p1, s1), row(l2, p2, s2), '-------------+' + '-'.repeat(64), row('diff', d, sd),
+          '             |  under H0:' + R(G(s0), 11) + R(z.toFixed(2), 8) + R(pz(z).toFixed(3), 8), '-'.repeat(78), '        diff = prop(' + l1 + ') - prop(' + l2 + ')' + R('z = ' + R(z.toFixed(4), 8), Math.max(12, 74 - 23 - l1.length - l2.length)), '    H0: diff = 0', '',
+          '    Ha: diff < 0                 Ha: diff != 0                 Ha: diff > 0', ...tails(z, ['']).slice(2)].join('\n'), 'prop.test(table(df$' + g + ', df$' + y + ')[, 2:1], correct = FALSE)');
+      }
+      const mm = T.join(' ').match(/^(\S+)\s*==\s*(\d*\.?\d+)$/); if (!mm) return fail('prtest: use  prtest y == 0.5   or   prtest y, by(group)');
+      const y = V(mm[1]), p0 = Number(mm[2]); if (!(p0 > 0 && p0 < 1)) return fail('the hypothesized proportion must be between 0 and 1');
+      const x = Array.from(num(y)).filter(Number.isFinite); if (x.some(v => v !== 0 && v !== 1)) return fail(y + ' is not a 0/1 variable'); const n = x.length; if (!n) return fail('no observations');
+      const ph = sum(x) / n, se = Math.sqrt(ph * (1 - ph) / n), z = (ph - p0) / Math.sqrt(p0 * (1 - p0) / n);
+      this._cpR = { N: n, P: ph, z, p: pz(z) };
+      return print(['', 'One-sample test of proportion' + R('Number of obs      = ' + R(this.fmtN(n), 9), 49), '-'.repeat(78), '    Variable |       Mean   Std. err.                     [' + lvl + '% conf. interval]', '-------------+' + '-'.repeat(64),
+        R(this.abbr(y, 12), 12) + ' |' + R(G(ph), 11) + R(G(se), 11) + ' '.repeat(22) + R(G(ph - z0 * se), 11) + R(G(ph + z0 * se), 12), '-'.repeat(78), '    p = proportion(' + y + ')' + R('z = ' + R(z.toFixed(4), 8), 61 - y.length), 'H0: p = ' + this.cqNum(p0), '',
+        '     Ha: p < ' + this.cqNum(p0) + '                 Ha: p != ' + this.cqNum(p0) + '                   Ha: p > ' + this.cqNum(p0), ...tails(z, ['']).slice(2)].join('\n'), 'prop.test(sum(df$' + y + ', na.rm = TRUE), sum(!is.na(df$' + y + ')), p = ' + p0 + ', correct = FALSE)');
+    }
+    if (v0 === 'bitest') {
+      const mm = T.join(' ').match(/^(\S+)\s*==\s*(\d*\.?\d+)$/); if (!mm) return fail('bitest: use  bitest y == 0.5');
+      const y = V(mm[1]), p0 = Number(mm[2]); if (!(p0 > 0 && p0 < 1)) return fail('the hypothesized probability must be between 0 and 1');
+      const x = Array.from(num(y)).filter(Number.isFinite); if (x.some(v => v !== 0 && v !== 1)) return fail(y + ' is not a 0/1 variable'); const n = x.length, k = sum(x); if (!n) return fail('no observations');
+      const r = this.cqBinom(n, k, p0); this._cpR = { N: n, k, p_l: r.lo, p_u: r.hi, p: r.two };
+      const L = ['', '    Variable |        N   Observed k   Expected k   Assumed p   Observed p', '-------------+------------------------------------------------------------',
+        R(this.abbr(y, 12), 12) + ' |' + R(this.fmtN(n), 9) + R(k, 13) + R(this.cqNum(+(n * p0).toFixed(2)), 13) + R(p0.toFixed(5), 12) + R((k / n).toFixed(5), 13), '',
+        ('  Pr(k >= ' + k + ')').padEnd(26) + '= ' + r.hi.toFixed(6) + '  (one-sided test)', ('  Pr(k <= ' + k + ')').padEnd(26) + '= ' + r.lo.toFixed(6) + '  (one-sided test)', ('  ' + r.label).padEnd(26) + '= ' + r.two.toFixed(6) + '  (two-sided test)'];
+      return print(L.join('\n'), 'binom.test(sum(df$' + y + ', na.rm = TRUE), sum(!is.na(df$' + y + ')), p = ' + p0 + ')');
+    }
+    return false;
+  }
+  // build .111: a weight that came from a typed svyset applies to svy: commands only, as in Stata; other analyses run
+  // unweighted (the weight comes back with the next command). A weight chosen in Settings still applies everywhere.
+  cqSvyScope(text) {
+    if (this._cqSvyRerun) { this._cqSvyRerun = false; return false; }
+    const S = this.state, s = String(text || '').trim().replace(/^[.>]\s*/, '');
+    if (!S.weightVar || S.weightVar !== this._svysetW || /^svy/i.test(s)) return false;
+    if (!/^(su|sum|summ|summa|summar|summari|summariz|summarize|mean|ta|tab|tabu|tabul|tabula|tabulat|tabulate|tab1|tab2|tabstat|table|pwcorr|cor|corr|correlate|ttest|oneway|anova|regress|reg|logit|logistic|ologit|oprobit|poisson|histogram|hist|graph|gr|scatter|twoway|tw|line|kdensity|ci|proportion|prop|spearman|sdtest|swilk)\b|^(summary|table|lm|glm|aov|t\.test|cor\.test|cor|hist|plot|boxplot|barplot)\s*\(/i.test(s)) return false;
+    this._cxW = { prev: S.weightVar, prevAuto: S.weightAuto, val: '' }; this.clearMemo(); this._cxQuiet = true;
+    this.setState({ weightVar: '', weightAuto: false }, () => { this._cxQuiet = false; this._cqSvyRerun = true; try { this.runCmdLine(text); } finally { this._cqSvyRerun = false; } });
+    return true;
+  }
+  // margins as Stata prints them (predictive margins with delta-method standard errors), from the Regression page's result
+  cqMarginsText(mg, want) {
+    const S = this.state, R = (x, n) => String(x).padStart(n), G = v => this.stataG(v), fam = mg.family, ols = fam === 'ols';
+    const lvl = +(100 * (1 - (this.alpha ? this.alpha() : 0.05))).toFixed(2), st = ols ? 't' : 'z';
+    const expr = ols ? 'Linear prediction, predict()' : fam === 'poisson' ? 'Predicted number of events, predict()' : 'Pr(' + S.depVar + '), predict()';
+    const vce = S.regVce === 'svy' ? 'Linearized' : S.regVce === 'robust' || S.regVce === 'cluster' ? 'Robust' : ols ? 'OLS' : 'OIM';
+    const row = (lab, q) => R(this.abbr(String(lab), 12), 12) + ' |' + R(G(q.y), 11) + R(G(q.se), 11) + R(Number.isFinite(q.t) ? q.t.toFixed(2) : '.', 9) + R(Number.isFinite(q.p) ? q.p.toFixed(3) : '.', 8) + R(G(q.lo), 13) + R(G(q.hi), 12);
+    const out = ['Predictive margins'.padEnd(54) + 'Number of obs = ' + R(this.fmtN(mg.n), 8), 'Model VCE: ' + vce, '', 'Expression: ' + expr];
+    const body = [];
+    if (mg.xCat) {
+      body.push(R(this.abbr(want.by ? want.x + '#' + want.by : want.x, 12), 12) + ' |');
+      for (const s of mg.series) for (const q of s.pts) body.push(row(want.by ? q.x + '#' + s.label : q.x, q));
+    } else {
+      const legend = []; let k = 0;
+      for (const s of mg.series) for (const q of s.pts) { k++; legend.push(R(k + '._at: ', 9) + want.x + ' = ' + G(q.x) + (want.by ? ', ' + want.by + ' = ' + s.label : '')); body.push(row(k, q)); }
+      out.push('', ...legend); body.unshift(R('_at', 12) + ' |');
+    }
+    if (mg.sampled) out.push('', 'note: averaged over a random sample of ' + this.fmtN(mg.sampN) + ' rows (large data)');
+    return [...out, '', '-'.repeat(78), '             |            Delta-method', '             |     Margin   std. err.      ' + st + '    P>|' + st + '|     [' + lvl + '% conf. interval]', '-------------+' + '-'.repeat(64), ...body, '-'.repeat(78)].join('\n');
+  }
+  // binomial tails; the two-sided p sums every outcome no more likely than the one observed (as Stata and R)
+  cqBinom(n, k, p) {
+    const lf = new Float64Array(n + 1); for (let i = 2; i <= n; i++) lf[i] = lf[i - 1] + Math.log(i);
+    const pm = new Float64Array(n + 1); for (let i = 0; i <= n; i++) pm[i] = Math.exp(lf[n] - lf[i] - lf[n - i] + i * Math.log(p) + (n - i) * Math.log(1 - p));
+    let lo = 0, hi = 0; for (let i = 0; i <= n; i++) { if (i <= k) lo += pm[i]; if (i >= k) hi += pm[i]; }
+    const d = pm[k] * (1 + 1e-7), m = n * p; let two = 0, other = null;
+    for (let i = 0; i <= n; i++) if (pm[i] <= d) two += pm[i];
+    if (k >= m) { for (let i = 0; i < m; i++) if (pm[i] <= d) other = i; } else { for (let i = n; i > m; i--) if (pm[i] <= d) other = i; }
+    const label = other == null ? (k >= m ? 'Pr(k >= ' + k + ')' : 'Pr(k <= ' + k + ')') : k >= m ? 'Pr(k <= ' + other + ' or k >= ' + k + ')' : 'Pr(k <= ' + k + ' or k >= ' + other + ')';
+    return { lo: Math.min(1, lo), hi: Math.min(1, hi), two: Math.min(1, two), label };
   }
   // GM26 console more end

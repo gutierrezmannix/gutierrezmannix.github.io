@@ -109,3 +109,46 @@ test('build .110: set obs grows the data as in Stata; a value typed after the la
   const e = await setup(); e._raw = { n: 0, names: ['y'], labels: [''], vlabs: {}, cols: [{ k: 'n', a: new Float64Array(0) }] };
   e.setState({ mfCmdErr: '' }); e.runCmdLine('regress y y'); assert.match(e.state.mfCmdErr, /^no observations/);
 });
+
+test('build .111: the do-file holds what was typed — a loop as typed, not the commands it ran', async () => {
+  const c = await setup(); c.cpRender = () => null;
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  await new Promise(res => { c.cpRunMany('summarize y\nforeach v in y x {\nsummarize `v\'\n}\nbysort g: summarize y\nquietly summarize x\ndisplay r(mean)'); setTimeout(res, 4000); });
+  await wait(500);
+  const items = c.cpItems(), text = c.cpDoFileText(items, 'stata');
+  assert.equal(text.split('\n').slice(1).filter(Boolean).join('\n'), 'summarize y\nforeach v in y x {\nsummarize `v\'\n}\nbysort g: summarize y\nquietly summarize x\ndisplay r(mean)');
+  // Results still have every output: the loop's two summaries and the two by-groups
+  assert.equal(c.state.conLog.filter(d => d.src === 'inner').length, 4);
+});
+
+test('build .111: ranksum, signrank, kwallis, prtest and bitest as Stata computes and prints them', async () => {
+  // Stata's own manual examples (fuel.dta / fuel2.dta): signrank z = -1.973, p = .0485; ranksum z = -1.279, p = .2010
+  const mpg1 = [20, 23, 21, 25, 18, 17, 18, 24, 20, 24, 23, 19], mpg2 = [24, 25, 21, 22, 23, 18, 17, 28, 24, 27, 21, 23];
+  const csv = 'mpg1,mpg2,mpg,treat\n' + mpg1.map((v, i) => [v, mpg2[i], v, 0].join(',')).join('\n') + '\n' + mpg2.map(v => [ '', '', v, 1].join(',')).join('\n') + '\n';
+  const b = Buffer.from(csv), raw = await E.parseCSV(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), () => {}), f = new C(); f._E = E; f._raw = raw; f.jumpArm = () => {};
+  f.state = { ...f.state, cols: raw.names.map((_, i) => E.profileCol(raw, i)), nRows: raw.n, screen: 'work', tab: 'one', autoScreen: true };
+  let d = run(f, 'signrank mpg1 = mpg2');
+  assert.match(d.tbl, /Positive \|\s+3\s+13\.5\s+38\.5/); assert.match(d.tbl, /Negative \|\s+8\s+63\.5\s+38\.5/); assert.match(d.tbl, /Zero \|\s+1\s+1\s+1/);
+  assert.match(d.tbl, /Unadjusted variance\s+162\.50/); assert.match(d.tbl, /Adjustment for zeros\s+-0\.25/); assert.match(d.tbl, /z = -1\.973\nProb > \|z\| = 0\.0485/);
+  d = run(f, 'ranksum mpg, by(treat)');
+  assert.match(d.tbl, /0 \|\s+12\s+128\s+150/); assert.match(d.tbl, /Unadjusted variance\s+300\.00/); assert.match(d.tbl, /Adjustment for ties\s+-4\.04/); assert.match(d.tbl, /z = -1\.279\nProb > \|z\| = 0\.2010/);
+  assert.match(d.tbl, /H0: mpg\(treat==0\) = mpg\(treat==1\)/);
+  // R references on the shared test data
+  const c = await setup();
+  run(c, 'ranksum y, by(g)'); close(c._cpR.p, 0.0006051723, 1e-6);
+  run(c, 'kwallis x, by(g)'); close(c._cpR.chi2_adj, 2.9015837104, 1e-8);
+  run(c, 'signrank y = x'); close(c._cpR.p, 0.0001316270, 1e-6); assert.equal(c._cpR.sum_pos, 190);
+  d = run(c, 'prtest z == 0.5'); close(c._cpR.z, 0.4472135955); close(c._cpR.p, 0.6547208460); assert.match(d.tbl, /One-sample test of proportion/);
+  d = run(c, 'prtest z, by(g)'); close(c._cpR.z * c._cpR.z, 9.8989898990); close(c._cpR.p, 0.0016536952, 1e-6); assert.match(d.tbl, /Two-sample test of proportions/);
+  d = run(c, 'bitest z == 0.4'); close(c._cpR.p, 0.1784731993); close(c._cpR.p_u, 0.1275212461); close(c._cpR.p_l, 0.9434736330); assert.match(d.tbl, /Pr\(k <= \d+ or k >= 11\)/);
+});
+
+test('build .111: after svyset, plain commands run unweighted (as Stata) without looping; svy: commands keep the weight', async () => {
+  const c = await setup(); c.asRun = async () => {};
+  c.setState({ mfCmdErr: '' }); c.runCmdLine('svyset _n [pw=x]'); assert.equal(c.state.weightVar, 'x');
+  let d = run(c, 'summarize y'); assert.equal(c.cmdText(d, 'stata'), 'summarize y', 'no [aw=x] after svyset');
+  d = run(c, 'tab g'); assert.equal(c.cmdText(d, 'stata'), 'tab g');
+  c.setState({ mfCmdErr: '' }); c.runCmdLine('svy: mean y'); assert.equal(c.state.mfCmdErr, ''); assert.equal(c.state.analysisPages.survey_desc.fields.weight[0], 'x');
+  // a weight chosen in Settings (not by svyset) still applies, shown in the command
+  const e = await setup(); e.setState({ weightVar: 'x', weightAuto: false }); d = run(e, 'summarize y'); assert.match(e.cmdText(d, 'stata'), /summarize y \[aw=x\]/);
+});

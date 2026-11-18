@@ -45,7 +45,7 @@ test('an if typed in the console applies to that command only', async () => {
   assert.equal(c.state.subg.all.length, 1, 'the page shows the subgroup while the command runs');
   run(c, 'summarize x');
   assert.equal((c.state.subg.all || []).length, 0, 'the next command puts back the Subgroup bar');
-  let d = run(c, 'count if g == "B"'); assert.equal(d.res, 'count = 26');
+  let d = run(c, 'count if g == "B"'); assert.equal(d.tbl, '  26'); assert.equal(c._cpR.N, 26); // build .111: as Stata prints count
   d = run(c, 'summarize y x if g == "A"'); assert.match(d.tbl, /\s+y \|\s+12\s+8\.783333/); assert.equal(c.cmdText(d, 'stata'), 'summarize y x if g == "A"');
   assert.equal((c.state.subg.all || []).length, 0, 'console-only commands never touch the Subgroup bar');
   c.runCmdLine('tab g hi if x >= 2 & x <= 5'); clearTimeout(c._mfOkT); assert.equal(c.state.subg.all.length, 2, 'two conditions on the same variable both apply');
@@ -130,8 +130,8 @@ test('build .103: the console records actions, not views, and typed commands fol
   run(c, 'summarize y'); assert.equal(c.state.weightVar, '', 'the next command puts the weight back');
   // describe with a varlist, conditions with missing() and inlist(), tostring with gen()
   d = run(c, 'describe y g'); assert.match(d.tbl, /^Variable\s+Storage/); assert.equal((d.tbl.match(/\n(y|g)\s/g) || []).length, 2); assert.equal(c.cmdText(d, 'stata'), 'describe y g');
-  d = run(c, 'count if !missing(y)'); assert.match(d.res, /count = \d+/);
-  d = run(c, 'count if inlist(g, "A")'); assert.equal(d.res, 'count = 14');
+  d = run(c, 'count if !missing(y)'); assert.match(d.tbl, /^\s+\d+$/);
+  d = run(c, 'count if inlist(g, "A")'); assert.equal(d.tbl, '  14');
   run(c, 'tostring x, gen(x_s)'); assert.ok(c._raw.names.includes('x_s') && c._raw.names.includes('x')); assert.equal(c._raw.cols[c._raw.names.indexOf('x_s')].k, 's');
   assert.ok(c.state.conLog.every(e => e.src === 'typed' || e.src === 'page'));
 });
@@ -162,8 +162,9 @@ test('build .105: typed Stata commands fill and run their Tests page', async () 
   const tick = () => new Promise(r => setTimeout(r, 0));
   const go = async cmd => { c.setState({ mfCmdErr: '' }); c.runCmdLine(cmd); clearTimeout(c._mfOkT); await tick(); await tick(); return c.state.mfCmdErr; };
   const last = () => ran.at(-1);
-  assert.equal(await go('ranksum y, by(g)'), ''); assert.equal(last().id, 'mannwhitney'); assert.deepEqual(last().page.fields, { y: ['y'], group: ['g'] });
-  assert.equal(await go('kwallis y, by(g)'), ''); assert.equal(last().id, 'kruskal');
+  // build .111: ranksum and kwallis are computed in the console, as Stata prints them (no Tests page)
+  let n0 = ran.length; assert.equal(await go('ranksum y, by(g)'), ''); assert.equal(ran.length, n0); assert.match(c.state.conLog.at(-1).tbl, /Wilcoxon rank-sum/);
+  assert.equal(await go('kwallis y, by(g)'), ''); assert.match(c.state.conLog.at(-1).tbl, /Kruskal–Wallis/);
   assert.equal(await go('anova y g##hi'), ''); assert.equal(last().id, 'factorial'); assert.deepEqual(last().page.fields.factors, ['g', 'hi']); assert.deepEqual(last().page.options, { ss: 'III', interactions: true });
   assert.equal(await go('anova y g c.x'), ''); assert.equal(last().id, 'ancova'); assert.deepEqual(last().page.fields, { y: ['y'], group: ['g'], covariates: ['x'] });
   assert.equal(await go('mlogit g x z'), ''); assert.equal(last().id, 'multinomial'); assert.deepEqual(last().page.fields.predictors, ['x', 'z']);
@@ -171,7 +172,7 @@ test('build .105: typed Stata commands fill and run their Tests page', async () 
   assert.equal(await go('mixed y x || g:'), ''); assert.equal(last().id, 'mixed'); assert.deepEqual(last().page.fields.subject, ['g']); assert.equal(last().page.options.reml, false);
   assert.equal(await go('tab g hi, exact'), ''); assert.equal(last().id, 'fisher');
   assert.equal(await go('prtesti 100 0.4 0.5'), ''); assert.equal(last().id, 'prop1'); assert.equal(last().page.inputMode, 'summary'); assert.deepEqual(last().page.options, { trials: 100, successes: 40, null: 0.5 });
-  assert.equal(await go('ranksum y if x > 3, by(g)'), ''); assert.equal(last().subg.all.at(-1).v, 'x');
+  assert.equal(await go('mlogit g x if x > 3'), ''); assert.equal(last().subg.all.at(-1).v, 'x');
   assert.match(await go('xtreg y x'), /xtset/); assert.match(await go('stcox x'), /stset/);
   assert.match(await go('stset y, failure(z)'), /coded 0\/1/); assert.match(await go('kwallis y [aw=x], by(g)'), /unweighted/);
   assert.match(await go('rotate, varimax'), /factor first/);

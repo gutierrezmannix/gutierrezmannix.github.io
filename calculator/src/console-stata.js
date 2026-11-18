@@ -10,6 +10,9 @@
   // level(#) / conf.level on a t-test applies to that command only too: the next command puts back the confidence
   // level the user had (Settings, or  set level). Neither is restored when the user changed it in between.
   cxScopeIf(text) {
+    if (this._cqSvyRerun) return false; // build .111: the re-run of a command whose svyset weight was just set aside
+    // post-estimation (estat, margins, predict, test …) works on the last model, as in Stata: its if / weight stay until the next command
+    if (/^\s*[.>]?\s*(estat|margins|marginsplot|predict|test|testparm|lincom|nlcom|contrast|pwcompare)\b/i.test(String(text || ''))) return false;
     const k = this._cxIf, lv = this._cxLevel, wv = this._cxW, patch = {}; this._cxIf = null; this._cxLevel = null; this._cxPending = null; this._cxW = null;
     if (wv && this.state.weightVar === wv.val) { patch.weightVar = wv.prev; patch.weightAuto = wv.prevAuto; } // a weight typed on a command applies to that command only, as in Stata
     if (k && JSON.stringify((this.state.subg && this.state.subg.all) || []) === k.sig) patch.subg = k.prev;
