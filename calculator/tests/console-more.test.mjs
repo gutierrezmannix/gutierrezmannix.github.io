@@ -86,3 +86,11 @@ test('egen, xtile, encode / decode, levelsof, table, isid, duplicates of the dat
   c.setState({ mfCmdErr: '' }); c.runCmdLine('collapse (mean) y, by(g)'); assert.match(c.state.mfCmdErr, /Break down by groups/);
   c.setState({ mfCmdErr: '' }); c.runCmdLine('table(df$g)'); assert.doesNotMatch(c.state.mfCmdErr || '', /variable \(df/);
 });
+
+test('build .109: generate x = "" makes an empty text variable, as in Stata', async () => {
+  const c = await setup();
+  c.setState({ mfCmdErr: '' }); c.runCmdLine('generate gender=""'); assert.equal(c.state.mfCmdErr, '');
+  const i = c._raw.names.indexOf('gender'); assert.ok(i >= 0, 'gender exists'); assert.equal(c._raw.cols[i].k, 's'); assert.ok(c._raw.cols[i].a.every(v => v === ''));
+  c.setState({ mfCmdErr: '' }); c.runCmdLine('generate str10 note = ""'); assert.equal(c.state.mfCmdErr, ''); assert.ok(c._raw.names.includes('note'));
+  c.setState({ mfCmdErr: '' }); c.runCmdLine('generate label2 = "yes"'); assert.equal(c._raw.cols[c._raw.names.indexOf('label2')].a[0], 'yes');
+});

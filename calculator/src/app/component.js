@@ -348,7 +348,8 @@ class Component extends DCLogic {
       headers.push(h('button', { key: c.name, role: 'columnheader', 'aria-colindex': ci + 2, title: 'Edit ' + c.name + ' in Data', style: { left: g.nw + ci * g.cw }, onClick: () => { this.browseSaveDraft(); this.openColPanel(c.name); this.setState({ tab: 'data' }); } }, c.name));
     }
     nodes.push(h('div', { key: 'head', role: 'row', 'aria-rowindex': 1, className: 'mf-browse-head' }, h('div', { className: 'mf-browse-number', role: 'columnheader' }, 'Row'), ...headers));
-    for (let pos = g.first; pos < g.end; pos++) {
+    // no visible variables: no empty rows under the message (build .109)
+    for (let pos = g.first; columns.length && pos < g.end; pos++) {
       const r = ix.rows ? ix.rows[pos] : pos;
       const cells = visible.map((c, k) => {
         const ci = g.colFirst + k, col = raw.cols[c.idx], v = col.a[r], num = col.k === 'n';
@@ -379,7 +380,7 @@ class Component extends DCLogic {
         style: { top: g.hh + g.top + pos * g.rh - g.logical } },
         h('div', { className: 'mf-browse-number', role: 'rowheader' }, String(r + 1)), ...cells));
     }
-    if (!ix.count || !columns.length) nodes.push(h('div', { key: 'empty', className: 'mf-browse-empty', role: 'status' }, !columns.length ? 'Your dataset has no visible variables. Create a variable in Data, or restore hidden variables.' : 'No rows match the current subgroup. Change or clear the subgroup to browse the data.'));
+    if (!ix.count || !columns.length) nodes.push(h('div', { key: 'empty', className: 'mf-browse-empty', role: 'status' }, !columns.length ? ['Your dataset has no visible variables yet. Create one under Data → New variable, or type ', h('code', { key: 'n' }, 'generate name = .'), ' (a number) or ', h('code', { key: 's' }, 'generate name = ""'), ' (text) in the Console. Hidden variables come back under Edit data.'] : 'No rows match the current subgroup. Change or clear the subgroup to browse the data.'));
     if (!this._browseRef) this._browseRef = node => {
       if (this._browseEl === node) return;
       if (this._browseRO) { this._browseRO.disconnect(); this._browseRO = null; }
@@ -7316,7 +7317,7 @@ class Component extends DCLogic {
   async dlProgram(build) {
     const site = 'https://gutierrezmannix.github.io/calculator/';
     if (!build && !this.dlOnSite()) { window.open(site, '_blank'); return; }
-    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-18.108') + '.html';
+    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-18.109') + '.html';
     try {
       const r = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw new Error(r.status);
       const blob = await r.blob(); if (blob.size < 100000) throw new Error('short');
@@ -11654,7 +11655,8 @@ class Component extends DCLogic {
     if (exists) return fail('"' + name + '" already exists — use  replace ' + name + ' = …  to change it, or pick another name');
     if (!isStr && val !== '.') { const r = this.evalExprAll(val); if (r.error) return fail(r.error); } // GM26 .71: nothing is created when the formula fails
     for (const c of conds) { if (c.val !== '.' && !/^".*"$/.test(c.val) && !isFinite(parseFloat(c.val)) && !(this.effMeta(c.v) && this.effMeta(c.v).treatAs !== 'numeric')) return fail(c.v + ' is numeric — compare it to a number (or . for missing)'); }
-    const st = isStr ? (conds.length ? 'empty' : 'other') : (conds.length || val === '.' ? '.' : 'other');
+    // generate x = "" makes an empty text variable, as in Stata (build .109)
+    const st = isStr ? (conds.length || /^"\s*"$/.test(val) ? 'empty' : 'other') : (conds.length || val === '.' ? '.' : 'other');
     this.setState({ nvName: name, nvType: isStr ? 'str' : 'num', nvStart: st, nvOther: conds.length ? '' : val, nvErr: '' }, () => {
       this.doNewVar();
       setTimeout(() => { if (this.state.nvErr) return fail(this.state.nvErr); if (conds.length) runReplace(); else ok(s + '   (new ' + (isStr ? 'text' : 'numeric') + ' variable · ' + this.fmtN(raw.n) + ' rows)'); }, 30);
@@ -12264,7 +12266,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-18.108') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-18.109') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -12673,7 +12675,7 @@ class Component extends DCLogic {
         ['Copy session log', () => { this.setState(closeMenu); if (!(S.conLog || []).length) { this.flash('The session log is empty — run a command or an analysis first.'); return; } if (out.copyLog) out.copyLog(); }],
         ['Print lab report…', go({ reportMode: true })],
         SEP,
-        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-18.108)', () => { this.setState(closeMenu); this.dlProgram(); }]
+        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-18.109)', () => { this.setState(closeMenu); this.dlProgram(); }]
       ]],
       ['Data', { tab: 'data' }, 'Create, replace, recode and rename variables', [
         [(this._undo || []).length ? 'Undo: ' + (S.undoLabel || 'last change') + '   (Ctrl/\u2318+Z)' : 'Undo (nothing to undo)', () => { this.setState(closeMenu); this.undo(); }],

@@ -104,7 +104,8 @@
       headers.push(h('button', { key: c.name, role: 'columnheader', 'aria-colindex': ci + 2, title: 'Edit ' + c.name + ' in Data', style: { left: g.nw + ci * g.cw }, onClick: () => { this.browseSaveDraft(); this.openColPanel(c.name); this.setState({ tab: 'data' }); } }, c.name));
     }
     nodes.push(h('div', { key: 'head', role: 'row', 'aria-rowindex': 1, className: 'mf-browse-head' }, h('div', { className: 'mf-browse-number', role: 'columnheader' }, 'Row'), ...headers));
-    for (let pos = g.first; pos < g.end; pos++) {
+    // no visible variables: no empty rows under the message (build .109)
+    for (let pos = g.first; columns.length && pos < g.end; pos++) {
       const r = ix.rows ? ix.rows[pos] : pos;
       const cells = visible.map((c, k) => {
         const ci = g.colFirst + k, col = raw.cols[c.idx], v = col.a[r], num = col.k === 'n';
@@ -135,7 +136,7 @@
         style: { top: g.hh + g.top + pos * g.rh - g.logical } },
         h('div', { className: 'mf-browse-number', role: 'rowheader' }, String(r + 1)), ...cells));
     }
-    if (!ix.count || !columns.length) nodes.push(h('div', { key: 'empty', className: 'mf-browse-empty', role: 'status' }, !columns.length ? 'Your dataset has no visible variables. Create a variable in Data, or restore hidden variables.' : 'No rows match the current subgroup. Change or clear the subgroup to browse the data.'));
+    if (!ix.count || !columns.length) nodes.push(h('div', { key: 'empty', className: 'mf-browse-empty', role: 'status' }, !columns.length ? ['Your dataset has no visible variables yet. Create one under Data → New variable, or type ', h('code', { key: 'n' }, 'generate name = .'), ' (a number) or ', h('code', { key: 's' }, 'generate name = ""'), ' (text) in the Console. Hidden variables come back under Edit data.'] : 'No rows match the current subgroup. Change or clear the subgroup to browse the data.'));
     if (!this._browseRef) this._browseRef = node => {
       if (this._browseEl === node) return;
       if (this._browseRO) { this._browseRO.disconnect(); this._browseRO = null; }

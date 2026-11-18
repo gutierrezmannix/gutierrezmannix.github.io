@@ -1027,7 +1027,7 @@ code, kbd, samp { font-family: var(--font-mono); }
 .mf-work input.mf-browse-cell:focus { outline: 2px solid var(--c194F39, #1D5443) !important; outline-offset: -2px; z-index: 2; background: var(--cEDF5F0, #E7EFE4); }
 .mf-browse-number { position: sticky; left: 0; width: 60px; height: 100%; z-index: 3; padding: 5px 6px; box-sizing: border-box; text-align: right; background: var(--cF2ECE1, #E9EEE1); border-right: 1px solid var(--cD9D2C4, #A6B1A2); color: var(--c6B6455, #536159); font: 10.5px/1.5 var(--fMono, 'Space Mono', monospace); }
 .mf-browse-head .mf-browse-number { z-index: 5; font-weight: 700; }
-.mf-browse-empty { position: sticky; left: 0; width: min(500px, 90vw); padding: 24px; box-sizing: border-box; line-height: 1.6; color: var(--c6B6455, #536159); }
+.mf-browse-empty { position: sticky; left: 0; top: 44px; z-index: 2; width: min(560px, 90vw); margin: 52px 0 0; padding: 20px 24px; box-sizing: border-box; line-height: 1.6; color: var(--c6B6455, #536159); background: var(--cFFFEFA, #FFFEFA); white-space: pre-wrap; }
 @media (max-width: 899px) {
   .mf-work { padding: 8px 8px 10px; }
   .mf-top-row, .mf-banners { padding-left: 8px; padding-right: 8px; }
@@ -1036,6 +1036,7 @@ code, kbd, samp { font-family: var(--font-mono); }
 @media (forced-colors: active) {
   .mf-work input.mf-browse-cell { border: 1px solid ButtonText !important; }
 }
+.mf-browse-empty code { font-family: var(--fMono, 'Space Mono', monospace); font-size: .9em; color: var(--c194F39, #194F39); background: var(--cEDF5F0, #EDF5F0); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
 </style><!-- GM26 fluid workspace end -->
 <nav class="site-back" aria-label="Site"><!-- GM26 Jade display markup --><svg class="mf-ginkgo" width="35" height="24" sc-camel-view-box="0 0 60 42" aria-hidden="true" fill="currentColor"><path d="M29 35C23 30 8 32 2 24C4 11 14 3 23 3C27 3 29 9 30 11C32 7 33 3 37 3C47 3 57 13 58 24C52 31 39 30 31 35L31 41H28Z"></path><path d="M30 34L11 15M30 34L20 8M30 34L30 14M30 34L40 8M30 34L50 15" fill="none" stroke="#1C4A3D" stroke-width=".8" opacity=".55"></path></svg>
     <a href="../">
@@ -4167,7 +4168,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-18.108</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-18.109</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>

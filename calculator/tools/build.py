@@ -38,7 +38,7 @@ ROOT = TOOLS.parent
 APP = ROOT / 'src' / 'app'
 PAGE = ROOT / 'index.html'
 ENGINE = '7f0c6180-e6c1-4faf-bd4a-6b2fddc15715'
-BUILD = '2026-11-18.108'
+BUILD = '2026-11-18.109'
 LANGS = ['es', 'en', 'pt', 'fr']
 SCRIPT = r'<script type="__bundler/{}">(.*?)</script>'
 COMPONENT = re.compile(r'(<script type="text/x-dc"[^>]*>)(.*?)(</script>)', re.S)
@@ -169,7 +169,8 @@ def integrate(template, component, engine):
     c = m[2]
     # GM26 .70: the chart-suite and time-series method blocks follow their src files too (their full integrators live in
     # tools/build_time_series.py; only the method blocks are refreshed here)
-    for f, b0, b1 in (('chart-suite.js', '  // GM26 chart suite begin', '  // GM26 chart suite end'), ('ts-simple.js', '  // GM26 time-series setup begin', '  // GM26 time-series setup end')):
+    # GM26 .109: and the scrolling Data Editor (src/browse-scroll.js, its CSS in the fluid-workspace block)
+    for f, b0, b1 in (('chart-suite.js', '  // GM26 chart suite begin', '  // GM26 chart suite end'), ('ts-simple.js', '  // GM26 time-series setup begin', '  // GM26 time-series setup end'), ('browse-scroll.js', '  // GM26 scrolling browser begin', '  // GM26 scrolling browser end')):
         body = (ROOT / 'src' / f).read_text().rstrip()
         if b0 in c and b1 in c:
             c = re.sub(re.escape(b0) + '.*?' + re.escape(b1), lambda _: body, c, count=1, flags=re.S)
@@ -199,6 +200,10 @@ def integrate(template, component, engine):
     t = regression_guide.integrate_template(t)
     t = predict_lab.integrate_template(t)
     t = console_page.integrate_template(t)
+    fw0, fw1 = '<!-- GM26 fluid workspace begin -->', '<!-- GM26 fluid workspace end -->'
+    if fw0 in t and fw1 in t:
+        css = (ROOT / 'src' / 'browse-scroll.css').read_text()
+        t = re.sub(re.escape(fw0) + '.*?' + re.escape(fw1), lambda _: fw0 + '<style>' + css + '</style>' + fw1, t, count=1, flags=re.S)
     t = re.sub(r'2026-1[0-2]-\d{2}\.\d+', BUILD, t)
     e = text_lab.integrate_engine(engine)
     e = net_lab.integrate_engine(e)

@@ -99,3 +99,11 @@ nothing; `clear` is refused (it would remove the data).
 `sort`, `gsort`, `order`, `format` and `compress` are accepted with a note (they change no result here). `collapse`,
 `reshape`, `merge` and `append` point to the pages that do them. Values were checked against R (`cor.test`,
 `var.test`, `shapiro.test`, `binom.test`, `prop.test`, `t.test`) in `tests/console-more.test.mjs`.
+
+## Fixes (build .109)
+
+- `generate x = ""` (and `generate str10 x = ""`) creates an empty text variable, as in Stata; before, it was refused
+  with "type the starting text" and nothing was created.
+- A dataset with no visible variables shows its Data Editor message on its own (it was drawn over twenty blank rows and
+  half hidden under the row numbers), with the two commands that make a variable. The build now refreshes the Data
+  Editor block from `src/browse-scroll.js`.

@@ -31,7 +31,7 @@
 .mf-work input.mf-browse-cell:focus { outline: 2px solid var(--c194F39, #1D5443) !important; outline-offset: -2px; z-index: 2; background: var(--cEDF5F0, #E7EFE4); }
 .mf-browse-number { position: sticky; left: 0; width: 60px; height: 100%; z-index: 3; padding: 5px 6px; box-sizing: border-box; text-align: right; background: var(--cF2ECE1, #E9EEE1); border-right: 1px solid var(--cD9D2C4, #A6B1A2); color: var(--c6B6455, #536159); font: 10.5px/1.5 var(--fMono, 'Space Mono', monospace); }
 .mf-browse-head .mf-browse-number { z-index: 5; font-weight: 700; }
-.mf-browse-empty { position: sticky; left: 0; width: min(500px, 90vw); padding: 24px; box-sizing: border-box; line-height: 1.6; color: var(--c6B6455, #536159); }
+.mf-browse-empty { position: sticky; left: 0; top: 44px; z-index: 2; width: min(560px, 90vw); margin: 52px 0 0; padding: 20px 24px; box-sizing: border-box; line-height: 1.6; color: var(--c6B6455, #536159); background: var(--cFFFEFA, #FFFEFA); white-space: pre-wrap; }
 @media (max-width: 899px) {
   .mf-work { padding: 8px 8px 10px; }
   .mf-top-row, .mf-banners { padding-left: 8px; padding-right: 8px; }
@@ -40,3 +40,4 @@
 @media (forced-colors: active) {
   .mf-work input.mf-browse-cell { border: 1px solid ButtonText !important; }
 }
+.mf-browse-empty code { font-family: var(--fMono, 'Space Mono', monospace); font-size: .9em; color: var(--c194F39, #194F39); background: var(--cEDF5F0, #EDF5F0); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
