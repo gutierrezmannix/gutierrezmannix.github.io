@@ -5,7 +5,7 @@
       step: 'texts', sub: 'words', msub: 'dict', v: '', by: '', date: '', unit: 'row', mergeCase: true, code: false,
       rec: { url: 'remove', num: 'remove', emoji: 'remove', tag: 'keep', mention: 'keep', hyphen: 'keep', fold: true, langs: null, stopSource: 'snowball', extra: [], minLen: 2, forms: 'none', phrases: null, minDoc: 1, maxDocPct: 100 },
       wview: 'word', wn: 25, wchart: 'cloud', prev: 0,
-      cloud: { split: '', view: 'each', gN: 4, gPick: [], same: true, colorBy: 'bands', basis: 'count', bands: null, one: '#2E7D58', max: 80, rotate: 0, shape: 'ellipse', font: 'Hanken Grotesk', seed: 1234 },
+      cloud: { split: '', view: 'each', gN: 4, gPick: [], same: true, colorBy: 'bands', basis: 'count', bands: null, nb: null, scale: '', legend: true, one: '#2E7D58', max: 80, rotate: 0, shape: 'ellipse', font: 'Hanken Grotesk', seed: 1234 },
       key: { target: '', ref: '__rest', measure: 'chi2', min: 10, n: 12 },
       q: '', qOff: [], win: 6, sort: 'row',
       time: { what: 'ntexts', unit: 'auto', measure: 'pct', vmeasure: 'mean', order: 'auto', cat: '', lines: 'auto', vars: [] },

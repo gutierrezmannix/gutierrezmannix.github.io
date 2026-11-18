@@ -3155,6 +3155,13 @@ code, kbd, samp { font-family: var(--font-mono); }
 .tl-mchip button{background:none;border:0;color:#fff;cursor:pointer;font-size:14px;line-height:1;padding:0 4px}
 /* See one text change: the word list scrolls in its own window when opened (build .84) */
 .tl-aftercl .tl-toks{max-height:420px;overflow-y:auto;padding-right:4px;overscroll-behavior:contain}
+.tl-band{flex-wrap:wrap}
+.tl-bandlab{min-width:150px;font-size:13px;font-weight:600;color:var(--c1A1711,#1A1711);font-variant-numeric:tabular-nums}
+.tl-scales{gap:6px}
+.tl-scale{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12px;padding:4px 10px 4px 5px;border:1px solid var(--cD2C5AF,#D2C5AF);border-radius:999px;background:#fff;color:var(--c3D3629,#3D3629);cursor:pointer}
+.tl-scale:hover{border-color:var(--c194F39,#194F39)}
+.tl-scale.on{border-color:var(--c194F39,#194F39);box-shadow:0 0 0 1px var(--c194F39,#194F39);font-weight:700}
+.tl-ramp{display:inline-block;width:38px;height:12px;border-radius:999px}
 </style><sc-if value="{{ isText }}" hint-placeholder-val="{{ false }}"><div data-screen-label="Text analysis">{{ tlEl }}</div></sc-if><!-- GM26 text lab end -->
 <!-- GM26 predict lab begin --><style>.pr .pr-task{margin:2px 0 6px;font-size:13px;font-weight:600;color:var(--c194F39,#194F39)}
 .pr .pr-card{border:1px solid var(--cE3DCCE,#E3DCCE);border-radius:10px;padding:10px 12px;background:#fff;font-size:13px;line-height:1.5;color:var(--c3D3629,#3D3629)}
@@ -4097,7 +4104,7 @@ code, kbd, samp { font-family: var(--font-mono); }
   </sc-if>
 
   <footer style="border-top: 1px solid var(--cC3CAD1, #C3CAD1); padding: 10px 24px; display: flex; justify-content: center; gap: 20px; font-family: var(--fMono, 'Space Mono', monospace); font-size: 10px; color: var(--c6B6455, #6B6455); letter-spacing: 0.1em;">
-    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-16.101</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
+    <span>GM 26.11</span><span>·</span><span>BUILD 2026-11-18.102</span><span>·</span><span>Carlos Daniel Gutierrez-Mannix, PhD</span><span>·</span><span>CSV / TSV / EXCEL XLSX · XLS / STATA DTA / SPSS SAV</span>
   </footer>
 </div>
 </x-dc>

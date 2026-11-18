@@ -32,35 +32,75 @@
     const chart = this.tlCloudPanel(ctx);
     return h('div', { className: 'tl-grid c-r' }, table, chart);
   }
-  // colour bands: defaults rounded from the data; "min" is the lower edge of each band
-  tlAutoBands(vals) {
-    const s = vals.slice().sort((a, b) => b - a); if (!s.length) return [{ min: 0, color: '#2E7D58' }];
-    const nice = x => { if (x <= 0) return 0; const p = Math.pow(10, Math.floor(Math.log10(x))), m = x / p; return (m >= 5 ? 5 : m >= 2 ? 2 : 1) * p; };
+  // colour bands (build .102). The strongest band comes first and the last is "everything else". For times used and
+  // % of texts, min is the band's lower edge (50,000 or more; 30,000–49,999 …); for rank it is the last rank in the band
+  // (top 10, ranks 11–30 …). Colour scales recolour every band at once, top band first.
+  tlScales() {
+    return [['classic', 'Classic', ['#194F39', '#2E7D58', '#C4681E', '#9C8F78']], ['rdylgn', 'Red → yellow → green', ['#C62828', '#E0A800', '#2E7D32']],
+      ['heat', 'Heat', ['#7F0000', '#D7301F', '#F28C28', '#E0B000']], ['greens', 'Greens', ['#0B3D2A', '#2E7D58', '#86B596']], ['blues', 'Blues', ['#08306B', '#2171B5', '#86AED3']],
+      ['purples', 'Purples', ['#3F007D', '#6A51A3', '#A49BC8']], ['viridis', 'Viridis', ['#440154', '#3B528B', '#21908C', '#5DC863', '#BFB000']], ['greys', 'Greys', ['#1A1711', '#6B6455', '#B5AA96']]];
+  }
+  tlScaleColors(key, n) {
+    const S = this.tlScales().find(x => x[0] === key) || this.tlScales()[0];
+    if (S[0] === 'classic') { const c = ['#194F39', '#2E7D58', '#C4681E', '#357F93', '#7A5A9E', '#8C6D1F', '#B0476B']; return Array.from({ length: n }, (_, i) => i === n - 1 ? '#9C8F78' : c[i % c.length]); }
+    const st = S[2], hex = c => [1, 3, 5].map(k => parseInt(c.slice(k, k + 2), 16));
+    return Array.from({ length: n }, (_, i) => { const t = n === 1 ? 0 : i / (n - 1), x = t * (st.length - 1), a = Math.min(st.length - 2, Math.floor(x)), f = x - a, A = hex(st[a]), B = hex(st[a + 1]); return '#' + A.map((v, k) => Math.round(v + (B[k] - v) * f).toString(16).padStart(2, '0')).join(''); });
+  }
+  tlScaleCss(key) {
+    const S = this.tlScales().find(x => x[0] === key) || this.tlScales()[0], st = S[2];
+    return S[0] === 'classic' ? 'linear-gradient(90deg,' + st.map((c, i) => c + ' ' + (25 * i) + '% ' + (25 * i + 25) + '%').join(',') + ')' : 'linear-gradient(90deg,' + st.join(',') + ')';
+  }
+  tlAutoBands(vals, basis, n, scale) {
+    n = Math.max(2, Math.min(8, n || 4));
+    const s = vals.slice().sort((a, b) => basis === 'rank' ? a - b : b - a); if (!s.length) return [{ min: 0, color: this.tlScaleColors(scale || 'classic', 1)[0] }];
+    const nice = x => { if (!(x > 0)) return 0; const p = Math.pow(10, Math.floor(Math.log10(x))), m = x / p; return [8, 6, 5, 4, 3, 2.5, 2, 1.5, 1].find(k => m >= k - 1e-9) * p; };
     const q = f => s[Math.min(s.length - 1, Math.floor(f * s.length))];
-    const c = ['#194F39', '#2E7D58', '#C4681E', '#9C8F78'];
-    const mins = Array.from(new Set([nice(q(0.06)), nice(q(0.25)), nice(q(0.6))])).filter(x => x > 0).sort((a, b) => b - a);
-    return mins.map((m, i) => ({ min: m, color: c[i] })).concat([{ min: 0, color: c[3] }]);
+    const fr = n === 4 ? [0.06, 0.25, 0.6] : Array.from({ length: n - 1 }, (_, k) => Math.pow((k + 1) / n, 1.6));
+    const mins = Array.from(new Set(fr.map(f => basis === 'rank' ? Math.max(1, Math.round(nice(q(f)))) : nice(q(f))))).filter(x => x > 0).sort((a, b) => basis === 'rank' ? a - b : b - a);
+    const cs = this.tlScaleColors(scale || 'classic', mins.length + 1);
+    return mins.map((m, i) => ({ min: m, color: cs[i] })).concat([{ min: 0, color: cs[mins.length] }]);
+  }
+  // the band with no threshold (min 0) is "everything else" and goes last; the others are ordered strongest first
+  tlBandsNorm(bands, basis) {
+    if (!bands || !bands.length) return [{ min: 0, color: '#2E7D58' }];
+    const k = bands.findIndex(b => !(b.min > 0)), last = k >= 0 ? k : bands.length - 1;
+    const rest = bands.filter((_, i) => i !== last && bands[i].min > 0).sort((a, b) => basis === 'rank' ? a.min - b.min : b.min - a.min);
+    return rest.concat([Object.assign({}, bands[last], { min: 0 })]);
+  }
+  tlBandOf(bands, v, basis) { for (let i = 0; i < bands.length - 1; i++) if (basis === 'rank' ? v <= bands[i].min : v >= bands[i].min) return i; return bands.length - 1; }
+  tlBandLabel(bands, i, basis, short) {
+    const b = bands[i], prev = bands[i - 1], last = i === bands.length - 1, N = x => this.fmtN(x), P = x => this.fmt(x, x % 1 ? 1 : 0) + '%';
+    if (basis === 'rank') { const from = prev ? prev.min + 1 : 1; if (last) return prev ? (short ? 'rank ' + N(from) + '+' : 'rank ' + N(from) + ' and below') : 'all words'; return from === 1 ? 'top ' + N(b.min) : 'ranks ' + N(from) + '–' + N(b.min); }
+    if (last) return prev ? 'under ' + (basis === 'pct' ? P(prev.min) : N(prev.min)) : 'all words';
+    if (basis === 'pct') return !prev ? P(b.min) + (short ? '+' : ' or more') : short ? P(b.min) + '–' + P(prev.min) : P(b.min) + ' to under ' + P(prev.min);
+    const top = Math.ceil(prev ? prev.min : 0) - 1;
+    return !prev ? N(b.min) + (short ? '+' : ' or more') : top > b.min ? N(b.min) + '–' + N(top) : N(b.min);
+  }
+  // the bands as drawn: the words in the cloud, the value each band reads, and the bands themselves (also for the R recipe)
+  tlCloudBands(ctx) {
+    const { T, cnt } = ctx, CL = T.cloud, view = T.wview === 'all' ? 'word' : T.wview;
+    const basisVal = (w, cn) => CL.basis === 'pct' ? 100 * w.docs / Math.max(1, cn.docs) : CL.basis === 'rank' ? w.rank : w.count;
+    const allWords = this.tlTop(ctx, view, CL.max, cnt).map((w, i) => Object.assign(w, { rank: i + 1 }));
+    const bands = this.tlBandsNorm(CL.bands || this.tlAutoBands(allWords.map(w => basisVal(w, cnt)), CL.basis, CL.nb, CL.scale), CL.basis);
+    return { view, basisVal, allWords, bands };
   }
   tlCloudPanel(ctx) {
     const h = React.createElement, { T, C, FT, cnt } = ctx, CL = T.cloud, set = p => this.tlSetIn('cloud', p);
     const split = CL.split, G = split ? this.tlGroupsOf(T, C, split) : null;
-    const view = T.wview === 'all' ? 'word' : T.wview;
-    // value used for colour bands
-    const basisVal = (w, cn) => CL.basis === 'pct' ? 100 * w.docs / Math.max(1, cn.docs) : CL.basis === 'rank' ? w.rank : w.count;
-    const allWords = this.tlTop(ctx, view, CL.max, cnt).map((w, i) => Object.assign(w, { rank: i + 1 }));
-    const bands = CL.bands || this.tlAutoBands(allWords.map(w => basisVal(w, cnt)));
+    const { view, basisVal, allWords, bands } = this.tlCloudBands(ctx);
     const colorOf = (w, cn, gi) => {
       if (CL.colorBy === 'one') return CL.one;
       if (CL.colorBy === 'group' && gi != null) return this.tlPal(gi);
       if (CL.colorBy === 'category') { const cat = this.tlWordCats(ctx)[w.f]; return cat != null ? this.tlPal(cat) : '#B5AA96'; }
-      const v = basisVal(w, cn); if (CL.basis === 'rank') { const sorted = bands.slice().sort((a, b) => a.min - b.min); for (const b of sorted) if (v <= (b.min || Infinity)) return b.color; return sorted[sorted.length - 1].color; }
-      for (const b of bands) if (v >= b.min) return b.color; return bands[bands.length - 1].color;
+      return bands[this.tlBandOf(bands, basisVal(w, cn), CL.basis)].color;
     };
+    const nIn = bands.map(() => 0); allWords.forEach(w => { nIn[this.tlBandOf(bands, basisVal(w, cnt), CL.basis)]++; });
+    const bandLegend = CL.colorBy === 'bands' && CL.legend !== false && bands.length > 1 ? only => bands.map((b, i) => [this.tlBandLabel(bands, i, CL.basis, true), b.color, i]).filter(x => !only || nIn[x[2]] > 0).map(x => [x[0], x[1]]) : () => null;
     const opts = { shape: CL.shape, rotate: CL.rotate, seed: CL.seed, font: CL.font };
     let figs = [], title = 'Word cloud';
     if (!G || CL.view === 'all') {
       const words = allWords.map(w => ({ text: w.label, value: w.count, color: colorOf(w, cnt) }));
-      figs.push(this.tlCloudFig('tlcloud', words, 760, 440, opts, 'All ' + this.fmtN(cnt.docs) + ' texts · top ' + words.length + ' ' + (view === 'tag' ? 'tags' : view === 'phrase' ? 'phrases' : 'words')));
+      figs.push(this.tlCloudFig('tlcloud', words, 760, 440, opts, 'All ' + this.fmtN(cnt.docs) + ' texts · top ' + words.length + ' ' + (view === 'tag' ? 'tags' : view === 'phrase' ? 'phrases' : 'words'), bandLegend(true)));
     } else if (CL.view === 'compare') {
       const groups = this.tlPickGroups(G, CL);
       const gc = this._E.tlGroupCounts(FT, G.g, G.labels.length, ctx.mask);
@@ -74,20 +114,38 @@
       per.forEach((p, i) => {
         const docsG = gc.docs[p.g];
         if (!p.words.length) return;
-        figs.push(this.tlCloudFig('tlcloudg' + i, p.words.map(w => ({ text: w.label, value: w.count, color: CL.colorBy === 'group' ? this.tlPal(i) : colorOf(Object.assign({}, w, { docs: w.count }), { docs: docsG }, i) })), 560, 360, Object.assign({}, opts, CL.same ? { vmax: gmax, vmin: gmin } : {}), G.labels[p.g] + ' · ' + this.fmtN(docsG) + ' texts' + (p.words.length < 10 ? ' · only ' + p.words.length + ' different words' : ''), null, true));
+        figs.push(this.tlCloudFig('tlcloudg' + i, p.words.map(w => ({ text: w.label, value: w.count, color: CL.colorBy === 'group' ? this.tlPal(i) : colorOf(Object.assign({}, w, { docs: w.count }), { docs: docsG }, i) })), 560, 360, Object.assign({}, opts, CL.same ? { vmax: gmax, vmin: gmin } : {}), G.labels[p.g] + ' · ' + this.fmtN(docsG) + ' texts' + (p.words.length < 10 ? ' · only ' + p.words.length + ' different words' : ''), bandLegend(false), true));
       });
       title = 'Word clouds by ' + split;
     }
     const groupOpts = [['', 'none — whole dataset']].concat(this.tlGroupCols(T.v).map(n => [n, n]));
+    const setBands = (nb, keepScale) => set({ bands: this.tlBandsNorm(nb, CL.basis), scale: keepScale ? CL.scale : '' });
+    const curScale = CL.scale || (CL.bands ? '' : 'classic');
+    const recolor = (nb, key) => { const cs = this.tlScaleColors(key, nb.length); return nb.map((b, j) => Object.assign({}, b, { color: cs[j] })); };
+    const addBand = () => {
+      const rest = bands.slice(0, -1), lo = rest.length ? rest[rest.length - 1].min : 0, nw = allWords.length;
+      const m = CL.basis === 'rank' ? Math.max(lo + 1, Math.min(Math.max(nw - 1, lo + 1), lo ? lo * 2 : 10)) : lo ? (CL.basis === 'pct' ? Math.max(0.1, Math.round(lo * 5) / 10) : Math.max(1, Math.round(lo / 2))) : 10;
+      let nb = rest.map(b => Object.assign({}, b)).concat([{ min: m, color: '#357F93' }, Object.assign({}, bands[bands.length - 1])]);
+      if (curScale) nb = recolor(this.tlBandsNorm(nb, CL.basis), curScale);
+      set({ bands: this.tlBandsNorm(nb, CL.basis), scale: curScale });
+    };
+    const unitLab = CL.basis === 'rank' ? 'by rank · 1 = the most used word' : CL.basis === 'pct' ? 'by % of texts that use the word' : 'by times used';
     const bandRows = (CL.colorBy === 'bands') ? h('div', { className: 'tl-bands' },
-      h('span', { className: 'tl-lbl' }, 'Colour rules · ' + (CL.basis === 'rank' ? 'rank up to' : CL.basis === 'pct' ? '% of texts at least' : 'used at least')),
-      ...bands.map((b, i) => h('div', { key: i, className: 'tl-band' },
-        h('input', { type: 'color', value: b.color, 'aria-label': 'Band colour', onChange: e => { const nb = bands.map((x, j) => j === i ? Object.assign({}, x, { color: e.target.value }) : x); set({ bands: nb }); } }),
-        i === bands.length - 1 && CL.basis !== 'rank' ? h('span', { className: 'tl-hint' }, 'everything else') : this.tlNum(b.min, v => { const nb = bands.map((x, j) => j === i ? Object.assign({}, x, { min: v }) : x).sort((a, c) => CL.basis === 'rank' ? a.min - c.min : c.min - a.min); set({ bands: nb }); }, { min: 0, step: CL.basis === 'pct' ? 0.1 : 1, width: 78, aria: 'Band threshold' }),
-        h('span', { className: 'tl-cnt' }, allWords.filter(w => colorOf(w, cnt) === b.color).length + ' words'),
-        bands.length > 2 ? h('button', { type: 'button', className: 'tl-x', 'aria-label': 'Remove band', onClick: () => set({ bands: bands.filter((_, j) => j !== i) }) }, '×') : null)),
-      h('div', { className: 'tl-row' }, this.tlBtn('+ Add band', () => { const sorted = bands.slice(); sorted.splice(Math.max(0, sorted.length - 1), 0, { min: Math.round((sorted[Math.max(0, sorted.length - 2)].min || 10) / 2), color: '#357F93' }); set({ bands: sorted }); }), this.tlBtn('Reset', () => set({ bands: null }))),
-      this.tlField('Bands are based on', this.tlSeg([['count', 'Times used'], ['pct', '% of texts'], ['rank', 'Rank']], CL.basis, v => set({ basis: v, bands: null })))) : null;
+      h('span', { className: 'tl-lbl' }, 'Colour rules · ' + unitLab),
+      ...bands.map((b, i) => { const last = i === bands.length - 1; return h('div', { key: i + ':' + b.min + ':' + bands.length, className: 'tl-band' },
+        h('input', { type: 'color', value: b.color, 'aria-label': 'Colour for ' + this.tlBandLabel(bands, i, CL.basis), onChange: e => setBands(bands.map((x, j) => j === i ? Object.assign({}, x, { color: e.target.value }) : x)) }),
+        h('span', { className: 'tl-bandlab' }, this.tlBandLabel(bands, i, CL.basis) + (last && bands.length > 1 ? ' · everything else' : '')),
+        last ? null : h('span', { className: 'tl-hint' }, CL.basis === 'rank' ? 'down to rank' : 'from'),
+        last ? null : this.tlNum(b.min, v => setBands(bands.map((x, j) => j === i ? Object.assign({}, x, { min: v }) : x), true), { min: CL.basis === 'pct' ? 0.1 : 1, step: CL.basis === 'pct' ? 0.1 : 1, width: 92, aria: 'Threshold for band ' + (i + 1) }),
+        h('span', { className: 'tl-cnt' }, nIn[i] + (nIn[i] === 1 ? ' word' : ' words')),
+        bands.length > 2 ? h('button', { type: 'button', className: 'tl-x', 'aria-label': 'Remove band ' + this.tlBandLabel(bands, i, CL.basis), onClick: () => setBands(bands.filter((_, j) => j !== i), true) }, '×') : null); }),
+      h('div', { className: 'tl-row' }, this.tlBtn('+ Add band', addBand), this.tlBtn('Reverse colours', () => set({ bands: bands.map((b, j) => Object.assign({}, b, { color: bands[bands.length - 1 - j].color })), scale: '' })), this.tlBtn('Reset', () => set({ bands: null, nb: null, scale: '' }))),
+      this.tlField('Colour scale · top band first', h('div', { className: 'tl-row tl-scales' }, ...this.tlScales().map(([k, name]) => h('button', { key: k, type: 'button', className: 'tl-scale' + (curScale === k ? ' on' : ''), 'aria-pressed': String(curScale === k), onClick: () => set({ bands: recolor(bands, k), scale: k }) }, h('span', { className: 'tl-ramp', style: { background: this.tlScaleCss(k) } }), name)))),
+      h('div', { className: 'tl-row' },
+        this.tlField('Number of bands', this.tlSeg([2, 3, 4, 5, 6, 7].map(k => [k, String(k)]), bands.length, v => set({ nb: v, bands: null, scale: curScale || 'classic' }))),
+        this.tlField('Bands are based on', this.tlSeg([['count', 'Times used'], ['pct', '% of texts'], ['rank', 'Rank']], CL.basis, v => set({ basis: v, bands: null }))),
+        this.tlField('Legend in the picture', this.tlSeg([[true, 'Show'], [false, 'Hide']], CL.legend !== false, v => set({ legend: v })))),
+      h('span', { className: 'tl-hint' }, 'Type the lower edge of each band (press Enter). Number of bands splits the words again at round values; Reset goes back to the automatic bands.')) : null;
     const controls = h('div', { className: 'tl-ctl' },
       h('div', { className: 'tl-row' }, this.tlField('Split by', this.tlSelect(split, groupOpts, v => set({ split: v, view: v ? (CL.view === 'all' ? 'each' : CL.view) : 'each' }), 'Split word cloud by')),
         split ? this.tlField('Show', this.tlSeg([['each', 'One cloud per group'], ['compare', 'One comparison cloud'], ['all', 'Whole dataset']], CL.view, v => set({ view: v }))) : null),
@@ -99,7 +157,7 @@
     const chartToggle = this.tlSeg([['cloud', 'Cloud'], ['bars', 'Bar chart']], T.wchart, v => this.tlSet({ wchart: v }));
     if (T.wchart === 'bars') {
       const top = this.tlTop(ctx, view, 20, cnt);
-      return this.tlPanel('Most frequent ' + (view === 'tag' ? 'tags' : view === 'phrase' ? 'phrases' : 'words'), null, chartToggle, this.tlBarsSvg('tlbars', top.map(w => ({ label: w.label, value: w.count, color: colorOf(Object.assign({}, w, { rank: 0 }), cnt) })), { title: 'Top 20 by count · ' + this.fmtN(cnt.docs) + ' texts', xlab: 'times used' }), this.tlExportRow('tlbars', 'word-frequencies'));
+      return this.tlPanel('Most frequent ' + (view === 'tag' ? 'tags' : view === 'phrase' ? 'phrases' : 'words'), null, chartToggle, this.tlBarsSvg('tlbars', top.map((w, i) => ({ label: w.label, value: w.count, color: colorOf(Object.assign({}, w, { rank: i + 1 }), cnt) })), { title: 'Top 20 by count · ' + this.fmtN(cnt.docs) + ' texts', xlab: 'times used' }), this.tlExportRow('tlbars', 'word-frequencies'));
     }
     return this.tlPanel(title, figs.length > 1 ? figs.length + ' clouds' : 'bigger = more frequent', chartToggle, h('div', { className: figs.length > 1 ? 'tl-cloudgrid' : 'tl-col' }, ...figs), controls);
   }
@@ -114,11 +172,14 @@
   tlCloudFig(key, words, W, H, opts, caption, legend, small) {
     const h = React.createElement, lay = this.tlCloudLayout(words, W, H, opts);
     const fam = opts.font === 'Georgia' ? 'Georgia, serif' : "'" + opts.font + "', sans-serif", wt = opts.font === 'Space Mono' ? 700 : opts.font === 'Bricolage Grotesque' ? 700 : 600;
-    const svg = h('svg', { viewBox: '0 0 ' + W + ' ' + (H + 22 + (legend ? 20 : 0)), width: '100%', role: 'img', 'aria-label': caption, ref: this.svgRef(key), className: 'tl-svg' },
-      h('rect', { x: 0, y: 0, width: W, height: H + 22 + (legend ? 20 : 0), fill: '#FFFFFF' }),
+    // legend items side by side, wrapping onto a new row when the next one would not fit
+    const LG = []; if (legend && legend.length) { let x = 8, r = 0; legend.forEach(([l, c]) => { const t = String(l).slice(0, 30), w = 24 + t.length * 6.3 + 14; if (x > 8 && x + w > W - 8) { x = 8; r++; } LG.push({ t, c, x, r }); x += w; }); }
+    const LH = LG.length ? (LG[LG.length - 1].r + 1) * 18 + 2 : 0;
+    const svg = h('svg', { viewBox: '0 0 ' + W + ' ' + (H + 22 + LH), width: '100%', role: 'img', 'aria-label': caption, ref: this.svgRef(key), className: 'tl-svg' },
+      h('rect', { x: 0, y: 0, width: W, height: H + 22 + LH, fill: '#FFFFFF' }),
       lay.placed.map((p, i) => h('text', { key: i, x: p.x.toFixed(1), y: p.y.toFixed(1), fontSize: p.size.toFixed(1), fontFamily: fam, fontWeight: wt, fill: p.color, transform: p.rot ? 'rotate(-90 ' + p.x.toFixed(1) + ' ' + p.y.toFixed(1) + ')' : undefined }, p.text)),
-      legend ? h('g', null, legend.map(([l, c], i) => h('g', { key: i }, h('rect', { x: 8 + i * 170, y: H + 4, width: 10, height: 10, rx: 2, fill: c }), h('text', { x: 22 + i * 170, y: H + 13, fontSize: 11, fontFamily: "'Hanken Grotesk', sans-serif", fill: '#3D3629' }, String(l).slice(0, 24))))) : null,
-      h('text', { x: 6, y: H + (legend ? 34 : 15), fontSize: 9.5, fontFamily: "'Space Mono', monospace", fill: '#8A8070' }, caption + (lay.dropped ? ' · ' + lay.dropped + ' words did not fit' : '')));
+      LG.length ? h('g', null, LG.map((g, i) => h('g', { key: i }, h('rect', { x: g.x, y: H + 4 + g.r * 18, width: 10, height: 10, rx: 2, fill: g.c }), h('text', { x: g.x + 14, y: H + 13 + g.r * 18, fontSize: 11, fontFamily: "'Hanken Grotesk', sans-serif", fill: '#3D3629' }, g.t)))) : null,
+      h('text', { x: 6, y: H + 15 + LH, fontSize: 9.5, fontFamily: "'Space Mono', monospace", fill: '#8A8070' }, caption + (lay.dropped ? ' · ' + lay.dropped + ' words did not fit' : '')));
     this._plotName = this._plotName || {}; this._plotName[key] = 'wordcloud';
     return h('figure', { key, className: 'tl-fig' + (small ? ' small' : '') }, svg, this.tlExportRow(key, key === 'tlcloud' ? 'wordcloud' : 'wordcloud-' + key.replace('tlcloud', '')));
   }

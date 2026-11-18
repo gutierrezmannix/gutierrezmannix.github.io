@@ -22,6 +22,8 @@ The Dictionary results include the same timeline and a category cloud, shown by 
 category sized in proportion to its mentions, texts or % of texts (one cloud per author on a common
 scale), or the words inside each category coloured by category.
 
+**Word cloud colours (build .102).** Explore → Words → Colour by *Frequency bands* lists every band as a range: *50,000 or more*, *30,000–49,999*, *under 30,000 · everything else*. Type the lower edge of a band (Enter), pick its colour, add or remove bands, or choose *Number of bands* (2–7) to split the words again at round values. *Colour scale* recolours all bands at once, top band first (Classic, Red → yellow → green, Heat, Greens, Blues, Purples, Viridis, Greys); *Reverse colours* flips it. Bands can count times used, % of texts or rank (top 10, ranks 11–30 …; rank colouring was one colour before this build). The picture carries a legend of the ranges (Show / Hide), and the recipe R code adds a ggwordcloud version with the same `cut()` breaks and colours.
+
 **Show from … to (build .101).** Under every Over time chart, two dropdowns narrow the time axis to the periods you pick (in the unit shown: years, quarters, months …), and *Show everything* restores it. Only the chart is cut; the counts inside each period are unchanged, the R code adds the same filter on `period`, and a range set by month is kept when you come back to months but does not apply to years.
 
 **Plot by (builds .79–.80).** Explore → Over time and the Dictionary timeline have a **Plot by** box: pick the

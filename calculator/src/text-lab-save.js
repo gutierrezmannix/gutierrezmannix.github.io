@@ -135,6 +135,18 @@
     if (R.forms === 'lemma') L.push('# lemmas: spaCy lookup table (spacy-lookups-data, ' + R.stemLang + '_lemma_lookup.json)', 'lem <- jsonlite::fromJSON("' + R.stemLang + '_lemma_lookup.json"); toks_clean <- tokens_replace(toks_clean, names(lem), unlist(lem))');
     L.push('dfmat <- dfm(toks_clean)' + (R.minDoc > 1 ? ' |> dfm_trim(min_docfreq = ' + R.minDoc + ')' : '') + (R.maxDocPct < 100 ? ' |> dfm_trim(max_docfreq = ' + (R.maxDocPct / 100) + ', docfreq_type = "prop")' : ''));
     L.push('topfeatures(dfmat, 25)', 'textplot_wordcloud(dfmat, max_words = ' + T.cloud.max + ', rotation = ' + T.cloud.rotate + ')');
+    // build .102: the colour bands of the page, as ggwordcloud code (textplot_wordcloud spreads its colours evenly instead)
+    if (T.cloud.colorBy === 'bands' && ctx.cnt) {
+      const CB = T.cloud.basis, bands = this.tlCloudBands(ctx).bands, n = bands.length;
+      if (n > 1) {
+        const order = CB === 'rank' ? bands.map((_, i) => i) : bands.map((_, i) => n - 1 - i), cuts = bands.slice(0, -1).map(b => b.min).sort((a, b) => a - b);
+        L.push('# the cloud with the colour bands used on the page',
+          'library(quanteda.textstats); library(ggwordcloud)',
+          'freq <- textstat_frequency(dfmat, n = ' + T.cloud.max + ')' + (CB === 'pct' ? '\nfreq$pct <- 100 * freq$docfreq / ndoc(dfmat)   # % of texts' : ''),
+          'freq$band <- cut(freq$' + (CB === 'rank' ? 'rank' : CB === 'pct' ? 'pct' : 'frequency') + ', breaks = c(' + (CB === 'rank' ? '0' : '-Inf') + ', ' + cuts.join(', ') + ', Inf), right = ' + (CB === 'rank' ? 'TRUE' : 'FALSE') + ',\n  labels = ' + this.tlRvec(order.map(i => this.tlBandLabel(bands, i, CB, true))) + ')',
+          'ggplot(freq, aes(label = feature, size = frequency, colour = band)) + geom_text_wordcloud(rm_outside = TRUE) +\n  scale_size_area(max_size = 18) + scale_colour_manual(values = ' + this.tlRvec(order.map(i => bands[i].color)) + ') + theme_minimal()');
+      }
+    }
     return '# ' + (LN[R.langs[0]] || '') + ' texts · recipe from GM26 text analysis\n' + L.join('\n');
   }
   tlDictR(ctx, L) {
