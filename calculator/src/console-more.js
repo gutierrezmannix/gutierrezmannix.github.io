@@ -224,7 +224,7 @@
   cqRun(s) {
     const w0 = ((s.match(/^[a-z_]\w*/i) || [''])[0]).toLowerCase(), raw = this._raw;
     const known = /^(lookfor|lookf|ds|levelsof|levelso|levels|isid|label|lab|labe|table|proportion|proportio|proporti|proport|propor|propo|prop|ci|cii|spearman|spearma|spearm|spear|sdtest|swilk|egen|encode|decode|xtile|return|ereturn|preserve|restore|kdensity|kdens|graph|gr|order|sort|gsort|format|compress|notes|collapse|reshape|merge|append|qnorm|pnorm)$/;
-    if (!known.test(w0) || /^[A-Za-z_][\w.]*\s*\(/.test(s)) return false;
+    if (!known.test(w0) || /^[A-Za-z_][\w.]*\(/.test(s)) return false; // R calls (table(df$x)) are not Stata
     if (/^(label|lab|labe)$/.test(w0) && !/^\w+\s+(list|li|lis|dir)\b/i.test(s)) return false;
     if (/^(graph|gr)$/.test(w0) && !/^\w+\s+pie\b/i.test(s)) return false;
     if (w0 === 'table' && /,/.test(s)) return false;

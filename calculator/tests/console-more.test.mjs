@@ -83,5 +83,6 @@ test('egen, xtile, encode / decode, levelsof, table, isid, duplicates of the dat
   d = run(c, 'table g z'); assert.match(d.tbl, /Total\s+\|\s+9\s+11\s+20/);
   run(c, 'isid k'); c.setState({ mfCmdErr: '' }); c.runCmdLine('isid g'); assert.match(c.state.mfCmdErr, /does not uniquely identify/);
   c.setState({ mfCmdErr: '' }); c.runCmdLine('egen my = mean(x)'); assert.match(c.state.mfCmdErr, /already defined/);
+  c.setState({ mfCmdErr: '' }); c.runCmdLine('collapse (mean) y, by(g)'); assert.match(c.state.mfCmdErr, /Break down by groups/);
   c.setState({ mfCmdErr: '' }); c.runCmdLine('table(df$g)'); assert.doesNotMatch(c.state.mfCmdErr || '', /variable \(df/);
 });
