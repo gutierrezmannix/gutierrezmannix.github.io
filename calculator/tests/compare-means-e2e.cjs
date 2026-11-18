@@ -75,7 +75,7 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
   for (const [k, v] of Object.entries(vals)) { const loc = p.locator('input[aria-label="' + k + '"]'); check(await loc.count() === 1, 'summary box ' + k); await loc.fill(v); await p.keyboard.press('Enter'); await p.waitForTimeout(150); }
   await p.waitForTimeout(400); a = await txt('.cm-answer'); check(/SIGNIFICANT/.test(a), 'summary numbers run the test — ' + a.split('\n').slice(0, 3).join(' | '));
   if (shots) await p.screenshot({ path: path.join(shots, 'cm-summary.png'), fullPage: true });
-  await btn('Add to console'); await p.waitForTimeout(400);
+  await btn('›_ Print in console'); await p.waitForTimeout(400);
 
   // ---------- Correlation ----------
   await menu('Correlation');
@@ -106,8 +106,10 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
   await btn('Copy table for Word'); c = await clip(); check(/<table/.test(c['text/html'] || ''), 'Copy table for Word (HTML table)');
   // remove a variable
   await p.locator('[aria-label="Remove satisf"]').click(); await p.waitForTimeout(300); check(await p.locator('button.cr-cell').count() === 6, 'remove a variable: 6 cells');
+  // the console records actions (build .103): print the matrix once
+  await btn('›_ Print in console'); await p.waitForTimeout(400);
   // the console has both entries
-  await p.evaluate(() => [...document.querySelectorAll('button')].find(e => e.offsetParent && /^Console\b/.test(e.textContent.trim()))?.click()); await p.waitForTimeout(800);
+  await p.locator('.mf-cpbtn').click(); await p.waitForSelector('section.cp'); await p.waitForTimeout(800); // the console page (build .103)
   const out = await p.locator('body').innerText(); console.log('      CONSOLE ' + (out.match(/ttesti[^\n]*/) || ['none'])[0]); check(/ttesti 30 72\.5 8\.1 28 68\.2 9\.4/.test(out), 'console: ttesti for the summary test'); check(/correlate edad ingreso pre post/.test(out), 'console: correlate for the matrix');
   if (shots) await p.screenshot({ path: path.join(shots, 'console.png'), fullPage: false });
   // phone width

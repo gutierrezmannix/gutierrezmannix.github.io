@@ -40,6 +40,8 @@ GEN_INS = '        const mm = part.trim().match(/^(!|~)?\\s*missing\\(\\s*([A-Za
 def integrate_component(c):
     methods = (ROOT / 'src' / 'console-page.js').read_text()
     c = _between(c, '  // GM26 console page begin', '  // GM26 console page end', methods.rstrip(), '  descFor() {')
+    more = (ROOT / 'src' / 'console-more.js').read_text()
+    c = _between(c, '  // GM26 console more begin', '  // GM26 console more end', more.rstrip(), '  descFor() {')
     # render values
     c = _one(c, "    out.isPredict = S.tab === 'predict'; if (out.isPredict) out.prEl = this.prRender();",
              "    out.isPredict = S.tab === 'predict'; if (out.isPredict) out.prEl = this.prRender();\n"
@@ -97,9 +99,10 @@ def integrate_component(c):
     c = _one(c, "    if ((m = s.match(/^(destring|tostring)\\s+(.+?)(?:\\s*,.*)?$/i))) {",
              "    if (/^tostring\\s.*\\bgen(?:erate)?\\s*\\(/i.test(s)) return this.cpTostringGen(s, varlist, fail, ok);\n    if ((m = s.match(/^(destring|tostring)\\s+(.+?)(?:\\s*,.*)?$/i))) {", 'tostring gen()')
     c = _one(c, GEN_OLD, GEN_INS + GEN_OLD, 'generate if missing()')
-    # build .105: typed commands that run on the Tests engine (ranksum, kwallis, anova, mlogit, mixed, stcox, pca …)
+    # build .105 / .106: typed commands that run on the Tests engine (ranksum, anova, mixed, stcox, pca …) and the
+    # inspection and statistics commands of src/console-more.js (lookfor, levelsof, table, ci, swilk, egen …)
     c = _one(c, "    if (this.runStataExtra(s)) return;\n    const low = {};",
-             "    if (this.cpEngine && this.cpEngine(s)) return;\n    if (this.runStataExtra(s)) return;\n    const low = {};", 'engine commands')
+             "    if (this.cpEngine && this.cpEngine(s)) return;\n    if (this.cqRun && this.cqRun(s)) return;\n    if (this.runStataExtra(s)) return;\n    const low = {};", 'engine and more commands')
     return c
 
 

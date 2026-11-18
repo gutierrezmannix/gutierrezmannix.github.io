@@ -146,7 +146,7 @@
     const rows = vars.map(v => {
       const nm = R(this.abbr(v, 12), 12), a = this.cxNum(v, mk);
       if (!a) { const h = this.cxTextNumberHint(v); if (h) notes.push('note: ' + h); return nm + ' |' + R(0, w && !fw ? 8 : 11); }
-      const s = E.descNum(a, w); if (!s.n) return nm + ' |' + R(0, w && !fw ? 8 : 11); shown++;
+      const s = E.descNum(a, w); if (!s.n) return nm + ' |' + R(0, w && !fw ? 8 : 11); shown++; this._cpR = { N: s.n, sum_w: s.sw, mean: s.mean, Var: s.sd * s.sd, sd: s.sd, min: s.mn, max: s.mx, sum: s.mean * s.sw }; // r() for display / return list (build .106)
       if (fw) { const N = s.sw, sd = N > 1 ? Math.sqrt(this.cxSS(s) / (N - 1)) : NaN; return nm + ' |' + R(this.fmtN(N), 11) + R(G(s.mean), 12) + R(G(sd), 12) + R(G(s.mn), 11) + R(G(s.mx), 11); }
       return w ? nm + ' |' + R(this.fmtN(s.n), 8) + R(G(s.sw), 12) + R(G(s.mean), 12) + R(G(s.sd), 12) + R(G(s.mn), 10) + R(G(s.mx), 11) : nm + ' |' + R(this.fmtN(s.n), 11) + R(G(s.mean), 12) + R(G(s.sd), 12) + R(G(s.mn), 11) + R(G(s.mx), 11);
     });
@@ -167,6 +167,7 @@
       m2 /= sw; m3 /= sw; m4 /= sw;
       const sd = wt === 'fw' ? (sw > 1 ? Math.sqrt(m2 * sw / (sw - 1)) : NaN) : s.sd, obs = wt === 'fw' ? sw : s.n;
       const P = [0.01, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99].map(p => this.cxPct(s, p)), lbl = [' 1%', ' 5%', '10%', '25%', '50%', '75%', '90%', '95%', '99%'];
+      this._cpR = { N: obs, sum_w: sw, mean: m, Var: sd * sd, sd, skewness: m3 / Math.pow(m2, 1.5), kurtosis: m4 / (m2 * m2), sum: m * sw, min: s.xs[0], max: s.xs[s.n - 1], p1: P[0], p5: P[1], p10: P[2], p25: P[3], p50: P[4], p75: P[5], p90: P[6], p95: P[7], p99: P[8] };
       const sm = i => i < s.n ? R(G(s.xs[i]), 15) : R('', 15), lg = i => s.n - 4 + i >= 0 && s.n - 4 + i < s.n ? R(G(s.xs[s.n - 4 + i]), 15) : R('', 15), side = (k, val) => '       ' + k.padEnd(12) + R(val, 11);
       const L = [title, '-'.repeat(61), '      Percentiles      Smallest',
         lbl[0] + R(G(P[0]), 13) + sm(0), lbl[1] + R(G(P[1]), 13) + sm(1), lbl[2] + R(G(P[2]), 13) + sm(2) + side('Obs', this.fmtN(obs)), lbl[3] + R(G(P[3]), 13) + sm(3) + side('Sum of wgt.', G(sw)), '',

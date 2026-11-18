@@ -65,3 +65,35 @@ clustered panel errors, the Laplace approximation), that option is in the printe
 
 An `if` on these commands applies to that command only. Weights are refused except under `svy:`; after `svyset`, the
 other commands run unweighted, as in Stata, with a note.
+
+## Macros, loops, prefixes and more commands (build .106)
+
+**Programming.** `local`, `global` and `scalar` (with `=` they evaluate); `` `name' `` and `$name` expand in any later
+command; `macro list`, `scalar list`, `… drop`. `display` takes text, expressions, `%9.2f`-style formats, `_n`,
+`_col()`, `r()` after `summarize` (and `ci`, `spearman`, `sdtest`, `swilk`), `_rc`, `_N`, and Stata's functions
+`normal()`, `invnormal()`, `ttail()`, `invttail()`, `chi2tail()`, `Ftail()`, `round()`, `max()`, `ln()` … `return list`
+prints the stored results.
+
+**Loops.** `foreach v of varlist|local|global|numlist …`, `foreach x in …` and `forvalues i = 1/5` (or `1(2)9`), typed
+line by line (the prompt counts the lines, as Stata's `2.`) or in the do-file box; nested loops work; 600 commands at most.
+
+**Prefixes.** `quietly` (no output; errors still show), `capture` (no output, no error; sets `_rc`), `noisily`,
+`by` / `bysort varlist:` (the command once per group, under `-> g = value`; with `egen` it becomes `, by()`).
+Inline comments (`//`, `/* */`) are dropped. `set more off`, `version`, `log using` and similar are accepted and change
+nothing; `clear` is refused (it would remove the data).
+
+| Typed | Prints |
+|---|---|
+| `lookfor word` · `ds [, has(type string)]` · `levelsof x [, local(name)]` · `isid id` · `label list [x]` | as Stata (levelsof stores the local) |
+| `table a` · `table a b` | Stata 17's frequency table with totals |
+| `proportion x` | proportions, SEs and the logit interval with t(n − 1), as Stata |
+| `ci means x` · `ci proportions x [, wald wilson agresti jeffreys]` · `cii means` / `cii proportions` | exact (Clopper–Pearson) by default, as Stata |
+| `spearman a b` · `sdtest y, by(g)` / `sdtest y == #` / `sdtest a == b` · `swilk x` | rho and its t test; the variance-ratio F (or chi2) test; Shapiro–Wilk W, V, z (Royston) |
+| `egen new = fcn(), by()` | mean sd sum total min max median count pctile iqr std rank group tag rowmean rowtotal rowmin rowmax rowmiss rownonmiss rowsd |
+| `encode s, gen(n)` · `decode n, gen(s)` · `xtile q = x, nq(4)` | new variables (encode labels its codes; xtile uses Stata's percentile definition) |
+| `preserve` · `restore` | undo keep / drop / the subgroup since `preserve` (the data are filtered, never deleted) |
+| `kdensity x` · `graph pie, over(x)` | the chart, logged once |
+
+`sort`, `gsort`, `order`, `format` and `compress` are accepted with a note (they change no result here). `collapse`,
+`reshape`, `merge` and `append` point to the pages that do them. Values were checked against R (`cor.test`,
+`var.test`, `shapiro.test`, `binom.test`, `prop.test`, `t.test`) in `tests/console-more.test.mjs`.

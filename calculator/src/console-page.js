@@ -15,10 +15,13 @@
   cpNote(cmd, msg, kind) { this.setState(s => ({ cpErrs: [...(s.cpErrs || []), { at: s.conLog.length, cmd, msg: msg || '', kind: kind || 'note' }].slice(-300) })); }
   cpTabName(t) { return ({ one: 'Univariate', two: 'Bivariate', corr: 'Correlation matrix', ttest: 't-tests', reg: 'Regression', plots: 'Charts', sem: 'SEM', ergm: 'Networks', text: 'Text analysis', predict: 'Predict', ts: 'Time series', data: 'Data', browse: 'Browse', analysis: 'Tests', maps: 'Maps' })[t] || 'the page'; }
   // run one line: what the console prints comes from the log; errors and notes are kept beside it, in order
-  cpRun(text, then) {
-    const s = String(text || '').replace(/^\s*[.>]\s*/, '').trim(); if (!s) { if (then) then(); return; }
-    this._cpHist = (this._cpHist || []).concat([s]).slice(-300); this._cpHi = null;
+  cpRun(text, then, inner) {
+    let s = String(text || '').replace(/^\s*[.>]\s*/, '').trim(); if (!s) { if (then) then(); return; }
+    if (!inner) { this._cpHist = (this._cpHist || []).concat([s]).slice(-300); this._cpHi = null; }
     const n0 = this.state.conLog.length; this._cpTyping = Date.now();
+    // build .106: loops, macros, display, quietly / capture / by, housekeeping (src/console-more.js)
+    if (this.cqPre && !/^(\*|\/\/)/.test(s)) { if (!this._cqLoop) s = s.replace(/\/\*.*?\*\//g, ' ').replace(/\s+\/\/(?!\/).*$/, '').trim(); const pre = this.cqPre(s, then); if (pre === true) return; s = pre; if (!s) { if (then) then(); return; } }
+    else if (this._cqLoop && this.cqPre) { if (this.cqPre(s, then) === true) return; }
     if (/^(\*|\/\/)/.test(s)) { this.cpNote(s, '', 'comment'); if (then) then(); return; }
     if (/^(cls|clear\s+results)$/i.test(s)) { this.setState({ conFrom: this.state.conLog.length }); if (then) then(); return; }
     if (/^(browse|br|edit|ed|help|h|search)\b/i.test(s)) this.setState({ cpOpen: false });
@@ -108,9 +111,9 @@
     if (!this._cpOpenedAt || !this._cpWasOpen) this._cpOpenedAt = Date.now(); this._cpWasOpen = true;
     const base = (S.fileName || 'gm26').replace(/\.[^.]+$/, ''), prompt = dial === 'r' ? '> ' : '. ', CAP = 400;
     // Review: every command, numbered; a click puts it back in the command line, a double click runs it
-    const revRows = items.map((it, k) => { if (it.err && !it.err.cmd) return null;
+    let revN = 0; const revRows = items.map((it, k) => { if (it.err && !it.err.cmd) return null; const num = ++revN;
       const cmd = it.err ? it.err.cmd : this.cpCmdOf(it.d, dial).split('\n')[0], cls = 'cp-rv' + (it.err && it.err.kind === 'err' ? ' err' : !it.err && it.d.src !== 'typed' ? ' page' : '');
-      return h('button', { key: k, type: 'button', className: cls, title: (it.err && it.err.kind === 'err' ? 'Error · ' : !it.err && it.d.src !== 'typed' ? 'From a button on the page · ' : '') + 'click to edit, double-click to run again', onClick: () => { if (this._cpIn) { this._cpIn.value = cmd; this._cpIn.focus(); } }, onDoubleClick: () => this.cpRun(cmd) }, h('span', { className: 'n' }, k + 1), cmd);
+      return h('button', { key: k, type: 'button', className: cls, title: (it.err && it.err.kind === 'err' ? 'Error · ' : !it.err && it.d.src !== 'typed' ? 'From a button on the page · ' : '') + 'click to edit, double-click to run again', onClick: () => { if (this._cpIn) { this._cpIn.value = cmd; this._cpIn.focus(); } }, onDoubleClick: () => this.cpRun(cmd) }, h('span', { className: 'n' }, num), cmd);
     });
     // Results: oldest first; long tables are cut on screen (Copy and Save log keep everything)
     const resRows = items.map((it, k) => {
@@ -153,7 +156,7 @@
       h('div', { className: 'cp-res', ref: resRef, role: 'log', 'aria-live': 'polite', 'aria-label': 'Results' }, resRows.length ? resRows : h('div', { className: 'cp-empty big' }, h('b', null, 'Type a Stata command below and press Enter.'), h('br'), 'For example  summarize ' + ((cols.find(c => c.type === 'numeric') || {}).name || 'x') + '  or  tabulate ' + ((cols.find(c => c.type !== 'numeric') || cols[0] || {}).name || 'x') + '. Buttons on the page that run something print their command here too.')),
       doBox,
       sg ? h('div', { className: 'cp-sug', role: 'listbox' }, sg.list.map((x, i) => h('button', { key: x.name, type: 'button', role: 'option', className: i === 0 ? 'on' : '', onMouseDown: e => { e.preventDefault(); this.cpInsert(x.name, true); } }, h('span', null, x.name), h('em', null, i === 0 ? 'Tab · ' + x.sub : x.sub)))) : null,
-      h('div', { className: 'cp-cl' }, h('span', { className: 'cp-prompt' }, prompt.trim()),
+      h('div', { className: 'cp-cl' }, h('span', { className: 'cp-prompt' }, S.cpLoopN ? '  ' + (S.cpLoopN + 1) + '.' : prompt.trim()),
         h('input', { ref: el => { this._cpIn = el; }, className: 'cp-in', type: 'text', autoComplete: 'off', spellCheck: false, 'aria-label': 'Command', placeholder: dial === 'r' ? 'Stata command (the console reads Stata and a few R calls)' : 'Stata command — e.g.  tabulate sexo  ·  ↑ ↓ earlier commands · Tab completes', onKeyDown: e => this.cpKey(e), onInput: () => this.cpSuggest(), onClick: () => this.cpSuggest(), onBlur: () => setTimeout(() => { if (this.state.cpSug) { this._cpSugKey = ''; this.setState({ cpSug: null }); } }, 150) }),
         h('div', { className: 'cp-mwrap' }, btn('Commands ▾', () => this.setState({ cpMenu: !S.cpMenu }), 'Pick a command to fill in'), menu),
         btn('Do-file', () => this.setState({ cpDo: !S.cpDo }), 'Several commands at once'),
