@@ -135,3 +135,24 @@ test('build .103: the console records actions, not views, and typed commands fol
   run(c, 'tostring x, gen(x_s)'); assert.ok(c._raw.names.includes('x_s') && c._raw.names.includes('x')); assert.equal(c._raw.cols[c._raw.names.indexOf('x_s')].k, 's');
   assert.ok(c.state.conLog.every(e => e.src === 'typed' || e.src === 'page'));
 });
+
+test('build .104: page functions print their Stata command', async () => {
+  const c = await setup(); c.afterUpdateUI = c.autoSchedule = c.noteWatch = () => {};
+  const set = c.setState.bind(c); c.setState = (p, cb) => set(p, () => { c.componentDidUpdate(); cb?.(); });
+  let k = c.cpChartCmd('bar', { x: 'g' }); assert.match(k.stata, /^graph hbar \(count\), over\(g/); assert.match(k.r, /geom_bar/);
+  k = c.cpChartCmd('bar', { x: 'g', stat: 'mean', y: 'y' }); assert.match(k.stata, /^graph hbar \(mean\) y, over\(g/);
+  k = c.cpChartCmd('hist', { x: 'y', bins: '12' }); assert.equal(k.stata, 'histogram y, frequency bin(12)');
+  k = c.cpChartCmd('gbox', { x: 'g', y: 'y' }); assert.equal(k.stata, 'graph box y, over(g)');
+  k = c.cpChartCmd('scatter', { x: 'x', y: 'y' }); assert.equal(k.stata, 'twoway (scatter y x) (lfit y x)');
+  k = c.cpChartCmd('mean', { x: 'g', y: 'y' }); assert.match(k.stata, /margins g\nmarginsplot/);
+  k = c.cpChartCmd('line', { x: 'x', y: 'y' }); assert.match(k.stata, /^preserve\ncollapse \(mean\) y, by\(x\)\ntwoway line y x\nrestore$/);
+  assert.throws(() => c.cpChartCmd('bar', {}), /pick the variables/);
+  assert.equal(c.cpTsvText('g\tmean\nA\t1.5\nB\t2'), 'g |  mean\n--+------\nA |   1.5\nB |     2');
+  // Settings: the weight, the survey design and the level print once each; a typed command logs itself instead
+  c.cpWatchSettings(); const n0 = c.state.conLog.length;
+  c.setState({ weightVar: 'x' }); c.setState({ svyPsu: 'g' }); c.setState({ alphaSel: '0.1' });
+  const lines = c.state.conLog.slice(n0).map(d => c.cmdText(d, 'stata'));
+  assert.deepEqual(lines, ['* the page now weights every analysis by x (the commands below carry [pw=x] or [aw=x])', 'svyset g [pw=x]', 'set level 90']);
+  c.cpPrint({ stata: 'table g, statistic(mean y)', r: 'aggregate(y ~ g, df, mean)', tbl: 'g | mean' }); const d = c.state.conLog.at(-1);
+  assert.equal(d.src, 'page'); assert.equal(c.cmdText(d, 'stata'), 'table g, statistic(mean y)'); assert.equal(c.cmdText(d, 'r'), 'aggregate(y ~ g, df, mean)');
+});

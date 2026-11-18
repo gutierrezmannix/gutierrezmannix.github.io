@@ -283,7 +283,7 @@
           h('span', { className: 'cm-apa' }, h('span', { className: 'cm-k' }, 'APA'), h('span', null, apa)),
           this.tlBtn('Copy APA', () => { try { navigator.clipboard.writeText(apa).then(() => this.flash('APA line copied')); } catch (e) {} }),
           this.tlBtn('Word table (.docx)', () => this.cmDocx(D, r), 'primary'), this.tlBtn('Copy table for Word', () => this.cmCopyWord(D, r)),
-          this.tlBtn('Pin to report', () => this.pinTab()), this.tlBtn('Add to console', () => { if (this._ttLast) this.pushLog(Object.assign({}, this._ttLast)); this.flash('Added to the console'); }),
+          this.tlBtn('Pin to report', () => this.pinTab()), this.tlBtn('›_ Print in console', () => { if (this._ttLast) this.pushLog(Object.assign({}, this._ttLast)); this.flash('Added to the console'); }),
           mode === 'groups' && D.labs && D.labs.length > 2 ? this.tlBtn('All ' + D.labs.length + ' groups: ANOVA →', () => this.setState({ tab: 'two', twoMode: 'means', yVar: xn, xVar: S.ttG })) : null);
         // Result | Stata | R tabs on the result card (build .87): the same numbers as each program prints them, with Copy
         const VT = L ? this.cmViewTabs('cmView', v => this.cmdText(L, v) + '\n\n' + this.cmTidyOut(((v === 'r' ? L.tblR : L.tblStata) || L.tbl || ''), v)) : null;

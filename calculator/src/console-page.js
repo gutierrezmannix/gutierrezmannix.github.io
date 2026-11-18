@@ -9,7 +9,7 @@
   cpTakeArm() { const s = this._cpArm ? (this._cpArmSrc || 'page') : 'page'; this._cpArm = 0; return s; }
   cpSrc() { return this._cpTyping && Date.now() - this._cpTyping < 3000 ? 'typed' : 'page'; }
   cpOpenPage() { this._cpBack = this.state.tab; this.setState({ cpOpen: true, mfNav: '', mfFile: false, menu: '' }, () => { try { window.scrollTo(0, 0); } catch (e) {} setTimeout(() => this._cpIn && this._cpIn.focus({ preventScroll: true }), 30); }); }
-  cpClose() { this._cpSkip = Date.now(); this.setState({ cpOpen: false }); }
+  cpClose() { this.setState({ cpOpen: false }); }
   // the view on screen, printed once (the Print in console button above each page)
   cpPrintView() { const d = this.descFor(); if (!d) { this.flash('Nothing on this page to print yet'); return; } this.cpArm('page'); this.setState({ conSig: '' }); this.flash('Printed in the console'); }
   cpNote(cmd, msg, kind) { this.setState(s => ({ cpErrs: [...(s.cpErrs || []), { at: s.conLog.length, cmd, msg: msg || '', kind: kind || 'note' }].slice(-300) })); }
@@ -111,7 +111,7 @@
       const d = it.d, cmd = this.cpCmdOf(d, dial), tbl = this.cpTblOf(d, dial), lines = tbl ? tbl.split('\n') : [];
       const cut = lines.length > CAP ? lines.slice(0, CAP).join('\n') + '\n\n  … ' + this.fmtN(lines.length - CAP) + ' more lines (Copy or Save log keeps the whole table)' : tbl;
       return h('div', { key: 'd' + it.at, className: 'cp-item' },
-        cmd.split('\n').map((l, i) => h('div', { key: i, className: 'cp-cmd' }, (i ? (dial === 'r' ? '+ ' : '> ') : prompt) + l, i === 0 && d.src !== 'typed' ? h('span', { className: 'cp-src' }, (dial === 'r' ? '  # ' : '  * ') + 'from ' + (d.t === 'asx' ? 'Tests ▾' : 'the page')) : null)),
+        cmd.split('\n').map((l, i) => h('div', { key: i, className: 'cp-cmd' }, (/^\s/.test(l) || /^\}/.test(l) ? '  ' : prompt) + l, i === 0 && d.src !== 'typed' ? h('span', { className: 'cp-src' }, (dial === 'r' ? '  # ' : '  * ') + 'from ' + (d.t === 'asx' ? 'Tests ▾' : 'the page')) : null)),
         cut ? h('pre', { className: 'cp-tbl' }, cut) : d.res ? h('div', { className: 'cp-note' }, d.res) : null,
         d.t === 'plot' ? h('button', { type: 'button', className: 'cp-link', onClick: () => { this.rerunCmd(d); this.cpClose(); } }, 'View the graph →') : null);
     });
@@ -205,5 +205,74 @@
     L.vars.forEach((v, j) => { const i = raw.names.indexOf(v), c = raw.cols[i]; const a = c.k === 'n' ? Array.from(c.a, x => Number.isFinite(x) ? String(E.numLab(x)) : '') : Array.from(c.a, x => x == null ? '' : String(x)); this.addDerivedCol(names[j], { k: 's', a }, raw.labels[i] || '', 'gen'); });
     this.clearMemo(); this.stataLog(s, names.join(' ') + ' generated as str');
     ok(s); return true;
+  }
+  // ---- build .104: every page function prints its Stata command
+  // a page's own command (and table) into the console, once, marked as coming from the page
+  cpPrint(o) { if (!o || !(o.stata || o.r)) return; this.pushLog({ t: 'stata', stata: o.stata || '* (no Stata command for this)', r: o.r || '# (no R code for this)', tbl: o.tbl || '', res: o.res || '' }); this.flash('Printed in the console'); }
+  // TSV (as copied for Excel) to a plain text table for the console
+  cpTsvText(tsv) {
+    const rows = String(tsv || '').split('\n').map(l => l.split('\t')); if (!rows.length) return '';
+    const n = Math.max(...rows.map(r => r.length)), w = Array.from({ length: n }, (_, j) => Math.min(28, Math.max(...rows.map(r => String(r[j] == null ? '' : r[j]).length))));
+    const line = r => r.map((v, j) => { v = String(v == null ? '' : v).slice(0, 28); return j === 0 ? v.padEnd(w[j]) + ' |' : v.padStart(w[j] + 2); }).join('');
+    return [line(rows[0]), '-'.repeat(w[0] + 1) + '+' + '-'.repeat(w.slice(1).reduce((a, x) => a + x + 2, 0)), ...rows.slice(1).map(line)].join('\n');
+  }
+  // the command for a chart under its download buttons (tlExportRow): chart-builder charts by their key
+  cpCmdFor(key) { if (!/^cb-/.test(String(key))) return null; try { return this.cpChartCmd(this.state.plotKind, this.cbC ? this.cbC() : {}); } catch (e) { return null; } }
+  cpPrintFor(key) { const c = this.cpCmdFor(key); if (c) this.cpPrint(c); }
+  // Stata (and R) commands that draw what each chart-builder chart draws; charts with no official Stata command name
+  // the user-written one (ssc install …)
+  cpChartCmd(id, c) {
+    const S = this.state, w = S.weightVar || '', cs = this.conds ? this.conds() : [], ifs = cs.length ? ' if ' + cs.map(k => this.condExpr(k, 'stata')).join(' & ') : '';
+    const aw = w ? ' [aw=' + w + ']' : '', pw = w ? ' [pw=' + w + ']' : '', q = s => JSON.stringify(String(s || '')), x = c.x, y = c.y, g = c.group, f = c.facet;
+    const o = (...a) => { const l = a.filter(Boolean); return l.length ? ', ' + l.join(' ') : ''; }, ttl = c.title ? 'title(' + q(c.title) + ')' : '', byf = f ? 'by(' + f + ')' : '';
+    const need = (...v) => { if (v.some(z => !z)) throw new Error('pick the variables first'); };
+    const vars = (c.vars || []).join(' '), R = [], ST = [];
+    if (id === 'bar' || id === 'dot') { need(x); const st = c.stat || 'count'; const gr = id === 'dot' ? 'graph dot' : 'graph hbar'; ST.push(st === 'mean' || st === 'sum' ? (need(y), gr + ' (' + st + ') ' + y + aw + ifs + o('over(' + x + ', sort(1) descending)', ttl)) : gr + ' (' + (st === 'percent' ? 'percent' : 'count') + ')' + (st === 'percent' ? aw : '') + ifs + o('over(' + x + ', sort(1) descending)', ttl)); R.push('library(ggplot2)', st === 'mean' || st === 'sum' ? 'ggplot(df, aes(' + x + ', ' + y + ')) + stat_summary(fun = ' + st + ', geom = "col")' : 'ggplot(df, aes(' + x + ')) + geom_bar(' + (st === 'percent' ? 'aes(y = after_stat(100 * prop), group = 1)' : '') + ') + coord_flip()'); }
+    else if (id === 'groupbar' || id === 'stackcount') { need(x, y); ST.push('graph hbar (' + (c.stat === 'percent' ? 'percent' : 'count') + ')' + ifs + o('over(' + y + ') over(' + x + ')', 'asyvars', id === 'stackcount' ? 'stack' : '', c.stat === 'percent' ? 'percentages' : '', ttl)); R.push('library(ggplot2)', 'ggplot(df, aes(' + x + ', fill = ' + y + ')) + geom_bar(position = "' + (id === 'stackcount' ? 'stack' : 'dodge') + '")'); }
+    else if (id === 'stack') { need(x, y); ST.push('graph hbar' + aw + ifs + o('over(' + y + ') over(' + x + ')', 'asyvars stack percentages', ttl)); R.push('library(ggplot2)', 'ggplot(df, aes(' + x + ', fill = ' + y + ')) + geom_bar(position = "fill") + coord_flip()'); }
+    else if (id === 'likert') { need(y); ST.push('* Likert chart: ssc install likert (or the same bars below)', 'graph hbar (percent)' + aw + ifs + o('over(' + y + ')', x ? 'over(' + x + ')' : '', 'asyvars stack percentages', ttl)); R.push('library(ggplot2)', 'ggplot(df, aes(' + (x || '""') + ', fill = ' + y + ')) + geom_bar(position = "fill") + coord_flip()'); }
+    else if (id === 'pie' || id === 'donut') { need(x); ST.push((id === 'donut' ? '* donut: a pie with a hole is not built in; the pie\n' : '') + 'graph pie' + aw + ifs + o('over(' + x + ')', 'plabel(_all percent, format(%4.1f))', byf, ttl)); R.push('library(ggplot2)', 'ggplot(df, aes("", fill = ' + x + ')) + geom_bar(width = 1) + coord_polar("y")'); }
+    else if (id === 'hist') { need(x); ST.push((w ? '* histogram takes frequency weights only; the weight is left out\n' : '') + 'histogram ' + x + ifs + o(c.stat === 'percent' ? 'percent' : 'frequency', c.bins && c.bins !== 'auto' ? 'bin(' + c.bins + ')' : '', ttl)); R.push('library(ggplot2)', 'ggplot(df, aes(' + x + ')) + geom_histogram(' + (c.bins && c.bins !== 'auto' ? 'bins = ' + c.bins : '') + ')'); }
+    else if (id === 'density') { need(x); ST.push(g ? 'twoway kdensity ' + x + aw + ifs + o('by(' + g + ', note(""))', ttl) : 'kdensity ' + x + aw + ifs + o(ttl)); R.push('library(ggplot2)', 'ggplot(df, aes(' + x + (g ? ', colour = ' + g : '') + ')) + geom_density()'); }
+    else if (id === 'box') { need(x); ST.push('graph box ' + x + aw + ifs + o(ttl)); R.push('boxplot(df$' + x + ')'); }
+    else if (id === 'gbox' || id === 'violin') { need(x, y); ST.push((id === 'violin' ? '* violin plot: ssc install vioplot\nvioplot ' + y + ifs + ', over(' + x + ')\n* or the box plot:\n' : '') + 'graph box ' + y + aw + ifs + o('over(' + x + ')', ttl)); R.push('library(ggplot2)', 'ggplot(df, aes(' + x + ', ' + y + ')) + geom_' + (id === 'violin' ? 'violin' : 'boxplot') + '()'); }
+    else if (['scatterplain', 'scatter', 'smooth', 'hexbin'].includes(id)) { need(x, y);
+      if (id === 'hexbin') ST.push('* hexbin: ssc install hexplot', 'hexplot ' + y + ' ' + x + ifs);
+      else if (id === 'scatterplain' && g) ST.push('separate ' + y + ', by(' + g + ') veryshortlabel', 'scatter ' + y + '?* ' + x + ifs + o(ttl));
+      else ST.push('twoway (scatter ' + y + ' ' + x + ')' + (id === 'scatter' ? ' (lfit ' + y + ' ' + x + ')' : id === 'smooth' ? ' (lowess ' + y + ' ' + x + ')' : '') + ifs + o(ttl));
+      R.push('library(ggplot2)', 'ggplot(df, aes(' + x + ', ' + y + (g ? ', colour = ' + g : '') + ')) + ' + (id === 'hexbin' ? 'geom_hex()' : 'geom_point()' + (id === 'scatter' ? ' + geom_smooth(method = "lm")' : id === 'smooth' ? ' + geom_smooth(method = "loess")' : ''))); }
+    else if (id === 'matrix') { need(vars); ST.push('graph matrix ' + vars + aw + ifs + o('half', ttl)); R.push('pairs(df[c(' + (c.vars || []).map(q).join(', ') + ')])'); }
+    else if (id === 'corrmap') { need(vars); ST.push('* heat map: ssc install heatplot', 'correlate ' + vars + aw + ifs, 'matrix C = r(C)', 'heatplot C, values(format(%4.2f)) lower'); R.push('cor(df[c(' + (c.vars || []).map(q).join(', ') + ')], use = "pairwise.complete.obs")'); }
+    else if (id === 'heatmap') { need(x, g, y); ST.push('* heat map: ssc install heatplot', 'heatplot ' + y + ' i.' + g + ' i.' + x + aw + ifs + ', statistic(mean) values(format(%9.2f))'); R.push('aggregate(' + y + ' ~ ' + g + ' + ' + x + ', df, mean)'); }
+    else if (id === 'mean' || id === 'proportion') { need(x, y); ST.push((id === 'proportion' ? 'proportion ' + y + pw + ifs + ', over(' + x + ')\n' : 'mean ' + y + pw + ifs + ', over(' + x + ')\n') + 'regress ' + y + ' i.' + x + pw + ifs, 'margins ' + x, 'marginsplot, recast(scatter)' + (c.title ? ' title(' + q(c.title) + ')' : '')); R.push('aggregate(' + y + ' ~ ' + x + ', df, function(v) c(mean = mean(v), lo = t.test(v)$conf.int[1], hi = t.test(v)$conf.int[2]))'); }
+    else if (id === 'dumbbell' || id === 'slope') { need(x, c.lo, y); ST.push('encode ' + x + ', generate(' + x + '_c)   // skip if ' + x + ' is already numeric', id === 'dumbbell' ? 'twoway (rspike ' + c.lo + ' ' + y + ' ' + x + '_c, horizontal) (scatter ' + x + '_c ' + c.lo + ') (scatter ' + x + '_c ' + y + ')' + ifs : 'twoway (pcspike ' + c.lo + ' ' + x + '_c ' + y + ' ' + x + '_c)' + ifs); R.push('library(ggplot2)', 'ggplot(df) + geom_segment(aes(x = ' + c.lo + ', xend = ' + y + ', y = ' + x + ', yend = ' + x + '))'); }
+    else if (id === 'paired') { need(x, y); ST.push('graph dot (mean) ' + x + ' ' + y + aw + ifs, 'ttest ' + y + ' == ' + x + ifs); R.push('t.test(df$' + y + ', df$' + x + ', paired = TRUE)'); }
+    else if (id === 'survival') { need(x, y); ST.push('stset ' + x + ', failure(' + y + ')', 'sts graph' + (g ? ', by(' + g + ')' : '')); R.push('library(survival)', 'plot(survfit(Surv(' + x + ', ' + y + ') ~ ' + (g || '1') + ', data = df))'); }
+    else if (['coefficient', 'prediction', 'interaction', 'marginal', 'event', 'modelcompare', 'conjoint'].includes(id)) {
+      if ((c.source || 'columns') === 'current' && this.descFor && (this.descFor() || {}).t === 'reg') { const reg = this.cmdText(this.tagSg(this.descFor()), 'stata'); ST.push(reg, id === 'coefficient' ? '* coefficient plot: ssc install coefplot\ncoefplot, drop(_cons) xline(0)' : id === 'interaction' ? 'margins ' + ((S.regIx || [])[0] ? (S.regIx[0].a + '#' + S.regIx[0].b) : (S.mgX || '')) + '\nmarginsplot' : 'margins ' + (S.mgX || '') + '\nmarginsplot'); }
+      else { need(x, y); ST.push('* estimates stored as variables: ' + y + ' (estimate)' + (c.lo ? ', ' + c.lo + ' – ' + c.hi + ' (bounds)' : ''), 'twoway ' + (c.lo && c.hi ? '(rcap ' + c.lo + ' ' + c.hi + ' ' + x + ') ' : '') + '(scatter ' + y + ' ' + x + ')' + ifs + o('yline(0)', ttl)); }
+      R.push('# see Regression → the R code of the model'); }
+    else if (id === 'map') { ST.push('* map: ssc install spmap (shapefile converted with spshape2dta)', 'spmap ' + (y || 'value') + ' using coords.dta, id(_ID) fcolor(Blues) clmethod(quantile)'); R.push('library(sf); library(ggplot2)', 'ggplot(shapes) + geom_sf(aes(fill = ' + (y || 'value') + '))'); }
+    else if (['line', 'area', 'panel', 'multiline'].includes(id)) { need(x, y);
+      const cd = this.cbCoded ? this.cbCoded(y) : null, st = this.cbTlStat ? this.cbTlStat(c, cd) : 'mean', gby = g ? ' ' + g : '', how = g ? (id === 'panel' ? 'twoway line ~ ' + x + ', by(' + g + ')' : 'xtset ' + g + ' ' + x + '\nxtline ~, overlay') : 'twoway ' + (id === 'area' ? 'area' : 'line') + ' ~ ' + x;
+      const enc = g && !(this.effMeta(g) && this.effMeta(g).type === 'numeric') ? 'encode ' + g + ', generate(' + g + '_c)\n' : '', gg = enc ? g + '_c' : g, how2 = enc ? how.replace(new RegExp('\\b' + g + '\\b', 'g'), gg) : how;
+      ST.push('preserve');
+      if (st === 'each' || st === 'eachn') { ST.push('tabulate ' + y + ', generate(_a)', 'collapse (' + (st === 'eachn' ? 'sum' : 'mean') + ') _a*' + (st === 'eachn' ? '' : pw) + ifs + ', by(' + x + gby + ')'); if (st === 'each') ST.push('foreach v of varlist _a* {', '    replace `v\' = 100 * `v\'', '}'); ST.push(enc + how2.replace('~', '_a*')); }
+      else if (st === 'one' && cd) { const k = (c.ans != null ? c.ans : (cd.codes[0] || {}).key); ST.push('generate byte _ans = (' + y + ' == ' + k + ') if !missing(' + y + ')', 'collapse (mean) _ans' + pw + ifs + ', by(' + x + gby + ')', 'replace _ans = 100 * _ans', enc + how2.replace('~', '_ans')); }
+      else ST.push('collapse (mean) ' + y + pw + ifs + ', by(' + x + gby + ')', enc + how2.replace('~', y));
+      ST.push('restore'); if (c.smooth) ST.splice(ST.length - 1, 0, '* the page also smooths the line (moving average); see tssmooth ma');
+      R.push('library(ggplot2)', 'a <- aggregate(' + y + ' ~ ' + x + (g ? ' + ' + g : '') + ', df, mean)', 'ggplot(a, aes(' + x + ', ' + y + (g ? ', colour = ' + g : '') + ')) + geom_line()'); }
+    else return null;
+    return { stata: ST.join('\n'), r: R.join('\n') };
+  }
+  // Settings that change later commands print once: the page weight, the survey design, missing codes, the level
+  cpWatchSettings() {
+    const S = this.state; if (S.screen !== 'work' || !this._raw) { this._cpSet = null; return; }
+    const snap = { w: S.weightVar || '', psu: S.svyPsu || '', st: S.svyStrata || '', mc: String(S.missingCodes || '').trim(), a: String(S.alphaSel || '') }, prev = this._cpSet; this._cpSet = snap;
+    if (!prev || (this._cpTyping && Date.now() - this._cpTyping < 3000)) return;   // first look, or a typed command that logs itself
+    if (snap.w !== prev.w) this.pushLog({ t: 'stata', stata: snap.w ? '* the page now weights every analysis by ' + snap.w + ' (the commands below carry [pw=' + snap.w + '] or [aw=' + snap.w + '])' : '* the page weight is cleared', r: snap.w ? '# the page now weights every analysis by ' + snap.w : '# the page weight is cleared', res: '' });
+    if (snap.psu !== prev.psu || snap.st !== prev.st) this.pushLog({ t: 'stata', stata: snap.psu || snap.st ? 'svyset ' + (snap.psu || '_n') + (snap.w ? ' [pw=' + snap.w + ']' : '') + (snap.st ? ', strata(' + snap.st + ')' : '') : 'svyset, clear', r: snap.psu || snap.st ? 'des <- survey::svydesign(ids = ~' + (snap.psu || '1') + (snap.st ? ', strata = ~' + snap.st : '') + (snap.w ? ', weights = ~' + snap.w : '') + ', data = df, nest = TRUE)' : 'rm(des)', res: '' });
+    if (snap.mc !== prev.mc && snap.mc) this.pushLog({ t: 'stata', stata: 'mvdecode _all, mv(' + snap.mc.split(/[\s,;]+/).filter(Boolean).join(' ') + ')', r: 'df[df %in% c(' + snap.mc.split(/[\s,;]+/).filter(Boolean).join(', ') + ')] <- NA', res: 'treated as missing in every numeric variable' });
+    if (snap.a !== prev.a && Number(snap.a) > 0) this.pushLog({ t: 'stata', stata: 'set level ' + +(100 * (1 - Number(snap.a))).toFixed(2), r: '# conf.level = ' + +(1 - Number(snap.a)).toFixed(4), res: '' });
   }
   // GM26 console page end

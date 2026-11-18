@@ -20,7 +20,7 @@ async function make() {
   const yi = raw.names.indexOf('y'), leak = new Float64Array(raw.n); for (let i = 0; i < raw.n; i++) leak[i] = raw.cols[yi].a[i] === 1 ? (i % 20 ? 1 : 2) : (i % 20 ? 2 : 1);
   raw.names.push('y_copy'); raw.labels.push('almost the outcome'); raw.cols.push({ k: 'n', a: leak });
   raw.vlabs = Object.assign({}, raw.vlabs, { sexo: new Map([[1, 'Hombre'], [2, 'Mujer']]), y: new Map([[0, 'No'], [1, 'Sí']]), y_copy: new Map([[1, 'a'], [2, 'b']]) });
-  const c = new C(); c._E = E; c._raw = raw; c._svgs = {}; c.flash = t => { c.message = t; }; c.pushLog = () => {}; c.stataLog = () => {};
+  const c = new C(); c._E = E; c._raw = raw; c._svgs = {}; c.flash = t => { c.message = t; }; c.logged = []; c.pushLog = e => c.logged.push(e); c.stataLog = () => {};
   c.state = { ...c.state, screen: 'work', tab: 'predict', fileName: 'sim.csv', nRows: raw.n, cols: raw.names.map((_, i) => Object.assign(E.profileCol(raw, i, true), { idx: i })), autoScreen: true, genTags: {}, treat: {}, weightVar: 'w' };
   return c;
 }
@@ -35,6 +35,8 @@ test('Predict: the six steps on a yes / no outcome, inline run, locked test set,
   c.state.pr = { ...c.state.pr, step: 'split' }; t = render(c); assert.match(text(t), /Training set · 960 rows/); assert.match(text(t), /Test set · 240 rows · locked/); assert.match(text(t), /Use w/);
   c.state.pr = { ...c.state.pr, step: 'models', models: ['logit', 'tree', 'knn'], groupBy: 'sexo' }; t = render(c); assert.match(text(t), /Run 3 models/); assert.match(text(t), /Logit \(baseline\)/);
   await c.prStart(); assert.equal(c._pr.status, 'done', c._pr.err); assert.equal(c.prS().step, 'evaluate');
+  // build .104: a finished run prints its Stata commands (and R in the R view) in the console, once
+  assert.equal(c.logged.length, 1); assert.equal(c.logged[0].t, 'stata'); assert.match(c.logged[0].stata, /splitsample/); assert.match(c.logged[0].stata, /logit y01/); assert.match(c.logged[0].r, /set\.seed/); assert.match(c.logged[0].res, /best:/);
   const R = c._pr.out; assert.deepEqual(R.results.map(r => r.kind), ['null', 'logit', 'tree', 'knn']); assert.equal(R.nTrain, 960); assert.equal(R.nTest, 240);
   t = render(c); const ev = text(t); assert.match(ev, /null model.*0\.500 \(by definition\)/); assert.match(ev, /best by AUC/); assert.match(ev, /Reading:\s+The/); assert.match(ev, /Reveal the test set/); assert.equal(find(t, n => n.tag === 'svg').length, 0, 'nothing from the test set before it is opened');
   btn(t, /Reveal the test set/).props.onClick(); t = render(c); assert.deepEqual(find(t, n => n.tag === 'svg').map(n => n.props['aria-label']), ['ROC curve', 'Calibration', 'Confusion matrix']); assert.match(text(t), /AUC\s+0\.\d+\s+\[0\.\d+, 0\.\d+\]\s*bootstrap/); assert.match(text(t), /Test set open/);

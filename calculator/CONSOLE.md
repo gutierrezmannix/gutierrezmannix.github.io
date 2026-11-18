@@ -1,4 +1,4 @@
-# Console — build 2026-11-18.103
+# Console — builds 2026-11-18.103–.104
 
 The console has its own page, laid out like Stata's main window.
 
@@ -25,3 +25,17 @@ prints what is on screen, once. **Also what I open** brings back the old behavio
 
 The side pane keeps Plots, Report and Help. Source: `src/console-page.js`, `src/console-page.css`,
 `tools/console_page.py`; tests in `tests/console-stata.test.mjs`.
+
+## Page functions print their Stata command (build .104)
+
+| Page | Prints | When |
+|---|---|---|
+| Charts (chart builder) | `graph hbar` / `graph dot` / `graph pie` / `histogram` / `kdensity` / `graph box` / `twoway` / `graph matrix`; timelines as `preserve` · `collapse` · `twoway line` / `xtline` · `restore`; means and proportions as `regress` · `margins` · `marginsplot`; survival as `stset` · `sts graph`. Charts without an official command name the user-written one (`hexplot`, `heatplot`, `vioplot`, `coefplot`, `spmap`) | **› Print in console** under the chart, next to the download buttons |
+| Break down by groups | its `table …, statistic()` / `tabstat` command and the table | **› Print in console** next to Copy table |
+| Predict | `splitsample`, `logit`, `lasso logit`, `rforest`, `predict`, `roctab` (R: rsample, glmnet, ranger …) | when a run finishes |
+| Compare means, regression plots | their command and table | **› Print in console** (was "Add to console") |
+| Settings | a comment when the page weight changes, `svyset`, `mvdecode _all, mv(…)`, `set level` | once, when changed (not when a typed command changed it) |
+| Univariate, Bivariate, Correlation, t-tests, legacy plots | the page's command and output | **› Print in console** above the page |
+| Regression, Tests ▾, Time series, SEM, data edits | as before | Run / Fit / Apply |
+
+Text analysis and network models have no Stata equivalent; they keep their R code.

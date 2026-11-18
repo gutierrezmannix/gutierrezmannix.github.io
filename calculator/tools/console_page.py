@@ -51,6 +51,7 @@ def integrate_component(c):
     # the screen is logged only when armed; the side pane's Console tab now opens the console page
     c = _one(c, "    if (!this._raw || !this._E) return;\n    let d = this.descFor();",
              "    if (!this._raw || !this._E) return;\n"
+             "    this.cpWatchSettings();\n"
              "    if (this.state.mfPane === 'output' && this.state.screen === 'work') { const skip = this._cpSkip && Date.now() - this._cpSkip < 600; if (!skip && !this.state.cpOpen) this._cpBack = this.state.tab; this.setState(skip ? { mfPane: 'plots' } : { mfPane: 'plots', cpOpen: true }, () => { if (!skip) { try { window.scrollTo(0, 0); } catch (e) {} } }); }\n"
              "    let d = this.descFor();", 'console page redirect')
     c = _one(c, "      if (d && (this._cxQuiet || fltQuiet)) d = null; if (d) d = this.cxAdopt(d);",

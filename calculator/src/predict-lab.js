@@ -43,7 +43,7 @@
       let res = null; const wk = await this.wkStart('prRun', [Dsend, yR, wR, spec], q => { if (q && typeof q === 'object') { job.p = q.p; job.label = q.label; } paint(); });
       if (wk) { job.worker = wk.w; const r = await wk.done; if (r.ok) res = r.v; else job.err = r.e || 'The run failed'; }
       else { const g = E.prRun(D, yR, wR, spec); let r; while (!(r = g.next()).done) { job.p = r.value.p; job.label = r.value.label; } res = r.value; }
-      if (res) { job.out = res; job.status = 'done'; this.prSet({ reveal: false, show: res.best || '', thr: null, step: 'evaluate' }); this.pushLog && this.pushLog({ t: 'cmd', cmd: '// Predict: ' + (res.binary ? 'classification' : 'regression') + ' of ' + P.y + ' with ' + vars.length + ' predictors · ' + res.results.filter(r => r.model).length + ' models · ' + res.nTrain + ' train / ' + res.nTest + ' test' }); } else job.status = 'error';
+      if (res) { job.out = res; job.status = 'done'; this.prSet({ reveal: false, show: res.best || '', thr: null, step: 'evaluate' }); if (this.pushLog) { let code = null; try { code = this.prCodeLines(P, out); } catch (e) {} const summ = (res.binary ? 'Classification' : 'Regression') + ' of ' + P.y + ' with ' + vars.length + ' predictors · ' + res.results.filter(r => r.model).length + ' models · ' + res.nTrain + ' train / ' + res.nTest + ' test · best: ' + (res.best || '—'); this.pushLog(code ? { t: 'stata', stata: code.ST.join('\n'), r: code.R.join('\n'), res: summ } : { t: 'cmd', cmd: '* Predict: ' + summ }); } } else job.status = 'error';
     } catch (e) { job.err = String(e && e.message || e); job.status = 'error'; }
     if (job.worker) job.worker = null; this.forceUpdate();
   }
@@ -217,8 +217,8 @@
       h('text', { x: W - R - 4, y: H - Bm - 6, fontSize: 9, textAnchor: 'end', fill: '#7E7563', fontFamily: F }, 'predicted (decile mean)'), h('text', { x: L + 4, y: T + 10, fontSize: 9, fill: '#7E7563', fontFamily: F }, 'observed'));
   }
   // ---- R and Stata code for what was run
-  prCodePanel(P, out, J) {
-    const h = React.createElement, S = this.state, bin = !out || out.kind === 'binary', y = P.y || 'y', preds = (P.preds || []).join(', '), wgt = P.useW && S.weightVar ? S.weightVar : '', rv = this.tlRvec ? this.tlRvec(P.preds || []) : 'c(' + (P.preds || []).map(p => '"' + p + '"').join(', ') + ')';
+  prCodeLines(P, out) {
+    const S = this.state, bin = !out || out.kind === 'binary', y = P.y || 'y', preds = (P.preds || []).join(', '), wgt = P.useW && S.weightVar ? S.weightVar : '', rv = this.tlRvec ? this.tlRvec(P.preds || []) : 'c(' + (P.preds || []).map(p => '"' + p + '"').join(', ') + ')';
     const yx = bin && out ? 'df$y01 <- ifelse(df$' + y + ' %in% c(' + out.ans.join(', ') + '), 1, ifelse(df$' + y + ' %in% c(' + out.drop.join(', ') + '), NA, 0))' : 'df$y01 <- df$' + y;
     const R = ['library(rsample); library(glmnet); library(rpart); library(ranger); library(class); library(pROC)', 'set.seed(' + P.seed + ')', yx, 'd <- df[!is.na(df$y01), c("y01", ' + rv + (wgt ? ', "' + wgt + '"' : '') + ')]',
       'X <- model.matrix(~ ., d[, ' + rv + '])[, -1]           # dummies against the most frequent level; the page imputes medians inside each fold',
@@ -234,6 +234,10 @@
       bin ? 'logit y01 ' + (P.preds || []).map(p => ((this.effMeta(p) || {}).treatAs === 'numeric' ? 'c.' : 'i.') + p).join(' ') + ' if sample == 1' + (wgt ? ' [pw = ' + wgt + ']' : '') : 'regress y01 ' + (P.preds || []).map(p => ((this.effMeta(p) || {}).treatAs === 'numeric' ? 'c.' : 'i.') + p).join(' ') + ' if sample == 1' + (wgt ? ' [pw = ' + wgt + ']' : ''),
       bin ? 'lasso logit y01 ' + (P.preds || []).map(p => ((this.effMeta(p) || {}).treatAs === 'numeric' ? 'c.' : 'i.') + p).join(' ') + ' if sample == 1, selection(cv, folds(' + P.folds + ')) rseed(' + P.seed + ')' : 'lasso linear y01 ' + (P.preds || []).map(p => ((this.effMeta(p) || {}).treatAs === 'numeric' ? 'c.' : 'i.') + p).join(' ') + ' if sample == 1, selection(cv, folds(' + P.folds + ')) rseed(' + P.seed + ')',
       P.models.includes('forest') ? 'rforest y01 ' + preds.replace(/, /g, ' ') + ' if sample == 1, type(' + (bin ? 'class' : 'reg') + ') iterations(' + P.trees + ') seed(' + P.seed + ')' : null, 'predict p_hat if sample == 2' + (bin ? ', pr' : ''), bin ? 'roctab y01 p_hat if sample == 2' : 'gen sq = (y01 - p_hat)^2 if sample == 2; summarize sq; display sqrt(r(mean))'].filter(Boolean);
+    return { R, ST };
+  }
+  prCodePanel(P, out, J) {
+    const h = React.createElement, { R, ST } = this.prCodeLines(P, out);
     return h('section', { className: 'tl-panel' }, h('div', { className: 'tl-ptitle' }, h('h3', null, 'R and Stata code'), h('span', null, 'the same analysis outside the calculator (the page\'s own fits are in the engine, validated against these packages)')), h('div', { className: 'pr-two' }, h('div', null, h('p', { className: 'tl-lbl' }, 'R'), h('pre', { className: 'tl-code' }, R.join('\n'))), h('div', null, h('p', { className: 'tl-lbl' }, 'Stata'), h('pre', { className: 'tl-code' }, ST.join('\n')))));
   }
   // GM26 predict lab end

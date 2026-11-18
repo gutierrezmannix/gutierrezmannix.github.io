@@ -157,7 +157,7 @@
     return head([
       note ? h('span', { className: 'tl-hint' }, note) : null,
       table,
-      h('div', { className: 'tl-row' }, this.tlBtn(S.copied === 'ob' ? 'Copied ✓' : 'Copy table (for Excel)', () => this.copyTSV('ob', tsv())), stat !== 'tab' ? h('span', { className: 'tl-hint' }, 'Click a cell for its full tabulation (tab ' + v + ' if …).') : null),
+      h('div', { className: 'tl-row' }, this.tlBtn(S.copied === 'ob' ? 'Copied ✓' : 'Copy table (for Excel)', () => this.copyTSV('ob', tsv())), this.cpPrint ? this.tlBtn('›_ Print in console', () => this.cpPrint({ stata, r, tbl: this.cpTsvText(tsv()), res: note || '' }), '', { title: 'Print the command and this table in the console' }) : null, stat !== 'tab' ? h('span', { className: 'tl-hint' }, 'Click a cell for its full tabulation (tab ' + v + ' if …).') : null),
       detail, chart,
       h('details', { className: 'tl-details code' }, h('summary', null, (S.dialect === 'r' ? 'R' : 'Stata') + ' code'), h('pre', { className: 'tl-code' }, code), this.tlBtn(S.copied === 'obc' ? 'Copied ✓' : 'Copy', () => this.copyTSV('obc', code)))]);
   }

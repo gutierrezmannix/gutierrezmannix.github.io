@@ -176,7 +176,7 @@
   // ---- export: SVG with the fonts embedded, PNG at 150/300/600 dpi with pHYs metadata
   tlExportRow(key, name) {
     const h = React.createElement;
-    return h('div', { className: 'tl-exp' }, h('span', { className: 'tl-hint' }, 'Download'), ...[150, 300, 600].map(dpi => this.tlBtn('PNG ' + dpi + ' dpi', () => this.tlExport(key, name, 'png', dpi), '', { key: dpi })), this.tlBtn('SVG', () => this.tlExport(key, name, 'svg')));
+    return h('div', { className: 'tl-exp' }, h('span', { className: 'tl-hint' }, 'Download'), ...[150, 300, 600].map(dpi => this.tlBtn('PNG ' + dpi + ' dpi', () => this.tlExport(key, name, 'png', dpi), '', { key: dpi })), this.tlBtn('SVG', () => this.tlExport(key, name, 'svg')), this.cpCmdFor && this.cpCmdFor(key) ? this.tlBtn('›_ Print in console', () => this.cpPrintFor(key), '', { key: 'cp', title: 'Print the Stata command that draws this chart in the console' }) : null);
   }
   tlFontCss(svgXml) {
     const fams = ['Hanken Grotesk', 'Bricolage Grotesque', 'Space Mono'].filter(f => svgXml.indexOf(f) >= 0); if (!fams.length) return '';
