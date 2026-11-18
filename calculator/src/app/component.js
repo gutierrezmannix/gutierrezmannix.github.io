@@ -138,12 +138,13 @@ class Component extends DCLogic {
     // keep / drop if and "Use all rows" write their own console line; the analysis on screen is not re-logged for them
     const fltQuiet = this._fltQuiet; this._fltQuiet = false;
     if (!this._raw || !this._E) return;
+    if (this.state.mfPane === 'output' && this.state.screen === 'work') { const skip = this._cpSkip && Date.now() - this._cpSkip < 600; if (!skip && !this.state.cpOpen) this._cpBack = this.state.tab; this.setState(skip ? { mfPane: 'plots' } : { mfPane: 'plots', cpOpen: true }, () => { if (!skip) { try { window.scrollTo(0, 0); } catch (e) {} } }); }
     let d = this.descFor();
     const sig = d ? JSON.stringify(d) + '|a' + this.alpha() + '|if' + this.filterSig() : '';
     if (sig !== this.state.conSig) {
       const upd = { conSig: sig };
-      if (d && (this._cxQuiet || fltQuiet)) d = null; if (d) d = this.cxAdopt(d);
-      if (d) { let res = '', tbl = ''; try { res = this.resFor(d); tbl = this.tableFor(d); } catch (e) {} upd.conLog = [...this.state.conLog, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : d.t === 'corr' ? this.corrRText(d) : (d.t === 'ttest' || d.t === 'anova') ? this.meansRText(d) : d.t === 'reg' ? this.regRText(d) : d.tblR })].slice(-60); }
+      if (d && (this._cxQuiet || fltQuiet)) d = null; if (d && !this.cpArmed()) d = null; let cpSrc = ''; if (d) { cpSrc = this.cpTakeArm(); d = this.cxAdopt(d); }
+      if (d) { let res = '', tbl = ''; try { res = this.resFor(d); tbl = this.tableFor(d); } catch (e) {} upd.conLog = [...this.state.conLog, this.tagSg({ ...d, src: cpSrc, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : d.t === 'corr' ? this.corrRText(d) : (d.t === 'ttest' || d.t === 'anova') ? this.meansRText(d) : d.t === 'reg' ? this.regRText(d) : d.tblR })].slice(-500); }
       this.setState(upd);
     }
   }
@@ -6634,7 +6635,8 @@ class Component extends DCLogic {
   // level(#) / conf.level on a t-test applies to that command only too: the next command puts back the confidence
   // level the user had (Settings, or  set level). Neither is restored when the user changed it in between.
   cxScopeIf(text) {
-    const k = this._cxIf, lv = this._cxLevel, patch = {}; this._cxIf = null; this._cxLevel = null; this._cxPending = null;
+    const k = this._cxIf, lv = this._cxLevel, wv = this._cxW, patch = {}; this._cxIf = null; this._cxLevel = null; this._cxPending = null; this._cxW = null;
+    if (wv && this.state.weightVar === wv.val) { patch.weightVar = wv.prev; patch.weightAuto = wv.prevAuto; } // a weight typed on a command applies to that command only, as in Stata
     if (k && JSON.stringify((this.state.subg && this.state.subg.all) || []) === k.sig) patch.subg = k.prev;
     if (lv && String(this.state.alphaSel) === lv.val) patch.alphaSel = lv.prev;
     if (!Object.keys(patch).length) return false;
@@ -6738,8 +6740,8 @@ class Component extends DCLogic {
         out.r = kind === 'correlate' ? 'cor(' + rvec(vars) + ', use = "complete.obs")' : (O.sig ? 'psych::corr.test(' + rvec(vars) + ', adjust = "none")' : 'cor(' + rvec(vars) + ', use = "pairwise.complete.obs")');
       } else if (kind === 'tab1') {
         if (!vars.length) return fail('tab1 needs a variable');
-        out = { tbl: vars.map(v => (vars.length > 1 ? '-> tabulation of ' + v + '\n\n' : '') + this.cxTab1(v, mk, w)).join('\n\n'), res: vars.length + ' frequency table' + (vars.length === 1 ? '' : 's') };
-        out.expl = 'Frequency table of ' + vars.join(', '); out.stata = 'tab1 ' + P.toks.join(' ') + '@IF@' + wtxt + otxt; out.r = vars.map(v => 'table(df$' + v + ', useNA = "no")').join('\n');
+        out = { tbl: vars.map(v => (vars.length > 1 ? '-> tabulation of ' + v + '\n\n' : '') + this.cxTab1(v, mk, w, O)).join('\n\n'), res: vars.length + ' frequency table' + (vars.length === 1 ? '' : 's') };
+        out.expl = 'Frequency table of ' + vars.join(', '); out.stata = verb + ' ' + P.toks.join(' ') + '@IF@' + wtxt + otxt; out.r = vars.map(v => 'table(df$' + v + ', useNA = "' + (O.missing || O.m ? 'ifany' : 'no') + '")').join('\n');
       } else if (kind === 'tab2') {
         if (vars.length < 2) return fail('tab2 needs at least two variables');
         const tabs = []; for (let i = 0; i < vars.length; i++) for (let j = i + 1; j < vars.length; j++) tabs.push('-> tabulation of ' + vars[i] + ' by ' + vars[j] + '\n\n' + this.cxTab2(vars[i], vars[j], mk, w, O).tbl);
@@ -6855,10 +6857,13 @@ class Component extends DCLogic {
     return { tbl: out.map(x => x.replace(/\s+$/, '')).join('\n'), res: vars.length + ' variables, pairwise' };
   }
   cxOrder(name, labels) { return this.descOrder(name, labels.map(l => ({ label: l }))).map(r => r.label); }
-  cxTab1(v, mk, w) {
+  cxTab1(v, mk, w, O) {
     const R = (x, n) => String(x).padStart(n), G = x => this.stataG(x), a = this.cxLab(v, mk), E = this._E;
-    const fr = E.freqOf(a, w), rows = this.descOrder(v, fr.rows), tot = fr.totalW;
-    if (!rows.length) return v + ': no observations';
+    const fr = E.freqOf(a, w), rows = this.descOrder(v, fr.rows).slice();
+    // , missing: the missing values get their own row (.), as in Stata
+    let miss = 0; if (O && (O.missing || O.m)) { for (let i = 0; i < a.length; i++) { if (mk && !mk[i]) continue; if (a[i] == null) miss += w ? (Number.isFinite(w[i]) ? w[i] : 0) : 1; } if (miss) rows.push({ label: '.', c: miss }); }
+    const tot = fr.totalW + miss;
+    if (!rows.length) return 'no observations';
     const lw = Math.min(24, Math.max(11, v.length, ...rows.map(r => String(r.label).length))), cnt = x => w ? G(x) : this.fmtN(x); let cum = 0;
     const out = [R(this.abbr(v, lw), lw) + ' |      Freq.     Percent        Cum.', '-'.repeat(lw + 1) + '+-----------------------------------'];
     for (const r of rows) { cum += r.c; out.push(R(String(r.label).slice(0, lw), lw) + ' |' + R(cnt(r.c), 11) + R((100 * r.c / tot).toFixed(2), 12) + R((100 * cum / tot).toFixed(2), 12)); }
@@ -7308,7 +7313,7 @@ class Component extends DCLogic {
   async dlProgram(build) {
     const site = 'https://gutierrezmannix.github.io/calculator/';
     if (!build && !this.dlOnSite()) { window.open(site, '_blank'); return; }
-    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-18.102') + '.html';
+    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-18.103') + '.html';
     try {
       const r = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw new Error(r.status);
       const blob = await r.blob(); if (blob.size < 100000) throw new Error('short');
@@ -8557,6 +8562,215 @@ class Component extends DCLogic {
     return h('section', { className: 'tl-panel' }, h('div', { className: 'tl-ptitle' }, h('h3', null, 'R and Stata code'), h('span', null, 'the same analysis outside the calculator (the page\'s own fits are in the engine, validated against these packages)')), h('div', { className: 'pr-two' }, h('div', null, h('p', { className: 'tl-lbl' }, 'R'), h('pre', { className: 'tl-code' }, R.join('\n'))), h('div', null, h('p', { className: 'tl-lbl' }, 'Stata'), h('pre', { className: 'tl-code' }, ST.join('\n')))));
   }
   // GM26 predict lab end
+  // GM26 console page begin
+  // The console as its own page (build .103), laid out like Stata's main window: Review (the commands so far) on the
+  // left, Results in the middle (oldest first, the whole session), Variables on the right, the command line at the
+  // bottom. Opened from Console in the top bar or Ctrl+K; Esc or Back returns to the page underneath, which stays as
+  // it was. The console records actions, not views: a typed command, a Run / Fit / Apply button, or Print in console.
+  // Looking at a variable or switching tabs writes nothing (the Record switch brings the old behaviour back).
+  cpArm(src) { this._cpArm = Date.now(); this._cpArmSrc = src || 'page'; }
+  cpArmed() { return !!this.state.conAuto || !!(this._cpArm && Date.now() - this._cpArm < 8000); }
+  cpTakeArm() { const s = this._cpArm ? (this._cpArmSrc || 'page') : 'page'; this._cpArm = 0; return s; }
+  cpSrc() { return this._cpTyping && Date.now() - this._cpTyping < 3000 ? 'typed' : 'page'; }
+  cpOpenPage() { this._cpBack = this.state.tab; this.setState({ cpOpen: true, mfNav: '', mfFile: false, menu: '' }, () => { try { window.scrollTo(0, 0); } catch (e) {} setTimeout(() => this._cpIn && this._cpIn.focus({ preventScroll: true }), 30); }); }
+  cpClose() { this._cpSkip = Date.now(); this.setState({ cpOpen: false }); }
+  // the view on screen, printed once (the Print in console button above each page)
+  cpPrintView() { const d = this.descFor(); if (!d) { this.flash('Nothing on this page to print yet'); return; } this.cpArm('page'); this.setState({ conSig: '' }); this.flash('Printed in the console'); }
+  cpNote(cmd, msg, kind) { this.setState(s => ({ cpErrs: [...(s.cpErrs || []), { at: s.conLog.length, cmd, msg: msg || '', kind: kind || 'note' }].slice(-300) })); }
+  cpTabName(t) { return ({ one: 'Univariate', two: 'Bivariate', corr: 'Correlation matrix', ttest: 't-tests', reg: 'Regression', plots: 'Charts', sem: 'SEM', ergm: 'Networks', text: 'Text analysis', predict: 'Predict', ts: 'Time series', data: 'Data', browse: 'Browse', analysis: 'Tests', maps: 'Maps' })[t] || 'the page'; }
+  // run one line: what the console prints comes from the log; errors and notes are kept beside it, in order
+  cpRun(text, then) {
+    const s = String(text || '').replace(/^\s*[.>]\s*/, '').trim(); if (!s) { if (then) then(); return; }
+    this._cpHist = (this._cpHist || []).concat([s]).slice(-300); this._cpHi = null;
+    const n0 = this.state.conLog.length; this._cpTyping = Date.now();
+    if (/^(\*|\/\/)/.test(s)) { this.cpNote(s, '', 'comment'); if (then) then(); return; }
+    if (/^(cls|clear\s+results)$/i.test(s)) { this.setState({ conFrom: this.state.conLog.length }); if (then) then(); return; }
+    if (/^(browse|br|edit|ed|help|h|search)\b/i.test(s)) this.setState({ cpOpen: false });
+    this.setState({ mfCmdErr: '', mfCmdOk: '' }, () => {
+      try { this.runCmdLine(s); } catch (e) { this.setState({ mfCmdErr: String(e && e.message || e) }); }
+      setTimeout(() => {
+        const S = this.state;
+        if (S.mfCmdErr) { this.cpNote(s, S.mfCmdErr, 'err'); this.setState({ mfCmdErr: '' }); }
+        else if (S.conLog.length === n0) {
+          const ok = String(S.mfCmdOk || '').replace(/^✓\s*/, '').trim();
+          // a command that opened a page logs when the page has run (a regression); anything else gets its note now
+          const pending = this._cpArm && Date.now() - this._cpArm < 3000;
+          setTimeout(() => { if (this.state.conLog.length === n0) this.cpNote(s, ok && ok.toLowerCase() !== s.toLowerCase() ? ok : '', 'note'); }, pending ? 1500 : 0);
+        }
+        if (then) then();
+      }, 90);
+    });
+  }
+  // several lines in order (the do-file box): comments are echoed, /// joins a line to the next
+  cpRunMany(text) {
+    const lines = []; let buf = '';
+    for (const raw of String(text || '').split(/\r?\n/)) { const l = raw.replace(/\s+$/, ''); if (/\s\/\/\/\s*$/.test(l) || /^\/\/\/$/.test(l.trim())) { buf += l.replace(/\/\/\/\s*$/, ' '); continue; } lines.push(buf + l); buf = ''; }
+    if (buf) lines.push(buf);
+    const todo = lines.map(l => l.trim()).filter(Boolean); let i = 0;
+    const next = () => { if (i >= todo.length) return; const l = todo[i++]; this.cpRun(l, () => setTimeout(next, 120)); };
+    next();
+  }
+  // text of the session for Copy / Save log (.log) and the commands alone for Save do-file (.do)
+  cpLogText(items, dial) {
+    return items.map(it => it.err ? '. ' + it.err.cmd + (it.err.msg ? '\n' + it.err.msg : '') : this.cpCmdOf(it.d, dial).split('\n').map(l => (dial === 'r' ? '> ' : '. ') + l).join('\n') + (this.cpTblOf(it.d, dial) ? '\n\n' + this.cpTblOf(it.d, dial) : it.d.res ? '\n' + it.d.res : '')).join('\n\n');
+  }
+  cpCmdOf(d, dial) { try { return this.cmdText(d, dial) || ''; } catch (e) { return ''; } }
+  cpTblOf(d, dial) { try { return this.conTable(d, dial) || ''; } catch (e) { return ''; } }
+  cpItems() {
+    const S = this.state, from = Math.min(S.conFrom || 0, S.conLog.length), log = S.conLog.slice(from), errs = (S.cpErrs || []).filter(e => e.at >= from), items = []; let ei = 0;
+    log.forEach((d, i) => { const at = from + i; while (ei < errs.length && errs[ei].at <= at) items.push({ err: errs[ei++] }); items.push({ d, at }); });
+    while (ei < errs.length) items.push({ err: errs[ei++] });
+    return items;
+  }
+  // command words for completion at the start of the line
+  cpVerbs() { return ['summarize', 'tabulate', 'tab1', 'tab2', 'tabstat', 'mean', 'describe', 'codebook', 'count', 'list', 'correlate', 'pwcorr', 'ttest', 'ttesti', 'oneway', 'regress', 'logit', 'logistic', 'ologit', 'poisson', 'margins', 'marginsplot', 'estat vif', 'histogram', 'scatter', 'twoway', 'line', 'graph bar', 'graph box', 'graph matrix', 'generate', 'replace', 'recode', 'rename', 'drop', 'keep', 'destring', 'tostring', 'label variable', 'label define', 'label values', 'mvdecode', 'svyset', 'tsset', 'display', 'set level', 'alpha', 'help']; }
+  cpCompletions(v, pos) {
+    const before = v.slice(0, pos), m = before.match(/([A-Za-z_][\w]*)$/); if (!m) return { tok: '', list: [] };
+    const tok = m[1], first = !/\S\s/.test(before.replace(/^\s*[.]\s*/, '')), low = tok.toLowerCase();
+    if (first) return { tok, list: this.cpVerbs().filter(c => c.startsWith(low) && c !== low).slice(0, 7).map(c => ({ name: c, sub: 'command' })) };
+    const cols = (this.state.cols || []).filter(c => !(this.state.hiddenVars || []).includes(c.name));
+    const a = cols.filter(c => c.name.toLowerCase().startsWith(low)), b = cols.filter(c => !c.name.toLowerCase().startsWith(low) && ((c.label || '').toLowerCase().includes(low) || c.name.toLowerCase().includes(low)));
+    return { tok, list: a.concat(b).slice(0, 7).filter(c => c.name !== tok).map(c => ({ name: c.name, sub: c.label || '' })) };
+  }
+  cpInsert(word, replaceTok) {
+    const el = this._cpIn; if (!el) return; const v = el.value, pos = el.selectionStart == null ? v.length : el.selectionStart;
+    let before = v.slice(0, pos); const after = v.slice(pos);
+    if (replaceTok) before = before.replace(/[A-Za-z_][\w]*$/, ''); else if (before && !/\s$/.test(before)) before += ' ';
+    const ins = word + (after.startsWith(' ') ? '' : ' '); el.value = before + ins + after; const p = (before + ins).length; el.focus(); el.setSelectionRange(p, p);
+    this.cpSuggest();
+  }
+  cpSuggest() { clearTimeout(this._cpSugT); this._cpSugT = setTimeout(() => { const el = this._cpIn; if (!el) return; const c = this.cpCompletions(el.value, el.selectionStart == null ? el.value.length : el.selectionStart); const key = c.tok + '|' + c.list.map(x => x.name).join(','); if (key !== this._cpSugKey) { this._cpSugKey = key; this.setState({ cpSug: c }); } }, 110); }
+  cpKey(e) {
+    const el = e.target, hist = this._cpHist || [];
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const v = el.value; el.value = ''; this._cpSugKey = ''; this.setState({ cpSug: null }); this.cpRun(v); return; }
+    if (e.key === 'Tab') { const sg = this.state.cpSug; if (sg && sg.list && sg.list.length) { e.preventDefault(); this.cpInsert(sg.list[0].name, true); } return; }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      if (!hist.length) return; e.preventDefault();
+      let i = this._cpHi == null ? hist.length : this._cpHi; i += e.key === 'ArrowUp' ? -1 : 1; i = Math.max(0, Math.min(hist.length, i)); this._cpHi = i;
+      el.value = i === hist.length ? '' : hist[i]; const p = el.value.length; el.setSelectionRange(p, p); return;
+    }
+    if (e.key === 'Escape') { if (this.state.cpSug && this.state.cpSug.list && this.state.cpSug.list.length) { e.stopPropagation(); this._cpSugKey = ''; this.setState({ cpSug: null }); } }
+  }
+  cpKeys() {
+    if (this._cpKeysOn) return; this._cpKeysOn = true;
+    window.addEventListener('keydown', e => {
+      if (!this.state.cpOpen) return;
+      if (e.key === 'Escape' && !e.defaultPrevented) { const sg = this.state.cpSug; if (sg && sg.list && sg.list.length) return; e.preventDefault(); this.cpClose(); }
+      else if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K') && !e.shiftKey && this._cpOpenedAt && Date.now() - this._cpOpenedAt > 400) { this._cpSkip = Date.now(); setTimeout(() => this.setState({ cpOpen: false, mfPane: this.state.mfPane === 'output' ? 'plots' : this.state.mfPane }), 0); }
+    });
+  }
+  cpDownload(text, name, type) { this.dlBlob(new Blob([text], { type: type || 'text/plain' }), name); this.flash('Saved ' + name); }
+  cpRender() {
+    const h = React.createElement, S = this.state, dial = S.dialect === 'r' ? 'r' : 'stata', items = this.cpItems(); this.cpKeys();
+    if (!this._cpOpenedAt || !this._cpWasOpen) this._cpOpenedAt = Date.now(); this._cpWasOpen = true;
+    const base = (S.fileName || 'gm26').replace(/\.[^.]+$/, ''), prompt = dial === 'r' ? '> ' : '. ', CAP = 400;
+    // Review: every command, numbered; a click puts it back in the command line, a double click runs it
+    const revRows = items.map((it, k) => {
+      const cmd = it.err ? it.err.cmd : this.cpCmdOf(it.d, dial).split('\n')[0], cls = 'cp-rv' + (it.err && it.err.kind === 'err' ? ' err' : !it.err && it.d.src !== 'typed' ? ' page' : '');
+      return h('button', { key: k, type: 'button', className: cls, title: (it.err && it.err.kind === 'err' ? 'Error · ' : !it.err && it.d.src !== 'typed' ? 'From a button on the page · ' : '') + 'click to edit, double-click to run again', onClick: () => { if (this._cpIn) { this._cpIn.value = cmd; this._cpIn.focus(); } }, onDoubleClick: () => this.cpRun(cmd) }, h('span', { className: 'n' }, k + 1), cmd);
+    });
+    // Results: oldest first; long tables are cut on screen (Copy and Save log keep everything)
+    const resRows = items.map((it, k) => {
+      if (it.err) return h('div', { key: 'e' + k, className: 'cp-item' }, h('div', { className: 'cp-cmd' + (it.err.kind === 'comment' ? ' cmt' : '') }, prompt + it.err.cmd), it.err.msg ? h('div', { className: it.err.kind === 'err' ? 'cp-err' : 'cp-note' }, it.err.msg) : null);
+      const d = it.d, cmd = this.cpCmdOf(d, dial), tbl = this.cpTblOf(d, dial), lines = tbl ? tbl.split('\n') : [];
+      const cut = lines.length > CAP ? lines.slice(0, CAP).join('\n') + '\n\n  … ' + this.fmtN(lines.length - CAP) + ' more lines (Copy or Save log keeps the whole table)' : tbl;
+      return h('div', { key: 'd' + it.at, className: 'cp-item' },
+        cmd.split('\n').map((l, i) => h('div', { key: i, className: 'cp-cmd' }, (i ? (dial === 'r' ? '+ ' : '> ') : prompt) + l, i === 0 && d.src !== 'typed' ? h('span', { className: 'cp-src' }, (dial === 'r' ? '  # ' : '  * ') + 'from ' + (d.t === 'asx' ? 'Tests ▾' : 'the page')) : null)),
+        cut ? h('pre', { className: 'cp-tbl' }, cut) : d.res ? h('div', { className: 'cp-note' }, d.res) : null,
+        d.t === 'plot' ? h('button', { type: 'button', className: 'cp-link', onClick: () => { this.rerunCmd(d); this.cpClose(); } }, 'View the graph →') : null);
+    });
+    const sg = S.cpSug && S.cpSug.list && S.cpSug.list.length ? S.cpSug : null;
+    const cols = (S.cols || []).filter(c => !(S.hiddenVars || []).includes(c.name)), vq = String(S.cpVarQ || '').toLowerCase();
+    const shown = (vq ? cols.filter(c => c.name.toLowerCase().includes(vq) || (c.label || '').toLowerCase().includes(vq)) : cols).slice(0, 400);
+    const tpl = [['summarize', 'summarize ', 'Obs, mean, sd, min, max'], ['summarize, detail', 'summarize , detail', 'percentiles and moments'], ['tabulate', 'tabulate ', 'one-way frequencies'], ['tabulate y x, row chi2', 'tabulate  , row chi2', 'two-way table with a test'], ['tabstat', 'tabstat , stat(mean sd n)', 'table of statistics'], ['mean', 'mean ', 'means with CIs'], ['pwcorr', 'pwcorr , sig obs', 'pairwise correlations'], ['ttest', 'ttest , by()', 'two-sample t-test'], ['oneway', 'oneway  , tabulate', 'one-way ANOVA'], ['regress', 'regress ', 'linear regression'], ['logit', 'logit ', 'logistic regression'], ['margins', 'margins ', 'after a model'], ['histogram', 'histogram ', 'graph'], ['scatter', 'scatter ', 'graph'], ['generate', 'generate  = ', 'new variable'], ['recode', 'recode  (1 2 = 1) (3 4 = 2), gen()', 'regroup values'], ['label define', 'label define  1 "" 2 ""', 'value labels'], ['svyset', 'svyset  [pw=], strata()', 'survey design']];
+    const menu = S.cpMenu ? h('div', { className: 'cp-menu', role: 'menu' }, tpl.map(([l, t, sub]) => h('button', { key: l, type: 'button', role: 'menuitem', onClick: () => { this.setState({ cpMenu: false }); const el = this._cpIn; if (el) { el.value = t; el.focus(); const p = t.indexOf(' ') + 1 || t.length; el.setSelectionRange(p, p); } } }, h('b', null, l), h('span', null, sub)))) : null;
+    const resRef = el => { if (!el) return; const n = items.length; if (n !== this._cpLastN) { this._cpLastN = n; el.scrollTop = el.scrollHeight; } };
+    const sizeRef = el => { if (!el) return; this._cpBox = el; const fit = () => { if (!this._cpBox || !this._cpBox.isConnected) return; const el = this._cpBox, r = el.getBoundingClientRect(), z = el.offsetHeight ? r.height / el.offsetHeight : 1, docTop = r.top + (window.scrollY || 0); const want = Math.round(Math.max(420, (window.innerHeight - docTop - 12) / (z > 0.2 ? z : 1))); if (Math.abs(want - (parseFloat(el.style.height) || 0)) > 1) el.style.height = want + 'px'; }; fit(); requestAnimationFrame(fit); if (!this._cpFitOn) { this._cpFitOn = true; window.addEventListener('resize', () => this._cpFit && this._cpFit()); try { new ResizeObserver(() => this._cpFit && this._cpFit()).observe(document.body); } catch (e) {} } this._cpFit = fit; };
+    const btn = (label, onClick, title, cls) => h('button', { type: 'button', className: 'cp-btn' + (cls ? ' ' + cls : ''), onClick, title }, label);
+    const head = h('div', { className: 'cp-head' },
+      h('div', { className: 'cp-title' }, h('b', null, 'Console'), h('span', null, this.fmtN(this._raw ? this._raw.n : 0) + ' obs · ' + this.fmtN(cols.length) + ' vars')),
+      h('div', { className: 'cp-seg', role: 'group', 'aria-label': 'Language' }, ['stata', 'r'].map(k => h('button', { key: k, type: 'button', 'aria-pressed': String(dial === k), onClick: () => this.setState({ dialect: k }) }, k === 'r' ? 'R' : 'Stata'))),
+      h('div', { className: 'cp-seg', role: 'group', 'aria-label': 'What the console records', title: 'What I run: typed commands and Run / Apply buttons. Also what I open: every page you look at, as before.' }, [[false, 'Record what I run'], [true, 'Also what I open']].map(([k, l]) => h('button', { key: String(k), type: 'button', 'aria-pressed': String(!!S.conAuto === k), onClick: () => this.setState({ conAuto: k }) }, l))),
+      h('div', { style: { flex: 1 } }),
+      btn('Copy', () => this.copyTSV('cplog', this.cpLogText(items, dial)), 'Copy the commands and output'),
+      btn('Save log', () => this.cpDownload(this.cpLogText(items, dial) + '\n', base + (dial === 'r' ? '-console.txt' : '.log')), 'Download the commands and output as text'),
+      btn(dial === 'r' ? 'Save script' : 'Save do-file', () => this.cpDownload((dial === 'r' ? '# ' : '* ') + 'Commands from GM26 · ' + (S.fileName || '') + '\n' + items.filter(it => !it.err || it.err.kind !== 'err').map(it => it.err ? it.err.cmd : this.cpCmdOf(it.d, dial)).filter(Boolean).join('\n') + '\n', base + (dial === 'r' ? '.R' : '.do')), 'Download the commands only'),
+      btn('Clear', () => this.setState({ conFrom: S.conLog.length }), 'Clear the Results window (the log is kept in the session; like Stata’s cls)'),
+      btn('← Back to ' + this.cpTabName(S.tab), () => this.cpClose(), 'Esc', 'back'));
+    const rev = h('div', { className: 'cp-rev' }, h('div', { className: 'cp-ph' }, h('span', null, 'Review'), h('span', null, items.length)),
+      h('div', { className: 'cp-list' }, revRows.length ? revRows : h('p', { className: 'cp-empty' }, 'Commands you run appear here.')),
+      h('p', { className: 'cp-hint' }, 'Click a line to edit it, double-click to run it again. Blue lines came from buttons on the page.'));
+    const vars = h('div', { className: 'cp-vars' }, h('div', { className: 'cp-ph' }, h('span', null, 'Variables'), h('span', null, this.fmtN(cols.length))),
+      h('input', { className: 'cp-vq', type: 'search', placeholder: 'filter variables', 'aria-label': 'Filter variables', defaultValue: S.cpVarQ || '', onChange: e => { const v = e.target.value; clearTimeout(this._cpVqT); this._cpVqT = setTimeout(() => this.setState({ cpVarQ: v }), 150); } }),
+      h('div', { className: 'cp-list' }, shown.map(c => h('button', { key: c.name, type: 'button', className: 'cp-var', title: (c.label || c.name) + ' — click to type it', onClick: () => this.cpInsert(c.name) }, h('span', null, c.name), h('em', null, c.label || '')))),
+      h('p', { className: 'cp-hint' }, 'Click a name to type it at the cursor.'));
+    const doBox = S.cpDo ? h('div', { className: 'cp-do' }, h('textarea', { 'aria-label': 'Do-file', placeholder: '* several commands, one per line\nsummarize edad\ntabulate sexo', defaultValue: S.cpDoText || '', spellCheck: false, onChange: e => { this._cpDoText = e.target.value; } }),
+      h('div', { className: 'cp-dorow' }, btn('Run all', () => { const t = this._cpDoText != null ? this._cpDoText : (S.cpDoText || ''); this.setState({ cpDoText: t }); this.cpRunMany(t); }, 'Run every line in order', 'run'), btn('Close', () => this.setState({ cpDo: false, cpDoText: this._cpDoText != null ? this._cpDoText : S.cpDoText })), h('span', { className: 'cp-hint' }, 'Lines run one after another; * and // lines are comments; /// continues a line.'))) : null;
+    const mid = h('div', { className: 'cp-mid' },
+      h('div', { className: 'cp-res', ref: resRef, role: 'log', 'aria-live': 'polite', 'aria-label': 'Results' }, resRows.length ? resRows : h('div', { className: 'cp-empty big' }, h('b', null, 'Type a Stata command below and press Enter.'), h('br'), 'For example  summarize ' + ((cols.find(c => c.type === 'numeric') || {}).name || 'x') + '  or  tabulate ' + ((cols.find(c => c.type !== 'numeric') || cols[0] || {}).name || 'x') + '. Buttons on the page that run something print their command here too.')),
+      doBox,
+      sg ? h('div', { className: 'cp-sug', role: 'listbox' }, sg.list.map((x, i) => h('button', { key: x.name, type: 'button', role: 'option', className: i === 0 ? 'on' : '', onMouseDown: e => { e.preventDefault(); this.cpInsert(x.name, true); } }, h('span', null, x.name), h('em', null, i === 0 ? 'Tab · ' + x.sub : x.sub)))) : null,
+      h('div', { className: 'cp-cl' }, h('span', { className: 'cp-prompt' }, prompt.trim()),
+        h('input', { ref: el => { this._cpIn = el; }, className: 'cp-in', type: 'text', autoComplete: 'off', spellCheck: false, 'aria-label': 'Command', placeholder: dial === 'r' ? 'Stata command (the console reads Stata and a few R calls)' : 'Stata command — e.g.  tabulate sexo  ·  ↑ ↓ earlier commands · Tab completes', onKeyDown: e => this.cpKey(e), onInput: () => this.cpSuggest(), onClick: () => this.cpSuggest(), onBlur: () => setTimeout(() => { if (this.state.cpSug) { this._cpSugKey = ''; this.setState({ cpSug: null }); } }, 150) }),
+        h('div', { className: 'cp-mwrap' }, btn('Commands ▾', () => this.setState({ cpMenu: !S.cpMenu }), 'Pick a command to fill in'), menu),
+        btn('Do-file', () => this.setState({ cpDo: !S.cpDo }), 'Several commands at once'),
+        btn('Run', () => { const el = this._cpIn; if (!el) return; const v = el.value; el.value = ''; this.cpRun(v); }, 'Run the command (Enter)', 'run')));
+    return h('section', { className: 'cp', ref: sizeRef, 'aria-label': 'Console' }, head, rev, mid, vars);
+  }
+  // Stata conditions for console commands: x == 3, x != ., missing(x), !missing(x), inlist(x, 1, 2), inrange(x, a, b),
+  // joined with & (parentheses are respected when splitting)
+  cpConds(ifs) {
+    const raw = this._raw, E = this._E, out = [];
+    if (/\|/.test(ifs)) return { err: 'Join conditions with & — | (or) is not supported here.' };
+    const find = n => raw.names.find(x => x.toLowerCase() === String(n).toLowerCase()), unq = x => String(x).trim().replace(/^"(.*)"$/, '$1');
+    const notVar = n => ({ err: '"' + n + '" is not a variable in this dataset' });
+    const parts = []; let dep = 0, cur = '';
+    for (const ch of String(ifs)) { if (ch === '(') dep++; if (ch === ')') dep--; if (ch === '&' && dep === 0) { parts.push(cur); cur = ''; } else cur += ch; }
+    parts.push(cur);
+    for (const p0 of parts.map(p => p.trim()).filter(Boolean)) {
+      let m;
+      if ((m = p0.match(/^(!|~)?\s*missing\(\s*([A-Za-z_]\w*)\s*\)$/i))) { const v = find(m[2]); if (!v) return notVar(m[2]); const mt = this.effMeta(v); out.push({ v, t: 'op', op: m[1] ? '!=' : '==', val: '.', cat: !mt || mt.treatAs !== 'numeric' }); continue; }
+      if ((m = p0.match(/^inlist\(\s*([A-Za-z_]\w*)\s*,(.+)\)$/i))) { const v = find(m[1]); if (!v) return notVar(m[1]); const mt = this.effMeta(v), isNum = !!mt && mt.treatAs === 'numeric'; out.push({ v, t: 'in', vals: m[2].split(',').map(unq).map(x => /^-?\d+(\.\d+)?$/.test(x) ? (isNum ? E.numLab(parseFloat(x)) : String(this.vlabel(v, parseFloat(x)))) : x) }); continue; }
+      if ((m = p0.match(/^inrange\(\s*([A-Za-z_]\w*)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)$/i))) { const v = find(m[1]); if (!v) return notVar(m[1]); out.push({ v, t: 'rng', lo: m[2], hi: m[3] }); continue; }
+      const c = p0.match(/^([A-Za-z_]\w*)\s*(==|!=|~=|>=|<=|>|<|=)\s*(.+)$/);
+      if (!c) return { err: 'Could not read the condition "' + p0 + '" — write it like  ent == 7,  year >= 2015,  !missing(x)  or  inlist(ent, 1, 7, 9)' };
+      const v = find(c[1]); if (!v) return notVar(c[1]);
+      const mt = this.effMeta(v), val = unq(c[3]);
+      out.push({ v, t: 'op', op: c[2] === '=' ? '==' : c[2] === '~=' ? '!=' : c[2], val, cat: !mt || mt.treatAs !== 'numeric' });
+    }
+    return { conds: out };
+  }
+  // describe in Stata 17's layout; with a varlist only those variables (and no dataset header), as in Stata
+  cpDescribe(d) {
+    const raw = this._raw, S = this.state, hid = S.hiddenVars || [];
+    const cols = d.vars ? d.vars.map(v => S.cols.find(c => c.name === v)).filter(Boolean) : S.cols.filter(c => !hid.includes(c.name));
+    const L = (s, w) => { s = String(s); return s.length >= w ? s.slice(0, w - 2) + '~ ' : s + ' '.repeat(w - s.length); };
+    const typeOf = name => {
+      const i = raw.names.indexOf(name); if (i < 0) return ['', '']; const c = raw.cols[i], a = c.a, n = a.length, step = Math.max(1, Math.floor(n / 20000));
+      if (c.k === 's') { let mx = 1; for (let r = 0; r < n; r += step) { const v = a[r]; if (v != null) { const l = String(v).length; if (l > mx) mx = l; } } return mx > 2045 ? ['strL', '%9s'] : ['str' + mx, '%-' + Math.min(mx, 30) + 's']; }
+      let allInt = true, lo = Infinity, hi = -Infinity; for (let r = 0; r < n; r += step) { const v = a[r]; if (!Number.isFinite(v)) continue; if (v % 1) { allInt = false; break; } if (v < lo) lo = v; if (v > hi) hi = v; }
+      if (!allInt) return ['double', '%10.0g']; if (lo >= -127 && hi <= 100) return ['byte', '%8.0g']; if (lo >= -32767 && hi <= 32740) return ['int', '%8.0g']; return ['long', '%12.0g'];
+    };
+    const vl = name => raw.vlabs && raw.vlabs[name] && raw.vlabs[name].size ? name : '';
+    let o = '';
+    if (!d.vars) o += 'Contains data from ' + (S.fileName || 'data') + '\n Observations: ' + this.fmtN(raw.n).padStart(14) + '\n    Variables: ' + this.fmtN(cols.length).padStart(14) + '\n' + '-'.repeat(79) + '\n';
+    o += 'Variable      Storage   Display    Value\n    name         type    format    label      Variable label\n' + '-'.repeat(79) + '\n';
+    for (const c of cols) { const [ty, fm] = typeOf(c.name); o += L(c.name, 16) + L(ty, 8) + L(fm, 11) + L(vl(c.name), 11) + (c.label || raw.labels[raw.names.indexOf(c.name)] || '') + '\n'; }
+    return o + '-'.repeat(79);
+  }
+  // tostring x, gen(x_s): a new text copy, the original stays as it is
+  cpTostringGen(s, varlist, fail, ok) {
+    const m = s.match(/^tostring\s+(.+?)\s*,(.*)$/i); if (!m) return fail('tostring: use  tostring x, gen(x_s)');
+    const L = varlist(m[1]); if (L.bad.length) return fail('variable ' + L.bad[0] + ' not found');
+    const names = String((m[2].match(/\bgen(?:erate)?\s*\(\s*([^)]*)\)/i) || [])[1] || '').trim().split(/\s+/).filter(Boolean);
+    if (names.length !== L.vars.length) return fail('tostring: gen() needs one new name for each variable');
+    const raw = this._raw, E = this._E;
+    for (const nm of names) { if (!/^[A-Za-z_]\w{0,31}$/.test(nm)) return fail(nm + ' is not a valid name'); if (raw.names.some(x => x.toLowerCase() === nm.toLowerCase())) return fail('variable ' + nm + ' already defined'); }
+    L.vars.forEach((v, j) => { const i = raw.names.indexOf(v), c = raw.cols[i]; const a = c.k === 'n' ? Array.from(c.a, x => Number.isFinite(x) ? String(E.numLab(x)) : '') : Array.from(c.a, x => x == null ? '' : String(x)); this.addDerivedCol(names[j], { k: 's', a }, raw.labels[i] || '', 'gen'); });
+    this.clearMemo(); this.stataLog(s, names.join(' ') + ' generated as str');
+    ok(s); return true;
+  }
+  // GM26 console page end
   descFor() {
     const S = this.state;
     if (S.screen !== 'work' || !S.cols.length) return null;
@@ -8616,7 +8830,7 @@ class Component extends DCLogic {
   rExpr(e) { return String(e).replace(/\bln\(/g, 'log(').replace(/\bceil\(/g, 'ceiling(').replace(/\bint\(/g, 'trunc('); }
   cmdCore(d, dial) {
     if (d.t === 'stata') return dial === 'stata' ? d.stata : (d.r || '# Stata: ' + d.stata);
-    if (d.t === 'describe') return dial === 'stata' ? 'describe' : 'str(df)';
+    if (d.t === 'describe') return dial === 'stata' ? 'describe' + (d.vars ? ' ' + d.vars.join(' ') : '') : (d.vars ? 'str(df[c(' + d.vars.map(v => JSON.stringify(v)).join(', ') + ')])' : 'str(df)');
     if (d.t === 'codebook') return dial === 'stata' ? 'codebook ' + d.x : 'summary(df$' + d.x + ')';
     if (d.t === 'snacent') return (dial === 'stata' ? '* Stata has no built-in network centrality — this matches R (igraph):\n' : '') + 'library(igraph)\ng <- graph_from_data_frame(edges, directed = TRUE, vertices = nodes)\nnodes$sna_degree <- degree(g)\nnodes$sna_indegree <- degree(g, mode = "in")\nnodes$sna_outdegree <- degree(g, mode = "out")\nnodes$sna_betweenness <- betweenness(g)\nnodes$sna_closeness <- closeness(g, mode = "all", normalized = TRUE)\nnodes$sna_eigenvector <- eigen_centrality(as.undirected(g))$vector\nnodes$sna_pagerank <- page_rank(g)$vector';
     if (d.t === 'ts' || d.t === 'tsvars' || d.t === 'gen01' || d.t === 'asx') return dial === 'stata' ? d.stata : d.r;
@@ -8910,11 +9124,11 @@ class Component extends DCLogic {
       const last = s.conLog[s.conLog.length - 1];
       const same = last && d.t === 'plot' && last.t === 'plot' && last.kind === d.kind && last.x === d.x && (d.kind !== 'line' || last.y === d.y || !last.y);
       const base = same ? s.conLog.slice(0, -1) : s.conLog;
-      return { conLog: [...base, this.tagSg({ ...d, res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : d.t === 'corr' ? this.corrRText(d) : (d.t === 'ttest' || d.t === 'anova') ? this.meansRText(d) : d.t === 'reg' ? this.regRText(d) : d.tblR })].slice(-60) };
+      return { conLog: [...base, this.tagSg({ ...d, src: this.cpSrc(), res, tbl, tblR: (d.t === 'sum' || d.t === 'tab1') ? this.descRText(d) : d.t === 'corr' ? this.corrRText(d) : (d.t === 'ttest' || d.t === 'anova') ? this.meansRText(d) : d.t === 'reg' ? this.regRText(d) : d.tblR })].slice(-500) };
     });
   }
   runVerb(v, vals) {
-    this.jumpArm();
+    this.jumpArm(); this.cpArm('typed');
     if (v === 'describe') { this.runDirect({ t: 'describe' }); return; }
     if (v === 'codebook') { this.runDirect({ t: 'codebook', x: vals[0] }); return; }
     if (['regress', 'logit', 'ologit', 'poisson'].includes(v)) this._regRunNext = true;
@@ -8933,7 +9147,8 @@ class Component extends DCLogic {
     if (d.t === 'ts' || d.t === 'asx') return d.tbl || d.res || '';
     const M = this.memoView(), E = this._E, R = this.padR.bind(this);
     const L = (s, w) => { s = String(s); return s.length >= w ? s.slice(0, w - 1) + ' ' : s + ' '.repeat(w - s.length); };
-    if (d.t === 'describe') {
+    if (d.t === 'describe') return this.cpDescribe(d);
+    if (d.t === 'describe-old') {
       const raw = this._raw, cols = this.state.cols;
       let o = 'Contains data from ' + this.state.fileName + '\n  obs: ' + this.fmtN(raw.n) + '    vars: ' + this.fmtN(cols.length) + '\n';
       o += '-'.repeat(66) + '\n' + L('variable name', 17) + L('type', 6) + 'variable label\n' + '-'.repeat(66) + '\n';
@@ -9330,7 +9545,7 @@ class Component extends DCLogic {
       const w2 = new Float64Array(w.length); for (let i = 0; i < w.length; i++) w2[i] = mk[i] ? w[i] : NaN; return w2;
     });
   }
-  pushLog(entry) { entry = this.tagSg(entry); this.setState(s => { const last = s.conLog[s.conLog.length - 1]; const same = last && entry.t === 'plot' && last.t === 'plot' && last.kind === entry.kind && last.x === entry.x && (entry.kind !== 'line' || last.y === entry.y || !last.y); return { conLog: [...(same ? s.conLog.slice(0, -1) : s.conLog), entry].slice(-60) }; }); }
+  pushLog(entry) { entry = this.tagSg(entry); if (!entry.src) entry.src = this.cpSrc(); this.setState(s => { const last = s.conLog[s.conLog.length - 1]; const same = last && entry.t === 'plot' && last.t === 'plot' && last.kind === entry.kind && last.x === entry.x && (entry.kind !== 'line' || last.y === entry.y || !last.y); return { conLog: [...(same ? s.conLog.slice(0, -1) : s.conLog), entry].slice(-500) }; }); }
   vlabel(nm, key) { const m = this._raw && this._raw.vlabs && this._raw.vlabs[nm]; if (m) { const x = Number(key); if (isFinite(x) && m.has(x)) return m.get(x); } return String(key); }
   copyTSV(key, text) { if (/^(desc|freq|corr|ct|grp|coef|ox|vif)$/.test(key)) { let st = ''; try { st = this.stampText(); } catch (e) {} if (st) text = String(text) + '\n\n' + st; } const doSet = ok => { this.setState({ copied: ok ? key : 'err' }); clearTimeout(this._ct); this._ct = setTimeout(() => this.setState({ copied: '' }), 1600); }; try { navigator.clipboard.writeText(text).then(() => doSet(true), () => doSet(false)); } catch (e) { doSet(false); } }
   cpLabel(key) { return this.state.copied === key ? 'COPIED ✓' : 'COPY'; }
@@ -10321,6 +10536,7 @@ class Component extends DCLogic {
 
   // ===== Stata command layer =====
   stataConds(ifs) {
+    if (this.cpConds) return this.cpConds(ifs);
     const raw = this._raw, out = [];
     if (/\|/.test(ifs)) return { err: 'Join conditions with & — | (or) is not supported here.' };
     for (const part of ifs.split(/&+/)) {
@@ -10404,6 +10620,7 @@ class Component extends DCLogic {
       return ok(s + '   (' + hide.length + ' hidden from the lists — restore them under Edit data)');
     }
     if ((m = s.match(/^destring\s+(.+?)(?:\s*,(.*))?$/i))) return this.cxDestring(s, m[1], m[2] || '', varlist, fail, ok);
+    if (/^tostring\s.*\bgen(?:erate)?\s*\(/i.test(s)) return this.cpTostringGen(s, varlist, fail, ok);
     if ((m = s.match(/^(destring|tostring)\s+(.+?)(?:\s*,.*)?$/i))) {
       const L = varlist(m[2]); if (L.bad.length) return fail('Not variables: ' + L.bad.join(' '));
       L.vars.forEach(v => this.retypeCol(v, m[1].toLowerCase() === 'tostring')); this.clearMemo();
@@ -10542,6 +10759,7 @@ class Component extends DCLogic {
     if (ifs) {
       if (/\|/.test(ifs)) return fail('Join conditions with & (or write one replace line per condition) — | (or) is not supported here.');
       for (const part of ifs.split(/&+/)) {
+        const mm = part.trim().match(/^(!|~)?\s*missing\(\s*([A-Za-z_]\w*)\s*\)$/i); if (mm) { const v = raw.names.find(n => n.toLowerCase() === mm[2].toLowerCase()); if (!v) return fail('"' + mm[2] + '" is not a variable in this dataset'); conds.push({ v, op: mm[1] ? '!=' : '==', val: '.' }); continue; }
         const c = part.trim().match(/^([A-Za-z_]\w*)\s*(==|!=|~=|>=|<=|>|<|=)\s*(.+)$/);
         if (!c) return fail('Could not read the condition "' + part.trim() + '" — write it like  ent == 7  or  year >= 2015');
         const v = raw.names.find(n => n.toLowerCase() === c[1].toLowerCase()); if (!v) return fail('"' + c[1] + '" is not a variable in this dataset');
@@ -10575,7 +10793,7 @@ class Component extends DCLogic {
     const low = {}; raw.names.forEach(n => { low[n.toLowerCase()] = n; });
     const V = n => low[String(n || '').trim().toLowerCase()] || null;
     const fail = msg => { this.setState({ mfCmdErr: msg, mfCmdOk: '' }); };
-    const done = (msg, patch, after) => {
+    const done = (msg, patch, after) => { if (patch && patch.tab) this.cpArm('typed');
       this.setState(Object.assign({ mfCmd: '', mfCmdErr: '', mfCmdOk: '✓ ' + msg, mfMobile: 'analysis', menu: '', mfNav: '' }, patch || {}), () => { if (after) setTimeout(after, 80); });
       clearTimeout(this._mfOkT); this._mfOkT = setTimeout(() => this.setState({ mfCmdOk: '' }), 3200);
     };
@@ -10634,9 +10852,9 @@ class Component extends DCLogic {
       if (O.robust === true || O.r === true) opts.vce = 'robust';
       if (O.cluster) { opts.vce = 'cluster'; opts.cl = O.cluster; }
       if (O.by) opts.by = O.by; if (O.over) opts.over = O.over;
-      if (vb === 'summarize') { if (opts.svy) return fail('svy: works with regress, logit, ologit and poisson here — for survey means use Tests ▾ → Survey inference'); if (v0 === 'mean' || v0 === 'tabstat' || toks.length !== 1 || O.detail || O.d || (this.cxBareNumeric(V(toks[0])) && (this.effMeta(V(toks[0])) || {}).treatAs !== 'numeric')) return this.cxRun(v0 === 'mean' ? 'mean' : v0 === 'tabstat' ? 'tabstat' : 'summarize', s, { done, fail }); const hint = this.cxTextNumberHint(V(toks[0])); if (hint) return fail(hint); verb = 'summarize'; vars = [toks[0]]; }
-      else if (vb === 'tab') { if (!toks.length) return fail('tabulate needs a variable'); if (toks.length > 2) return fail('tabulate takes one or two variables — use  tab1 ' + toks.join(' ') + '  for one table each, or  tab2 ' + toks.join(' ') + '  for every pair'); verb = toks.length >= 2 ? 'crosstab' : 'tabulate'; vars = toks.length >= 2 ? [toks[0], toks[1]] : [toks[0]]; if (toks.length === 2) this.cxPend('ct', toks, s); }
-      else if (vb === 'tabulate') { if (!toks.length) return fail('tab1 needs a variable'); if (toks.length > 1) return this.cxRun('tab1', s, { done, fail }); verb = 'tabulate'; vars = [toks[0]]; }
+      if (vb === 'summarize') { if (opts.svy) return fail('svy: works with regress, logit, ologit and poisson here — for survey means use Tests ▾ → Survey inference'); const hint = toks.length === 1 && V(toks[0]) ? this.cxTextNumberHint(V(toks[0])) : ''; if (hint) return fail(hint); return this.cxRun(v0 === 'mean' ? 'mean' : v0 === 'tabstat' ? 'tabstat' : 'summarize', s, { done, fail }); }
+      else if (vb === 'tab') { if (toks.length === 1 && !opts.svy) return this.cxRun('tab1', s, { done, fail }); if (!toks.length) return fail('tabulate needs a variable'); if (toks.length > 2) return fail('tabulate takes one or two variables — use  tab1 ' + toks.join(' ') + '  for one table each, or  tab2 ' + toks.join(' ') + '  for every pair'); verb = toks.length >= 2 ? 'crosstab' : 'tabulate'; vars = toks.length >= 2 ? [toks[0], toks[1]] : [toks[0]]; if (toks.length === 2) this.cxPend('ct', toks, s); }
+      else if (vb === 'tabulate') { if (!toks.length) return fail('tab1 needs a variable'); return this.cxRun('tab1', s, { done, fail }); }
       else if (vb === 'crosstab') { if (toks.length < 2) return fail('tab2 needs two variables'); if (toks.length > 2) return this.cxRun('tab2', s, { done, fail }); verb = 'crosstab'; vars = [toks[0], toks[1]]; this.cxPend('ct', toks, s); }
       else if (vb === 'correlate') return this.cxRun(v0 === 'pwcorr' ? 'pwcorr' : 'correlate', s, { done, fail });
       else if (vb === 'ttest') { const badO = Object.keys(O).filter(k => !(k === 'by' || k === 'level' || k === 'welch' || /^une(q(u(a(l)?)?)?)?$/.test(k))); if (badO.length) return fail('option ' + badO[0] + (O[badO[0]] === true ? '' : '()') + ' not allowed — ttest takes by(), unequal, welch and level(#), as in Stata'); const em = body.match(/^\S+\s+([A-Za-z_]\w*)\s*==?\s*(\S+)/); if (O.level !== undefined) { const lv = Number(O.level); if (!(lv >= 10 && lv <= 99.99)) return fail('level() takes a confidence level between 10 and 99.99, e.g. level(90)'); opts.ttAlpha = +(1 - lv / 100).toFixed(8); } if (opts.by) { if (!toks.length) return fail('ttest needs a variable'); if (O.welch) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by, welch: true }); if (!O.unequal && !O.une && !O.uneq) return this.cxRun('ttestpool', s, { done, fail, y: toks[0], g: opts.by }); verb = 'ttest'; vars = [toks[0], opts.by]; } else if (em && V(em[2])) { verb = 'ttestp'; vars = [em[1], em[2]]; } else if (em) { verb = 'ttest1'; vars = [em[1]]; opts.mu = em[2]; } else return fail(toks.length >= 2 ? 'In Stata the group goes inside by():   ttest ' + toks[0] + ', by(' + toks[1] + ')' : 'ttest: use  ttest y, by(group)   or   ttest y == 50'); }
@@ -10656,7 +10874,7 @@ class Component extends DCLogic {
       else if (vb === 'bar') { const ov = opts.over || toks[0]; if (!ov) return fail('graph bar needs  graph bar, over(x)'); verb = 'plot'; opts.kind = 'bar'; vars = [ov]; }
       else if (vb === 'scatter') { if (toks.length < 2) return fail('scatter needs  scatter y x'); verb = 'plot'; opts.kind = 'scatter'; vars = [toks[1], toks[0]]; }
       else if (vb === 'line') { if (toks.length < 2) return fail('line needs  line y time'); verb = 'plot'; opts.kind = 'line'; vars = [toks[toks.length - 1], toks[0]]; }
-      else if (vb === 'describe') verb = 'describe';
+      else if (vb === 'describe') { verb = 'describe'; if (toks.length) { const DL = this.cxVarlist(toks.join(' ')); if (DL.bad.length) return fail('variable ' + DL.bad[0] + ' not found'); opts.dvars = DL.vars; } }
       else if (vb === 'codebook') { if (!toks.length) return fail('codebook needs a variable'); verb = 'codebook'; vars = [toks[0]]; }
     }
     const fix = n => { const r = V(n); if (!r) throw new Error('"' + n + '" is not a variable in this dataset'); return r; };
@@ -10679,16 +10897,16 @@ class Component extends DCLogic {
       let all = [...((S.subg && S.subg.all) || [])];
       for (const c of r.conds) {
         const isNum = !c.cat, val = c.val, numV = /^-?\d+(\.\d+)?$/.test(String(val).trim());
-        const cond = c.op === '==' ? { v: c.v, t: 'in', vals: [numV ? (isNum ? E.numLab(parseFloat(val)) : String(this.vlabel(c.v, parseFloat(val)))) : val] } : { v: c.v, t: 'op', op: c.op, val, cat: c.cat };
+        const cond = c.t === 'in' || c.t === 'rng' ? c : c.op === '==' && c.val !== '.' ? { v: c.v, t: 'in', vals: [numV ? (isNum ? E.numLab(parseFloat(val)) : String(this.vlabel(c.v, parseFloat(val)))) : val] } : { v: c.v, t: 'op', op: c.op, val, cat: c.cat };
         all = [...all, cond];
       }
       patch.subg = Object.assign({}, S.subg, { all }); this._cxIf = { prev: S.subg, sig: JSON.stringify(all) };
     }
     if (opts.ttAlpha !== undefined) { patch.alphaSel = String(+opts.ttAlpha.toFixed(8)); this._cxLevel = { prev: S.alphaSel, val: patch.alphaSel }; }
-    if (opts.w) { patch.weightVar = opts.w; patch.weightAuto = false; }
+    if (opts.w) { if (opts.w !== S.weightVar) this._cxW = { prev: S.weightVar, prevAuto: S.weightAuto, val: opts.w }; patch.weightVar = opts.w; patch.weightAuto = false; }
     if (opts.w || patch.subg || JSON.stringify(treat) !== JSON.stringify(S.treat || {})) this.clearMemo();
     const label = (s.length > 70 ? s.slice(0, 68) + '…' : s) + (opts.if ? '   · the if applies to this command only' : '');
-    if (verb === 'describe') { delete patch.conSig; this.setState(patch); this.runDirect({ t: 'describe' }); return done(label, { mfPane: 'output' }); }
+    if (verb === 'describe') { delete patch.conSig; this.setState(patch); this.runDirect(opts.dvars ? { t: 'describe', vars: opts.dvars } : { t: 'describe' }); return done(label, { mfPane: 'output' }); }
     if (verb === 'codebook') { delete patch.conSig; this.setState(patch); this.runDirect({ t: 'codebook', x: vars[0] }); return done(label, { mfPane: 'output' }); }
     if (verb === 'summarize' || verb === 'tabulate') return done(label, Object.assign(patch, { tab: 'one', exploreVar: vars[0] }));
     if (verb === 'crosstab') return done(label, Object.assign(patch, { tab: 'two', twoMode: 'ct', yVar: vars[0], xVar: vars[1] }));
@@ -11166,7 +11384,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-18.102') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-18.103') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -11575,7 +11793,7 @@ class Component extends DCLogic {
         ['Copy session log', () => { this.setState(closeMenu); if (!(S.conLog || []).length) { this.flash('The session log is empty — run a command or an analysis first.'); return; } if (out.copyLog) out.copyLog(); }],
         ['Print lab report…', go({ reportMode: true })],
         SEP,
-        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-18.102)', () => { this.setState(closeMenu); this.dlProgram(); }]
+        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-18.103)', () => { this.setState(closeMenu); this.dlProgram(); }]
       ]],
       ['Data', { tab: 'data' }, 'Create, replace, recode and rename variables', [
         [(this._undo || []).length ? 'Undo: ' + (S.undoLabel || 'last change') + '   (Ctrl/\u2318+Z)' : 'Undo (nothing to undo)', () => { this.setState(closeMenu); this.undo(); }],
@@ -12035,6 +12253,10 @@ class Component extends DCLogic {
     }
     out.isText = S.tab === 'text';
     out.isPredict = S.tab === 'predict'; if (out.isPredict) out.prEl = this.prRender();
+    out.cpShow = !!S.cpOpen && S.screen === 'work'; if (out.cpShow) out.cpEl = this.cpRender(); else this._cpWasOpen = false;
+    out.cpGridHide = out.cpShow ? 'display: none;' : ''; out.cpBtnStyle = S.cpOpen ? 'background: var(--c194F39, #194F39); color: #FFFFFF; border-color: var(--c194F39, #194F39);' : '';
+    out.cpToggle = () => (this.state.cpOpen ? this.cpClose() : this.cpOpenPage()); out.cpPrintView = () => this.cpPrintView();
+    out.cpCanPrint = !S.cpOpen && S.screen === 'work' && !!this._raw && (() => { try { return !!this.descFor(); } catch (e) { return false; } })();
     // GM26 text lab render
     if (out.isText) out.tlEl = this.tlRender();
     if (out.isSem) {
@@ -13154,7 +13376,7 @@ class Component extends DCLogic {
       if (this._regRunNext) { this._regRan = specNow; this._regRunNext = false; }
       const regRan = this._regRan === specNow;
       out.regCanRun = !out.regEmpty; out.regRan = regRan && !out.regEmpty; out.regDirty = !regRan && !!this._regRan && !out.regEmpty;
-      out.regRun = () => { if (!this.state.depVar || !this.state.predictors.length) return; this._regRan = this.regSpec(); this.forceUpdate(); };
+      out.regRun = () => { if (!this.state.depVar || !this.state.predictors.length) return; this._regRan = this.regSpec(); this.cpArm('page'); this.forceUpdate(); };
       out.regRunStyle = "font-family: var(--fUI, 'Hanken Grotesk', sans-serif); font-weight: 800; font-size: 12px; letter-spacing: 0.1em; border-radius: 9px; padding: 9px 18px; white-space: nowrap; " + (out.regCanRun && !out.regRan ? 'cursor: pointer; color: var(--cFFFFFF, #FFFFFF); background: var(--cC4681E, #C4681E); border: 1px solid var(--cA3540F, #A3540F);' : out.regRan ? 'cursor: pointer; color: var(--c194F39, #194F39); background: var(--cEDF5F0, #EDF5F0); border: 1px solid var(--cAFD2BF, #AFD2BF);' : 'cursor: default; color: var(--c6B6455, #6B6455); background: var(--cF4EEE3, #F4EEE3); border: 1px solid var(--cE3D8C4, #E3D8C4);');
       out.regRunLabel = out.regRan ? '\u2713 ESTIMATED \u2014 RUN AGAIN' : '\u25b6 RUN MODEL';
       out.regRunNote = out.regEmpty ? 'Choose the outcome and at least one predictor, then run the model.' : out.regRan ? 'The results below are for this specification.' : out.regDirty ? 'Specification changed \u2014 run the model again to update the results.' : 'Ready \u2014 run the model to see the results.';
@@ -13507,7 +13729,7 @@ class Component extends DCLogic {
       const pane = S.mfPane || 'plots';
       out.mfPanePlots = dockOn && pane === 'plots'; out.mfPaneOutput = dockOn && pane === 'output'; out.mfPaneReport = dockOn && pane === 'report'; out.mfPaneHelp = dockOn && pane === 'help';
       const openPane = k => this.setState({ mfPane: k, mfDock: true, mfBrowseDock: S.tab === 'browse' ? true : S.mfBrowseDock, mfMobile: 'dock', mfDl: false, mfFile: false, mfNav: '', mfSettings: false, ntOpen: false });
-      const DT = [['plots', 'Plots', nP], ['output', 'Console', S.conLog.length], ['report', 'Report', nPins], ['help', 'Help', 0]];
+      const DT = [['plots', 'Plots', nP], ['report', 'Report', nPins], ['help', 'Help', 0]];
       out.mfDockTabs = DT.map(([k, l, n]) => ({ label: l + (n ? ' · ' + n : ''), short: l, click: () => this.setState({ mfPane: k, mfDl: false }), open: () => openPane(k), style: pane === k ? 'color: var(--c194F39, #194F39); background: var(--cFFFFFF, #FFFFFF); border-color: var(--cD2C5AF, #D2C5AF) var(--cD2C5AF, #D2C5AF) var(--cC4681E, #C4681E); border-bottom: 2px solid var(--cC4681E, #C4681E);' : '' }));
       out.mfDockClose = () => this.setState(S.tab === 'browse' ? { mfBrowseDock: false, mfDl: false } : { mfDock: false, mfDl: false });
       out.mfDockWide = () => this.setState({ mfWide: !S.mfWide });

@@ -10,7 +10,8 @@
   // level(#) / conf.level on a t-test applies to that command only too: the next command puts back the confidence
   // level the user had (Settings, or  set level). Neither is restored when the user changed it in between.
   cxScopeIf(text) {
-    const k = this._cxIf, lv = this._cxLevel, patch = {}; this._cxIf = null; this._cxLevel = null; this._cxPending = null;
+    const k = this._cxIf, lv = this._cxLevel, wv = this._cxW, patch = {}; this._cxIf = null; this._cxLevel = null; this._cxPending = null; this._cxW = null;
+    if (wv && this.state.weightVar === wv.val) { patch.weightVar = wv.prev; patch.weightAuto = wv.prevAuto; } // a weight typed on a command applies to that command only, as in Stata
     if (k && JSON.stringify((this.state.subg && this.state.subg.all) || []) === k.sig) patch.subg = k.prev;
     if (lv && String(this.state.alphaSel) === lv.val) patch.alphaSel = lv.prev;
     if (!Object.keys(patch).length) return false;
@@ -114,8 +115,8 @@
         out.r = kind === 'correlate' ? 'cor(' + rvec(vars) + ', use = "complete.obs")' : (O.sig ? 'psych::corr.test(' + rvec(vars) + ', adjust = "none")' : 'cor(' + rvec(vars) + ', use = "pairwise.complete.obs")');
       } else if (kind === 'tab1') {
         if (!vars.length) return fail('tab1 needs a variable');
-        out = { tbl: vars.map(v => (vars.length > 1 ? '-> tabulation of ' + v + '\n\n' : '') + this.cxTab1(v, mk, w)).join('\n\n'), res: vars.length + ' frequency table' + (vars.length === 1 ? '' : 's') };
-        out.expl = 'Frequency table of ' + vars.join(', '); out.stata = 'tab1 ' + P.toks.join(' ') + '@IF@' + wtxt + otxt; out.r = vars.map(v => 'table(df$' + v + ', useNA = "no")').join('\n');
+        out = { tbl: vars.map(v => (vars.length > 1 ? '-> tabulation of ' + v + '\n\n' : '') + this.cxTab1(v, mk, w, O)).join('\n\n'), res: vars.length + ' frequency table' + (vars.length === 1 ? '' : 's') };
+        out.expl = 'Frequency table of ' + vars.join(', '); out.stata = verb + ' ' + P.toks.join(' ') + '@IF@' + wtxt + otxt; out.r = vars.map(v => 'table(df$' + v + ', useNA = "' + (O.missing || O.m ? 'ifany' : 'no') + '")').join('\n');
       } else if (kind === 'tab2') {
         if (vars.length < 2) return fail('tab2 needs at least two variables');
         const tabs = []; for (let i = 0; i < vars.length; i++) for (let j = i + 1; j < vars.length; j++) tabs.push('-> tabulation of ' + vars[i] + ' by ' + vars[j] + '\n\n' + this.cxTab2(vars[i], vars[j], mk, w, O).tbl);
@@ -231,10 +232,13 @@
     return { tbl: out.map(x => x.replace(/\s+$/, '')).join('\n'), res: vars.length + ' variables, pairwise' };
   }
   cxOrder(name, labels) { return this.descOrder(name, labels.map(l => ({ label: l }))).map(r => r.label); }
-  cxTab1(v, mk, w) {
+  cxTab1(v, mk, w, O) {
     const R = (x, n) => String(x).padStart(n), G = x => this.stataG(x), a = this.cxLab(v, mk), E = this._E;
-    const fr = E.freqOf(a, w), rows = this.descOrder(v, fr.rows), tot = fr.totalW;
-    if (!rows.length) return v + ': no observations';
+    const fr = E.freqOf(a, w), rows = this.descOrder(v, fr.rows).slice();
+    // , missing: the missing values get their own row (.), as in Stata
+    let miss = 0; if (O && (O.missing || O.m)) { for (let i = 0; i < a.length; i++) { if (mk && !mk[i]) continue; if (a[i] == null) miss += w ? (Number.isFinite(w[i]) ? w[i] : 0) : 1; } if (miss) rows.push({ label: '.', c: miss }); }
+    const tot = fr.totalW + miss;
+    if (!rows.length) return 'no observations';
     const lw = Math.min(24, Math.max(11, v.length, ...rows.map(r => String(r.label).length))), cnt = x => w ? G(x) : this.fmtN(x); let cum = 0;
     const out = [R(this.abbr(v, lw), lw) + ' |      Freq.     Percent        Cum.', '-'.repeat(lw + 1) + '+-----------------------------------'];
     for (const r of rows) { cum += r.c; out.push(R(String(r.label).slice(0, lw), lw) + ' |' + R(cnt(r.c), 11) + R((100 * r.c / tot).toFixed(2), 12) + R((100 * cum / tot).toFixed(2), 12)); }

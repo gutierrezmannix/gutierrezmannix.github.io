@@ -25,6 +25,7 @@ NODE_PATH=$(npm root -g) node calculator/tests/chart-builder-e2e.cjs   # browser
 | `src/*.js`, `src/*.mjs`, `src/*.css` | Feature modules. `tools/*.py` copy each one into its block marked `GM26 … begin` / `GM26 … end` in `src/app/`. |
 | `src/engine/**/*.mjs` | The Tests ▾ analysis engine, validated against R (`tools/engine/`, `tests/engine/`). |
 | `src/predict-engine.mjs`, `src/predict-lab.js` | Tests → Predictive modeling → Predict: train/test split, cross-validation, logit, lasso, trees, random forest, boosting, kNN, importance and partial dependence, all in the page and validated against R (`tests/predict-reference.R`). See `PREDICT.md`. |
+| `src/console-page.js` | The console page (Review, Results, Variables, command line) and the rule that it records actions, not views. See `CONSOLE.md`. |
 | `src/maps/*.json.gz` | Built-in maps (every country's first level; Mexico's states and municipalities), made by `tools/maps/` and embedded by `tools/build.py`. See `MAPS.md`. |
 | `tools/build.py` | Runs every integrator, writes the result back to `src/app/` and packs `index.html`. |
 

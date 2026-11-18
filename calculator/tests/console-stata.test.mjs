@@ -38,14 +38,17 @@ test('summarize keeps every variable; detail prints Stata percentiles, skewness 
 
 test('an if typed in the console applies to that command only', async () => {
   const c = await setup();
+  // build .103: summarize prints in the console and never touches the Subgroup bar; a command that opens a page does
   c.runCmdLine('summarize y if g == "A"'); clearTimeout(c._mfOkT);
+  assert.equal((c.state.subg.all || []).length, 0, 'summarize prints in the console');
+  c.runCmdLine('tab g hi if g == "A"'); clearTimeout(c._mfOkT);
   assert.equal(c.state.subg.all.length, 1, 'the page shows the subgroup while the command runs');
   run(c, 'summarize x');
   assert.equal((c.state.subg.all || []).length, 0, 'the next command puts back the Subgroup bar');
   let d = run(c, 'count if g == "B"'); assert.equal(d.res, 'count = 26');
   d = run(c, 'summarize y x if g == "A"'); assert.match(d.tbl, /\s+y \|\s+12\s+8\.783333/); assert.equal(c.cmdText(d, 'stata'), 'summarize y x if g == "A"');
   assert.equal((c.state.subg.all || []).length, 0, 'console-only commands never touch the Subgroup bar');
-  c.runCmdLine('summarize y if x >= 2 & x <= 5'); clearTimeout(c._mfOkT); assert.equal(c.state.subg.all.length, 2, 'two conditions on the same variable both apply');
+  c.runCmdLine('tab g hi if x >= 2 & x <= 5'); clearTimeout(c._mfOkT); assert.equal(c.state.subg.all.length, 2, 'two conditions on the same variable both apply');
 });
 
 test('two-way tabulate, correlate, pwcorr and the pooled t-test print what Stata prints', async () => {
@@ -97,6 +100,7 @@ test('keep if / drop if write their own line and do not re-log the analysis on s
   const c = await setup(); c.afterUpdateUI = c.autoSchedule = c.noteWatch = () => {};
   const set = c.setState.bind(c); c.setState = (p, cb) => set(p, () => { c.componentDidUpdate(); cb?.(); });
   const wait = () => new Promise(r => setTimeout(r, 120)), cmds = () => c.state.conLog.map(d => c.cmdText(d, 'stata'));
+  c.setState({ conAuto: true });   // build .103: views are logged only with Record → Also what I open
   c.setState({ tab: 'one', exploreVar: 'y' });
   const n0 = c.state.conLog.length; assert.ok(n0 >= 1, 'the analysis on screen is logged once');
   c.runCmdLine('keep if g == "A"'); await wait();
@@ -107,4 +111,27 @@ test('keep if / drop if write their own line and do not re-log the analysis on s
   assert.equal(cmds().length, n0 + 3, 'clearing the filter adds only its own line');
   c.clearMemo(); c.setState({ subg: { all: [{ v: 'g', t: 'in', vals: ['B'] }] } });
   assert.equal(cmds().length, n0 + 4, 'changing the IF bar on an analysis page still logs that analysis');
+});
+
+test('build .103: the console records actions, not views, and typed commands follow Stata', async () => {
+  const c = await setup(); c.afterUpdateUI = c.autoSchedule = c.noteWatch = () => {};
+  const set = c.setState.bind(c); c.setState = (p, cb) => set(p, () => { c.componentDidUpdate(); cb?.(); });
+  const wait = () => new Promise(r => setTimeout(r, 60)), cmds = () => c.state.conLog.map(d => c.cmdText(d, 'stata'));
+  c.setState({ tab: 'one', exploreVar: 'y' }); c.setState({ exploreVar: 'x' }); c.setState({ tab: 'two', xVar: 'x', yVar: 'y' });
+  assert.equal(c.state.conLog.length, 0, 'looking at variables and tabs writes nothing');
+  c.setState({ tab: 'one', exploreVar: 'y' }); c.cpPrintView(); await wait();
+  assert.deepEqual(cmds(), ['summarize y, detail\nci means y'], 'Print in console writes the view once');
+  c.setState({ exploreVar: 'x' }); assert.equal(c.state.conLog.length, 1, 'and nothing more afterwards');
+  let d = run(c, 'summarize y'); assert.match(d.tbl, /Variable \|\s+Obs\s+Mean/); assert.doesNotMatch(d.tbl, /Percentiles/); assert.equal(c.cmdText(d, 'stata'), 'summarize y');
+  d = run(c, 'tab g'); assert.match(d.tbl, /A \|\s+14/); assert.equal(c.cmdText(d, 'stata'), 'tab g');
+  d = run(c, 'tab g, missing'); assert.match(d.tbl, /Total \|/);
+  // a weight typed on one command does not stick
+  c.runCmdLine('tab g hi [aw=x]'); clearTimeout(c._mfOkT); assert.equal(c.state.weightVar, 'x');
+  run(c, 'summarize y'); assert.equal(c.state.weightVar, '', 'the next command puts the weight back');
+  // describe with a varlist, conditions with missing() and inlist(), tostring with gen()
+  d = run(c, 'describe y g'); assert.match(d.tbl, /^Variable\s+Storage/); assert.equal((d.tbl.match(/\n(y|g)\s/g) || []).length, 2); assert.equal(c.cmdText(d, 'stata'), 'describe y g');
+  d = run(c, 'count if !missing(y)'); assert.match(d.res, /count = \d+/);
+  d = run(c, 'count if inlist(g, "A")'); assert.equal(d.res, 'count = 14');
+  run(c, 'tostring x, gen(x_s)'); assert.ok(c._raw.names.includes('x_s') && c._raw.names.includes('x')); assert.equal(c._raw.cols[c._raw.names.indexOf('x_s')].k, 's');
+  assert.ok(c.state.conLog.every(e => e.src === 'typed' || e.src === 'page'));
 });
