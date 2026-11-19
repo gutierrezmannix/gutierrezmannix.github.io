@@ -30,9 +30,11 @@
     if (/^(\*|\/\/)/.test(s)) { this.cpNote(s, '', 'comment'); if (then) then(); return; }
     if (/^(cls|clear\s+results)$/i.test(s)) { this.setState({ conFrom: this.state.conLog.length }); if (then) then(); return; }
     if (/^(browse|br|edit|ed|help|h|search)\b/i.test(s)) this.setState({ cpOpen: false });
+    const plotSig0 = this.cqPlotSig ? this.cqPlotSig() : ''; let graphOpened = false;
     this.setState({ mfCmdErr: '', mfCmdOk: '' }, () => {
       try { this.runCmdLine(s); } catch (e) { this.setState({ mfCmdErr: String(e && e.message || e) }); }
       setTimeout(() => {
+        if (this.cqChartSync && this.cqPlotSig() !== plotSig0) { this.cqChartSync(); graphOpened = this.state.tab === 'plots'; }
         const S = this.state;
         if (S.mfCmdErr) { this.cpNote(s, S.mfCmdErr, 'err'); this.setState({ mfCmdErr: '' }); if (then) then(); return; }
         const settle = () => {
@@ -44,14 +46,28 @@
             const ok = String(this.state.mfCmdOk || '').replace(/^✓\s*/, '').trim();
             // a command that opened a page logs when the page has run (a regression); anything else gets its note now
             const pending = this._cpArm && Date.now() - this._cpArm < 3000;
-            const wait = k => { if (this.state.conLog.length > n0) { if (then) then(); return; } if ((pending && k < 15) || Date.now() < (this._cpWaitUntil || 0)) { setTimeout(() => wait(k + 1), 100); return; } this.cpNote(s, ok && ok.toLowerCase() !== s.toLowerCase() ? ok : '', 'note'); if (then) then(); };
+            const wait = k => { if (this.state.conLog.length > n0) { this.cpAfter(n0, inner, graphOpened); if (then) then(); return; } if ((pending && k < 15) || Date.now() < (this._cpWaitUntil || 0)) { setTimeout(() => wait(k + 1), 100); return; } this.cpNote(s, ok && ok.toLowerCase() !== s.toLowerCase() ? ok : '', 'note'); this.cpAfter(n0, inner, graphOpened); if (then) then(); };
             wait(0); return;
           } else if (engNote) this.cpNote('', engNote, 'note');
+          this.cpAfter(n0, inner, graphOpened);
           if (then) then();
         };
         settle();
       }, 90);
     });
+  }
+  // build .112: a typed graph command takes you to the drawn graph, as Stata opens its Graph window; Ctrl+K returns
+  cpAfter(n0, inner, graphOpened) {
+    const d = this.state.conLog.slice(n0).reverse().find(e => e.t === 'plot') || (graphOpened && this.state.tab === 'plots' && !this.state.mfCmdErr ? { t: 'plot-open' } : null); if (!d) return;
+    if (this._cpBatch) { this._cpBatchPlot = d; return; }
+    if (inner || this._cpInner > 0) return;
+    this.cpShowGraph(d);
+  }
+  cpShowGraph(d) {
+    if (!this.state.cpOpen) return;
+    if (d.t === 'plot') this.rerunCore(d); this._cpSkip = Date.now();
+    this.setState({ cpOpen: false, mfNav: '', menu: '' }, () => { if (this.cqChartSync) this.cqChartSync(); try { window.scrollTo(0, 0); } catch (e) {} });
+    this.flash((d.t === 'plot' ? this.cpCmdOf(d, 'stata').split('\n').pop() : this._cpRunText || 'Graph') + ' — Ctrl+K returns to the console');
   }
   // several lines in order (the do-file box): comments are echoed, /// joins a line to the next
   cpRunMany(text) {
@@ -59,7 +75,8 @@
     for (const raw of String(text || '').split(/\r?\n/)) { const l = raw.replace(/\s+$/, ''); if (/\s\/\/\/\s*$/.test(l) || /^\/\/\/$/.test(l.trim())) { buf += l.replace(/\/\/\/\s*$/, ' '); continue; } lines.push(buf + l); buf = ''; }
     if (buf) lines.push(buf);
     const todo = lines.map(l => l.trim()).filter(Boolean); let i = 0;
-    const next = () => { if (i >= todo.length) { if (this._cqLoop && this.cqLoopCancel) this.cqLoopCancel('program error: the loop is not closed — add } on a line of its own'); return; } const l = todo[i++]; this.cpRun(l, () => setTimeout(next, 120)); };
+    this._cpBatch = true; this._cpBatchPlot = null;
+    const next = () => { if (i >= todo.length) { if (this._cqLoop && this.cqLoopCancel) this.cqLoopCancel('program error: the loop is not closed — add } on a line of its own'); this._cpBatch = false; if (this._cpBatchPlot) this.cpShowGraph(this._cpBatchPlot); this._cpBatchPlot = null; return; } const l = todo[i++]; this.cpRun(l, () => setTimeout(next, 120)); };
     next();
   }
   // text of the session for Copy / Save log (.log) and the commands alone for Save do-file (.do)
@@ -141,7 +158,7 @@
       return h('div', { key: 'd' + it.at, className: 'cp-item' },
         cmd.split('\n').map((l, i) => h('div', { key: i, className: 'cp-cmd' }, (/^\s/.test(l) || /^\}/.test(l) ? '  ' : prompt) + l, i === 0 && d.src !== 'typed' && d.src !== 'inner' ? h('span', { className: 'cp-src' }, (dial === 'r' ? '  # ' : '  * ') + 'from ' + (d.t === 'asx' ? 'Tests ▾' : 'the page')) : null)),
         cut ? h('pre', { className: 'cp-tbl' }, cut) : d.res ? h('div', { className: 'cp-note' }, d.res) : null,
-        d.t === 'plot' ? h('button', { type: 'button', className: 'cp-link', onClick: () => { this.rerunCmd(d); this.cpClose(); } }, 'View the graph →') : null);
+        d.t === 'plot' ? h('button', { type: 'button', className: 'cp-link', onClick: () => this.cpShowGraph(d) }, 'View the graph →') : null);
     });
     const sg = S.cpSug && S.cpSug.list && S.cpSug.list.length ? S.cpSug : null;
     const cols = (S.cols || []).filter(c => !(S.hiddenVars || []).includes(c.name)), vq = String(S.cpVarQ || '').toLowerCase();
@@ -325,6 +342,7 @@
     if ((m = body.match(/^svy\s*(?:,[^:]*)?:\s*/i))) { svy = true; body = body.slice(m[0].length); }
     const v0 = ((body.match(/^[a-z]\w*/i) || [''])[0]).toLowerCase();
     // build .110: with 0 observations, commands that need data answer as Stata does (r(2000))
+    { const ne = !svy && this.cqNoObs ? this.cqNoObs(body) : ''; if (ne) { this.setState({ mfCmdErr: ne, mfCmdOk: '' }); return true; } }
     if (this._raw && this._raw.n === 0 && /^(ta|tab|tabu|tabul|tabula|tabulat|tabulate|tab1|tab2|pwcorr|cor|corr|correlate|ttest|oneway|anova|regress|reg|logit|logistic|ologit|probit|poisson|mlogit|nbreg|qreg|ranksum|kwallis|signrank|prtest|bitest|mcc|pwmean|histogram|hist|scatter|twoway|tw|graph|gr|line|tsline|kdensity|spearman|sdtest|swilk|ci|proportion|prop|mean|tabstat|table|xtreg|mixed|melogit|mepoisson|menbreg|stcox|streg|sts|stset|pca|factor|alpha|margins|cluster|lasso|elasticnet|bootstrap|levelsof|misstable|xtile|egen)$/.test(v0)) { this.setState({ mfCmdErr: 'no observations — the dataset has 0 observations; add them with  set obs 100  or type them in the Data Editor', mfCmdOk: '' }); return true; }
     if (!svy && v0 === 'xtset') { const mm = body.match(/^xtset\s+(\w+)\s+(\w+)/i), L = mm ? this.cxVarlist(mm[1] + ' ' + mm[2]) : null; if (L && !L.bad.length && L.vars.length === 2) this._cpXt = { id: L.vars[0], t: L.vars[1] }; return false; }
     const ENG = /^(ranksum|signrank|kwallis|prtest|prtesti|bitest|bitesti|mcc|anova|pwmean|mlogit|probit|nbreg|qreg|mixed|xtmixed|melogit|mepoisson|menbreg|xtreg|stset|sts|stcox|streg|pca|factor|rotate|misstable|cluster|duplicates|lasso|elasticnet|bootstrap)$/;

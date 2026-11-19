@@ -150,3 +150,20 @@ fresh page. It found and fixed:
 
 Kept on purpose: value labels you define are remembered by variable name and come back when a file with that variable
 is opened (a calculator convenience Stata does not have).
+
+## Graphs open ready, and building data from scratch (build .112)
+
+- **A typed graph command takes you to the drawn graph**, as Stata opens its Graph window: `histogram`, `kdensity`,
+  `graph box`, `graph bar` / `hbar`, `graph pie`, `scatter`, `twoway`, `line` … close the console page and show the
+  chart with its variables already chosen (before, the Charts page opened asking for them). The command and its
+  Stata line stay in the console; **Ctrl+K** (or Console) returns to it. A do-file shows its last graph when it
+  finishes; other commands stay in the console. "View the graph →" in the console opens the chart the same way.
+- A graph of variables with no values answers `no observations`, as Stata (it drew an empty chart).
+- `set obs N` notes that the new observations are missing on every variable.
+- `generate` / `replace` understand `_n` (observation number), `_N`, `in 1/100` (also `in f/l`, `in -10/l`), and
+  Stata's random-number functions `runiform()`, `runiform(a, b)`, `rnormal()`, `rnormal(m, s)`, `runiformint(a, b)`,
+  `rbinomial(n, p)`, `rpoisson(m)`, `rexponential(b)`, `rchi2(df)`, `rt(df)`; `set seed` makes them repeatable (the
+  draws are not Stata's — its generator differs — but their distribution is).
+
+Tested on the ENVIPE 2011–2026 sample (14,035 adults × 904 variables): every graph type opens drawn, and the
+session's tables, models, `margins`, survey estimates and data steps print in the console.

@@ -98,7 +98,7 @@ test('build .109: generate x = "" makes an empty text variable, as in Stata', as
 test('build .110: set obs grows the data as in Stata; a value typed after the last row adds one observation', async () => {
   const c = await setup();
   c.setState({ mfCmdErr: '' }); c.runCmdLine('set obs 25'); assert.equal(c.state.mfCmdErr, ''); assert.equal(c._raw.n, 25);
-  assert.equal(c.state.conLog.at(-1).tbl, 'Number of observations (_N) was 20, now 25.');
+  assert.match(c.state.conLog.at(-1).tbl, /^Number of observations \(_N\) was 20, now 25\.\nnote: the 5 new observations are missing/);
   assert.ok(Number.isNaN(c._raw.cols[c._raw.names.indexOf('y')].a[24])); assert.equal(c._raw.cols[c._raw.names.indexOf('g')].a[24], '');
   c.setState({ mfCmdErr: '' }); c.runCmdLine('set obs 10'); assert.match(c.state.mfCmdErr, /cannot drop observations/); assert.equal(c._raw.n, 25);
   const yi = c._raw.names.indexOf('y');
@@ -151,4 +151,20 @@ test('build .111: after svyset, plain commands run unweighted (as Stata) without
   c.setState({ mfCmdErr: '' }); c.runCmdLine('svy: mean y'); assert.equal(c.state.mfCmdErr, ''); assert.equal(c.state.analysisPages.survey_desc.fields.weight[0], 'x');
   // a weight chosen in Settings (not by svyset) still applies, shown in the command
   const e = await setup(); e.setState({ weightVar: 'x', weightAuto: false }); d = run(e, 'summarize y'); assert.match(e.cmdText(d, 'stata'), /summarize y \[aw=x\]/);
+});
+
+test('build .112: _n, _N, in ranges and random numbers in generate / replace; set seed repeats them', async () => {
+  const c = await setup(); const col = n => c._raw.cols[c._raw.names.indexOf(n)].a;
+  run(c, 'generate obs = _n'); assert.deepEqual(Array.from(col('obs').slice(0, 3)), [1, 2, 3]);
+  run(c, 'generate big = _N'); assert.equal(col('big')[5], 20);
+  run(c, 'replace obs = 0 in 1/3'); assert.deepEqual(Array.from(col('obs').slice(0, 5)), [0, 0, 0, 4, 5]); assert.equal(c.cmdText(c.state.conLog.at(-1), 'stata'), 'replace obs = 0 in 1/3');
+  run(c, 'replace obs = -1 if _n > 18'); assert.deepEqual(Array.from(col('obs').slice(17)), [18, -1, -1]);
+  c.cqPre('set seed 42', () => {}); run(c, 'generate zz = rnormal(50, 10)'); const z1 = Array.from(col('zz'));
+  c.cqPre('set seed 42', () => {}); run(c, 'generate zz2 = rnormal(50, 10)'); assert.deepEqual(Array.from(col('zz2')), z1, 'set seed repeats the draws');
+  run(c, 'generate u = runiform()'); assert.ok(Array.from(col('u')).every(v => v > 0 && v < 1));
+  run(c, 'generate die = runiformint(1, 6)'); assert.ok(Array.from(col('die')).every(v => Number.isInteger(v) && v >= 1 && v <= 6));
+  // a large sample has the right mean and spread
+  const big = c.cqRandom('rnormal', [50, 10], 200000); const m = big.reduce((s, v) => s + v, 0) / big.length, sd = Math.sqrt(big.reduce((s, v) => s + (v - m) ** 2, 0) / (big.length - 1));
+  assert.ok(Math.abs(m - 50) < 0.1 && Math.abs(sd - 10) < 0.1, m + ' ' + sd);
+  const po = c.cqRandom('rpoisson', [3], 100000); assert.ok(Math.abs(po.reduce((s, v) => s + v, 0) / po.length - 3) < 0.03);
 });

@@ -176,7 +176,7 @@
     }
     // housekeeping that changes nothing here
     if (/^set\s+(more|linesize|varabbrev|type|rmsg|trace|tracedepth|matsize|maxvar|scheme|graphics|output|showbaselevels|showemptycells|cformat|pformat|sformat|emptycells|fvlabel|dp|autotabgraphs|niceness|max_memory|segmentsize|charset|locale_ui)\b/i.test(s) || /^(version|vers)\s+[\d.]+\s*$/i.test(s) || /^(pause|discard|exit|timer\s+(clear|on|off)\b.*|program\s+drop\b.*|macro\s+shift|creturn\s+list|query\b.*)\s*$/i.test(s)) { this.cpNote(s, '', 'note'); fin(); return true; }
-    if ((m = s.match(/^set\s+seed\s+(\d+)\s*$/i))) { this._cqSeed = +m[1]; this.cpNote(s, '', 'note'); fin(); return true; }
+    if ((m = s.match(/^set\s+seed\s+(\d+)\s*$/i))) { this._cqSeed = +m[1]; this._cqRng = +m[1] >>> 0; this.cpNote(s, '', 'note'); fin(); return true; }
     if (/^(log|cmdlog)\s+(using|close|off|on|query)\b/i.test(s)) { this.cpNote(s, /close|off|query/i.test(s) ? '' : 'note: the console keeps the whole session — Save log (.log) and Save do-file (.do) above save it', 'note'); fin(); return true; }
     if (/^clear(\s+all)?\s*$/i.test(s)) return this.cqErr(s, 'clear would remove the data from the calculator — open another file with File ▸ Open, or use Clear above to clear the console', then);
     return s;
@@ -361,7 +361,8 @@
         if (N < n0) return fail('obs was ' + this.fmtN(n0) + ', now ' + this.fmtN(N) + ' — set obs cannot drop observations; keep the ones you want with  keep if …');
         if (N * Math.max(1, raw.cols.length) > 4e6) return fail(this.fmtN(N) + ' observations × ' + raw.cols.length + ' variables is more than the browser can hold here (4 million cells)');
         if (N > n0) this.addRows(N - n0);
-        this.pushLog({ t: 'stata', stata: s, r: N > n0 ? 'df[(nrow(df) + 1):' + N + ', ] <- NA' : '# nrow(df) is already ' + N, tbl: 'Number of observations (_N) was ' + this.fmtN(n0) + ', now ' + this.fmtN(N) + '.', res: '' });
+        const fillNote = N > n0 && raw.names.length ? '\nnote: the ' + this.fmtN(N - n0) + ' new observations are missing (.) on every variable — fill them with, e.g.,  replace ' + raw.names[0] + ' = 0' : '';
+        this.pushLog({ t: 'stata', stata: s, r: N > n0 ? 'df[(nrow(df) + 1):' + N + ', ] <- NA' : '# nrow(df) is already ' + N, tbl: 'Number of observations (_N) was ' + this.fmtN(n0) + ', now ' + this.fmtN(N) + '.' + fillNote, res: '' });
         return ok('set obs ' + N);
       }
       case 'qnorm': case 'pnorm': return fail(w0 + ' (normal probability plot) is not drawn here — swilk ' + (T[0] || 'x') + ' tests normality, and histogram ' + (T[0] || 'x') + ', normal compares the shape');
@@ -689,6 +690,41 @@
     }
     if (mg.sampled) out.push('', 'note: averaged over a random sample of ' + this.fmtN(mg.sampN) + ' rows (large data)');
     return [...out, '', '-'.repeat(78), '             |            Delta-method', '             |     Margin   std. err.      ' + st + '    P>|' + st + '|     [' + lvl + '% conf. interval]', '-------------+' + '-'.repeat(64), ...body, '-'.repeat(78)].join('\n');
+  }
+  // a graph of variables with no values answers as Stata does (no observations), instead of an empty chart
+  cqNoObs(s) {
+    const raw = this._raw; if (!raw || !raw.n) return '';
+    if (!/^(histogram|histogra|histogr|histog|histo|hist|kdensity|kdensit|kdensi|kdens|scatter|sc|twoway|tw|line|tsline|(graph|gr)\s+(h?bar|h?box|dot|pie))\b/i.test(s)) return '';
+    const im = s.match(/\sif\s+([^,]+)/), head = im ? s.slice(0, im.index) + ' ' + s.slice(im.index + im[0].length) : s;
+    const names = [...new Set((head.match(/[A-Za-z_]\w*/g) || []).map(t => raw.names.find(n => n.toLowerCase() === t.toLowerCase())).filter(Boolean))];
+    if (!names.length) return '';
+    let mk = null; if (im) { const r = this.stataConds(im[1]); if (r.err) return ''; try { mk = this.cxMaskFor(r.conds); } catch (e) { return ''; } } else mk = this.mask();
+    const cols = names.map(n => raw.cols[raw.names.indexOf(n)]);
+    for (let i = 0; i < raw.n; i++) { if (mk && !mk[i]) continue; if (cols.every(c => c.k === 'n' ? Number.isFinite(c.a[i]) : c.a[i] != null && c.a[i] !== '')) return ''; }
+    return 'no observations — ' + names.join(' and ') + (names.length > 1 ? ' have' : ' has') + ' no values' + (im || mk ? ' in these rows' : '') + ' (all missing)';
+  }
+  // build .112: a chart opened by a command is drawn at once — its variables go to the chart builder's settings
+  // (csPages[kind]); the page's older pX / pY settings alone left the builder asking for variables
+  cqPlotSig() { const S = this.state; return JSON.stringify([S.tab, S.plotKind, S.pX, S.pY, S.pYs, S.pG]); }
+  cqChartSync() {
+    const S = this.state, k = S.plotKind, x = S.pX, y = S.pY; if (S.tab !== 'plots' || !k || !x) return;
+    const p = ['hist', 'box', 'density', 'pie', 'donut', 'bar', 'dot'].includes(k) ? { x } : ['gbox', 'violin', 'scatter', 'line', 'area', 'stack', 'groupbar'].includes(k) ? (y ? { x, y } : { x }) : null;
+    if (!p) return; const cur = (S.csPages || {})[k] || {}; if (Object.keys(p).every(q => cur[q] === p[q])) return;
+    this.setState(s => ({ csPages: { ...(s.csPages || {}), [k]: { ...((s.csPages || {})[k] || {}), ...p } } }));
+  }
+  // build .112: Stata's random-number functions for generate / replace (set seed makes them repeatable; Stata's own
+  // generator differs, so the numbers are not Stata's, but their distribution is)
+  cqUnif() { let s = this._cqRng; if (s == null) s = this._cqRng = (this._cqSeed != null ? this._cqSeed : Math.floor(Math.random() * 4294967296)) >>> 0;
+    s = (s + 0x6D2B79F5) >>> 0; this._cqRng = s; let x = s; x = Math.imul(x ^ (x >>> 15), x | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); const u = ((x ^ (x >>> 14)) >>> 0) / 4294967296; return u || 0.5 / 4294967296; }
+  cqNorm() { const u = this.cqUnif(), v = this.cqUnif(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  cqRandom(f, a, n) {
+    if (a.some(x => !Number.isFinite(x))) return null; const out = new Float64Array(n), U = () => this.cqUnif(), Z = () => this.cqNorm();
+    const gen = { runiform: () => a.length >= 2 ? a[0] + (a[1] - a[0]) * U() : U(), rnormal: () => (a.length ? a[0] : 0) + (a.length > 1 ? a[1] : 1) * Z(), runiformint: () => Math.floor(a[0] + (a[1] - a[0] + 1) * U()),
+      rbinomial: () => { let k = 0; for (let j = 0; j < a[0]; j++) if (U() < a[1]) k++; return k; }, rexponential: () => -(a.length ? a[0] : 1) * Math.log(U()),
+      rpoisson: () => { const m = a[0]; if (m > 60) return Math.max(0, Math.round(m + Math.sqrt(m) * Z())); let k = 0, p = 1; const L = Math.exp(-m); do { k++; p *= U(); } while (p > L); return k - 1; },
+      rchi2: () => { let s = 0; for (let j = 0; j < a[0]; j++) { const z = Z(); s += z * z; } return s; }, rt: () => { let s = 0; for (let j = 0; j < a[0]; j++) { const z = Z(); s += z * z; } return Z() / Math.sqrt(s / a[0]); } }[f];
+    if (!gen || (f === 'runiformint' && a.length < 2) || (f === 'rbinomial' && a.length < 2) || ((f === 'rpoisson' || f === 'rchi2' || f === 'rt') && !a.length)) return null;
+    for (let i = 0; i < n; i++) out[i] = gen(); return out;
   }
   // binomial tails; the two-sided p sums every outcome no more likely than the one observed (as Stata and R)
   cqBinom(n, k, p) {
