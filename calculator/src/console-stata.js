@@ -240,7 +240,10 @@
     const R = (x, n) => String(x).padStart(n), G = x => this.stataG(x), a = this.cxLab(v, mk), E = this._E;
     const fr = E.freqOf(a, w), rows = this.descOrder(v, fr.rows).slice();
     // , missing: the missing values get their own row (.), as in Stata
-    let miss = 0; if (O && (O.missing || O.m)) { for (let i = 0; i < a.length; i++) { if (mk && !mk[i]) continue; if (a[i] == null) miss += w ? (Number.isFinite(w[i]) ? w[i] : 0) : 1; } if (miss) rows.push({ label: '.', c: miss }); }
+    // build .112: Stata's extended missing values (.a … .z) get their own rows, with their value labels, as Stata lists them
+    let miss = 0; if (O && (O.missing || O.m)) { const col = this._raw.cols[this._raw.names.indexOf(v)], xk = col && col.x, by = new Map();
+      for (let i = 0; i < a.length; i++) { if (mk && !mk[i]) continue; if (a[i] == null) { const c = w ? (Number.isFinite(w[i]) ? w[i] : 0) : 1; miss += c; const k = xk ? xk[i] : 0; by.set(k, (by.get(k) || 0) + c); } }
+      [...by.keys()].sort((p, q) => p - q).forEach(k => { const code = 2147483621 + k, lab = k ? this.vlabel(v, code) : '.'; rows.push({ label: k && lab !== String(code) ? lab : k ? '.' + String.fromCharCode(96 + k) : '.', c: by.get(k) }); }); }
     const tot = fr.totalW + miss;
     if (!rows.length) return 'no observations';
     const lw = Math.min(24, Math.max(11, v.length, ...rows.map(r => String(r.label).length))), cnt = x => w ? G(x) : this.fmtN(x); let cum = 0;

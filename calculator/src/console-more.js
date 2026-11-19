@@ -271,7 +271,7 @@
       case 'label': case 'lab': case 'labe': {
         const names = T.slice(1).length ? list(T.slice(1)) : raw.names.filter(v => raw.vlabs && raw.vlabs[v] && raw.vlabs[v].size), out = [];
         if (/^dir$/i.test(T[0])) { this.cqPrint(s, names.join('\n')); return ok(); }
-        for (const v of names) { const m = raw.vlabs && raw.vlabs[v]; if (!m || !m.size) continue; out.push(v + ':', ...[...m.entries()].sort((a, b) => a[0] - b[0]).map(([k, l]) => R(this.cqNum(k), 12) + ' ' + l)); }
+        for (const v of names) { const m = raw.vlabs && raw.vlabs[v]; if (!m || !m.size) continue; out.push(v + ':', ...[...m.entries()].sort((a, b) => a[0] - b[0]).map(([k, l]) => R(this.cqXName(k), 12) + ' ' + l)); }
         this.cqPrint(s, out.join('\n'), names.length === 1 ? 'attr(' + rcode(names[0]) + ', "labels")' : '# value labels: attr(df$x, "labels")'); return ok();
       }
       case 'table': {
@@ -706,11 +706,20 @@
   // build .112: a chart opened by a command is drawn at once — its variables go to the chart builder's settings
   // (csPages[kind]); the page's older pX / pY settings alone left the builder asking for variables
   cqPlotSig() { const S = this.state; return JSON.stringify([S.tab, S.plotKind, S.pX, S.pY, S.pYs, S.pG]); }
-  cqChartSync() {
-    const S = this.state, k = S.plotKind, x = S.pX, y = S.pY; if (S.tab !== 'plots' || !k || !x) return;
+  // s: the typed command; its options (bin(), percent, (mean) y …) set the chart as Stata would draw it; returns a note
+  cqChartSync(s) {
+    const S = this.state, k = S.plotKind, x = S.pX, y = S.pY; if (S.tab !== 'plots' || !k || !x) return '';
     const p = ['hist', 'box', 'density', 'pie', 'donut', 'bar', 'dot'].includes(k) ? { x } : ['gbox', 'violin', 'scatter', 'line', 'area', 'stack', 'groupbar'].includes(k) ? (y ? { x, y } : { x }) : null;
-    if (!p) return; const cur = (S.csPages || {})[k] || {}; if (Object.keys(p).every(q => cur[q] === p[q])) return;
-    this.setState(s => ({ csPages: { ...(s.csPages || {}), [k]: { ...((s.csPages || {})[k] || {}), ...p } } }));
+    if (!p) return ''; let note = '';
+    if (s) {
+      const ci = s.indexOf(','), o = ci >= 0 ? this.cxOpts(s.slice(ci + 1)) : {};
+      if (k === 'hist') { const bn = o.bin || o.bins; p.bins = bn && bn !== true ? String(bn) : ''; p.stat = o.percent ? 'percent' : 'count'; if (o.by) note = 'note: by() is not drawn as separate panels here — the histogram uses every row; for groups use  graph box ' + x + ', over(' + String(o.by).trim() + ')'; }
+      if (k === 'bar') { const m = s.match(/^gr(?:aph)?\s+h?bar\s+(?:\(\s*(\w+)\s*\)\s*)?([A-Za-z_]\w*)?/i), yv = m && m[2] ? (this.cxVarlist(m[2]).vars[0] || null) : null;
+        if (yv) { const st = (m[1] || 'mean').toLowerCase(); p.y = yv; p.stat = st === 'sum' ? 'sum' : st === 'count' ? 'count' : st === 'percent' ? 'percent' : 'mean'; if (!['mean', 'sum', 'count', 'percent'].includes(st)) note = 'note: (' + st + ') is drawn as the mean here'; } else p.stat = 'percent'; }
+    }
+    const cur = (S.csPages || {})[k] || {}; if (Object.keys(p).every(q => cur[q] === p[q])) return note;
+    this.setState(st => ({ csPages: { ...(st.csPages || {}), [k]: { ...((st.csPages || {})[k] || {}), ...p } } }));
+    return note;
   }
   // build .112: Stata's random-number functions for generate / replace (set seed makes them repeatable; Stata's own
   // generator differs, so the numbers are not Stata's, but their distribution is)
@@ -726,6 +735,8 @@
     if (!gen || (f === 'runiformint' && a.length < 2) || (f === 'rbinomial' && a.length < 2) || ((f === 'rpoisson' || f === 'rchi2' || f === 'rt') && !a.length)) return null;
     for (let i = 0; i < n; i++) out[i] = gen(); return out;
   }
+  // Stata's extended missing values: labels are stored under 2147483621 + k (.a = 2147483622 … .z); print them as .a … .z
+  cqXName(k) { const n = Number(k); return n >= 2147483622 && n <= 2147483647 ? '.' + String.fromCharCode(96 + n - 2147483621) : this.cqNum(n); }
   // binomial tails; the two-sided p sums every outcome no more likely than the one observed (as Stata and R)
   cqBinom(n, k, p) {
     const lf = new Float64Array(n + 1); for (let i = 2; i <= n; i++) lf[i] = lf[i - 1] + Math.log(i);

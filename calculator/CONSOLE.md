@@ -167,3 +167,19 @@ is opened (a calculator convenience Stata does not have).
 
 Tested on the ENVIPE 2011–2026 sample (14,035 adults × 904 variables): every graph type opens drawn, and the
 session's tables, models, `margins`, survey estimates and data steps print in the console.
+
+## Audit on the ENVIPE 2011–2026 sample (build .113)
+
+92 commands from every family ran on the ENVIPE sample (14,035 adults × 904 variables): each printed once, every
+entry has its R line, no page errors; results appear 35–150 ms after Enter. 44 numbers were checked against R on the
+same file (summarize, weighted summarize and mean, tab, chi2, t test, regress, logit, ranksum, correlation,
+`svy: mean` with the PSU design, proportion, oneway, exact CI, kwallis, spearman, egen, count) — all match. The saved
+do-file, run again on a fresh page, reproduced every output. Every graph type opened drawn. Fixed:
+
+- **Graph options reach the chart**: `histogram …, bin(#) percent` (or `frequency`), `graph bar|hbar (mean|sum|count|percent) y, over(g)`
+  (Stata's default with a variable is the mean, without one the percentage). The Results line names the chart as
+  drawn (`histogram edad, frequency` — the chart shows counts; Stata's default is density, same shape); a repeated
+  graph command with different options redraws. `histogram …, by()` notes that separate panels are not drawn.
+- **Stata's extended missing values** (`.a` … `.z`, e.g. ENVIPE's `.d` "No sabe / no responde", `.r` "No responde")
+  get their own rows in `tab …, missing`, with their labels, as Stata lists them; `codebook` and `label list` show them
+  as `.d` / `.r` instead of the long integer they are stored under.

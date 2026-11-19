@@ -34,7 +34,7 @@
     this.setState({ mfCmdErr: '', mfCmdOk: '' }, () => {
       try { this.runCmdLine(s); } catch (e) { this.setState({ mfCmdErr: String(e && e.message || e) }); }
       setTimeout(() => {
-        if (this.cqChartSync && this.cqPlotSig() !== plotSig0) { this.cqChartSync(); graphOpened = this.state.tab === 'plots'; }
+        if (this.cqChartSync && (this.cqPlotSig() !== plotSig0 || (this.state.tab === 'plots' && !this.state.mfCmdErr && /^(histogram|histogra|histogr|histog|histo|hist|kdensity|kdensit|kdensi|kdens|scatter|sc|twoway|tw|line|tsline|xtline|graph|gr)\b/i.test(s)))) { const note = this.cqChartSync(s); graphOpened = this.state.tab === 'plots'; if (note) this._cpGraphNote = note; }
         const S = this.state;
         if (S.mfCmdErr) { this.cpNote(s, S.mfCmdErr, 'err'); this.setState({ mfCmdErr: '' }); if (then) then(); return; }
         const settle = () => {
@@ -59,6 +59,9 @@
   // build .112: a typed graph command takes you to the drawn graph, as Stata opens its Graph window; Ctrl+K returns
   cpAfter(n0, inner, graphOpened) {
     const d = this.state.conLog.slice(n0).reverse().find(e => e.t === 'plot') || (graphOpened && this.state.tab === 'plots' && !this.state.mfCmdErr ? { t: 'plot-open' } : null); if (!d) return;
+    // the Results line names the chart as drawn (its exact Stata command); Review and the do-file keep what was typed
+    if (d.t === 'plot' && this.cpChartCmd && graphOpened) { try { const kc = this.cpChartCmd(this.state.plotKind, this.cbC ? this.cbC() : {}); if (kc && kc.stata) this.setState(st => ({ conLog: st.conLog.map(e => e === d ? { ...e, cxStata: kc.stata, cxR: kc.r } : e) })); } catch (e) {} }
+    if (this._cpGraphNote) { this.cpNote('', this._cpGraphNote, 'note'); this._cpGraphNote = ''; }
     if (this._cpBatch) { this._cpBatchPlot = d; return; }
     if (inner || this._cpInner > 0) return;
     this.cpShowGraph(d);

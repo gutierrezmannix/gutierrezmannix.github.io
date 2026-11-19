@@ -6873,7 +6873,10 @@ class Component extends DCLogic {
     const R = (x, n) => String(x).padStart(n), G = x => this.stataG(x), a = this.cxLab(v, mk), E = this._E;
     const fr = E.freqOf(a, w), rows = this.descOrder(v, fr.rows).slice();
     // , missing: the missing values get their own row (.), as in Stata
-    let miss = 0; if (O && (O.missing || O.m)) { for (let i = 0; i < a.length; i++) { if (mk && !mk[i]) continue; if (a[i] == null) miss += w ? (Number.isFinite(w[i]) ? w[i] : 0) : 1; } if (miss) rows.push({ label: '.', c: miss }); }
+    // build .112: Stata's extended missing values (.a … .z) get their own rows, with their value labels, as Stata lists them
+    let miss = 0; if (O && (O.missing || O.m)) { const col = this._raw.cols[this._raw.names.indexOf(v)], xk = col && col.x, by = new Map();
+      for (let i = 0; i < a.length; i++) { if (mk && !mk[i]) continue; if (a[i] == null) { const c = w ? (Number.isFinite(w[i]) ? w[i] : 0) : 1; miss += c; const k = xk ? xk[i] : 0; by.set(k, (by.get(k) || 0) + c); } }
+      [...by.keys()].sort((p, q) => p - q).forEach(k => { const code = 2147483621 + k, lab = k ? this.vlabel(v, code) : '.'; rows.push({ label: k && lab !== String(code) ? lab : k ? '.' + String.fromCharCode(96 + k) : '.', c: by.get(k) }); }); }
     const tot = fr.totalW + miss;
     if (!rows.length) return 'no observations';
     const lw = Math.min(24, Math.max(11, v.length, ...rows.map(r => String(r.label).length))), cnt = x => w ? G(x) : this.fmtN(x); let cum = 0;
@@ -7325,7 +7328,7 @@ class Component extends DCLogic {
   async dlProgram(build) {
     const site = 'https://gutierrezmannix.github.io/calculator/';
     if (!build && !this.dlOnSite()) { window.open(site, '_blank'); return; }
-    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-18.112') + '.html';
+    const url = build ? site + 'index.html' : (/\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname), name = 'GM26-calculator-' + (build || '2026-11-19.113') + '.html';
     try {
       const r = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw new Error(r.status);
       const blob = await r.blob(); if (blob.size < 100000) throw new Error('short');
@@ -8614,7 +8617,7 @@ class Component extends DCLogic {
     this.setState({ mfCmdErr: '', mfCmdOk: '' }, () => {
       try { this.runCmdLine(s); } catch (e) { this.setState({ mfCmdErr: String(e && e.message || e) }); }
       setTimeout(() => {
-        if (this.cqChartSync && this.cqPlotSig() !== plotSig0) { this.cqChartSync(); graphOpened = this.state.tab === 'plots'; }
+        if (this.cqChartSync && (this.cqPlotSig() !== plotSig0 || (this.state.tab === 'plots' && !this.state.mfCmdErr && /^(histogram|histogra|histogr|histog|histo|hist|kdensity|kdensit|kdensi|kdens|scatter|sc|twoway|tw|line|tsline|xtline|graph|gr)\b/i.test(s)))) { const note = this.cqChartSync(s); graphOpened = this.state.tab === 'plots'; if (note) this._cpGraphNote = note; }
         const S = this.state;
         if (S.mfCmdErr) { this.cpNote(s, S.mfCmdErr, 'err'); this.setState({ mfCmdErr: '' }); if (then) then(); return; }
         const settle = () => {
@@ -8639,6 +8642,9 @@ class Component extends DCLogic {
   // build .112: a typed graph command takes you to the drawn graph, as Stata opens its Graph window; Ctrl+K returns
   cpAfter(n0, inner, graphOpened) {
     const d = this.state.conLog.slice(n0).reverse().find(e => e.t === 'plot') || (graphOpened && this.state.tab === 'plots' && !this.state.mfCmdErr ? { t: 'plot-open' } : null); if (!d) return;
+    // the Results line names the chart as drawn (its exact Stata command); Review and the do-file keep what was typed
+    if (d.t === 'plot' && this.cpChartCmd && graphOpened) { try { const kc = this.cpChartCmd(this.state.plotKind, this.cbC ? this.cbC() : {}); if (kc && kc.stata) this.setState(st => ({ conLog: st.conLog.map(e => e === d ? { ...e, cxStata: kc.stata, cxR: kc.r } : e) })); } catch (e) {} }
+    if (this._cpGraphNote) { this.cpNote('', this._cpGraphNote, 'note'); this._cpGraphNote = ''; }
     if (this._cpBatch) { this._cpBatchPlot = d; return; }
     if (inner || this._cpInner > 0) return;
     this.cpShowGraph(d);
@@ -9418,7 +9424,7 @@ class Component extends DCLogic {
       case 'label': case 'lab': case 'labe': {
         const names = T.slice(1).length ? list(T.slice(1)) : raw.names.filter(v => raw.vlabs && raw.vlabs[v] && raw.vlabs[v].size), out = [];
         if (/^dir$/i.test(T[0])) { this.cqPrint(s, names.join('\n')); return ok(); }
-        for (const v of names) { const m = raw.vlabs && raw.vlabs[v]; if (!m || !m.size) continue; out.push(v + ':', ...[...m.entries()].sort((a, b) => a[0] - b[0]).map(([k, l]) => R(this.cqNum(k), 12) + ' ' + l)); }
+        for (const v of names) { const m = raw.vlabs && raw.vlabs[v]; if (!m || !m.size) continue; out.push(v + ':', ...[...m.entries()].sort((a, b) => a[0] - b[0]).map(([k, l]) => R(this.cqXName(k), 12) + ' ' + l)); }
         this.cqPrint(s, out.join('\n'), names.length === 1 ? 'attr(' + rcode(names[0]) + ', "labels")' : '# value labels: attr(df$x, "labels")'); return ok();
       }
       case 'table': {
@@ -9853,11 +9859,20 @@ class Component extends DCLogic {
   // build .112: a chart opened by a command is drawn at once — its variables go to the chart builder's settings
   // (csPages[kind]); the page's older pX / pY settings alone left the builder asking for variables
   cqPlotSig() { const S = this.state; return JSON.stringify([S.tab, S.plotKind, S.pX, S.pY, S.pYs, S.pG]); }
-  cqChartSync() {
-    const S = this.state, k = S.plotKind, x = S.pX, y = S.pY; if (S.tab !== 'plots' || !k || !x) return;
+  // s: the typed command; its options (bin(), percent, (mean) y …) set the chart as Stata would draw it; returns a note
+  cqChartSync(s) {
+    const S = this.state, k = S.plotKind, x = S.pX, y = S.pY; if (S.tab !== 'plots' || !k || !x) return '';
     const p = ['hist', 'box', 'density', 'pie', 'donut', 'bar', 'dot'].includes(k) ? { x } : ['gbox', 'violin', 'scatter', 'line', 'area', 'stack', 'groupbar'].includes(k) ? (y ? { x, y } : { x }) : null;
-    if (!p) return; const cur = (S.csPages || {})[k] || {}; if (Object.keys(p).every(q => cur[q] === p[q])) return;
-    this.setState(s => ({ csPages: { ...(s.csPages || {}), [k]: { ...((s.csPages || {})[k] || {}), ...p } } }));
+    if (!p) return ''; let note = '';
+    if (s) {
+      const ci = s.indexOf(','), o = ci >= 0 ? this.cxOpts(s.slice(ci + 1)) : {};
+      if (k === 'hist') { const bn = o.bin || o.bins; p.bins = bn && bn !== true ? String(bn) : ''; p.stat = o.percent ? 'percent' : 'count'; if (o.by) note = 'note: by() is not drawn as separate panels here — the histogram uses every row; for groups use  graph box ' + x + ', over(' + String(o.by).trim() + ')'; }
+      if (k === 'bar') { const m = s.match(/^gr(?:aph)?\s+h?bar\s+(?:\(\s*(\w+)\s*\)\s*)?([A-Za-z_]\w*)?/i), yv = m && m[2] ? (this.cxVarlist(m[2]).vars[0] || null) : null;
+        if (yv) { const st = (m[1] || 'mean').toLowerCase(); p.y = yv; p.stat = st === 'sum' ? 'sum' : st === 'count' ? 'count' : st === 'percent' ? 'percent' : 'mean'; if (!['mean', 'sum', 'count', 'percent'].includes(st)) note = 'note: (' + st + ') is drawn as the mean here'; } else p.stat = 'percent'; }
+    }
+    const cur = (S.csPages || {})[k] || {}; if (Object.keys(p).every(q => cur[q] === p[q])) return note;
+    this.setState(st => ({ csPages: { ...(st.csPages || {}), [k]: { ...((st.csPages || {})[k] || {}), ...p } } }));
+    return note;
   }
   // build .112: Stata's random-number functions for generate / replace (set seed makes them repeatable; Stata's own
   // generator differs, so the numbers are not Stata's, but their distribution is)
@@ -9873,6 +9888,8 @@ class Component extends DCLogic {
     if (!gen || (f === 'runiformint' && a.length < 2) || (f === 'rbinomial' && a.length < 2) || ((f === 'rpoisson' || f === 'rchi2' || f === 'rt') && !a.length)) return null;
     for (let i = 0; i < n; i++) out[i] = gen(); return out;
   }
+  // Stata's extended missing values: labels are stored under 2147483621 + k (.a = 2147483622 … .z); print them as .a … .z
+  cqXName(k) { const n = Number(k); return n >= 2147483622 && n <= 2147483647 ? '.' + String.fromCharCode(96 + n - 2147483621) : this.cqNum(n); }
   // binomial tails; the two-sided p sums every outcome no more likely than the one observed (as Stata and R)
   cqBinom(n, k, p) {
     const lf = new Float64Array(n + 1); for (let i = 2; i <= n; i++) lf[i] = lf[i - 1] + Math.log(i);
@@ -10284,7 +10301,7 @@ class Component extends DCLogic {
       if (m.type === 'numeric' && isFinite(m.mean)) o += '  range: [' + E.numLab(m.mn) + ', ' + E.numLab(m.mx) + ']   mean: ' + this.fmt(m.mean) + '   sd: ' + this.fmt(m.sd) + '\n';
       if (m.top && m.top.length) o += '  top values: ' + m.top.map(t => this.vlabel(m.name, t[0]) + ' (' + this.fmtN(t[1]) + ')').join(', ') + '\n';
       const vm = this._raw.vlabs && this._raw.vlabs[d.x];
-      if (vm && vm.size) o += '  value labels: ' + [...vm.entries()].slice(0, 8).map(e2 => e2[0] + ' = "' + e2[1] + '"').join(', ') + (vm.size > 8 ? ' …' : '') + '\n';
+      if (vm && vm.size) o += '  value labels: ' + [...vm.entries()].slice(0, 8).map(e2 => (this.cqXName ? this.cqXName(e2[0]) : e2[0]) + ' = "' + e2[1] + '"').join(', ') + (vm.size > 8 ? ' …' : '') + '\n';
       o += '-'.repeat(66);
       return o;
     }
@@ -12513,7 +12530,7 @@ class Component extends DCLogic {
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
       const r = await fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined }); clearTimeout(to); if (!r.ok) return;
       const j = await r.json();
-      if (j && j.build && this.verNewer(j.build, '2026-11-18.112') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
+      if (j && j.build && this.verNewer(j.build, '2026-11-19.113') && this._verDismiss !== j.build) this.setState({ newVer: { build: String(j.build), note: String(j.note || ''), site: onSite } });
     } catch (e) {} finally { this._vcBusy = false; }
   }
   uxMount() {
@@ -12922,7 +12939,7 @@ class Component extends DCLogic {
         ['Copy session log', () => { this.setState(closeMenu); if (!(S.conLog || []).length) { this.flash('The session log is empty — run a command or an analysis first.'); return; } if (out.copyLog) out.copyLog(); }],
         ['Print lab report…', go({ reportMode: true })],
         SEP,
-        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-18.112)', () => { this.setState(closeMenu); this.dlProgram(); }]
+        [this.dlOnSite() ? 'Download program here (one file, works offline)' : 'Get the program from the website (this copy is build 2026-11-19.113)', () => { this.setState(closeMenu); this.dlProgram(); }]
       ]],
       ['Data', { tab: 'data' }, 'Create, replace, recode and rename variables', [
         [(this._undo || []).length ? 'Undo: ' + (S.undoLabel || 'last change') + '   (Ctrl/\u2318+Z)' : 'Undo (nothing to undo)', () => { this.setState(closeMenu); this.undo(); }],
