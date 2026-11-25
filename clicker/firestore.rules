@@ -112,7 +112,7 @@ service cloud.firestore {
             || (request.resource.data.keys().hasOnly(["sid", "q", "text", "at"])
                 && request.resource.data.text is string
                 && request.resource.data.text.size() > 0
-                && request.resource.data.text.size() <= 300)
+                && request.resource.data.text.size() <= 32767)
              )
           && exists(/databases/$(database)/documents/clickerRuns/$(runId)/students/$(request.resource.data.sid))
           && live().active == true

@@ -3,6 +3,10 @@
 
 export const LETTERS = "ABCDEFGHIJ";
 
+// Longest text answer: the most characters one Excel cell can hold, so a
+// written answer always fits whole in the downloaded spreadsheet.
+export const MAX_TEXT = 32767;
+
 // Text answers are compared after this cleanup: no capitals, no accents,
 // no punctuation, single spaces. "Tenth  Amendment!" == "tenth amendment".
 export function norm(s) {

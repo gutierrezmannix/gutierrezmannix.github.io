@@ -1,11 +1,11 @@
 // Teacher page (/clicker/#teacher): quizzes, editor, projector view, results.
-import { getStore, DEMO, EMU, toDate } from "./store.js?v=2";
+import { getStore, DEMO, EMU, toDate } from "./store.js?v=3";
 import {
   LETTERS, kindOf, pts, fmtPts, keyText, publicKey, buildResults, makeCode, shortName,
   cleanQuiz, problems, maxPoints, norm, acceptedList, randomId, answered, mark, secs, clock, timeLeft
-} from "./scoring.js?v=2";
-import { ADMIN_EMAIL, STUDENT_URL } from "./config.js?v=2";
-import { xlsxBytes, csvText } from "./xlsx.js?v=2";
+} from "./scoring.js?v=3";
+import { ADMIN_EMAIL, STUDENT_URL } from "./config.js?v=3";
+import { xlsxBytes, csvText } from "./xlsx.js?v=3";
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const plural = (n, w) => fmtPts(n) + " " + w + (Number(n) === 1 ? "" : "s");

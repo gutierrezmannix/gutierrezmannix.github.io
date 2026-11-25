@@ -310,3 +310,9 @@ tr.keyrow td { font-family: var(--f-mono); font-size: .76rem; color: var(--green
 
 /* teacher notices sit at the top so they never cover the projector buttons */
 #tcToast { bottom: auto; top: calc(74px + env(safe-area-inset-top, 0px)); }
+
+/* long written answers: projector rows show three lines, grading rows six */
+.textlist div > span:first-child { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+#gList span:first-child { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.modal { max-height: calc(100vh - 32px); overflow: auto; }
+.modal p { overflow-wrap: anywhere; }

@@ -17,7 +17,7 @@ That file is the whole rules file for the project. It keeps every Documentary Fe
 
 ## How a class goes
 
-1. **Quizzes** tab → **+ New quiz**. Each question is either *multiple choice* (2–6 options, click the correct one) or *text answer* (list the accepted answers, or leave the list empty to grade by hand). Each question has its own **points** and **timer** in seconds; a timer of 0 means you close voting yourself. Tick **Opinion** for questions with no right answer: every answer gets the points.
+1. **Quizzes** tab → **+ New quiz**. Each question is either *multiple choice* (2–6 options, click the correct one) or *text answer* (list the accepted answers, or leave the list empty to grade by hand). A text answer can be up to 32,767 characters, the most one Excel cell holds. Each question has its own **points** and **timer** in seconds; a timer of 0 means you close voting yourself. Tick **Opinion** for questions with no right answer: every answer gets the points.
 2. In class press **Activate**. Only one quiz is active at a time; activating another turns the first one off. The projector shows the link and a 4-letter room code.
 3. Students type their name, student ID and the code.
 4. Press **Start question 1** (or Space / → / a presenter remote's "next" key). With a timer, voting closes when time runs out. The correct answer shows for the number of seconds you set, then the next question opens by itself. You can pause the timer, add 10 seconds, reveal early, or go back.

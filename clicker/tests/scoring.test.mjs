@@ -129,3 +129,11 @@ test("timers: seconds are whole and bounded; countdown math", () => {
   assert.equal(timeLeft({ seconds: 30, endsAt: 0 }, 5000), 0);
   assert.equal(timeLeft({ seconds: 30, paused: true, remaining: 7000, endsAt: 0 }, 99999), 7000);
 });
+
+import { MAX_TEXT } from "../scoring.js";
+test("the longest text answer is one full Excel cell", () => {
+  assert.equal(MAX_TEXT, 32767);
+  const long = "a".repeat(MAX_TEXT);
+  const b = xlsxBytes([{ name: "Answers", rows: [["Answer"], [long]] }]);
+  assert.ok(new TextDecoder().decode(b).includes(long));
+});

@@ -1,7 +1,7 @@
 // Student phone page: join with name + student ID (+ room code), answer, see right or wrong.
-import { getStore, DEMO } from "./store.js?v=2";
-import { LETTERS, autoMark, phoneScore, randomId, fmtPts, pts, timeLeft, clock } from "./scoring.js?v=2";
-import { TEACHER_NAME } from "./config.js?v=2";
+import { getStore, DEMO } from "./store.js?v=3";
+import { LETTERS, autoMark, phoneScore, randomId, fmtPts, pts, timeLeft, clock, MAX_TEXT } from "./scoring.js?v=3";
+import { TEACHER_NAME } from "./config.js?v=3";
 
 // What this phone remembers. In demo mode each browser tab acts as its own phone.
 const box = () => (DEMO ? sessionStorage : localStorage);
@@ -119,7 +119,7 @@ export async function mountStudent(root) {
         body = `<div class="card"><p class="muted" style="font-size:.85rem">Your answer</p><p class="qtext">${mine && mine.text ? esc(mine.text) : "<span class='muted'>No answer</span>"}</p></div>`;
       } else {
         body = `<form class="card textans" id="textForm"><div class="field"><label for="tAns">Your answer</label>
-          <textarea id="tAns" maxlength="300" autocapitalize="sentences">${esc(mine && mine.text || "")}</textarea></div>
+          <textarea id="tAns" maxlength="${MAX_TEXT}" autocapitalize="sentences">${esc(mine && mine.text || "")}</textarea><span class="hint" id="tCount" hidden></span></div>
           <button class="big-btn" type="submit" id="tGo">${mine && mine.text ? "Send again" : "Send"}</button></form>`;
       }
     } else {
@@ -302,10 +302,17 @@ export async function mountStudent(root) {
       send({ choice: i });
     }));
     const tf = document.getElementById("textForm");
+    const ta = document.getElementById("tAns"), tc = document.getElementById("tCount");
+    // Show a counter only when a long answer gets close to the limit.
+    if (ta && tc) ta.addEventListener("input", () => {
+      const n = ta.value.length;
+      tc.hidden = n < MAX_TEXT - 2000;
+      tc.textContent = n.toLocaleString() + " of " + MAX_TEXT.toLocaleString() + " characters";
+    });
     if (tf) tf.addEventListener("submit", e => {
       e.preventDefault();
       if (timeUp()) return;
-      const t = document.getElementById("tAns").value.trim().slice(0, 300);
+      const t = document.getElementById("tAns").value.trim().slice(0, MAX_TEXT);
       if (!t) { flash = "Type an answer first."; setStatus(); return; }
       send({ text: t }).then(() => { const b = document.getElementById("tGo"); if (b) b.textContent = "Send again"; });
     });
