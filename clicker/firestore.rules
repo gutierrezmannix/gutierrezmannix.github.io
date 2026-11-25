@@ -1,0 +1,125 @@
+rules_version = '2';
+
+// ONE rules file for the whole Firebase project (Documentary Feed + Clicker).
+// Paste this whole file into: Firebase console > Firestore Database > Rules > Publish
+// It keeps every Documentary Feed rule exactly as it was and adds the Clicker rules at the end.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == "carlosgutierrezmannix@gmail.com"
+        && request.auth.token.email_verified == true;
+    }
+
+    // ================= DOCUMENTARY FEED (unchanged) =================
+
+    // Videos: anyone can watch, only you can post, edit, or delete.
+    match /videos/{videoId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+
+      // Reactions: anyone can add one, but ONLY from the preset list.
+      // No free text is accepted, and nobody but you can edit or delete.
+      match /reactions/{reactionId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(["type", "createdAt"])
+          && request.resource.data.type in [
+               "heart", "like", "great", "amazing", "supergood",
+               "learned", "discuss", "boring", "moreaction"
+             ]
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+    }
+
+    // Traffic: anonymous visit and video-watch counts. Anyone can add one,
+    // only in this exact shape; only you can read or delete them.
+    match /visits/{visitId} {
+      allow read, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasAll(["kind", "page", "at"])
+        && request.resource.data.keys().hasOnly(["kind", "page", "video", "at"])
+        && request.resource.data.kind in ["view", "watch"]
+        && request.resource.data.page is string
+        && request.resource.data.page.matches("[a-z0-9-]{1,30}")
+        && (!("video" in request.resource.data)
+            || (request.resource.data.video is string
+                && request.resource.data.video.matches("[A-Za-z0-9_-]{1,40}")))
+        && request.resource.data.at == request.time;
+      allow update: if false;
+    }
+
+    // ================= CLICKER =================
+
+    function live() {
+      return get(/databases/$(database)/documents/clickerLive/state).data;
+    }
+
+    // What the phones see: which quiz is active, the current question
+    // (never its answer until you press Reveal). Anyone can read; only you write.
+    match /clickerLive/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Your quizzes with their answer keys: only you.
+    match /clickerQuizzes/{quizId} {
+      allow read, write: if isAdmin();
+    }
+
+    // One "run" each time you activate a quiz. Holds the room code: only you.
+    match /clickerRuns/{runId} {
+      allow read, write: if isAdmin();
+
+      // A student joins: only while this run is the active one, with the
+      // right room code (when the quiz uses one), in this exact shape.
+      match /students/{sid} {
+        allow read, delete: if isAdmin();
+        allow create: if sid.matches("[A-Za-z0-9]{16,40}")
+          && request.resource.data.keys().hasAll(["name", "device", "joinedAt"])
+          && request.resource.data.keys().hasOnly(["name", "studentId", "code", "device", "joinedAt"])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 60
+          && (!("studentId" in request.resource.data)
+              || (request.resource.data.studentId is string && request.resource.data.studentId.size() <= 20))
+          && request.resource.data.device is string
+          && request.resource.data.device.size() <= 40
+          && request.resource.data.joinedAt == request.time
+          && live().active == true
+          && live().runId == runId
+          && (live().needCode != true
+              || request.resource.data.code == get(/databases/$(database)/documents/clickerRuns/$(runId)).data.code);
+        allow update: if false;
+      }
+
+      // An answer: only from a student who joined, only to the question that
+      // is open right now, only while voting is open. Students can change
+      // their answer until you close voting. Nobody but you can read answers.
+      match /answers/{aid} {
+        allow read, delete: if isAdmin();
+        allow create, update: if request.resource.data.sid is string
+          && request.resource.data.q is int
+          && aid == request.resource.data.sid + "_" + string(request.resource.data.q)
+          && request.resource.data.at == request.time
+          && (
+               (request.resource.data.keys().hasOnly(["sid", "q", "choice", "at"])
+                && request.resource.data.choice is int
+                && request.resource.data.choice >= 0
+                && request.resource.data.choice < 10)
+            || (request.resource.data.keys().hasOnly(["sid", "q", "text", "at"])
+                && request.resource.data.text is string
+                && request.resource.data.text.size() > 0
+                && request.resource.data.text.size() <= 300)
+             )
+          && exists(/databases/$(database)/documents/clickerRuns/$(runId)/students/$(request.resource.data.sid))
+          && live().active == true
+          && live().runId == runId
+          && live().phase == "open"
+          && live().q == request.resource.data.q;
+      }
+    }
+  }
+}
