@@ -126,7 +126,7 @@ const ok = (c, m) => { if (c) console.log("  ok  " + m); else { fails++; console
   await T.click("[data-live=pause-timer]");
   await S[0].waitForSelector(".screen.ok", { timeout: 8000 });
   ok(true, "timer ran out → answer screen by itself");
-  ok(await S[1].locator(".screen.no").count() === 1, "wrong answer shows Not this time");
+  ok(/Oops!/.test(await S[1].locator(".screen.no").innerText()) && /Tenth/.test(await S[1].locator(".screen.no .key").innerText()), "wrong answer shows Oops with the correct answer");
   ok(await S[2].locator(".screen.wait").count() === 1, "no answer shows No answer");
   ok((await S[0].locator(".screen.ok").innerText()).includes("Tenth"), "phone names the right answer");
   ok(await T.locator(".popt.right").count() === 1, "projector highlights the right option");

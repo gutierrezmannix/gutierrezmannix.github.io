@@ -1,7 +1,7 @@
 // Student phone page: join with name + student ID (+ room code), answer, see right or wrong.
-import { getStore, DEMO } from "./store.js?v=1";
-import { LETTERS, autoMark, phoneScore, randomId, fmtPts, pts, timeLeft, clock } from "./scoring.js?v=1";
-import { TEACHER_NAME } from "./config.js?v=1";
+import { getStore, DEMO } from "./store.js?v=2";
+import { LETTERS, autoMark, phoneScore, randomId, fmtPts, pts, timeLeft, clock } from "./scoring.js?v=2";
+import { TEACHER_NAME } from "./config.js?v=2";
 
 // What this phone remembers. In demo mode each browser tab acts as its own phone.
 const box = () => (DEMO ? sessionStorage : localStorage);
@@ -125,7 +125,7 @@ export async function mountStudent(root) {
     } else {
       const opts = q.options || [];
       const withText = live.showText && opts.some(o => o);
-      body = `<div class="tiles${withText ? " with-text" : ""}${closed ? " locked" : ""}${withText && opts.some(o => o.length > 28) ? " one" : ""}" role="group" aria-label="Answers">` +
+      body = `<div class="tiles${closed ? " locked" : ""}" style="--rows:${Math.max(1, Math.ceil(opts.length / 2))}" role="group" aria-label="Answers">` +
         opts.map((o, i) => `<button type="button" class="tile" data-choice="${i}" aria-pressed="${mine && mine.choice === i ? "true" : "false"}" ${closed ? "disabled" : ""}><b>${LETTERS[i]}</b>${withText && o ? `<small>${esc(o)}</small>` : ""}</button>`).join("") +
         `</div>`;
     }
@@ -146,6 +146,12 @@ export async function mountStudent(root) {
     return `${fmtPts(s.got)} of ${plural(s.max, "point")} so far`;
   }
 
+  // A friendly line under a wrong answer; changes from question to question.
+  function cheer(q) {
+    const lines = ["You'll get the next one!", "Good try. Keep going!", "Almost there. Stay with it!", "No worries, on to the next one!"];
+    return lines[Math.abs(Number(q) || 0) % lines.length];
+  }
+
   function revealHtml(r) {
     const key = (live.keys || {})[live.q] || live.reveal || {};
     const mine = (r.answers || {})[live.q];
@@ -153,11 +159,11 @@ export async function mountStudent(root) {
     const label = esc(key.label || "");
     const yours = mine ? (key.type === "text" ? `“${esc(mine.text)}”` : LETTERS[mine.choice]) : "";
     let html;
-    if (m.status === "right") html = `<div class="screen ok"><div class="ring">✓</div><div class="big">Correct</div><div class="ans">The answer is <b>${label}</b></div><div class="so">+${plural(m.points, "point")} · ${soFar(r)}</div></div>`;
-    else if (m.status === "wrong") html = `<div class="screen no"><div class="ring">✕</div><div class="big">Not this time</div><div class="ans">You answered ${yours}.<br>The answer is <b>${label}</b></div><div class="so">${soFar(r)}</div></div>`;
+    if (m.status === "right") html = `<div class="screen ok"><div class="ring">✓</div><div class="big">Correct!</div><div class="key">${label}</div><div class="so">+${plural(m.points, "point")} · ${soFar(r)}</div></div>`;
+    else if (m.status === "wrong") html = `<div class="screen no"><div class="big">Oops!</div><div class="ans">The correct answer is</div><div class="key">${label}</div><div class="ans soft">You answered ${yours}. ${cheer(live.q)}</div><div class="so">${soFar(r)}</div></div>`;
     else if (m.status === "counted") html = `<div class="screen info"><div class="ring">✓</div><div class="big">Counted</div><div class="ans">Opinion question: every answer gets the points.</div><div class="so">+${plural(m.points, "point")} · ${soFar(r)}</div></div>`;
     else if (m.status === "pending") html = `<div class="screen info"><div class="ring">✎</div><div class="big">Answer saved</div><div class="ans">${esc(TEACHER_NAME)} will grade this one.</div><div class="so">${soFar(r)}</div></div>`;
-    else html = `<div class="screen wait"><div class="ring">–</div><div class="big">No answer</div><div class="ans">${key.opinion ? "This was an opinion question." : `The answer is <b>${label}</b>`}</div><div class="so">${soFar(r)}</div></div>`;
+    else html = `<div class="screen wait"><div class="big">Missed this one</div>${key.opinion ? `<div class="ans">This was an opinion question.</div>` : `<div class="ans">The correct answer is</div><div class="key">${label}</div>`}<div class="ans soft">Be ready for the next one!</div><div class="so">${soFar(r)}</div></div>`;
     const last = live.q + 1 >= live.total;
     const next = live.advance ? `<p class="note" data-cd="advance">${last ? "Final score" : "Next question"} in <b class="cd-n">${clock(timeLeft(live.advance, Date.now()))}</b></p>` : `<p class="note">Wait for the next question.</p>`;
     return `<div class="qhead"><span>Question ${live.q + 1} of ${live.total}</span><span>${plural(pts(key), "point")}</span></div>` + html + next;

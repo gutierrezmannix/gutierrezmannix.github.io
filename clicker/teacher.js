@@ -1,11 +1,11 @@
 // Teacher page (/clicker/#teacher): quizzes, editor, projector view, results.
-import { getStore, DEMO, EMU, toDate } from "./store.js?v=1";
+import { getStore, DEMO, EMU, toDate } from "./store.js?v=2";
 import {
   LETTERS, kindOf, pts, fmtPts, keyText, publicKey, buildResults, makeCode, shortName,
   cleanQuiz, problems, maxPoints, norm, acceptedList, randomId, answered, mark, secs, clock, timeLeft
-} from "./scoring.js?v=1";
-import { ADMIN_EMAIL, STUDENT_URL } from "./config.js?v=1";
-import { xlsxBytes, csvText } from "./xlsx.js?v=1";
+} from "./scoring.js?v=2";
+import { ADMIN_EMAIL, STUDENT_URL } from "./config.js?v=2";
+import { xlsxBytes, csvText } from "./xlsx.js?v=2";
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const plural = (n, w) => fmtPts(n) + " " + w + (Number(n) === 1 ? "" : "s");
@@ -137,7 +137,7 @@ export async function mountTeacher(root) {
     const right = u ? `<div class="tc-right"><span class="mono">${esc(STUDENT_URL)}</span><button class="btn small" type="button" data-act="copylink">Copy student link</button><button class="btn small" type="button" data-act="signout">Sign out</button></div>` : "";
     return (DEMO ? `<div class="demo-bar">Demo mode: everything stays in this browser. Student side: <a href="./?demo" target="_blank" rel="noopener">open it in a new tab</a> (or on a second window) · <a href="#" data-act="resetdemo">Reset demo</a></div>` : "") +
       `<div class="tc"><header class="tc-bar"><div class="tc-bar-in"><span class="tc-brand">Clicker<small>teacher</small></span>${tabs}${right}</div></header>
-       <main class="tc-main" id="tcMain">${main}</main></div>`;
+       <main class="tc-main${S.view === "live" ? " wide" : ""}" id="tcMain">${main}</main></div>`;
   }
 
   function render() {
