@@ -1,11 +1,12 @@
 // Teacher page (/clicker/#teacher): quizzes, editor, projector view, results.
-import { getStore, DEMO, EMU, toDate } from "./store.js?v=4";
+import { getStore, DEMO, EMU, toDate } from "./store.js?v=5";
 import {
   LETTERS, kindOf, pts, fmtPts, keyText, publicKey, buildResults, makeCode, shortName,
   cleanQuiz, problems, maxPoints, norm, acceptedList, randomId, answered, mark, secs, clock, timeLeft
-} from "./scoring.js?v=4";
-import { ADMIN_EMAIL, STUDENT_URL } from "./config.js?v=4";
-import { xlsxBytes, csvText } from "./xlsx.js?v=4";
+} from "./scoring.js?v=5";
+import { ADMIN_EMAIL, STUDENT_URL } from "./config.js?v=5";
+import { xlsxBytes, csvText } from "./xlsx.js?v=5";
+import { dialHtml, updateDials } from "./aztec.js?v=5";
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const plural = (n, w) => fmtPts(n) + " " + w + (Number(n) === 1 ? "" : "s");
@@ -154,7 +155,7 @@ export async function mountTeacher(root) {
     else main = quizzesHtml();
     root.innerHTML = frame(main);
     wireCommon();
-    if (S.view === "live") wireLive();
+    if (S.view === "live") { updateDials(root, S.live, Date.now(), timeLeft); wireLive(); }
     if (S.view === "results") wireResults();
     if (S.view === "quizzes") wireQuizzes();
   }
@@ -417,10 +418,9 @@ export async function mountTeacher(root) {
             <p class="muted">${nAns} of ${joined} answered${Object.keys(groups).length > 14 ? " · showing the 14 most common answers" : ""}</p>`;
         }
       }
-      const cd = L.phase === "open" && L.timer ? cdHtml("timer", L.timer)
-        : L.phase === "revealed" && L.advance ? `<span class="cd next${L.advance.paused ? " paused" : ""}" data-cd="advance" role="timer">${L.q + 1 >= L.total ? "Final scores" : "Next question"} in <span class="cd-n">${clock(timeLeft(L.advance, Date.now()))}</span></span>` : "";
+      const cd = L.phase === "revealed" && L.advance ? `<span class="cd next${L.advance.paused ? " paused" : ""}" data-cd="advance" role="timer">${L.q + 1 >= L.total ? "Final scores" : "Next question"} in <span class="cd-n">${clock(timeLeft(L.advance, Date.now()))}</span></span>` : "";
       body = `<div class="pj-qhead"><span>Question ${L.q + 1} of ${L.total} · ${plural(pts(q), "point")} · ${esc(typeLabel(q))}</span>${L.phase === "closed" ? '<span class="closed-tag">■ Voting closed</span>' : ""}${cd}</div>
-        <div class="pj-q">${esc(q.text)}</div>${content}
+        <div class="pj-qrow"><div class="pj-q">${esc(q.text)}</div>${L.phase === "open" && L.timer ? dialHtml("timer", "az-proj") : ""}</div>${content}
         ${revealed ? "" : `<div class="answered"><div class="lab"><span>Answered</span><b>${nAns} of ${joined}</b></div><div class="track"><i style="width:${joined ? Math.round(100 * nAns / joined) : 0}%"></i></div></div>`}`;
       const prev = L.q > 0 ? btn("← Previous", "prev", "ghost") : "";
       const last = L.q + 1 >= L.total;
@@ -479,6 +479,7 @@ export async function mountTeacher(root) {
     const L = S.live;
     if (!L || !L.active || !isAdmin(S.user)) return;
     const now = Date.now();
+    updateDials(document, L, now, timeLeft);
     document.querySelectorAll("[data-cd]").forEach(el => {
       const t = L[el.dataset.cd];
       if (!t) return;

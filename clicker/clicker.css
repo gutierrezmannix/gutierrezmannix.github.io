@@ -316,3 +316,52 @@ tr.keyrow td { font-family: var(--f-mono); font-size: .76rem; color: var(--green
 #gList span:first-child { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .modal { max-height: calc(100vh - 32px); overflow: auto; }
 .modal p { overflow-wrap: anywhere; }
+
+/* ---------- Aztec sun countdown ---------- */
+.az { --az-gold: #E2A82C; --az-gold-2: #F4C860; --az-turq: #2BB3A8; --az-jade: #3E9A6B; --az-orange: #F07A1E; --az-red: #D9432A; --az-obs: #15110C; --az-stone: #2A231A; --az-bone: #F6E7C8;
+  position: relative; width: var(--az-size, 96px); height: var(--az-size, 96px); max-width: 100%; flex: none; }
+.az svg { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 4px 10px rgba(0,0,0,.28)); transform-origin: 50% 50%; }
+.az-ray { fill: var(--az-gold); transition: opacity .5s, fill .4s; }
+.az-ray.out { opacity: .12; }
+.az-ray2 { fill: var(--az-turq); opacity: .9; }
+.az-band { fill: var(--az-stone); stroke: var(--az-gold); stroke-width: 1.6; }
+.az-card rect { fill: var(--az-jade); stroke: var(--az-bone); stroke-width: .8; }
+.az-fret { fill: var(--az-turq); transform-origin: 0 0; animation: az-spin 40s linear infinite; transition: fill .4s; }
+.az-track { fill: none; stroke: #0B0906; stroke-width: 11; }
+.az-arc { fill: none; stroke: var(--az-gold); stroke-width: 11; transition: stroke-dashoffset .3s linear, stroke .4s; }
+.az-sign { fill: var(--az-turq); transition: fill .4s, opacity .4s; }
+.az-sign.out { fill: #3A3329; }
+.az-core { fill: var(--az-obs); stroke: var(--az-gold); stroke-width: 1.4; }
+.az-core-ring { fill: none; stroke: var(--az-gold); stroke-width: .7; stroke-dasharray: 2 3; opacity: .75; }
+.az-num { font-family: var(--f-display); font-weight: 800; font-size: 46px; fill: var(--az-bone); transition: fill .3s; }
+.az-num.long { font-size: 28px; }
+.az-sub { display: none; font-family: var(--f-mono); font-size: 7px; letter-spacing: 1px; fill: var(--az-gold-2); }
+.az-paused .az-sub { display: block; }
+.az-paused svg { filter: grayscale(.75) brightness(.85); }
+.az-paused .az-fret { animation-play-state: paused; }
+/* last 10 seconds: the sun turns orange and spins faster */
+.az-low .az-arc { stroke: var(--az-orange); }
+.az-low .az-ray { fill: var(--az-orange); }
+.az-low .az-fret { animation-duration: 7s; }
+/* last 5 seconds: red, glowing, beating like a heart */
+.az-crit .az-arc { stroke: var(--az-red); }
+.az-crit .az-ray { fill: var(--az-red); }
+.az-crit .az-fret { fill: #E8553A; animation-duration: 2.4s; }
+.az-crit .az-num { fill: #FFE1D6; }
+.az-crit svg { animation: az-beat 1s ease-in-out infinite; filter: drop-shadow(0 0 calc(var(--az-size, 96px) * .12) rgba(217,67,42,.8)); }
+/* time's up */
+.az-done .az-num { fill: var(--az-red); }
+.az-done .az-fret { animation-play-state: paused; fill: #5A2A1E; }
+.az-done svg { animation: az-flash .7s ease-out 2; }
+@keyframes az-spin { to { transform: rotate(360deg); } }
+@keyframes az-beat { 0%, 100% { transform: scale(1); } 12% { transform: scale(1.08); } 24% { transform: scale(.97); } 38% { transform: scale(1.05); } 60% { transform: scale(1); } }
+@keyframes az-flash { 0% { filter: brightness(1.8) drop-shadow(0 0 24px rgba(217,67,42,.9)); } 100% { filter: brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.28)); } }
+@media (prefers-reduced-motion: reduce) { .az-fret, .az-crit svg, .az-done svg { animation: none !important; } }
+
+/* phone: dial beside the question */
+.qtop { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.qtop-text { display: grid; gap: 6px; min-width: 0; }
+.az-phone { --az-size: 96px; }
+/* projector: big dial beside the question */
+.pj-qrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: clamp(16px, 3vw, 48px); align-items: center; }
+.az-proj { --az-size: clamp(110px, min(14vw, 21vh), 250px); }

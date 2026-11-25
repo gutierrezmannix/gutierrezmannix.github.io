@@ -5,8 +5,8 @@ let mode = isTeacher();
 
 async function start() {
   try {
-    if (mode) (await import("./teacher.js?v=4")).mountTeacher(root);
-    else (await import("./student.js?v=4")).mountStudent(root);
+    if (mode) (await import("./teacher.js?v=5")).mountTeacher(root);
+    else (await import("./student.js?v=5")).mountStudent(root);
   } catch (e) {
     console.error(e);
     root.innerHTML = '<div class="boot"><b>The clicker could not load.</b><br>Check your internet connection and reload the page.</div>';

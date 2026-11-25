@@ -114,7 +114,8 @@ const ok = (c, m) => { if (c) console.log("  ok  " + m); else { fails++; console
   // --- Q1: timed MC
   await T.click("[data-live=primary]");
   await S[0].waitForSelector(".tile[data-choice]");
-  ok(await S[0].locator(".cd-n").count() === 1, "phone shows a countdown");
+  ok(await S[0].locator(".az .az-num").count() === 1 && /^\d+$/.test(await S[0].locator(".az .az-num").textContent()), "phone shows the sun countdown");
+  ok(await T.locator(".az-proj .az-num").count() === 1, "projector shows the big sun countdown");
   await S[0].click('.tile[data-choice="1"]');
   await S[1].click('.tile[data-choice="0"]');
   await T.waitForFunction(() => /2 of 3/.test(document.querySelector(".answered")?.textContent || ""));

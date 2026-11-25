@@ -1,7 +1,8 @@
 // Student phone page: join with name + student ID (+ room code), answer, see right or wrong.
-import { getStore, DEMO } from "./store.js?v=4";
-import { LETTERS, autoMark, phoneScore, randomId, fmtPts, pts, timeLeft, clock, MAX_TEXT } from "./scoring.js?v=4";
-import { TEACHER_NAME } from "./config.js?v=4";
+import { getStore, DEMO } from "./store.js?v=5";
+import { LETTERS, autoMark, phoneScore, randomId, fmtPts, pts, timeLeft, clock, MAX_TEXT } from "./scoring.js?v=5";
+import { TEACHER_NAME } from "./config.js?v=5";
+import { dialHtml, updateDials } from "./aztec.js?v=5";
 
 // What this phone remembers. In demo mode each browser tab acts as its own phone.
 const box = () => (DEMO ? sessionStorage : localStorage);
@@ -83,6 +84,7 @@ export async function mountStudent(root) {
       html = endHtml(r);
     }
     root.innerHTML = frame(html, me);
+    updateDials(root, live, Date.now(), timeLeft);
     wire();
   }
 
@@ -109,10 +111,9 @@ export async function mountStudent(root) {
   function questionHtml(r, closed) {
     const { q, n, of, p } = qInfo();
     const mine = (r.answers || {})[live.q];
-    const cd = !closed && live.timer ? `<span class="cd small" data-cd="timer" role="timer"><span class="cd-n">${clock(timeLeft(live.timer, Date.now()))}</span></span>` : "";
-    const head = `<div class="qhead"><span>Question ${n} of ${of} · ${plural(p, "point")}${q.opinion ? " · opinion" : ""}</span>${cd}</div>` +
-      (!closed && live.timer ? `<div class="cd-line" data-cdbar="timer"><i style="width:100%"></i></div>` : "");
-    const text = live.showText && q.text ? `<p class="qtext">${esc(q.text)}</p>` : `<p class="note">Look at the screen for the question.</p>`;
+    const dial = !closed && live.timer ? dialHtml("timer", "az-phone") : "";
+    const text = live.showText && q.text ? `<p class="qtext">${esc(q.text)}</p>` : `<p class="note" style="text-align:left">Look at the screen for the question.</p>`;
+    const head = `<div class="qtop"><div class="qtop-text"><div class="qhead"><span>Question ${n} of ${of} · ${plural(p, "point")}${q.opinion ? " · opinion" : ""}</span></div>${text}</div>${dial}</div>`;
     let body = "";
     if (q.type === "text") {
       if (closed) {
@@ -138,7 +139,7 @@ export async function mountStudent(root) {
       ? `<p class="note">Sent ✓. You can edit it and send again until voting closes.</p>`
       : `<p class="note">Sent ✓ <b>${LETTERS[mine.choice]}</b>. You can change it until voting closes.</p>`;
     else status = `<p class="note">${q.type === "text" ? "Type your answer and press Send." : "Tap your answer."}</p>`;
-    return head + text + body + `<div id="stStatus">${status}</div>`;
+    return head + body + `<div id="stStatus">${status}</div>`;
   }
 
   function soFar(r) {
@@ -236,6 +237,7 @@ export async function mountStudent(root) {
       el.classList.toggle("low", left <= 5000 && !t.paused);
       el.classList.toggle("paused", !!t.paused);
     });
+    updateDials(root, live, now, timeLeft);
     root.querySelectorAll("[data-cdbar]").forEach(el => {
       const t = live[el.dataset.cdbar];
       const i = el.querySelector("i");
