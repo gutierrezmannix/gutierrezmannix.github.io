@@ -1,7 +1,7 @@
 // Student phone page: join with name + student ID (+ room code), answer, see right or wrong.
-import { getStore, DEMO } from "./store.js?v=3";
-import { LETTERS, autoMark, phoneScore, randomId, fmtPts, pts, timeLeft, clock, MAX_TEXT } from "./scoring.js?v=3";
-import { TEACHER_NAME } from "./config.js?v=3";
+import { getStore, DEMO } from "./store.js?v=4";
+import { LETTERS, autoMark, phoneScore, randomId, fmtPts, pts, timeLeft, clock, MAX_TEXT } from "./scoring.js?v=4";
+import { TEACHER_NAME } from "./config.js?v=4";
 
 // What this phone remembers. In demo mode each browser tab acts as its own phone.
 const box = () => (DEMO ? sessionStorage : localStorage);
@@ -38,7 +38,7 @@ export async function mountStudent(root) {
     return (DEMO ? `<div class="demo-bar">Demo mode: answers stay in this browser. Teacher side: <a href="./?demo#teacher" target="_blank" rel="noopener">open it in a new tab</a>.</div>` : "") +
       `<div class="st"><header class="st-top"><span class="st-brand">Clicker${course}</span><span class="st-me">${me ? esc(me) : ""}</span></header>` +
       `<main class="st-main" id="stMain">${inner}</main>` +
-      `<footer class="st-foot">${esc(TEACHER_NAME)} · <a href="#teacher">Instructor</a></footer></div>`;
+      `<footer class="st-foot">${esc(TEACHER_NAME)}</footer></div>`;
   }
 
   function keyFor() {

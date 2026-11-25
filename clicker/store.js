@@ -1,6 +1,6 @@
 // Data layer. Talks to Firebase (Firestore), or, with ?demo in the address,
 // to a copy kept in this browser so you can try everything without Firebase.
-import { firebaseConfig, ADMIN_EMAIL } from "./config.js?v=3";
+import { firebaseConfig, ADMIN_EMAIL } from "./config.js?v=4";
 
 const FB = "https://www.gstatic.com/firebasejs/10.12.2";
 
