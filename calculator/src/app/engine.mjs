@@ -926,7 +926,8 @@ function regressCore(ya, preds, w, vce) {
     for (let r = 0; r < p; r++) sX[r] += wi * xrow[r];
     qr.add(xrow, y, wi);
   }
-  if (cnt < p + 2) return { error: 'not enough complete rows (' + cnt + ') for ' + p + ' parameters.' };
+  // GM26 .114: one residual degree of freedom is enough, as in Stata and R (n = parameters + 1)
+  if (cnt < p + 1) return { error: 'not enough complete rows (' + cnt + ') for ' + p + ' parameters.' };
   const sol = qr.solve();
   if (sol.aliased.length) return { error: aliasMessage(sol, terms.map(t => t.label)), aliased: sol.aliased.map(j => terms[j].label), constTerms: sol.aliased.filter(j => sol.constant.includes(j)).map(j => terms[j].label) };
   if (!(yhi > ylo)) return { error: 'the outcome has the same value in every complete row — nothing to explain.' };
@@ -966,19 +967,34 @@ function regressCore(ya, preds, w, vce) {
   const het = hden > 0 ? (hxy - hx * hy / rn) / hden : 0;
   let vceInfo = null, Fo = F, df1o = p - 1, df2o = dfE;
   if (vce && vce.type && vce.type !== 'classical') {
-    const rows = [];
+    // GM26 .114: the sandwich is formed with centred, rescaled predictors z = (x − mean) / sd — the same model, mapped
+    // back exactly (b = T·b_z, V = T·V_z·T′) — so robust, clustered and survey SEs keep full precision when a
+    // predictor is large relative to its spread (timestamps, ID-like codes, values around 1e5 that vary by 1).
+    const ctr = new Float64Array(p), scl = new Float64Array(p).fill(1), zrow = new Float64Array(p);
+    for (let r = 1; r < p; r++) { ctr[r] = xbar[r]; const sd = Math.sqrt(sXc[r] / sw); scl[r] = sd > 0 ? sd : 1; }
+    const qz = lsqQR(p), rows = [];
     for (let i = 0; i < N; i++) {
       if (!rowOf(i)) continue;
       const y = ya[i], wi = w ? w[i] : 1;
       let fh = 0; for (let r = 0; r < p; r++) fh += b[r] * xrow[r];
-      const ee = (y - fh) * wi, s = new Float64Array(p); for (let r = 0; r < p; r++) s[r] = xrow[r] * ee;
+      zrow[0] = 1; for (let r = 1; r < p; r++) zrow[r] = (xrow[r] - ctr[r]) / scl[r];
+      qz.add(zrow, y, wi);
+      const ee = (y - fh) * wi, s = new Float64Array(p); for (let r = 0; r < p; r++) s[r] = zrow[r] * ee;
       rows.push({ i, s, cl: vce.cl ? vce.cl[i] : null, st: vce.st ? vce.st[i] : null });
     }
-    const sv = sandwichV(inv, rows, vce, cnt, p, null);
+    const solz = qz.solve();
+    const sv = sandwichV(solz.aliased.length ? inv : solz.inv, rows, vce, cnt, p, null);
     if (sv.error) return sv;
+    const Vz = sv.V, T = Array.from({ length: p }, () => new Float64Array(p));
+    T[0][0] = 1; for (let r = 1; r < p; r++) { T[0][r] = -ctr[r] / scl[r]; T[r][r] = 1 / scl[r]; }
+    const TV = Array.from({ length: p }, (_, a) => { const o = new Float64Array(p); for (let c = 0; c < p; c++) { let t = 0; for (let k = 0; k < p; k++) if (T[a][k]) t += T[a][k] * Vz[k][c]; o[c] = t; } return o; });
+    const V = Array.from({ length: p }, (_, a) => { const o = new Float64Array(p); for (let e = 0; e < p; e++) { let t = 0; for (let k = 0; k < p; k++) if (T[e][k]) t += TV[a][k] * T[e][k]; o[e] = t; } return o; });
     const dfv = sv.df > 0 ? sv.df : dfE;
-    coefs.forEach((c, j) => { c.se = Math.sqrt(Math.max(0, sv.V[j][j])); c.t = c.b / c.se; c.p = pT(c.t, dfv); });
-    const wf = waldF(b, sv.V, dfv, vce.type !== 'robust'); Fo = wf.F; df1o = wf.df1; df2o = wf.df2;
+    coefs.forEach((c, j) => { c.se = Math.sqrt(Math.max(0, V[j][j])); c.t = c.b / c.se; c.p = pT(c.t, dfv); });
+    // the joint test of the slopes is the same in either scale; the rescaled one is the well-conditioned one
+    const bz = Float64Array.from(b, (v, r) => r === 0 ? v : v * scl[r]);
+    const wf = waldF(bz, Vz, dfv, vce.type !== 'robust'); Fo = wf.F; df1o = wf.df1; df2o = wf.df2;
+    sv.V = V;
     vceInfo = { type: vce.type, df: dfv, G: sv.G, H: sv.H, single: sv.single };
   }
   return { vce: vceInfo, dfT: vceInfo ? vceInfo.df : dfE, coefs, n: cnt, dropped: N - cnt, R2, adjR2, F: Fo, df1: df1o, df2: df2o, pModel: pF(Fo, df1o, df2o), refs, sst: SST, sse: SSE, rmse: Math.sqrt(sigma2), diag: { fitted, resid, skew, het } };

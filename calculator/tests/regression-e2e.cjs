@@ -16,7 +16,7 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
   await p.locator('button.mf-nav[data-nav="tests"]').click(); await p.waitForTimeout(300);
   await p.evaluate(() => [...document.querySelectorAll('button')].find(e => e.offsetParent && /^Output/.test(e.textContent.trim())).click()); await p.waitForTimeout(500);
   const output = () => p.evaluate(() => [...document.querySelectorAll('button')].find(e => e.offsetParent && /^(Output|Console)/.test(e.textContent.trim()))?.click());
-  const cmd = async s => { let box = p.locator('input[placeholder*="Stata command"]').first(); if (!(await box.isVisible().catch(() => false))) { await output(); await p.waitForTimeout(500); } box = p.locator('input[placeholder*="Stata command"]').first(); await box.fill(s); await box.press('Enter'); await p.waitForTimeout(2500); };
+  const cmd = async s => { let box = p.locator('input[placeholder*="Stata command"]').first(); if (!(await box.isVisible().catch(() => false))) { await p.locator('.mf-cpbtn').click(); await p.waitForSelector('section.cp'); await p.waitForTimeout(500); } /* the console page (build .103) */ box = p.locator('input[placeholder*="Stata command"]').first(); await box.fill(s); await box.press('Enter'); await p.waitForTimeout(2500); };
   const main = () => p.locator('.mf-main').innerText();
   await cmd('regress y inc x2');
   let t = await main();
@@ -34,6 +34,7 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
   await cmd('regress y x2 inc_k [pw=w]');
   t = await main(); check(/ROBUST \(HC1\) SEs/.test(t) && /\.23(7[5-9]|8[0-4])\d*/.test(t), '[pw=]: robust SEs (x2 .238, as Stata)');
   await cmd('regress y x2 i.grupo, vce(robust)');
+  if (await p.locator('section.cp').isVisible().catch(() => false)) { await p.locator('.mf-cpbtn').click(); await p.waitForTimeout(600); } // back from the console page to the model (build .103)
   await p.getByRole('button', { name: /Predictions/ }).first().click(); await p.waitForTimeout(1500);
   await p.locator('input[aria-label="From"]').fill('-2'); await p.locator('input[aria-label="From"]').press('Enter');
   await p.locator('input[aria-label="To"]').fill('2'); await p.locator('input[aria-label="To"]').press('Enter');
@@ -41,7 +42,7 @@ const { chromium } = require('playwright'); const { pickBy } = require('./e2e-pi
   await pickBy(p, p, 'Margins lines by', 'grupo'); await p.waitForTimeout(1500);
   t = await main();
   check(/margins grupo_c, at\(x2=\(-2\(0\.5\)2\)\)/.test(t) && /The margins table · 27 rows/i.test(t) && /P>\|t\|/i.test(t), 'step 7: margins at x2 = -2(0.5)2 by grupo, 27 rows, t statistics after regress');
-  check(await p.locator('svg[aria-label*="by x2"] polyline').count() === 3, 'the marginsplot draws one line per group');
+  check(await p.locator('svg[aria-label*="by x2"]').first().locator('polyline').count() === 3, 'the marginsplot draws one line per group'); // the Plots panel shows a second copy (preview)
   await p.getByRole('button', { name: 'Error bars' }).click(); await p.waitForTimeout(500);
   t = await main(); check(!/recastci\(rarea\)/.test(t.match(/marginsplot[^\n]*/)[0]) && await p.locator('svg[aria-label*="by x2"] polygon').count() === 0, 'error bars instead of bands (marginsplot without recastci)');
   if (shots) await p.screenshot({ path: path.join(shots, 'reg-step7.png'), fullPage: true });

@@ -1,3 +1,18 @@
+# Simulation audit: robust SEs at full precision, one residual degree of freedom — build 2026-11-27.114
+
+A simulation audit compared regression, t-tests and correlation with statsmodels and SciPy:
+
+- 310 simulated datasets: 260 regressions (ordinary and robust), 398 t-tests (Student, Welch, paired, one-sample) and 160 Pearson and Spearman correlations. They ran from 4 to 2,000 rows, with values from 10⁻⁶ to 10⁸, missing values and ties.
+- 5,000-sample Monte Carlo checks of false-alarm rates (all 4.2–5.6%) and 95% coverage (all 94.6–95.6%).
+- 264 numbers printed in the console for `regress` (plain, `robust`, `i.`), `ttest` (four kinds), `correlate`, `pwcorr` and `spearman` on three datasets.
+
+Everything agreed except two things, both fixed here:
+
+- **Robust, clustered and survey standard errors lost digits** when a predictor was large relative to its spread, such as values around 100,000 that vary by about 1, timestamps or ID-like codes. The error reached the 5th–6th digit of an SE and the 4th digit of the robust F in very small samples. The sandwich is now formed with centred, rescaled predictors and mapped back exactly. Robust SEs agree with statsmodels HC1, checked in 50-digit arithmetic, to about 10⁻¹⁰. Ordinary data was already exact and is unchanged.
+- **A model with one residual degree of freedom was refused** (n = parameters + 1, e.g. 6 rows and 4 predictors). It now runs, as in Stata and R; n = parameters is still refused.
+
+`tests/regression-robust-precision.test.mjs` checks both. Robust and clustered SEs must not change when predictors are shifted by 10³ or 10⁵, and the old build failed that at about 10⁻⁶. `tests/regression-e2e.cjs` now opens the console with its button and closes it before Predictions (build .103). It also counts the lines of the first margins plot, because the Plots panel shows a second copy.
+
 # Random audit against R; omitted terms as in Stata — build 2026-11-02.76
 
 **The audit.** 370 random models on MexicoLapop_Class1.dta, checked against R (`lm`, `glm`, `MASS::polr`, and
